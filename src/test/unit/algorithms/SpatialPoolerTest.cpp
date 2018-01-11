@@ -2005,11 +2005,61 @@ TEST(SpatialPoolerTest, testSerialization2) {
       }
     }
   }
-
   cout << "Timing for SpatialPooler serialization (smaller is better):" << endl;
   cout << "Stream: " << testTimer.getElapsed() << endl;
-
   remove("outC.stream");
+}
+
+
+TEST(SpatialPoolerTest, testDifferentConstructorVsSetterBehavior)
+{
+  /** this test exposes wrong behavior, where SP created via constructor
+  behaves differently to a SP via setters (setXXX()), both with the same
+  params. 
+  */
+    SpatialPooler spConstruct{std::vector<UInt>{10} /* input*/, std::vector<UInt>{2048}/* SP output cols XXX sensitive*/,
+                        /*pot radius*/ 20, //each col sees
+                        /*pot pct*/ 0.5, //XXX sensitive
+                        /*global inhibition*/ false, //XXX sensitive
+                       /*Real localAreaDensity=*/0.02, //2% active cols
+                       /*UInt numActiveColumnsPerInhArea=*/0, //mutex with above ^^ //XXX sensitive
+};
+
+    SpatialPooler  sp{std::vector<UInt>{10} /* input*/, std::vector<UInt>{2048}/* SP output cols */};
+sp.setPotentialRadius(20);
+sp.setPotentialPct(0.5);
+sp.setGlobalInhibition(false);
+sp.setLocalAreaDensity(0.02); //2% active cols
+sp.setNumActiveColumnsPerInhArea(0); //mutex with above ^^
+
+
+//    EXPECT_EQ(spConstruct, sp);  //FIXME how compare 2 SP
+check_spatial_eq(spConstruct, sp);
+}
+
+
+
+TEST(SpatialPoolerTest, testSaveLoad) {
+    const char* filename = "SpatialPoolerSerialization.tmp";
+    SpatialPooler sp1, sp2;
+    UInt numInputs = 6;
+    UInt numColumns = 12;
+    setup(sp1, numInputs, numColumns);
+
+    ofstream outfile;
+    outfile.open(filename);
+    sp1.save(outfile);
+    outfile.close();
+
+    ifstream infile (filename);
+    sp2.load(infile);
+    infile.close();
+
+    ASSERT_NO_FATAL_FAILURE(
+      check_spatial_eq(sp1, sp2));
+
+    int ret = ::remove(filename);
+    ASSERT_TRUE(ret == 0) << "Failed to delete " << filename;
 }
 
 
