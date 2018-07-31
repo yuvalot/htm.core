@@ -370,26 +370,41 @@ void SpatialPooler::initialize(
     columnDimensions_.push_back(columnDimension);
   }
 
-  NTA_ASSERT(numColumns_ > 0);
-  NTA_ASSERT(numInputs_ > 0);
-  NTA_ASSERT(inputDimensions_.size() == columnDimensions_.size());
-  NTA_ASSERT(numActiveColumnsPerInhArea > 0 ||
+  NTA_CHECK(numColumns_ > 0);
+  NTA_CHECK(numInputs_ > 0);
+  NTA_CHECK(inputDimensions_.size() == columnDimensions_.size());
+  NTA_CHECK(numActiveColumnsPerInhArea > 0 ||
              (localAreaDensity > 0 && localAreaDensity <= 0.5));
-  NTA_ASSERT(potentialPct > 0 && potentialPct <= 1);
 
   seed_((UInt64)(seed < 0 ? rand() : seed));
 
-  potentialRadius_ =
-      potentialRadius > numInputs_ ? numInputs_ : potentialRadius;
+  potentialRadius_ = potentialRadius;
+  NTA_CHECK(potentialRadius_ <= numInputs_);
+
   potentialPct_ = potentialPct;
+  NTA_CHECK(potentialPct_ > 0 && potentialPct_ <= 1);
+
   globalInhibition_ = globalInhibition;
+
   numActiveColumnsPerInhArea_ = numActiveColumnsPerInhArea;
+  NTA_CHECK(numActiveColumnsPerInhArea_ > 0 && numActiveColumnsPerInhArea_ <= (int)numColumns_);
+
   localAreaDensity_ = localAreaDensity;
+  NTA_CHECK(localAreaDensity_ >= 0 && localAreaDensity_ <= 1);
+
   stimulusThreshold_ = stimulusThreshold;
+  NTA_CHECK(stimulusThreshold_ > 0 );
+
   synPermInactiveDec_ = synPermInactiveDec;
+  NTA_CHECK(synPermInactiveDec_ > 0 && synPermInactiveDec <= 1);
+
   synPermActiveInc_ = synPermActiveInc;
+  NTA_CHECK(synPermActiveInc_ > 0 && synPermActiveInc_ <= 1);
+
   synPermBelowStimulusInc_ = synPermConnected / 10.0;
   synPermConnected_ = synPermConnected;
+  NTA_CHECK(synPermConnected_ > synPermMin_ && synPermConnected_ < synPermMax_);
+
   minPctOverlapDutyCycles_ = minPctOverlapDutyCycles;
   dutyCyclePeriod_ = dutyCyclePeriod;
   boostStrength_ = boostStrength;
@@ -398,7 +413,7 @@ void SpatialPooler::initialize(
   synPermMin_ = 0.0;
   synPermMax_ = 1.0;
   synPermTrimThreshold_ = synPermActiveInc / 2.0;
-  NTA_ASSERT(synPermTrimThreshold_ < synPermConnected_);
+  NTA_CHECK(synPermTrimThreshold_ < synPermConnected_);
   updatePeriod_ = 50;
   initConnectedPct_ = 0.5;
   iterationNum_ = 0;
