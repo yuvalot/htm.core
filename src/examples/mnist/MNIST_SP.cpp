@@ -39,25 +39,6 @@ using nupic::algorithms::sdr_classifier::SDRClassifier;
 using nupic::algorithms::cla_classifier::ClassifierResult;
 
 
-#include <stdio.h>
-#include <execinfo.h>
-#include <signal.h>
-#include <stdlib.h>
-#include <unistd.h>
-void keyboard_interrupt_handler(int sig) {
-  void *array[50];
-  size_t size;
-
-  // get void*'s for all entries on the stack
-  size = backtrace(array, 50);
-
-  // print out all the frames to stderr
-  fprintf(stderr, "Error: signal %d:\n", sig);
-  backtrace_symbols_fd(array, size, STDERR_FILENO);
-  exit(1);
-}
-
-
 vector<UInt> read_mnist_labels(string path) {
     ifstream file(path);
     if( !file.is_open() ) {
@@ -150,9 +131,6 @@ int main(int argc, char **argv) {
   }
   UInt train_time = train_dataset_iterations * 60000;
 
-  signal(SIGINT, keyboard_interrupt_handler);   // install stack trace printout on error
-  signal(SIGSEGV, keyboard_interrupt_handler);   // install stack trace printout on error
-
   SDR input({28, 28, 2});
   SpatialPooler sp(
     /* numInputs */                    input.dimensions,
@@ -176,23 +154,6 @@ int main(int argc, char **argv) {
 
   SDR columns({sp.getNumColumns()});
   SDR_Metrics columnStats(columns, 1402);
-
-  if( verbosity ) {
-    // Print the min/mean/max potential pool size
-    UInt min = 999999;
-    Real mean = 0;
-    UInt max = 0;
-    for( UInt cell = 0; cell < sp.getNumColumns(); cell++) {
-      auto pool = sp.initMapPotential_( cell, false );
-      UInt size = 0;
-      for( auto presyn : pool ) {if ( presyn ) size++; };
-      min = size < min ? size : min;
-      max = size > max ? size : max;
-      mean += size;
-    }
-    mean /= sp.getNumColumns();
-    cerr << "POTENTIAL POOL MIN / MEAN / MAX " << min << " / " << mean << " / " << max << endl;
-  }
 
   SDRClassifier clsr(
     /* steps */         {0},
