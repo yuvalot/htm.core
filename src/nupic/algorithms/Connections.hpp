@@ -68,6 +68,7 @@ struct SynapseData {
   CellIdx presynapticCell;
   Permanence permanence;
   Segment segment;
+  CellIdx presynapticMapIndex_;
 };
 
 /**
@@ -383,6 +384,10 @@ public:
                   const std::vector<CellIdx> &activePresynapticCells,
                   Permanence connectedPermanence) const;
 
+  void
+  computeActivity(std::vector<UInt32> &numActiveConnectedSynapsesForSegment,
+                  const std::vector<CellIdx> &activePresynapticCells) const;
+
   /**
    * Compute the segment excitations for a single active presynaptic cell.
    *
@@ -528,14 +533,9 @@ public:
   void unsubscribe(UInt32 token);
 
 protected:
-  /**
-   * Gets the synapse with the lowest permanence on the segment.
-   *
-   * @param segment Segment whose synapses to consider.
-   *
-   * @retval Synapse with the lowest permanence.
-   */
-  Synapse minPermanenceSynapse_(Segment segment) const;
+  void remove_presynapse_(UInt index,
+    vector<Synapse> &synapsesForPresynapticCell,
+    vector<Synapse> &segmentsForPresynapticCell);
 
   /**
    * Check whether this segment still exists on its cell.
@@ -571,7 +571,10 @@ private:
   Permanence               connectedThreshold_;
 
   // Extra bookkeeping for faster computing of segment activity.
-  std::map<CellIdx, std::vector<Synapse>> synapsesForPresynapticCell_;
+  std::map<CellIdx, std::vector<Synapse>> potentialSynapsesForPresynapticCell_;
+  std::map<CellIdx, std::vector<Synapse>> connectedSynapsesForPresynapticCell_;
+  std::map<CellIdx, std::vector<Segment>> potentialSegmentsForPresynapticCell_;
+  std::map<CellIdx, std::vector<Segment>> connectedSegmentsForPresynapticCell_;
 
   std::vector<UInt64> segmentOrdinals_;
   std::vector<UInt64> synapseOrdinals_;
