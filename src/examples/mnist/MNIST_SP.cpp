@@ -26,11 +26,11 @@
 #include <ctime>
 #include <iostream>
 #include <vector>
-#include <random>
 
-#include "nupic/algorithms/SpatialPooler.hpp"
+#include <nupic/algorithms/SpatialPooler.hpp>
 #include <nupic/algorithms/SDRClassifier.hpp>
 #include <nupic/algorithms/ClassifierResult.hpp>
+#include <nupic/utils/Random.hpp>
 
 using namespace std;
 using namespace nupic;
@@ -134,7 +134,7 @@ int main(int argc, char **argv) {
   SDR input({28, 28, 2});
   SpatialPooler sp(
     /* numInputs */                    input.dimensions,
-    /* numColumns */                   {10, 10, 120},
+    /* numColumns */                   {10, 10, 250},
     /* potentialRadius */              0,  // hardcoded elsewhere
     /* potentialPct */                 .0000001, // hardcoded elsewhere
     /* globalInhibition */             true,
@@ -147,7 +147,7 @@ int main(int argc, char **argv) {
     /* minPctOverlapDutyCycles */      0.,
     /* dutyCyclePeriod */              1402,
     /* boostStrength */                0,
-    /* CPP SP seed */                  0,
+    /* CPP SP seed */                  Random()(),
     /* spVerbosity */                  verbosity,
     /* wrapAround */                   0 // discarded
     );
@@ -168,7 +168,7 @@ int main(int argc, char **argv) {
     cout << "Training for " << train_time << " cycles ..." << endl;
   for(UInt i = 0; i < train_time; i++) {
       // Get the input & label
-      UInt index  = rand() % train_labels.size();
+      UInt index  = Random()() % train_labels.size();
       UInt *image = train_images[index];
       UInt label  = train_labels[index];
 
