@@ -17,8 +17,10 @@
 
 /**
  * Solving the MNIST dataset with Spatial Pooler.
- * TODO: DESCRIPTION
- * TODO: RUN INSTRUCTIONS
+ *
+ * This consists of a simple black & white image encoder, a spatial pool, and an
+ * SDR classifier.  The task is to recognise images of hand written numbers 0-9.
+ * This should score at least 95%.
  */
 
 #include <algorithm>
@@ -114,7 +116,7 @@ vector<UInt*> read_mnist_images(string path) {
 
 int main(int argc, char **argv) {
   UInt verbosity = 1;
-  int train_dataset_iterations = 1;
+  auto train_dataset_iterations = 1u;
   int opt;
   while ( (opt = getopt(argc, argv, "tv")) != -1 ) {  // for each option...
     switch ( opt ) {
@@ -129,12 +131,11 @@ int main(int argc, char **argv) {
         break;
     }
   }
-  UInt train_time = train_dataset_iterations * 60000;
 
   SDR input({28, 28, 2});
   SpatialPooler sp(
     /* numInputs */                    input.dimensions,
-    /* numColumns */                   {10, 10, 250},
+    /* numColumns */                   {15, 10, 250},
     /* potentialRadius */              0,  // hardcoded elsewhere
     /* potentialPct */                 .0000001, // hardcoded elsewhere
     /* globalInhibition */             true,
@@ -165,12 +166,19 @@ int main(int argc, char **argv) {
   auto train_images = read_mnist_images("./mnist_data/train-images-idx3-ubyte");
   auto train_labels = read_mnist_labels("./mnist_data/train-labels-idx1-ubyte");
   if(verbosity)
-    cout << "Training for " << train_time << " cycles ..." << endl;
-  for(UInt i = 0; i < train_time; i++) {
+    cout << "Training for " << (train_dataset_iterations * train_labels.size())
+         << " cycles ..." << endl;
+  for(auto i = 0u; i < train_dataset_iterations; i++) {
+    // Shuffle the training data.
+    vector<UInt> index( train_labels.size() );
+    for(auto s = 0u; s < train_labels.size(); s++)
+        index[s] = s;
+    Random().shuffle( index.begin(), index.end() );
+
+    for(auto s = 0u; s < train_labels.size(); s++) {
       // Get the input & label
-      UInt index  = Random()() % train_labels.size();
-      UInt *image = train_images[index];
-      UInt label  = train_labels[index];
+      UInt *image = train_images[ index[s] ];
+      UInt label  = train_labels[ index[s] ];
 
       // Compute & Train
       input.setDense( image );
@@ -183,8 +191,9 @@ int main(int argc, char **argv) {
         /* learn */           true,
         /* infer */           false,
                               &result);
-      if( verbosity and i % 100 == 0 )
+      if( verbosity and sp.getIterationNum() % 1000 == 0 )
         cout << "." << flush;
+    }
   }
   if( verbosity ) cout << endl;
 
@@ -224,7 +233,7 @@ int main(int argc, char **argv) {
           n_samples += 1;
       }
     }
-    if( verbosity and i % 100 == 0 )
+    if( verbosity and i % 1000 == 0 )
       cout << "." << flush;
   }
   if( verbosity ) cout << endl;
