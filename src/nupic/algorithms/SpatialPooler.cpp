@@ -1229,83 +1229,24 @@ bool SpatialPooler::operator==(const SpatialPooler& o) const{
 }
 
 
-vector<Real> mapColumnReal(UInt column,
-                        vector<UInt> inputDimensions_,
-                        vector<UInt> columnDimensions_,
-                        Real pad) {
-
-  vector<UInt> columnCoords;
-  const CoordinateConverterND columnConv(columnDimensions_);
-  columnConv.toCoord(column, columnCoords);
-
-  vector<Real> inputCoords;
-  for (Size i = 0; i < columnCoords.size(); i++)
-  {
-    Real cc = ((Real) columnCoords[i] + 0.5f) / (Real)columnDimensions_[i];
-    Real inp_sz = inputDimensions_[i] - (2 * pad);
-    Real loc = pad + cc * inp_sz;
-    inputCoords.push_back(loc);
-  }
-
-  return inputCoords;
-}
-
-Real norm_dist_pdf(Real mean, Real std, Real x) {
-  Real disp = mean - x;
-  Real expt = disp * disp / (2 * std * std);
-  Real mult = 1. / (std * sqrt(2 * 3.14159265359));
-  return mult * exp( expt );
-}
-
 vector<UInt> SpatialPooler::initMapPotential_(UInt column, bool wrapAround) {
   NTA_ASSERT(column < numColumns_);
+  const UInt centerInput = initMapColumn_(column);
 
-  UInt pp_size = 106;
-  Real potentialRadius = 2.84;
-
-  vector<Real> center = mapColumnReal(column,
-                        inputDimensions_, columnDimensions_, potentialRadius);
-
-  // Make an SDR for the input space which has every bit active.
-  SDR inputSpace( inputDimensions_ );
-  auto &allInputs = inputSpace.getFlatSparse();
-  for( UInt i = 0; i < inputSpace.size; i++ ) allInputs.push_back( i );
-  inputSpace.setFlatSparse( allInputs );
-  const auto &inputLocations = inputSpace.getSparse();
-
-  // Determine the actual PDF of each input in this columns potential pool.
-  vector<Real> pdf( numInputs_, 0 );
-  for( UInt i = 0; i < numInputs_; i++ ) {
-    Real p = 1.;
-    for( UInt dim = 0; dim > columnDimensions_.size() - 1; dim++ ) {
-      p *= norm_dist_pdf(
-                center[dim], potentialRadius, inputLocations[dim][i] );
+  vector<UInt> columnInputs;
+  if (wrapAround) {
+    for (UInt input : WrappingNeighborhood(centerInput, potentialRadius_, inputDimensions_)) {
+      columnInputs.push_back(input);
     }
-    pdf[i] = p;
-  }
-  // Make the PDF sum to 1.
-  const Real sum = accumulate( pdf.begin(), pdf.end(), 0. );
-  for( auto &p : pdf ) { p /= sum; }
-
-  // TODO: Truncate very small probabilities.  Find an acceptable threshold
-  // based on input-sz & pp-sz.  Make sum to 1 afterwards again.
-
-  // Use std library to draw samples from the PDF.
-  allInputs.push_back( allInputs.size() );
-  auto pp_dist = piecewise_constant_distribution<Real> (
-                          allInputs.begin(), allInputs.end(), pdf.begin() );
-
-  UInt sample_size = 0;
-  vector<UInt> samples( numInputs_, 0 );
-  UInt retries = pp_size * 10;
-  while( sample_size < pp_size ) {
-    UInt x = (UInt) pp_dist( rng_ );
-    if( samples[x] == 0 ) {
-      samples[x] = 1;
-      sample_size++;
+  } else {
+    for (UInt input :
+         Neighborhood(centerInput, potentialRadius_, inputDimensions_)) {
+      columnInputs.push_back(input);
     }
-    retries--;
-    if( retries == 0 ){ NTA_THROW << "POOL TO BIG TO FILL"; }
   }
-  return samples;
+
+  const UInt numPotential = round(columnInputs.size() * potentialPct_);
+  const auto selectedInputs = rng_.sample<UInt>(columnInputs, numPotential);
+  const vector<UInt> potential = VectorHelpers::sparseToBinary<UInt>(selectedInputs, numInputs_);
+  return potential;
 }

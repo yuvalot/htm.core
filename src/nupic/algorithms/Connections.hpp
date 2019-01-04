@@ -568,7 +568,10 @@ private:
   std::vector<Segment>     destroyedSegments_;
   std::vector<SynapseData> synapses_;
   std::vector<Synapse>     destroyedSynapses_;
-  Permanence               connectedThreshold_;
+  // Note: This is not the true permanence threshold.  This is the given
+  // threshold minus EPSILON, so that it can be used for floating point
+  // comparisons.
+  Permanence connectedThreshold_;
 
   // Extra bookkeeping for faster computing of segment activity.
   std::map<CellIdx, std::vector<Synapse>> potentialSynapsesForPresynapticCell_;

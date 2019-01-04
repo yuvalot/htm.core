@@ -506,7 +506,9 @@ void Connections::save(std::ostream &outStream) const {
   outStream << VERSION << endl;
 
   outStream << cells_.size() << " " << endl;
-  outStream << connectedThreshold_ << " " << endl;
+  // Save the original permanence threshold, not the private copy which is used
+  // only for floating point comparisons.
+  outStream << connectedThreshold_ + EPSILON << " " << endl;
 
   for (CellData cellData : cells_) {
     const vector<Segment> &segments = cellData.segments;
@@ -545,15 +547,11 @@ void Connections::load(std::istream &inStream) {
   NTA_CHECK(version <= 2);
 
   // Retrieve simple variables
-  UInt numCells;
+  UInt        numCells;
+  Permanence  connectedThreshold;
   inStream >> numCells;
-  initialize(numCells);
-
-  // Don't give connectedThreshold to initialize because it will modify the
-  // threshold (by subtracting EPSILON) which will then have been done twice:
-  // once when creating the original connections object, and a second time when
-  // loading this new object.
-  inStream >> connectedThreshold_;
+  inStream >> connectedThreshold;
+  initialize(numCells, connectedThreshold);
 
   // This logic is complicated by the fact that old versions of the Connections
   // serialized "destroyed" segments and synapses, which we now ignore.

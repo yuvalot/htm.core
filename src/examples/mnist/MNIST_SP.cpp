@@ -135,9 +135,9 @@ int main(int argc, char **argv) {
   SDR input({28, 28, 2});
   SpatialPooler sp(
     /* numInputs */                    input.dimensions,
-    /* numColumns */                   {15, 10, 250},
-    /* potentialRadius */              0,  // hardcoded elsewhere
-    /* potentialPct */                 .0000001, // hardcoded elsewhere
+    /* numColumns */                   {10, 10, 120},
+    /* potentialRadius */              4,
+    /* potentialPct */                 .9,
     /* globalInhibition */             true,
     /* localAreaDensity */             .015,
     /* numActiveColumnsPerInhArea */   -1,
