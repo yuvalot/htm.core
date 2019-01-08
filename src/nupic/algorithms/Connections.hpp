@@ -68,7 +68,7 @@ struct SynapseData {
   CellIdx presynapticCell;
   Permanence permanence;
   Segment segment;
-  CellIdx presynapticMapIndex_;
+  Synapse presynapticMapIndex_;
 };
 
 /**
@@ -533,10 +533,6 @@ public:
   void unsubscribe(UInt32 token);
 
 protected:
-  void remove_presynapse_(UInt index,
-    vector<Synapse> &synapsesForPresynapticCell,
-    vector<Synapse> &segmentsForPresynapticCell);
-
   /**
    * Check whether this segment still exists on its cell.
    *
@@ -556,11 +552,23 @@ protected:
   bool synapseExists_(Synapse synapse) const;
 
   /**
-   * Remove a synapse from synapsesForPresynapticCell_.
+   * Remove a synapse from presynaptic maps.
    *
-   * @param Synapse
+   * @param Synapse Index of synapse in presynaptic vector.
+   *
+   * @param vector<Synapse> synapsesForPresynapticCell must a vector from be
+   * either potentialSynapsesForPresynapticCell_ or
+   * connectedSynapsesForPresynapticCell_, depending on whether the synapse is
+   * connected or not.
+   *
+   * @param vector<Synapse> segmentsForPresynapticCell must be a vector from
+   * either potentialSegmentsForPresynapticCell_ or
+   * connectedSegmentsForPresynapticCell_, depending on whether the synapse is
+   * connected or not.
    */
-  void removeSynapseFromPresynapticMap_(Synapse synapse);
+  void removeSynapseFromPresynapticMap_(const Synapse index,
+                                  vector<Synapse> &synapsesForPresynapticCell,
+                                  vector<Synapse> &segmentsForPresynapticCell);
 
 private:
   std::vector<CellData>    cells_;
@@ -568,10 +576,7 @@ private:
   std::vector<Segment>     destroyedSegments_;
   std::vector<SynapseData> synapses_;
   std::vector<Synapse>     destroyedSynapses_;
-  // Note: This is not the true permanence threshold.  This is the given
-  // threshold minus EPSILON, so that it can be used for floating point
-  // comparisons.
-  Permanence connectedThreshold_;
+  Permanence               connectedThreshold_;
 
   // Extra bookkeeping for faster computing of segment activity.
   std::map<CellIdx, std::vector<Synapse>> potentialSynapsesForPresynapticCell_;

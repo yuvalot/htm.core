@@ -852,9 +852,6 @@ void SpatialPooler::updateBookeepingVars_(bool learn) {
 void SpatialPooler::calculateOverlap_(SDR &input,
                                       vector<UInt> &overlaps) const {
   overlaps.assign( numColumns_, 0.0f );
-  // vector<UInt32> potentialOverlaps( numColumns_ );
-  // connections_.computeActivity(overlaps, potentialOverlaps,
-  //       input.getFlatSparse(), synPermConnected_);
   connections_.computeActivity(overlaps, input.getFlatSparse());
 }
 
@@ -906,9 +903,14 @@ void SpatialPooler::inhibitColumnsGlobal_(const vector<Real> &overlaps,
   NTA_CHECK(numDesired > 0) << "Not enough columns (" << miniColumns << ") "
                             << "for desired density (" << density << ").";
 
+  // Add a tiebreaker to the overlaps so that the output is deterministic.
+  vector<Real> overlaps_(overlaps.begin(), overlaps.end());
+  for(UInt i = 0; i < numColumns_; i++)
+    overlaps_[i] += tieBreaker_[i];
+
   // Compare the column indexes by their overlap.
-  auto compare = [&overlaps](const UInt &a, const UInt &b) -> bool
-    {return overlaps[a] > overlaps[b];};
+  auto compare = [&overlaps_](const UInt &a, const UInt &b) -> bool
+    {return overlaps_[a] > overlaps_[b];};
 
   activeColumns.clear();
   activeColumns.reserve(miniColumns + numDesired * macroColumns );
