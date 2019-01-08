@@ -101,11 +101,13 @@ vector<UInt*> read_mnist_images(string path) {
         auto data_raw = new unsigned char[img_size];
         file.read( (char*) data_raw, img_size);
         // Copy the data into an array of UInt's
-        auto data = new UInt[2 * img_size];
+        auto data = new UInt[img_size];
+        // auto data = new UInt[2 * img_size];
         // Apply a threshold to the image, yielding a B & W image.
         for(UInt pixel = 0; pixel < img_size; pixel++) {
-            data[2 * pixel] = data_raw[pixel] >= 128 ? 1 : 0;
-            data[2 * pixel + 1] = 1 - data[2 * pixel];
+            data[pixel] = data_raw[pixel] >= 128 ? 1 : 0;
+            // data[2 * pixel] = data_raw[pixel] >= 128 ? 1 : 0;
+            // data[2 * pixel + 1] = 1 - data[2 * pixel];
         }
         retval.push_back(data);
         delete[] data_raw;
@@ -132,7 +134,7 @@ int main(int argc, char **argv) {
     }
   }
 
-  SDR input({28, 28, 2});
+  SDR input({28, 28, 1});
   SpatialPooler sp(
     /* numInputs */                    input.dimensions,
     /* numColumns */                   {10, 10, 120},
