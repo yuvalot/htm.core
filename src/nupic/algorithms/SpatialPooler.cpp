@@ -454,7 +454,7 @@ void SpatialPooler::initialize(
 
   tieBreaker_.resize(numColumns_);
   for (Size i = 0; i < numColumns_; i++) {
-    tieBreaker_[i] = 0.5f * rng_.getReal64();
+    tieBreaker_[i] = 0.01f * rng_.getReal64();
   }
 
   overlapDutyCycles_.assign(numColumns_, 0);
@@ -562,8 +562,7 @@ void SpatialPooler::boostOverlaps_(const vector<UInt> &overlaps, //TODO use Eige
                                    vector<Real> &boosted) const {
   const Real denominator = 1. / log2( localAreaDensity_ );
   for (UInt i = 0; i < numColumns_; i++) {
-    boosted[i] = overlaps[i] + tieBreaker_[i];
-    boosted[i] *= log2(activeDutyCycles_[i]) * denominator;
+    boosted[i] = overlaps[i] * log2(activeDutyCycles_[i]) * denominator;
    }
 }
 
@@ -585,6 +584,30 @@ UInt SpatialPooler::initMapColumn_(UInt column) const {
   const CoordinateConverterND inputConv(inputDimensions_);
   return inputConv.toIndex(inputCoords);
 }
+
+
+vector<UInt> SpatialPooler::initMapPotential_(UInt column, bool wrapAround) {
+  NTA_ASSERT(column < numColumns_);
+  const UInt centerInput = initMapColumn_(column);
+
+  vector<UInt> columnInputs;
+  if (wrapAround) {
+    for (UInt input : WrappingNeighborhood(centerInput, potentialRadius_, inputDimensions_)) {
+      columnInputs.push_back(input);
+    }
+  } else {
+    for (UInt input :
+         Neighborhood(centerInput, potentialRadius_, inputDimensions_)) {
+      columnInputs.push_back(input);
+    }
+  }
+
+  const UInt numPotential = round(columnInputs.size() * potentialPct_);
+  const auto selectedInputs = rng_.sample<UInt>(columnInputs, numPotential);
+  const vector<UInt> potential = VectorHelpers::sparseToBinary<UInt>(selectedInputs, numInputs_);
+  return potential;
+}
+
 
 Real SpatialPooler::initPermConnected_() {
   Real p =
@@ -996,6 +1019,12 @@ void SpatialPooler::inhibitColumnsLocal_(const vector<Real> &overlaps,
 }
 
 
+bool SpatialPooler::isUpdateRound_() const {
+  return false;
+  // return (iterationNum_ % updatePeriod_) == 0;
+}
+
+
 UInt SpatialPooler::persistentSize() const {
   // TODO: this won't scale!
   stringstream s;
@@ -1230,25 +1259,3 @@ bool SpatialPooler::operator==(const SpatialPooler& o) const{
   return thisStr == otherStr;
 }
 
-
-vector<UInt> SpatialPooler::initMapPotential_(UInt column, bool wrapAround) {
-  NTA_ASSERT(column < numColumns_);
-  const UInt centerInput = initMapColumn_(column);
-
-  vector<UInt> columnInputs;
-  if (wrapAround) {
-    for (UInt input : WrappingNeighborhood(centerInput, potentialRadius_, inputDimensions_)) {
-      columnInputs.push_back(input);
-    }
-  } else {
-    for (UInt input :
-         Neighborhood(centerInput, potentialRadius_, inputDimensions_)) {
-      columnInputs.push_back(input);
-    }
-  }
-
-  const UInt numPotential = round(columnInputs.size() * potentialPct_);
-  const auto selectedInputs = rng_.sample<UInt>(columnInputs, numPotential);
-  const vector<UInt> potential = VectorHelpers::sparseToBinary<UInt>(selectedInputs, numInputs_);
-  return potential;
-}
