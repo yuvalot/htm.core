@@ -793,7 +793,7 @@ public:
   // NOT part of the public API
 
 
-  void boostOverlaps_(const vector<UInt> &overlaps, vector<Real> &boostedOverlaps) const;
+  virtual void boostOverlaps_(const vector<UInt> &overlaps, vector<Real> &boostedOverlaps) const;
 
   /**
     Maps a column to its respective input index, keeping to the topology of
@@ -956,7 +956,7 @@ public:
      @param activeColumns
      an int array containing the indices of the active columns.
   */
-  void inhibitColumnsGlobal_(const vector<Real> &overlaps, Real density,
+  virtual void inhibitColumnsGlobal_(const vector<Real> &overlaps, Real density,
                              vector<UInt> &activeColumns) const;
 
   /**

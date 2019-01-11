@@ -29,7 +29,7 @@
 #include <iostream>
 #include <vector>
 
-#include <nupic/algorithms/SpatialPooler.hpp>
+#include <nupic/algorithms/SpatialPoolerExtended.hpp>
 #include <nupic/algorithms/SDRClassifier.hpp>
 #include <nupic/algorithms/ClassifierResult.hpp>
 #include <nupic/utils/Random.hpp>
@@ -37,7 +37,7 @@
 
 using namespace std;
 using namespace nupic;
-using nupic::algorithms::spatial_pooler::SpatialPooler;
+using nupic::algorithms::spatial_pooler_extended::SpatialPoolerExtended;
 using nupic::algorithms::sdr_classifier::SDRClassifier;
 using nupic::algorithms::cla_classifier::ClassifierResult;
 
@@ -136,25 +136,21 @@ int main(int argc, char **argv) {
   }
 
   SDR input({28, 28, 1});
-  SpatialPooler sp(
-    /* numInputs */                    input.dimensions,
-    /* numColumns */                   {10, 10, 120},
-    /* potentialRadius */              4,
-    /* potentialPct */                 .9,
-    /* globalInhibition */             true,
-    /* localAreaDensity */             .015,
-    /* numActiveColumnsPerInhArea */   -1,
-    /* stimulusThreshold */             28,
-    /* synPermInactiveDec */           .00928,
-    /* synPermActiveInc */             .032,
-    /* synPermConnected */             .422,
-    /* minPctOverlapDutyCycles */      0.,
-    /* dutyCyclePeriod */              1402,
-    /* boostStrength */                0,
-    /* CPP SP seed */                  Random()(),
-    /* spVerbosity */                  verbosity,
-    /* wrapAround */                   0 // discarded
-    );
+  SpatialPoolerExtended sp(
+    /* inputDimensions */           input.dimensions,
+    /* columnDimensions */          {10, 10, 120},
+    /* potentialRadius */           4,
+    /* potentialPct */              .9,
+    /* wrapAround */                true,
+    /* localAreaDensity */          .015,
+    /* stimulusThreshold */         28,
+    /* synPermInactiveDec */        .00928,
+    /* synPermActiveInc */          .032,
+    /* synPermConnected */          .422,
+    /* dutyCyclePeriod */           1402,
+    /* minPctOverlapDutyCycles */   0.,
+    /* seed */                      Random()(),
+    /* spVerbosity */               verbosity);
 
   SDR columns({sp.getNumColumns()});
   SDR_Metrics columnStats(columns, 1402);

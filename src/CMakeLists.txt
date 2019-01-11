@@ -102,6 +102,8 @@ set(algorithm_files
     nupic/algorithms/SegmentUpdate.hpp
     nupic/algorithms/SpatialPooler.cpp
     nupic/algorithms/SpatialPooler.hpp
+    nupic/algorithms/SpatialPoolerExtended.cpp
+    nupic/algorithms/SpatialPoolerExtended.hpp
     nupic/algorithms/TemporalMemory.cpp
     nupic/algorithms/TemporalMemory.hpp
 )
