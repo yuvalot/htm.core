@@ -509,11 +509,7 @@ void SpatialPooler::compute(SDR &input, bool learn, SDR &active) {
   calculateOverlap_(input, overlaps_);
   // calculateOverlapPct_(overlaps_, overlapsPct_);
 
-  // if (learn) {
-    boostOverlaps_(overlaps_, boostedOverlaps_);
-  // } else {
-  //   boostedOverlaps_.assign(overlaps_.begin(), overlaps_.end());
-  // }
+  boostOverlaps_(overlaps_, boostedOverlaps_);
 
   auto &activeVector = active.getFlatSparse();
   inhibitColumns_(boostedOverlaps_, activeVector);
@@ -560,10 +556,15 @@ void SpatialPooler::stripUnlearnedColumns(SDR& active) const {
 
 void SpatialPooler::boostOverlaps_(const vector<UInt> &overlaps, //TODO use Eigen sparse vector here
                                    vector<Real> &boosted) const {
-  const Real denominator = 1. / log2( localAreaDensity_ );
+  const Real denominator = 1.0f / log2( localAreaDensity_ );
   for (UInt i = 0; i < numColumns_; i++) {
-    boosted[i] = overlaps[i] * log2(activeDutyCycles_[i]) * denominator;
-   }
+    // Apply tiebreakers before boosting, so that boosting is applied to the
+    // tiebreakers.  This is important so that the tiebreakers don't hurt the
+    // entropy of the result by biasing some mini-columns to activte more often
+    // than others.
+    boosted[i] = (overlaps[i] + tieBreaker_[i])
+                 * log2(activeDutyCycles_[i]) * denominator;
+  }
 }
 
 
