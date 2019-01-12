@@ -15,9 +15,43 @@ SpatialPoolerExtended::SpatialPoolerExtended(
         Real                synPermConnected,
         UInt                dutyCyclePeriod,
         Real                minPctOverlapDutyCycles,
-        Int                 seed,
+        UInt                seed,
         UInt                spVerbosity)
-    : SpatialPooler(
+{
+    initialize(
+        inputDimensions,
+        columnDimensions,
+        potentialRadius,
+        potentialPct,
+        wrapAround,
+        localAreaDensity,
+        stimulusThreshold,
+        synPermInactiveDec,
+        synPermActiveInc,
+        synPermConnected,
+        dutyCyclePeriod,
+        minPctOverlapDutyCycles,
+        seed,
+        spVerbosity);
+}
+
+void SpatialPoolerExtended::initialize(
+        const vector<UInt>  inputDimensions,
+        const vector<UInt>  columnDimensions,
+        UInt                potentialRadius,
+        Real                potentialPct,
+        bool                wrapAround,
+        Real                localAreaDensity,
+        UInt                stimulusThreshold,
+        Real                synPermInactiveDec,
+        Real                synPermActiveInc,
+        Real                synPermConnected,
+        UInt                dutyCyclePeriod,
+        Real                minPctOverlapDutyCycles,
+        UInt                seed,
+        UInt                spVerbosity)
+{
+    SpatialPooler::initialize(
         /* inputDimensions */               inputDimensions,
         /* columnDimensions */              columnDimensions,
         /* potentialRadius */               potentialRadius,
@@ -34,14 +68,12 @@ SpatialPoolerExtended::SpatialPoolerExtended(
         /* boostStrength */                 0.0f,
         /* seed */                          seed,
         /* spVerbosity */                   spVerbosity,
-        /* wrapAround */                    wrapAround)
-{
+        /* wrapAround */                    wrapAround);
+
     activeDutyCycles_.assign(numColumns_, localAreaDensity_);
 }
 
-// TODO: initialize
-
-// TODO: Rework potential pools
+// TODO: initMapPotential !!!
 
 void SpatialPoolerExtended::boostOverlaps_(const vector<UInt> &overlaps, //TODO use Eigen sparse vector here
                                    vector<Real> &boosted) const {
@@ -68,14 +100,9 @@ void SpatialPoolerExtended::inhibitColumnsGlobal_(const vector<Real> &overlaps,
   NTA_CHECK(numDesired > 0) << "Not enough columns (" << miniColumns << ") "
                             << "for desired density (" << density << ").";
 
-  // Add a tiebreaker to the overlaps so that the output is deterministic.
-  vector<Real> overlaps_(overlaps.begin(), overlaps.end());
-  for(UInt i = 0; i < numColumns_; i++)
-    overlaps_[i] += tieBreaker_[i];
-
   // Compare the column indexes by their overlap.
-  auto compare = [&overlaps_](const UInt &a, const UInt &b) -> bool
-    {return overlaps_[a] > overlaps_[b];};
+  auto compare = [&overlaps](const UInt &a, const UInt &b) -> bool
+    {return overlaps[a] > overlaps[b];};
 
   activeColumns.clear();
   activeColumns.reserve(miniColumns + numDesired * macroColumns );

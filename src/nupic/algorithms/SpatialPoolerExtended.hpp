@@ -28,14 +28,28 @@ public:
     Real  synPermConnected        = 0.1f,
     UInt  dutyCyclePeriod         = 1000u,
     Real  minPctOverlapDutyCycles = 0.001f,
-    Int   seed                    = 0u,
+    UInt  seed                    = 0u,
     UInt  spVerbosity             = 0u);
 
-  // void initialize(
-  //       TODO
-  //   );
+    void initialize(
+            const vector<UInt>  inputDimensions,
+            const vector<UInt>  columnDimensions,
+            UInt                potentialRadius,
+            Real                potentialPct,
+            bool                wrapAround,
+            Real                localAreaDensity,
+            UInt                stimulusThreshold,
+            Real                synPermInactiveDec,
+            Real                synPermActiveInc,
+            Real                synPermConnected,
+            UInt                dutyCyclePeriod,
+            Real                minPctOverlapDutyCycles,
+            UInt                seed,
+            UInt                spVerbosity);
 
-  // TODO: topology potential pool rework.
+  // TOOD: UInt initMapColumn_(UInt column) const override;
+  // TODO: initMapPotential
+
 
   void boostOverlaps_(
     const vector<UInt> &overlaps, vector<Real> &boosted) const override;
@@ -44,7 +58,7 @@ public:
                              vector<UInt> &activeColumns) const override;
 };
 
-}
-}
-}
-#endif // NTA_spatial_pooler_extended_HPP
+}      // end namespace spatial_pooler_extended
+}      // end namespace algorithms
+}      // end namespace nupic
+#endif // end NTA_spatial_pooler_extended_HPP
