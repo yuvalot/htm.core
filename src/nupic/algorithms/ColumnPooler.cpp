@@ -94,6 +94,7 @@ public:
   Permanence distalMispredictDecrement;
   Permanence distalSynapseThreshold;
 
+  SDR_ActivationFrequency *AF;
   Real stability_rate;
   Real fatigue_rate;
   vector<Real> X_act;
@@ -196,6 +197,8 @@ public:
       tieBreaker_[i] = 0.01f * rng_.getReal64();
     }
     proximalMaxSegment_.resize( proximalConnections.numCells() );
+    AF = new SDR_ActivationFrequency( {proximalConnections.numCells(), proximalSegments}, period );
+    AF->activationFrequency_.assign( AF->activationFrequency.size(), sparsity / proximalSegments );
     iterationNum_      = 0u;
     iterationLearnNum_ = 0u;
 
@@ -274,7 +277,8 @@ public:
     vector<UInt32> rawOverlaps( proximalConnections.numSegments(), 0.0f );
     proximalConnections.computeActivity(rawOverlaps, feedForwardInputs.getFlatSparse());
 
-    const Real denominator = 1.0f / log2( sparsity ); // For Boosting
+    const Real denominator = 1.0f / log2( sparsity / proximalSegments ); // For Boosting
+    const auto &af = AF->activationFrequency; // For Boosting
 
     // Process Each Segment of Each Cell
     for(auto cell = 0u; cell < proximalConnections.numCells(); ++cell) {
@@ -303,7 +307,7 @@ public:
           overlap /= nConSyns;
 
         // Boosting Function
-        // overlap *= log2( activeDutyCycles[segment] ) * denominator;
+        overlap *= log2( af[segment] ) * denominator;
 
         // Maximum Segment Overlap Becomes Cell Overlap
         if( overlap > maxOverlap ) {
@@ -311,7 +315,7 @@ public:
           maxSegment = segment;
         }
       }
-      proximalMaxSegment_[cell] = maxSegment;
+      proximalMaxSegment_[cell] = maxSegment - cell;
 
       cellExcitements[cell] = maxOverlap;
       // Apply Stability & Fatigue
@@ -391,6 +395,8 @@ public:
   void learnProximalDendrites( SDR &proximalInputActive,
                                SDR &proximalInputLearning,
                                SDR &active ) {
+    SDR AF_SDR( AF->dimensions );
+    auto &activeSegments = AF_SDR.getSparse();
     for(const auto &cell : active.getFlatSparse())
     {
       // Adapt Proximal Segments
@@ -399,8 +405,14 @@ public:
                                        proximalIncrement, proximalDecrement);
       // connections_.raisePermanencesToThreshold(
       //                             cell, synPermConnected_, stimulusThreshold_);
+
+      activeSegments[0].push_back(cell);
+      activeSegments[1].push_back(maxSegment);
     }
     // TODO: Grow new synapses from the learning inputs?
+
+    AF_SDR.setSparse( activeSegments );
+    AF->addData( AF_SDR );
   }
 
 

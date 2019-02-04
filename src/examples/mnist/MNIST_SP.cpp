@@ -142,7 +142,7 @@ int main(int argc, char **argv) {
       /* inhibitionDimensions */          {10, 10},
       /* cellsPerInhbitionArea */         120,
       /* sparsity */                      .015,
-      /* potentialPool */                 DefaultTopology(.9, 4., true),
+      /* potentialPool */                 DefaultTopology(.9, 4., false),
       /* proximalSegments */              1,
       /* proximalSegmentThreshold */      28,
       /* proximalIncrement */             .032,
