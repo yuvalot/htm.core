@@ -37,332 +37,411 @@
 #include <nupic/types/Types.hpp>
 #include <nupic/types/Serializable.hpp>
 #include <nupic/ntypes/Sdr.hpp>
-#include <nupic/ntypes/Sdr_Metrics.hpp>
+#include <nupic/ntypes/SdrMetrics.hpp>
 #include <nupic/algorithms/Connections.hpp>
 #include <nupic/math/Math.hpp>
 #include <nupic/math/Topology.hpp>
 
 using namespace std;
 using namespace nupic;
-using namespace nupic::algorithms::spatial_pooler;
 using namespace nupic::math::topology;
-using nupic::utils::VectorHelpers;
+using namespace nupic::algorithms::connections;
 
-// Topology( location, potentialPooler )
+
+// TODO: Connections learning rules are different.
+
+
+// Topology( location, potentialPool )
 typedef function<void(SDR&, SDR&)> Topology_t;
 
 class ColumnPooler // : public Serializable
 {
+private:
+  vector<UInt> proximalInputDimensions_;
+  vector<UInt> distalInputDimensions_;
+  vector<UInt> inhibitionDimensions_;
+  vector<UInt> cellDimensions_;
+  UInt         cellsPerInhbitionArea_;
+  UInt         proximalSegments_;
+
+  vector<UInt> proximalMaxSegment_;
+
+  Random rng_;
+  vector<Real> tieBreaker_;
+  UInt iterationNum_;
+  UInt iterationLearnNum_;
+
 public:
+  const vector<UInt> &proximalInputDimensions = proximalInputDimensions_;
+  const vector<UInt> &distalInputDimensions   = distalInputDimensions_;
+  const vector<UInt> &inhibitionDimensions    = inhibitionDimensions_;
+  const UInt         &cellsPerInhbitionArea   = cellsPerInhbitionArea_;
+  const vector<UInt> &cellDimensions          = cellDimensions_;
+  const UInt         &proximalSegments        = proximalSegments_;
 
-    Connections proximalConnections;
-    Connections distalConnections;
+  Real sparsity;
 
-    vector<Real> tieBreaker_;
+  UInt       proximalSegmentThreshold;
+  Permanence proximalIncrement;
+  Permanence proximalDecrement;
+  Permanence proximalSynapseThreshold;
 
+  UInt       distalMaxSegments;
+  UInt       distalMaxSynapsesPerSegment;
+  UInt       distalSegmentThreshold;
+  Permanence distalIncrement;
+  Permanence distalDecrement;
+  Permanence distalMispredictDecrement;
+  Permanence distalSynapseThreshold;
+
+  Real stability_rate;
+  Real fatigue_rate;
+  vector<Real> X_act;
+  vector<Real> X_inact;
+
+  const UInt &iterationNum      = iterationNum_;
+  const UInt &iterationLearnNum = iterationLearnNum_;
+
+  /**
+   * The proximal connections have regular structure.  Cells in an inhibition
+   * area are contiguous and all segments on a cell are contiguous.  This
+   * allows fast index math instead of slowers lists of ID's.
+   */
+  Connections proximalConnections;
+
+  Connections distalConnections;
 
   ColumnPooler(
-    const vector<UInt> proximalInputDimensions,
-    const vector<UInt> distalInputDimensions,
-    const vector<UInt> cellDimensions,
+        const vector<UInt> proximalInputDimensions,
+        const vector<UInt> distalInputDimensions,
+        const vector<UInt> inhibitionDimensions,
+        UInt               cellsPerInhbitionArea,
 
-    Real minimumSparsity,
-    Real maximumSparsity,
+        Real sparsity,
 
-    UInt       proximalSegments,
-    Topology_t potentialPool,
-    UInt       proximalSegmentThreshold,
-    Permanence proximalIncrement,
-    Permanence proximalDecrement,
-    Permanence proximalSynapseThreshold,
+        Topology_t potentialPool,
+        UInt       proximalSegments,
+        UInt       proximalSegmentThreshold,
+        Permanence proximalIncrement,
+        Permanence proximalDecrement,
+        Permanence proximalSynapseThreshold,
 
-    UInt       distalSegments,
-    UInt       distalSegmentSize,
-    UInt       distalSegmentThreshold,
-    Permanence distalIncrement,
-    Permanence distalDecrement,
-    Permanence distalSynapseThreshold,
+        UInt       distalMaxSegments,
+        UInt       distalMaxSynapsesPerSegment,
+        UInt       distalSegmentThreshold,
+        Permanence distalIncrement,
+        Permanence distalDecrement,
+        Permanence distalMispredictDecrement,
+        Permanence distalSynapseThreshold,
 
-    Real period,
-    Int  seed,
-    bool verbose)
-  {
+        Real stability_rate,
+        Real fatigue_rate,
 
-    SDR proximal( proximalInputDimensions );
-    SDR distal( distalInputDimensions );
-    SDR cells( cellDimensions );
+        Real period,
+        Int  seed,
+        bool verbose) {
+    proximalInputDimensions_ = proximalInputDimensions;
+    distalInputDimensions_   = distalInputDimensions;
+    inhibitionDimensions_    = inhibitionDimensions;
+    cellsPerInhbitionArea_   = cellsPerInhbitionArea;
+    proximalSegments_        = proximalSegments;
+    this->sparsity                    = sparsity;
+    this->proximalSegmentThreshold    = proximalSegmentThreshold;
+    this->proximalIncrement           = proximalIncrement;
+    this->proximalDecrement           = proximalDecrement;
+    this->proximalSynapseThreshold    = proximalSynapseThreshold;
+    this->distalMaxSegments           = distalMaxSegments;
+    this->distalMaxSynapsesPerSegment = distalMaxSynapsesPerSegment;
+    this->distalSegmentThreshold      = distalSegmentThreshold;
+    this->distalIncrement             = distalIncrement;
+    this->distalDecrement             = distalDecrement;
+    this->distalSynapseThreshold      = distalSynapseThreshold;
+    this->stability_rate              = stability_rate;
+    this->fatigue_rate                = fatigue_rate;
+
+    SDR proximalInputs(  proximalInputDimensions );
+    SDR inhibitionAreas( inhibitionDimensions );
+    cellDimensions_ = inhibitionAreas.dimensions;
+    cellDimensions_.push_back( cellsPerInhbitionArea );
+    SDR cells( cellDimensions_ );
 
     // Setup the proximal segments & synapses.
     proximalConnections.initialize(cells.size, proximalSynapseThreshold);
-    for(UInt i = 0u; i < cells.size; ++i) {
-      cells.setFlatSparse({ i });
-      for(UInt s = 0u; s < proximalSegments; ++s) {
-        auto segment = proximalConnections.createSegment( i );
+    SDR_Sparsity PP_Sp(            proximalInputs.dimensions, 10 * proximalInputs.size);
+    SDR_ActivationFrequency PP_AF( proximalInputs.dimensions, 10 * proximalInputs.size);
+    UInt cell = 0u;
+    for(auto inhib = 0u; inhib < inhibitionAreas.size; ++inhib) {
+      inhibitionAreas.setFlatSparse(SDR_flatSparse_t{ inhib });
+      for(auto c = 0u; c < cellsPerInhbitionArea; ++c, ++cell) {
+        for(auto s = 0u; s < proximalSegments; ++s) {
+          auto segment = proximalConnections.createSegment( cell );
 
-        // Make synapses, first find the potential pool.
-        potentialPool( cells, proximal );
-
-        for(const auto presyn : proximal.getFlatSparse() ) {
-          auto permanence =
-          proximalConnections.createSynapse( segment, presyn, permanence);
+          // Make synapses.
+          potentialPool( inhibitionAreas, proximalInputs );
+          for(const auto presyn : proximalInputs.getFlatSparse() ) {
+            auto permanence = initProximalPermanence();
+            proximalConnections.createSynapse( segment, presyn, permanence);
+          }
+          proximalConnections.raisePermanencesToThreshold( segment,
+                          proximalSynapseThreshold, proximalSegmentThreshold );
+          if( verbose ) {
+            PP_Sp.addData( proximalInputs );
+            PP_AF.addData( proximalInputs );
+          }
         }
-        proximalConnections.raisePermanencesToThreshold( segment,
-                            proximalSynapseThreshold, proximalSegmentThreshold );
       }
     }
 
-    // TODO Assign all of the parameters to attributes...
-
-
     rng_ = Random(seed);
-
-    iterationNum_ = 0u;
-    iterationLearnNum_ = 0u;
-
-    tieBreaker_.resize(numColumns_);
-    for(Size i = 0; i < numColumns_; ++i) {
+    tieBreaker_.resize( proximalConnections.numSegments() );
+    for(auto i = 0u; i < tieBreaker_.size(); ++i) {
       tieBreaker_[i] = 0.01f * rng_.getReal64();
     }
+    proximalMaxSegment_.resize( proximalConnections.numCells() );
+    iterationNum_      = 0u;
+    iterationLearnNum_ = 0u;
 
-    activeDutyCycles_.assign(numColumns_, 0);
+    reset();
 
     if( verbose ) {
-      // Print everything
+      // TODO: Print all parameters
+      cout << "Potential Pool Statistics:" << endl
+           << "    " << PP_Sp << endl
+           << "    " << PP_AF << endl;
     }
   }
 
 
   void reset() {
-    1/0
+    X_act.assign( proximalConnections.numCells(), 0.0f );
+    X_inact.assign( proximalConnections.numCells(), 0.0f );
+    // TODO Zero Previous Updates
   }
 
 
-  void compute(SDR &input, bool learn, SDR &active)
-  {
+  void compute(
+        SDR& proximalInputActive,
+        SDR& proximalInputLearning,
+        SDR& distalInputActive,
+        SDR& distalInputLearning,
+        bool learn,
+        SDR& active,
+        SDR& learning) {
+    NTA_CHECK( proximalInputActive.dimensions   == proximalInputDimensions );
+    NTA_CHECK( proximalInputLearning.dimensions == proximalInputDimensions );
+    NTA_CHECK( distalInputActive.dimensions     == distalInputDimensions );
+    NTA_CHECK( distalInputLearning.dimensions   == distalInputDimensions );
+    NTA_CHECK( active.dimensions                == cellDimensions );
+    NTA_CHECK( learning.dimensions              == cellDimensions );
+
     // Update bookkeeping
     iterationNum_++;
     if( learn )
       iterationLearnNum_++;
 
-    auto cellExcitements = activateProximalDendrites(...);
-    auto predictiveCells = activateDistalDendrites(...);
+    vector<Real> cellExcitements( active.size );
+    activateProximalDendrites( proximalInputActive, cellExcitements );
+    // auto predictiveCells = activateDistalDendrites( distalInputActive );
 
-    auto activeCells = activateCells( cellExcitements, predictiveCells );
+    activateCells( cellExcitements,
+        // predictiveCells,
+        active );
 
     if( learn ) {
-      learnProximalDendrites()
-      learnDistalDendrites()
+      learnProximalDendrites( proximalInputActive, proximalInputLearning, active );
+      // learnDistalDendrites( distalInputActive, distalInputLearning );
     }
   }
 
 
-  vector<Real>& activateProximalSegments() {
+  // TODO: apply segment overlap threshold
+  void activateProximalDendrites( SDR          &feedForwardInputs,
+                             vector<Real> &cellExcitements )
+  {
     // Proximal Feed Forward Excitement
-    const auto numProxSegs = proximalConnections.numSegments();
-    vector<UInt32> rawOverlaps( numProxSegs, 0.0f );
-    proximalConnections.computeActivity(rawOverlaps, input.getFlatSparse());
+    vector<UInt32> rawOverlaps( proximalConnections.numSegments(), 0.0f );
+    proximalConnections.computeActivity(rawOverlaps, feedForwardInputs.getFlatSparse());
 
-    // Process Each Cell
-    vector<Real> overlaps( active.size );
-    vector<Real> segments( proximalSegments );
-    for(auto cell = 0u; cell < active.size; ++cell) {
-      // Process Each Proximal Segment on Cell
-      auto segments = proximalConnections.segmentsForCell();
-      for(auto seg = 0u; seg < proximalSegments; ++seg) {
-        
+    const Real denominator = 1.0f / log2( sparsity ); // For Boosting
+
+    // Process Each Segment of Each Cell
+    for(auto cell = 0u; cell < proximalConnections.numCells(); ++cell) {
+      Real maxOverlap    = -1.0;
+      UInt maxSegment    = -1;
+      // UInt maxRawOverlap = 0u;
+      for(const auto segment : proximalConnections.segmentsForCell( cell ) ) {
+        const auto raw = rawOverlaps[segment];
+        // maxRawOverlap = raw > maxRawOverlap ? raw : maxRawOverlap;
+
+        Real overlap = (Real) raw; // Typecase to floating point.
+
+        // Proximal Tie Breaker
+        // NOTE: Apply tiebreakers before boosting, so that boosting is applied
+        //   to the tiebreakers.  This is important so that the tiebreakers don't
+        //   hurt the entropy of the result by biasing some mini-columns to
+        //   activte more often than others.
+        overlap += tieBreaker_[segment];
+
+        // Normalize Proximal Excitement by the number of connected synapses.
+        const auto nConSyns = proximalConnections.dataForSegment( segment ).numConnected;
+        if( nConSyns == 0 )
+          overlap = 1.0f;
+          // overlap = 0.0f;
+        else
+          overlap /= nConSyns;
+
+        // Boosting Function
+        // overlap *= log2( activeDutyCycles[segment] ) * denominator;
+
+        // Maximum Segment Overlap Becomes Cell Overlap
+        if( overlap > maxOverlap ) {
+          maxOverlap = overlap;
+          maxSegment = segment;
+        }
       }
-    }
+      proximalMaxSegment_[cell] = maxSegment;
 
-
-    for(auto i = 0u; i < numProxSegs; ++i) {
-      Real ovlp = (Real) rawOverlaps[i]; // Typecase to floating point.
-      // Proximal Tie Breaker
-      // NOTE: Apply tiebreakers before boosting, so that boosting is applied
-      //   to the tiebreakers.  This is important so that the tiebreakers don't
-      //   hurt the entropy of the result by biasing some mini-columns to
-      //   activte more often than others.
-      ovlp += tieBreaker_[i];
-
-      // Normalize Proximal Excitement by the number of connected synapses.
-      auto nConSyns = TODO;
-      if( nConSyns == 0 )
-        overlaps[i] = 1.0f;
-      else
-        overlaps[i] = ovlp / nConSyns
-
-      // Boosting Function
-      boostOverlaps_(overlaps_, boostedOverlaps_);
-    }
-
-    // Maximum Segment Overlap Becomes Cell Overlap
-    1/0
-
-    // Apply Stability & Fatigue
-    1/0
-
-    return cellExcitements;
-  }
-
-
-  void learnProximalSegments() {
-    // Adapt Proximal Segments
-    for(const auto &column : active.getFlatSparse()) {
-      connections_.adaptSegment(column, input, synPermActiveInc_, synPermInactiveDec_);
-      connections_.raisePermanencesToThreshold(
-                                  column, synPermConnected_, stimulusThreshold_);
-    }
-    // Bump up weak cells
-    for (UInt i = 0; i < numColumns_; i++) {
-      if (overlapDutyCycles_[i] >= minOverlapDutyCycles_[i]) {
-        continue;
-      }
-      connections_.bumpSegment( i, synPermBelowStimulusInc_ );
+      // Apply Stability & Fatigue
+      X_act[cell]   += stability_rate * (maxOverlap - X_act[cell] - X_inact[cell]);
+      X_inact[cell] += fatigue_rate   * (maxOverlap - X_inact[cell]);
+      cellExcitements[cell] = X_act[cell];
     }
   }
 
 
-  vector<UInt>& activateDistalDendrites() {
+  // vector<UInt>& activateDistalDendrites() {
     // Concatenate external predictive inputs with self.active
-    1/0
+    // TODO
 
     // Compute Feed Forward Overlaps.
-    1/0
+    // TODO
 
     // Find Active Segments
-    1/0
+    // TODO
 
     // Update book keeping
-    lastUsedIterationForSegment += active
+    // lastUsedIterationForSegment += active
 
     // Find Matching Segments
-    1/0
+    // TODO
 
-    return cellsWithActiveSegments;
+    // return cellsWithActiveSegments;
+  // }
+
+
+  void activateCells( vector<Real> &overlaps,
+                 // predictiveCells,
+                 SDR &activeCells)
+  {
+    const UInt inhibitionAreas = activeCells.size / cellsPerInhbitionArea;
+    const UInt numDesired = (UInt) std::round(sparsity * cellsPerInhbitionArea);
+    NTA_CHECK(numDesired > 0) << "Not enough cellsPerInhbitionArea ("
+      << cellsPerInhbitionArea << ") for desired density (" << sparsity << ").";
+
+    // Compare the cell indexes by their overlap.
+    auto compare = [&overlaps](const UInt &a, const UInt &b) -> bool
+      {return overlaps[a] > overlaps[b];};
+
+    auto &active = activeCells.getFlatSparse();
+    active.clear();
+    active.reserve(cellsPerInhbitionArea + numDesired * inhibitionAreas );
+
+    for(UInt offset = 0u; offset < activeCells.size; offset += cellsPerInhbitionArea)
+    {
+      // Sort the columns by the amount of overlap.  First make a list of all of
+      // the mini-column indexes.
+      auto activeBegin = active.end();
+      for(UInt i = 0u; i < cellsPerInhbitionArea; i++)
+        active.push_back( i + offset );
+      // Do a partial sort to divide the winners from the losers.  This sort is
+      // faster than a regular sort because it stops after it partitions the
+      // elements about the Nth element, with all elements on their correct side of
+      // the Nth element.
+      std::nth_element(
+        activeBegin,
+        activeBegin + numDesired,
+        active.end(),
+        compare);
+      // Remove the columns which lost the competition.
+      active.resize( active.size() - (cellsPerInhbitionArea - numDesired) );
+      // Finish sorting the winner columns by their overlap.
+      // std::sort(activeBegin, active.end(), compare);
+      // Remove sub-threshold winners
+      // while( active.size() > offset &&
+      //        overlaps[active.back()] < stimulusThreshold_)
+      //     active.pop_back();
+    }
+    activeCells.setFlatSparse( active );
+  }
+
+
+  void learnProximalDendrites( SDR &proximalInputActive,
+                               SDR &proximalInputLearning,
+                               SDR &active ) {
+    for(const auto &cell : active.getFlatSparse())
+    {
+      // Adapt Proximal Segments
+      const auto maxSegment = proximalMaxSegment_[cell];
+      proximalConnections.adaptSegment(maxSegment, proximalInputActive,
+                                       proximalIncrement, proximalDecrement);
+      // connections_.raisePermanencesToThreshold(
+      //                             cell, synPermConnected_, stimulusThreshold_);
+    }
+    // TODO: Grow new synapses from the learning inputs?
   }
 
 
   void learnDistalDendrites( SDR &activeCells ) {
 
     // Adapt Predicted Active Cells
-    1/0
+    // TODO
 
     // Grow Unpredicted Active Cells
-    1/0
+    // TODO
 
     // Punish Predicted Inactive Cells
-    1/0
+    // TODO
   }
 
 
-
-
-
-Real ColumnPooler::initPermConnected_() {
-  Real p =
-      synPermConnected_ + (connections::maxPermanence - synPermConnected_) * rng_.getReal64();
-
-  return round5_(p);
-}
-
-
-Real ColumnPooler::initPermNonConnected_() {
-  Real p = synPermConnected_ * rng_.getReal64();
-  return round5_(p);
-}
-
-
-vector<Real> ColumnPooler::initPermanence_(const vector<UInt> &potential, //TODO make potential sparse
-                                            Real connectedPct) {
-  vector<Real> perm(numInputs_, 0);
-  for (UInt i = 0; i < numInputs_; i++) {
-    if (potential[i] < 1) {
-      continue;
-    }
-
-    if (rng_.getReal64() <= connectedPct) {
-      perm[i] = initPermConnected_();
-    } else {
-      perm[i] = initPermNonConnected_();
-    }
+  Real initProximalPermanence(Real connectedPct = 0.5f) {
+    if( rng_.getReal64() <= connectedPct )
+        return proximalSynapseThreshold +
+          (1.0f - proximalSynapseThreshold) * rng_.getReal64();
+      else
+        return proximalSynapseThreshold * rng_.getReal64();
   }
+};
 
-  return perm;
-}
-
-
-void ColumnPooler::inhibitColumns_(const vector<Real> &overlaps,
-                                    vector<UInt> &activeColumns) const {
-  Real density = localAreaDensity_;
-  if (numActiveColumnsPerInhArea_ > 0) {
-    UInt inhibitionArea =
-        pow((Real)(2 * inhibitionRadius_ + 1), (Real)columnDimensions_.size());
-    inhibitionArea = min(inhibitionArea, numColumns_);
-    density = ((Real)numActiveColumnsPerInhArea_) / inhibitionArea;
-    density = min(density, (Real)MAX_LOCALAREADENSITY);
-  }
-
-  if (globalInhibition_ ||
-      inhibitionRadius_ >
-          *max_element(columnDimensions_.begin(), columnDimensions_.end())) {
-    inhibitColumnsGlobal_(overlaps, density, activeColumns);
-  } else {
-    inhibitColumnsLocal_(overlaps, density, activeColumns);
-  }
-}
-
-
-void ColumnPooler::boostOverlaps_(const vector<UInt> &overlaps,
-                                   vector<Real> &boosted) const {
-  const Real denominator = 1.0f / log2( localAreaDensity_ );
-  for (UInt i = 0; i < numColumns_; i++) {
-    boosted[i] = overlaps[i] * log2(activeDutyCycles_[i]) * denominator;
-  }
-}
-
-
-void ColumnPooler::inhibitColumnsGlobal_(const vector<Real> &overlaps,
-                          Real density,
-                          vector<UInt> &activeColumns) const
+class DefaultTopology
 {
-  NTA_ASSERT(!overlaps.empty());
-  NTA_ASSERT(density > 0.0f && density <= 1.0f);
-  const UInt miniColumns = columnDimensions_.back();
-  const UInt macroColumns = numColumns_ / miniColumns;
-  const UInt numDesired = (UInt)(density * miniColumns + .5);
-  NTA_CHECK(numDesired > 0) << "Not enough columns (" << miniColumns << ") "
-                            << "for desired density (" << density << ").";
+public:
+  Real potentialPct;
+  Real potentialRadius;
+  bool wrapAround;
 
-  // Compare the column indexes by their overlap.
-  auto compare = [&overlaps](const UInt &a, const UInt &b) -> bool
-    {return overlaps[a] > overlaps[b];};
+  DefaultTopology(Real potentialPct, Real radius, bool wrapAround)
+  : potentialPct(potentialPct), potentialRadius(radius), wrapAround(wrapAround) 
+  {}
 
-  activeColumns.clear();
-  activeColumns.reserve(miniColumns + numDesired * macroColumns );
+  void operator()(SDR& location, SDR& potentialPool) {
 
-  for(UInt offset = 0; offset < numColumns_; offset += miniColumns)
-  {
-    // Sort the columns by the amount of overlap.  First make a list of all of
-    // the mini-column indexes.
-    auto outPtr = activeColumns.end();
-    for(UInt i = 0; i < miniColumns; i++)
-      activeColumns.push_back( i + offset );
-    // Do a partial sort to divide the winners from the losers.  This sort is
-    // faster than a regular sort because it stops after it partitions the
-    // elements about the Nth element, with all elements on their correct side of
-    // the Nth element.
-    std::nth_element(
-      outPtr,
-      outPtr + numDesired,
-      activeColumns.end(),
-      compare);
-    // Remove the columns which lost the competition.
-    activeColumns.resize( activeColumns.size() - (miniColumns - numDesired) );
-    // Finish sorting the winner columns by their overlap.
-    std::sort(outPtr, activeColumns.end(), compare);
-    // Remove sub-threshold winners
-    while( activeColumns.size() > offset &&
-           overlaps[activeColumns.back()] < stimulusThreshold_)
-        activeColumns.pop_back();
+    const auto centerInput = location.getFlatSparse()[0];
+    vector<UInt> columnInputs;
+    if (wrapAround) {
+      for (UInt input : WrappingNeighborhood(centerInput, potentialRadius, potentialPool.dimensions)) {
+        columnInputs.push_back(input);
+      }
+    } else {
+      for (UInt input :
+           Neighborhood(centerInput, potentialRadius, potentialPool.dimensions)) {
+        columnInputs.push_back(input);
+      }
+    }
+
+    const UInt numPotential = (UInt)round(columnInputs.size() * potentialPct);
+    const auto selectedInputs = Random().sample<UInt>(columnInputs, numPotential);
+    potentialPool.setFlatSparse( selectedInputs );
   }
-}
+};
 

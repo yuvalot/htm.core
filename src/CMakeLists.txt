@@ -101,6 +101,7 @@ set(algorithm_files
     nupic/algorithms/SpatialPooler.hpp
     nupic/algorithms/TemporalMemory.cpp
     nupic/algorithms/TemporalMemory.hpp
+    nupic/algorithms/ColumnPooler.cpp
 )
 
 
