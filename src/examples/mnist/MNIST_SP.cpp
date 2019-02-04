@@ -37,7 +37,7 @@
 
 using namespace std;
 using namespace nupic;
-using nupic::algorithms::spatial_pooler_extended::SpatialPoolerExtended;
+// using nupic::algorithms::spatial_pooler_extended::SpatialPoolerExtended;
 using nupic::algorithms::sdr_classifier::SDRClassifier;
 using nupic::algorithms::cla_classifier::ClassifierResult;
 
@@ -120,29 +120,29 @@ vector<UInt*> read_mnist_images(string path) {
 int main(int argc, char **argv) {
   UInt verbosity = 1;
   auto train_dataset_iterations = 1u;
-  int opt;
-  while ( (opt = getopt(argc, argv, "tv")) != -1 ) {  // for each option...
-    switch ( opt ) {
-      case 't':
-          train_dataset_iterations += 1;
-        break;
-      case 'v':
-          verbosity = 1;
-        break;
-      case '?':
-          cerr << "Unknown option: '" << char(optopt) << "'!" << endl;
-        break;
-    }
-  }
+  // int opt;
+  // while ( (opt = getopt(argc, argv, "tv")) != -1 ) {  // for each option...
+  //   switch ( opt ) {
+  //     case 't':
+  //         train_dataset_iterations += 1;
+  //       break;
+  //     case 'v':
+  //         verbosity = 1;
+  //       break;
+  //     case '?':
+  //         cerr << "Unknown option: '" << char(optopt) << "'!" << endl;
+  //       break;
+  //   }
+  // }
 
-  SDR input({28, 28, 1});
+  SDR input({28, 28});
   ColumnPooler htm(
       /* proximalInputDimensions */       input.dimensions,
-      /* distalInputDimensions */         {0},
+      /* distalInputDimensions */         {1},
       /* inhibitionDimensions */          {10, 10},
       /* cellsPerInhbitionArea */         120,
       /* sparsity */                      .015,
-      /* potentialPool */                 TODO,
+      /* potentialPool */                 DefaultTopology(.9, 4., true),
       /* proximalSegments */              1,
       /* proximalSegmentThreshold */      28,
       /* proximalIncrement */             .032,
@@ -158,11 +158,11 @@ int main(int argc, char **argv) {
       /* stability_rate */                0,
       /* fatigue_rate */                  0,
       /* period */                        1402,
-      /* seed */                          Random()(),
+      /* seed */                          0,
       /* verbose */                       verbosity);
 
-  SDR columns({sp.getNumColumns()});
-  SDR_Metrics columnStats(columns, 1402);
+  SDR cells( htm.cellDimensions );
+  SDR_Metrics columnStats(cells, 1402);
 
   SDRClassifier clsr(
     /* steps */         {0},
@@ -181,7 +181,7 @@ int main(int argc, char **argv) {
     vector<UInt> index( train_labels.size() );
     for(auto s = 0u; s < train_labels.size(); s++)
         index[s] = s;
-    Random().shuffle( index.begin(), index.end() );
+    Random(3).shuffle( index.begin(), index.end() );
 
     for(auto s = 0u; s < train_labels.size(); s++) {
       // Get the input & label
@@ -190,16 +190,16 @@ int main(int argc, char **argv) {
 
       // Compute & Train
       input.setDense( image );
-      sp.compute(input, true, columns);
+      htm.compute(input, true, cells);
       ClassifierResult result;
-      clsr.compute(sp.getIterationNum(), columns.getFlatSparse(),
+      clsr.compute(htm.iterationNum, cells.getFlatSparse(),
         /* bucketIdxList */   {label},
         /* actValueList */    {(Real)label},
         /* category */        true,
         /* learn */           true,
         /* infer */           false,
                               &result);
-      if( verbosity and sp.getIterationNum() % 1000 == 0 )
+      if( verbosity and htm.iterationNum % 1000 == 0 )
         cout << "." << flush;
     }
   }
@@ -221,9 +221,9 @@ int main(int argc, char **argv) {
 
     // Compute
     input.setDense( image );
-    sp.compute(input, false, columns);
+    htm.compute(input, false, cells);
     ClassifierResult result;
-    clsr.compute(sp.getIterationNum(), columns.getFlatSparse(),
+    clsr.compute(htm.iterationNum, cells.getFlatSparse(),
       /* bucketIdxList */   {},
       /* actValueList */    {},
       /* category */        true,

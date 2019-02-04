@@ -184,10 +184,8 @@ public:
           }
           proximalConnections.raisePermanencesToThreshold( segment,
                           proximalSynapseThreshold, proximalSegmentThreshold );
-          if( verbose ) {
-            PP_Sp.addData( proximalInputs );
-            PP_AF.addData( proximalInputs );
-          }
+          PP_Sp.addData( proximalInputs );
+          PP_AF.addData( proximalInputs );
         }
       }
     }
@@ -203,11 +201,16 @@ public:
 
     reset();
 
+    if( PP_Sp.min() * proximalInputs.size < proximalSegmentThreshold )
+      cerr << "Proximal segment has fewer synapses than the segment threshold." << endl;
+    if( PP_AF.min() == 0.0f )
+      cerr << "Proximal input is unused." << endl;
+
     if( verbose ) {
       // TODO: Print all parameters
       cout << "Potential Pool Statistics:" << endl
-           << "    " << PP_Sp << endl
-           << "    " << PP_AF << endl;
+           << PP_Sp
+           << PP_AF << endl;
     }
   }
 
@@ -218,6 +221,15 @@ public:
     // TODO Zero Previous Updates
   }
 
+
+  void compute(
+        SDR& proximalInputActive,
+        bool learn,
+        SDR& active) {
+    SDR none( distalInputDimensions );
+    SDR none2( active.dimensions );
+    compute(proximalInputActive, proximalInputActive, none, none, learn, active, none2 );
+  }
 
   void compute(
         SDR& proximalInputActive,
@@ -301,10 +313,11 @@ public:
       }
       proximalMaxSegment_[cell] = maxSegment;
 
+      cellExcitements[cell] = maxOverlap;
       // Apply Stability & Fatigue
-      X_act[cell]   += stability_rate * (maxOverlap - X_act[cell] - X_inact[cell]);
-      X_inact[cell] += fatigue_rate   * (maxOverlap - X_inact[cell]);
-      cellExcitements[cell] = X_act[cell];
+      // X_act[cell]   += stability_rate * (maxOverlap - X_act[cell] - X_inact[cell]);
+      // X_inact[cell] += fatigue_rate   * (maxOverlap - X_inact[cell]);
+      // cellExcitements[cell] = X_act[cell];
     }
   }
 
@@ -413,7 +426,8 @@ public:
   }
 };
 
-class DefaultTopology
+
+class DefaultTopology : public Topology_t
 {
 public:
   Real potentialPct;
@@ -424,9 +438,20 @@ public:
   : potentialPct(potentialPct), potentialRadius(radius), wrapAround(wrapAround) 
   {}
 
-  void operator()(SDR& location, SDR& potentialPool) {
+  void operator()(SDR& cell, SDR& potentialPool) {
 
-    const auto centerInput = location.getFlatSparse()[0];
+    vector<vector<UInt>> inputCoords;//(cell.dimensions.size());
+    for(auto i = 0u; i < cell.dimensions.size(); i++)
+    {
+      const Real columnCoord = cell.getSparse()[i][0];
+      const Real inputCoord = (columnCoord + 0.5f) *
+                              (potentialPool.dimensions[i] / (Real)cell.dimensions[i]);
+      inputCoords.push_back({ (UInt32)floor(inputCoord) });
+    }
+    potentialPool.setSparse(inputCoords);
+    NTA_CHECK(potentialPool.getFlatSparse().size() == 1u);
+    const auto centerInput = potentialPool.getFlatSparse()[0];
+
     vector<UInt> columnInputs;
     if (wrapAround) {
       for (UInt input : WrappingNeighborhood(centerInput, potentialRadius, potentialPool.dimensions)) {
