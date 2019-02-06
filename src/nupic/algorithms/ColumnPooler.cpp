@@ -36,8 +36,8 @@
 // #include <nupic/algorithms/ColumnPooler.hpp>
 #include <nupic/types/Types.hpp>
 #include <nupic/types/Serializable.hpp>
-#include <nupic/ntypes/Sdr.hpp>
-#include <nupic/ntypes/SdrMetrics.hpp>
+#include <nupic/types/Sdr.hpp>
+#include <nupic/utils/SdrMetrics.hpp>
 #include <nupic/algorithms/Connections.hpp>
 #include <nupic/math/Math.hpp>
 #include <nupic/math/Topology.hpp>
@@ -198,7 +198,7 @@ public:
     }
     proximalMaxSegment_.resize( proximalConnections.numCells() );
     AF = new SDR_ActivationFrequency( {proximalConnections.numCells(), proximalSegments}, period );
-    AF->activationFrequency_.assign( AF->activationFrequency.size(), sparsity / proximalSegments );
+    // AF->activationFrequency_.assign( AF->activationFrequency.size(), sparsity / proximalSegments );
     iterationNum_      = 0u;
     iterationLearnNum_ = 0u;
 

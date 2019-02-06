@@ -33,7 +33,7 @@
 #include <nupic/algorithms/SDRClassifier.hpp>
 #include <nupic/algorithms/ClassifierResult.hpp>
 #include <nupic/utils/Random.hpp>
-#include <nupic/ntypes/SdrMetrics.hpp>
+#include <nupic/utils/SdrMetrics.hpp>
 
 using namespace std;
 using namespace nupic;
