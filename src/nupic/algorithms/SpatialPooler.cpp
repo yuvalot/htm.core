@@ -135,7 +135,12 @@ UInt SpatialPooler::getNumInputs() const { return numInputs_; }
 UInt SpatialPooler::getPotentialRadius() const { return potentialRadius_; }
 
 void SpatialPooler::setPotentialRadius(UInt potentialRadius) {
-  NTA_CHECK(potentialRadius < numInputs_);
+  NTA_CHECK(potentialRadius < numInputs_/2);
+  for(const auto dim: inputDimensions_) {
+    if(potentialRadius > (dim/2) +1) {
+      NTA_WARN << "potentialRadius >= one of the dimensions: " << dim;
+    }
+  } 
   potentialRadius_ = potentialRadius;
   NTA_CHECK((UInt)(potentialPct_ * potentialRadius_) >= 1u) << "SP: at least 1 input synapse must be able to activate from potential pool.";
   NTA_CHECK(stimulusThreshold_ <= potentialPct_ * potentialRadius) << "Stimulus threshold must be <= than the number of possibly active input synapses per segment.";
