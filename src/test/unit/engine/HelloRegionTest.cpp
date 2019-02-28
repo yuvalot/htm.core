@@ -29,13 +29,14 @@
 
 #include <nupic/engine/Network.hpp>
 #include <nupic/engine/Region.hpp>
-#include <nupic/ntypes/ArrayRef.hpp>
 #include <nupic/ntypes/Dimensions.hpp>
 #include <nupic/os/Path.hpp>
 
 namespace testing {
 
 using namespace nupic;
+
+static bool verbose = false;
 
 TEST(HelloRegionTest, demo) {
 
@@ -72,10 +73,10 @@ TEST(HelloRegionTest, demo) {
       net.addRegion("region", "VectorFileSensor", params);
 
   // Set region dimensions
-  Dimensions dims;
-  dims.push_back(1);  // 1 means variable size, in this case set by activeOutputCount.
-  std::cout << "Setting region dimensions" << dims.toString() << std::endl;
-  region->setDimensions(dims);
+ // Dimensions dims;
+ // dims.push_back(1);  // 1 means variable size, in this case set by activeOutputCount.
+ // if(verbose) std::cout << "Setting region dimensions" << dims.toString() << std::endl;
+ // region->setDimensions(dims);
 
 
   // Load data
@@ -93,7 +94,7 @@ TEST(HelloRegionTest, demo) {
   region->compute();  // This should fetch the first row into buffer
 
   // Get output
-  ArrayRef outputArray = region->getOutputData("dataOut");
+  const Array outputArray = region->getOutputData("dataOut");
   EXPECT_TRUE(outputArray.getType() == NTA_BasicType_Real32);
   EXPECT_EQ(outputArray.getCount(), testdata[0].size());
   const Real32 *buffer = (const Real32 *)outputArray.getBuffer();
@@ -106,15 +107,17 @@ TEST(HelloRegionTest, demo) {
   {
     std::stringstream ss;
     net.save(ss);
-	//std::cout << "Loading from stream. \n";
-    //std::cout << ss.str() << std::endl;
+	  if(verbose) std::cout << "Loading from stream. \n";
+    if(verbose) std::cout << ss.str() << std::endl;
     ss.seekg(0);
     net2.load(ss);
   }
+
+  // Note: this compares the structure (regions, links, etc) not data content or state.
   EXPECT_EQ(net, net2) << "Restored network should be the same as original.";
 
   std::shared_ptr<Region> region2 = net2.getRegion("region");
-  ArrayRef outputArray2 = region2->getOutputData("dataOut");
+  const Array outputArray2 = region2->getOutputData("dataOut");
 
   // fetch the data rows for both networks.
   net.run((int)data_rows-1);
@@ -127,7 +130,7 @@ TEST(HelloRegionTest, demo) {
   for (size_t i = 0; i < outputArray2.getCount(); i++) {
     EXPECT_NEAR(buffer[i], testdata[data_rows -1][i], 0.001);
 	  EXPECT_NEAR(buffer[i], buffer2[i], 0.001);
-	  std::cout << "testdata=" << testdata[data_rows -1][i]
+	  if(verbose) std::cout << "testdata=" << testdata[data_rows -1][i]
               << ", buffer=" << buffer[i]
               << ", buffer2=" << buffer2[i] << std::endl;
   }

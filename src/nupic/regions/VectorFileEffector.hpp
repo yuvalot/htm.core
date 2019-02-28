@@ -33,7 +33,6 @@
 
 #include <nupic/engine/RegionImpl.hpp>
 #include <nupic/ntypes/Array.hpp>
-#include <nupic/ntypes/ArrayRef.hpp>
 #include <nupic/types/Types.hpp>
 
 namespace nupic {
@@ -62,7 +61,7 @@ class ValueMap;
 class VectorFileEffector : public RegionImpl {
 public:
   static Spec *createSpec();
-  size_t getNodeOutputElementCount(const std::string &outputName) override;
+  size_t getNodeOutputElementCount(const std::string &outputName) const override;
   void setParameterString(const std::string &name, Int64 index,
                           const std::string &s) override;
   std::string getParameterString(const std::string &name, Int64 index) override;
@@ -95,7 +94,7 @@ private:
   void closeFile();
   void openFile(const std::string &filename);
 
-    ArrayRef dataIn_;
+    Array dataIn_;
     std::string filename_;          // Name of the output file
     std::ofstream *outFile_;        // Handle to current file
 

@@ -28,8 +28,9 @@
 #ifndef NTA_DIMENSIONS_HPP
 #define NTA_DIMENSIONS_HPP
 
-#include <sstream>
+#include <iostream>
 #include <vector>
+#include <nupic/types/Types.hpp>
 
 namespace nupic {
 /**
@@ -52,7 +53,7 @@ namespace nupic {
  *
  * @endinternal
  */
-typedef std::vector<size_t> Coordinate;
+typedef std::vector<UInt> Coordinate;
 
 /**
  * Represents the dimensions of a Region.
@@ -70,7 +71,7 @@ typedef std::vector<size_t> Coordinate;
  * @nosubgrouping
  *
  */
-class Dimensions : public std::vector<size_t> {
+class Dimensions : public std::vector<UInt> {
 public:
   /**
    *
@@ -89,14 +90,16 @@ public:
   Dimensions();
 
   /**
-   * Create a new Dimensions object from a @c std::vector<size_t>.
+   * Create a new Dimensions object from a @c std::vector<UInt>.
+   * The dimension in index 0 is the one that moves fastest while iterating.
+   * in 2D coordinates, x,y; the x is dimension[0], y is dimension[1].
    *
    * @param v
-   *        A @c std::vector of @c size_t, the value with the index of @a n
+   *        A @c std::vector of @c UInt, the value with the index of @a n
    *        is the size of the @a n th dimension
    *
    */
-  Dimensions(std::vector<size_t> v);
+  Dimensions(std::vector<UInt> v);
 
   /** Create a new 1-dimension Dimensions object.
 
@@ -104,7 +107,7 @@ public:
    *        The size of the 1st dimension
    *
    */
-  Dimensions(size_t x);
+  Dimensions(UInt x);
 
   /**
    * Create a new 2-dimension Dimensions.
@@ -114,7 +117,7 @@ public:
    * @param y
    *        The size of the 2nd dimension
    */
-  Dimensions(size_t x, size_t y);
+  Dimensions(UInt x, UInt y);
 
   /**
    * Create a new 3-dimension Dimensions.
@@ -126,7 +129,7 @@ public:
    * @param z
    *        The size of the 3rd dimension
    */
-  Dimensions(size_t x, size_t y, size_t z);
+  Dimensions(UInt x, UInt y, UInt z);
 
   /**
    *
@@ -188,6 +191,10 @@ public:
 
   /**
    * Tells whether the Dimensions object is "unspecified".
+	 * All dimensions start out in this state when allocated.
+	 * It means we have not yet looked to see if it has been
+	 * configured with a dimension value.  
+	 * The dimension value is size(0).
    *
    * @returns
    *     Whether the Dimensions object is "unspecified"
@@ -199,16 +206,25 @@ public:
   /**
    *
    * Tells whether the Dimensions object is "don't care".
+	 * This means that we have confirmed that it was not configured 
+	 * with a dimension but that it can be inherited from someplace 
+	 * else.  For example, if we looked at an input and checked that 
+	 * it was not configured with a dimension we can mark it as isDontCare 
+	 * so that later when we determine the dimension of the connected 
+	 * output we know that it can also assign it to the input.
+   * value is vector of size 1, element 0 is 0.
    *
    * @returns
    *     Whether the Dimensions object is "don't care"
    */
   bool isDontcare() const;
+  static const int DONTCARE = 0;
 
   /**
    * Tells whether the Dimensions object is "specified".
    *
    * A "specified" Dimensions object satisfies all following conditions:
+	 * Basically it means that this is a usable dimension.
    *
    *   * "valid"
    *   * NOT "unspecified"
@@ -364,9 +380,8 @@ public:
    *
    */
 
-#ifdef NTA_INTERNAL
-  friend std::ostream &operator<<(std::ostream &f, const Dimensions &);
-#endif
+  friend std::ostream &operator<<(std::ostream &f, const Dimensions &d);
+  friend std::istream &operator>>(std::istream &f, Dimensions &d);
 };
 
 } // namespace nupic

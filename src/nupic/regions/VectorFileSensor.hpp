@@ -35,7 +35,6 @@
 
 #include <nupic/engine/RegionImpl.hpp>
 #include <nupic/ntypes/Array.hpp>
-#include <nupic/ntypes/ArrayRef.hpp>
 #include <nupic/regions/VectorFile.hpp>
 #include <nupic/types/Types.hpp>
 
@@ -270,7 +269,7 @@ public:
   //    }
 
   static Spec *createSpec();
-  size_t getNodeOutputElementCount(const std::string &outputName) override;
+  size_t getNodeOutputElementCount(const std::string &outputName) const override;
 
   virtual UInt32 getParameterUInt32(const std::string &name, Int64 index = -1) override;
   virtual std::string getParameterString(const std::string &name, Int64 index = -1) override;

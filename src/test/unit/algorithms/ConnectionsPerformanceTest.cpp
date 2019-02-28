@@ -39,6 +39,7 @@ namespace testing {
 
 using namespace std;
 using namespace nupic;
+using namespace nupic::algorithms::connections;
 using ::nupic::algorithms::spatial_pooler::SpatialPooler;
 using ::nupic::algorithms::temporal_memory::TemporalMemory;
 
@@ -190,7 +191,7 @@ void _feedTM(TemporalMemory &tm, vector<CellIdx> sdr, bool learn) {
 
 
 // TESTS
-#ifdef NDEBUG
+#if defined( NDEBUG) && !defined(NTA_OS_WINDOWS)
   const UInt COLS = 2048; //standard num of columns in SP/TM
   const UInt SEQ = 50; //number of sequences ran in tests
   const UInt EPOCHS = 20; //tests run for epochs times
@@ -229,9 +230,9 @@ TEST(ConnectionsPerformanceTest, testTMLarge) {
  */
 TEST(ConnectionsPerformanceTest, testSP) {
   auto tim = runSpatialPoolerTest(
-    /* numInputs */          1024,
+    /* numInputs */          COLS,
     /* inputSparsity */      0.15f,
-    /* numColumns */         1024,
+    /* numColumns */         COLS,
     /* columnSparsity */     0.05f,
     /* label */              "spatial pooler");
 
@@ -246,13 +247,13 @@ TEST(ConnectionsPerformanceTest, testSP) {
  */
 TEST(ConnectionsPerformanceTest, testTP) {
   auto tim = runSpatialPoolerTest(
-    /* numInputs */          4 * 1024,
+    /* numInputs */          2 * COLS,
     /* inputSparsity */      0.02f,
-    /* numColumns */         1024 / 2,
-    /* columnSparsity */     0.05f,
+    /* numColumns */         COLS / 2,
+    /* columnSparsity */     0.1f,
     /* label */              "temporal pooler");
 
-#ifdef NDEBUG
+#if defined( NDEBUG)
   ASSERT_LE(tim, 4.0f * Timer::getSpeed());
 #endif
   UNUSED(tim);

@@ -30,15 +30,14 @@
 #include <cmath> //fmod
 
 #include <nupic/algorithms/SpatialPooler.hpp>
-#include <nupic/math/Math.hpp>
 #include <nupic/math/Topology.hpp>
+#include <nupic/math/Math.hpp> // nupic::Epsilon
 #include <nupic/utils/VectorHelpers.hpp>
 
 #define VERSION 2  // version for stream serialization
 
-using namespace std;
 using namespace nupic;
-using namespace nupic::algorithms::spatial_pooler;
+using nupic::algorithms::spatial_pooler::SpatialPooler;
 using namespace nupic::math::topology;
 using nupic::utils::VectorHelpers;
 
@@ -253,12 +252,6 @@ void SpatialPooler::setSynPermBelowStimulusInc(Real synPermBelowStimulusInc) {
 
 Real SpatialPooler::getSynPermConnected() const { return synPermConnected_; }
 
-void SpatialPooler::setSynPermConnected(Real synPermConnected) {
-  NTA_CHECK( synPermConnected > connections::minPermanence );
-  NTA_CHECK( synPermConnected <= connections::maxPermanence );
-  synPermConnected_ = synPermConnected;
-}
-
 Real SpatialPooler::getSynPermMax() const { return connections::maxPermanence; }
 
 Real SpatialPooler::getMinPctOverlapDutyCycles() const {
@@ -380,7 +373,7 @@ void SpatialPooler::getConnectedSynapses(UInt column,
   const auto &synapses = connections_.synapsesForSegment( column );
   for( const auto &syn : synapses ) {
     const auto &synData = connections_.dataForSynapse( syn );
-    if( synData.permanence >= synPermConnected_ - connections::EPSILON )
+    if( synData.permanence >= synPermConnected_ - nupic::Epsilon )
       connectedSynapses[ synData.presynapticCell ] = 1;
   }
 }

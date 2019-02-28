@@ -24,9 +24,11 @@
  * Implementation of unit tests for SpatialPooler
  */
 
+#include <algorithm>
 #include <cstring>
 #include <fstream>
 #include <stdio.h>
+#include <numeric>
 
 #include "gtest/gtest.h"
 #include <nupic/algorithms/SpatialPooler.hpp>
@@ -1475,8 +1477,8 @@ TEST(SpatialPoolerTest, testInitPermanence) {
   SpatialPooler sp;
   Real synPermConnected = 0.2f;
   Real synPermActiveInc = 0.05f;
-  sp.initialize(inputDim, columnDim);
-  sp.setSynPermConnected(synPermConnected);
+  sp.initialize(inputDim, columnDim, 16u, 0.5f, true, -1, 10u, 0u, 0.01f, 0.1f,
+                synPermConnected);
   sp.setSynPermActiveInc(synPermActiveInc);
 
   UInt arr[8] = {0, 1, 1, 0, 0, 1, 0, 1};
@@ -1496,8 +1498,8 @@ TEST(SpatialPoolerTest, testInitPermanence) {
       ASSERT_LT(perm[i], 1e-5);
 
   inputDim[0] = 100;
-  sp.initialize(inputDim, columnDim);
-  sp.setSynPermConnected(synPermConnected);
+  sp.initialize(inputDim, columnDim, 16u, 0.5f, true, -1, 10u, 0u, 0.01f, 0.1f,
+                synPermConnected);
   sp.setSynPermActiveInc(synPermActiveInc);
   potential.clear();
 
@@ -1514,11 +1516,10 @@ TEST(SpatialPoolerTest, testInitPermanence) {
 }
 
 TEST(SpatialPoolerTest, testInitPermConnected) {
-  SpatialPooler sp;
   Real synPermConnected = 0.2f;
-  Real synPermMax = 1.0f;
-
-  sp.setSynPermConnected(synPermConnected);
+  Real synPermMax       = 1.0f;
+  SpatialPooler sp({10}, {10}, 16u, 0.5f, true, -1, 10u, 0u, 0.01f, 0.1f,
+                   synPermConnected);
 
   for (UInt i = 0; i < 100; i++) {
     Real permVal = sp.initPermConnected_();
@@ -1528,10 +1529,10 @@ TEST(SpatialPoolerTest, testInitPermConnected) {
 }
 
 TEST(SpatialPoolerTest, testInitPermNonConnected) {
-  SpatialPooler sp;
-  EXPECT_TRUE(sp.getSynPermMax() == 1.0) << sp.getSynPermMax();
   Real32 synPermConnected = 0.2f;
-  EXPECT_NO_THROW(sp.setSynPermConnected(synPermConnected))  << sp.getSynPermMax();
+  SpatialPooler sp({10}, {10}, 16u, 0.5f, true, -1, 10u, 0u, 0.01f, 0.1f,
+                   synPermConnected);
+  EXPECT_TRUE(sp.getSynPermMax() == 1.0) << sp.getSynPermMax();
   for (UInt i = 0; i < 100; i++) {
     Real permVal = sp.initPermNonConnected_();
     ASSERT_GE(permVal, 0);
@@ -1636,7 +1637,7 @@ TEST(SpatialPoolerTest, testinitMapPotential1D) {
   sp.setPotentialPct(0.5);
   UInt supersetMask1[12] = {1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 1};
   mask = sp.initMapPotential_(0, true);
-  ASSERT_TRUE(sum(mask) == 3);
+  ASSERT_TRUE(accumulate(mask.begin(), mask.end(), 0.0f) == 3u);
 
   UInt unionMask1[12] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
   for (UInt i = 0; i < 12; i++) {
