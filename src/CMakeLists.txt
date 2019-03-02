@@ -400,26 +400,6 @@ add_custom_target(mnist
                   COMMENT "Executing ${src_executable_mnistsp}"
                   VERBATIM)
 
-
-#########################################################
-## MNIST Spatial Pooler Example
-#
-set(src_executable_mnistsp mnist_sp)
-add_executable(${src_executable_mnistsp} "examples/mnist/MNIST_SP.cpp")
-target_link_libraries(${src_executable_mnistsp} ${core_library})
-target_compile_options(${src_executable_mnistsp} PUBLIC ${INTERNAL_CXX_FLAGS})
-target_compile_definitions(${src_executable_mnistsp} PRIVATE ${COMMON_COMPILER_DEFINITIONS})
-target_include_directories(${src_executable_mnistsp} PRIVATE 
-        ${CORE_LIB_INCLUDES} 
-        ${EXTERNAL_INCLUDES}
-        )
-add_custom_target(mnist
-                  COMMAND ${src_executable_mnistsp}
-                  DEPENDS ${src_executable_mnistsp}
-                  COMMENT "Executing ${src_executable_mnistsp}"
-                  VERBATIM)
-
-
 #########################################################
 ## ASCII Example
 #
