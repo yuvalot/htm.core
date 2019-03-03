@@ -71,12 +71,12 @@ public:
 
   Real sparsity;
 
-  Topology_t potentialPool;
-  UInt       proximalSegments;
-  UInt       proximalSegmentThreshold;
-  Permanence proximalIncrement;
-  Permanence proximalDecrement;
-  Permanence proximalSynapseThreshold;
+  Topology_t* potentialPool;
+  UInt        proximalSegments;
+  UInt        proximalSegmentThreshold;
+  Permanence  proximalIncrement;
+  Permanence  proximalDecrement;
+  Permanence  proximalSynapseThreshold;
 
   UInt       distalMaxSegments;
   UInt       distalMaxSynapsesPerSegment;
@@ -161,7 +161,8 @@ public:
           auto segment = proximalConnections.createSegment( cell );
 
           // Make synapses.
-          args_.potentialPool( inhibitionAreas, proximalInputs, rng_ );
+          NTA_CHECK(args_.potentialPool != nullptr);
+          (*args_.potentialPool)( inhibitionAreas, proximalInputs, rng_ );
           for(const auto presyn : proximalInputs.getSparse() ) {
             auto permanence = initProximalPermanence();
             proximalConnections.createSynapse( segment, presyn, permanence);
@@ -430,6 +431,86 @@ public:
           (1.0f - args_.proximalSynapseThreshold) * rng_.getReal64();
       else
         return args_.proximalSynapseThreshold * rng_.getReal64();
+  }
+
+
+  void setParameters( Parameters &newParameters )
+  {
+    if( newParameters.proximalInputDimensions     != parameters.proximalInputDimensions ) {
+      NTA_THROW << "Setter unimplemented.";
+    }
+    if( newParameters.distalInputDimensions       != parameters.distalInputDimensions ) {
+      NTA_THROW << "Setter unimplemented.";
+    }
+    if( newParameters.inhibitionDimensions        != parameters.inhibitionDimensions ) {
+      NTA_THROW << "Setter unimplemented.";
+    }
+    if( newParameters.cellsPerInhibitionArea      != parameters.cellsPerInhibitionArea ) {
+      NTA_THROW << "Setter unimplemented.";
+    }
+    if( newParameters.sparsity                    != parameters.sparsity ) {
+      NTA_THROW << "Setter unimplemented.";
+    }
+    if( newParameters.potentialPool               != parameters.potentialPool ) {
+      NTA_THROW << "Setter unimplemented.";
+    }
+    if( newParameters.proximalSegments            != parameters.proximalSegments ) {
+      NTA_THROW << "Setter unimplemented.";
+    }
+    if( newParameters.proximalSegmentThreshold    != parameters.proximalSegmentThreshold ) {
+      NTA_THROW << "Setter unimplemented.";
+    }
+    if( newParameters.proximalIncrement           != parameters.proximalIncrement ) {
+      NTA_THROW << "Setter unimplemented.";
+    }
+    if( newParameters.proximalDecrement           != parameters.proximalDecrement ) {
+      NTA_THROW << "Setter unimplemented.";
+    }
+    if( newParameters.proximalSynapseThreshold    != parameters.proximalSynapseThreshold ) {
+      NTA_THROW << "Setter unimplemented.";
+    }
+    if( newParameters.distalMaxSegments           != parameters.distalMaxSegments ) {
+      NTA_THROW << "Setter unimplemented.";
+    }
+    if( newParameters.distalMaxSynapsesPerSegment != parameters.distalMaxSynapsesPerSegment ) {
+      NTA_THROW << "Setter unimplemented.";
+    }
+    if( newParameters.distalSegmentThreshold      != parameters.distalSegmentThreshold ) {
+      NTA_THROW << "Setter unimplemented.";
+    }
+    if( newParameters.distalSegmentMatch          != parameters.distalSegmentMatch ) {
+      NTA_THROW << "Setter unimplemented.";
+    }
+    if( newParameters.distalAddSynapses           != parameters.distalAddSynapses ) {
+      NTA_THROW << "Setter unimplemented.";
+    }
+    if( newParameters.distalIncrement             != parameters.distalIncrement ) {
+      NTA_THROW << "Setter unimplemented.";
+    }
+    if( newParameters.distalDecrement             != parameters.distalDecrement ) {
+      NTA_THROW << "Setter unimplemented.";
+    }
+    if( newParameters.distalMispredictDecrement   != parameters.distalMispredictDecrement ) {
+      NTA_THROW << "Setter unimplemented.";
+    }
+    if( newParameters.distalSynapseThreshold      != parameters.distalSynapseThreshold ) {
+      NTA_THROW << "Setter unimplemented.";
+    }
+    if( newParameters.stability_rate              != parameters.stability_rate ) {
+      NTA_THROW << "Setter unimplemented.";
+    }
+    if( newParameters.fatigue_rate                != parameters.fatigue_rate ) {
+      NTA_THROW << "Setter unimplemented.";
+    }
+    if( newParameters.period                      != parameters.period ) {
+      NTA_THROW << "Setter unimplemented.";
+    }
+    if( newParameters.seed                        != parameters.seed ) {
+      NTA_THROW << "Setter unimplemented.";
+    }
+    if( newParameters.verbose                     != parameters.verbose ) {
+      NTA_THROW << "Setter unimplemented.";
+    }
   }
 };
 
