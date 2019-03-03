@@ -57,8 +57,8 @@ using nupic::algorithms::temporal_memory::TemporalMemory;
 // TODO: Connections learning rules are different.
 
 
-/* Topology( location, potentialPool ) */
-typedef function<void(SDR&, SDR&)> Topology_t;
+/* Topology( location, potentialPool, RNG ) */
+typedef function<void(SDR&, SDR&, Random&)> Topology_t;
 
 
 struct Parameters
@@ -161,7 +161,7 @@ public:
           auto segment = proximalConnections.createSegment( cell );
 
           // Make synapses.
-          args_.potentialPool( inhibitionAreas, proximalInputs );
+          args_.potentialPool( inhibitionAreas, proximalInputs, rng_ );
           for(const auto presyn : proximalInputs.getSparse() ) {
             auto permanence = initProximalPermanence();
             proximalConnections.createSynapse( segment, presyn, permanence);
@@ -445,7 +445,7 @@ public:
   : potentialPct(potentialPct), potentialRadius(radius), wrapAround(wrapAround) 
   {}
 
-  void operator()(SDR& cell, SDR& potentialPool) {
+  void operator()(SDR& cell, SDR& potentialPool, Random &rng) {
 
     vector<vector<UInt>> inputCoords;//(cell.dimensions.size());
     for(auto i = 0u; i < cell.dimensions.size(); i++)
@@ -472,7 +472,7 @@ public:
     }
 
     const UInt numPotential = (UInt)round(columnInputs.size() * potentialPct);
-    const auto selectedInputs = Random().sample<UInt>(columnInputs, numPotential);
+    const auto selectedInputs = rng.sample<UInt>(columnInputs, numPotential);
     potentialPool.setSparse( selectedInputs );
   }
 };
