@@ -318,6 +318,7 @@ Segment Connections::getSegment(CellIdx cell, SegmentIdx idx) const {
 }
 
 const vector<Synapse> &Connections::synapsesForSegment(Segment segment) const {
+  NTA_ASSERT(segment < segments_.size()) << "Segment out of bounds! " << segment;
   return segments_[segment].synapses;
 }
 

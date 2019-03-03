@@ -38,6 +38,8 @@
 using namespace std;
 using namespace nupic;
 // using nupic::algorithms::spatial_pooler_extended::SpatialPoolerExtended;
+using nupic::algorithms::column_pooler::ColumnPooler;
+using nupic::algorithms::column_pooler::DefaultTopology;
 using nupic::algorithms::sdr_classifier::SDRClassifier;
 using nupic::algorithms::cla_classifier::ClassifierResult;
 
