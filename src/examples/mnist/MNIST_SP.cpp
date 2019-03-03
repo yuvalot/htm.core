@@ -38,8 +38,7 @@
 using namespace std;
 using namespace nupic;
 // using nupic::algorithms::spatial_pooler_extended::SpatialPoolerExtended;
-using nupic::algorithms::column_pooler::ColumnPooler;
-using nupic::algorithms::column_pooler::DefaultTopology;
+namespace column_pooler = nupic::algorithms::column_pooler;
 using nupic::algorithms::sdr_classifier::SDRClassifier;
 using nupic::algorithms::cla_classifier::ClassifierResult;
 
@@ -138,32 +137,33 @@ int main(int argc, char **argv) {
   // }
 
   SDR input({28, 28});
-  ColumnPooler htm(
-      /* proximalInputDimensions */       input.dimensions,
-      /* distalInputDimensions */         {1},
-      /* inhibitionDimensions */          {10, 10},
-      /* cellsPerInhbitionArea */         120,
-      /* sparsity */                      .015,
-      /* potentialPool */                 DefaultTopology(.9, 4., false),
-      /* proximalSegments */              1,
-      /* proximalSegmentThreshold */      3, // 7, // 14,
-      /* proximalIncrement */             .032,
-      /* proximalDecrement */             .00928,
-      /* proximalSynapseThreshold */      .422,
-      /* distalMaxSegments */             0,
-      /* distalMaxSynapsesPerSegment */   0,
-      /* distalSegmentThreshold */        0,
-      /* distalSegmentMatch */            0,
-      /* distalAddSynapses */             0,
-      /* distalIncrement */               0,
-      /* distalDecrement */               0,
-      /* distalMispredictDecrement */     0,
-      /* distalSynapseThreshold */        0,
-      /* stability_rate */                0,
-      /* fatigue_rate */                  0,
-      /* period */                        1402,
-      /* seed */                          0,
-      /* verbose */                       verbosity);
+  column_pooler::Parameters params   = column_pooler::DefaultParameters;
+  params.proximalInputDimensions     = input.dimensions;
+  params.distalInputDimensions       = {1};
+  params.inhibitionDimensions        = {10, 10};
+  params.cellsPerInhibitionArea      = 120;
+  params.sparsity                    = .015;
+  params.potentialPool               = column_pooler::DefaultTopology(.9, 4., false);
+  params.proximalSegments            = 1;
+  params.proximalSegmentThreshold    = 3, // 7, // 14;
+  params.proximalIncrement           = .032;
+  params.proximalDecrement           = .00928;
+  params.proximalSynapseThreshold    = .422;
+  params.distalMaxSegments           = 0;
+  params.distalMaxSynapsesPerSegment = 0;
+  params.distalSegmentThreshold      = 0;
+  params.distalSegmentMatch          = 0;
+  params.distalAddSynapses           = 0;
+  params.distalIncrement             = 0;
+  params.distalDecrement             = 0;
+  params.distalMispredictDecrement   = 0;
+  params.distalSynapseThreshold      = 0;
+  params.stability_rate              = 0;
+  params.fatigue_rate                = 0;
+  params.period                      = 1402;
+  params.seed                        = 0;
+  params.verbose                     = verbosity;
+  column_pooler::ColumnPooler htm( params );
 
   SDR cells( htm.cellDimensions );
   SDR_Metrics columnStats(cells, 1402);
