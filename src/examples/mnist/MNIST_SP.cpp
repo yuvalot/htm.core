@@ -194,7 +194,7 @@ int main(int argc, char **argv) {
       input.setDense( image );
       htm.compute(input, true, cells);
       ClassifierResult result;
-      clsr.compute(htm.iterationNum, cells.getFlatSparse(),
+      clsr.compute(htm.iterationNum, cells.getSparse(),
         /* bucketIdxList */   {label},
         /* actValueList */    {(Real)label},
         /* category */        true,
@@ -225,7 +225,7 @@ int main(int argc, char **argv) {
     input.setDense( image );
     htm.compute(input, false, cells);
     ClassifierResult result;
-    clsr.compute(htm.iterationNum, cells.getFlatSparse(),
+    clsr.compute(htm.iterationNum, cells.getSparse(),
       /* bucketIdxList */   {},
       /* actValueList */    {},
       /* category */        true,

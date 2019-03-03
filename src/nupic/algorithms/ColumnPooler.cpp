@@ -164,14 +164,14 @@ public:
     SDR_ActivationFrequency PP_AF( proximalInputs.dimensions, 10 * proximalInputs.size);
     UInt cell = 0u;
     for(auto inhib = 0u; inhib < inhibitionAreas.size; ++inhib) {
-      inhibitionAreas.setFlatSparse(SDR_flatSparse_t{ inhib });
+      inhibitionAreas.setSparse(SDR_sparse_t{ inhib });
       for(auto c = 0u; c < cellsPerInhbitionArea; ++c, ++cell) {
         for(auto s = 0u; s < proximalSegments; ++s) {
           auto segment = proximalConnections.createSegment( cell );
 
           // Make synapses.
           potentialPool( inhibitionAreas, proximalInputs );
-          for(const auto presyn : proximalInputs.getFlatSparse() ) {
+          for(const auto presyn : proximalInputs.getSparse() ) {
             auto permanence = initProximalPermanence();
             proximalConnections.createSynapse( segment, presyn, permanence);
           }
@@ -289,7 +289,7 @@ public:
   {
     // Proximal Feed Forward Excitement
     rawOverlaps_.assign( proximalConnections.numSegments(), 0.0f );
-    proximalConnections.computeActivity(rawOverlaps_, feedForwardInputs.getFlatSparse());
+    proximalConnections.computeActivity(rawOverlaps_, feedForwardInputs.getSparse());
 
     // Setup for Boosting
     const Real denominator = 1.0f / log2( sparsity / proximalSegments );
@@ -354,7 +354,7 @@ public:
     auto compare = [&overlaps](const UInt &a, const UInt &b) -> bool
       {return overlaps[a] > overlaps[b];};
 
-    auto &active = activeCells.getFlatSparse();
+    auto &active = activeCells.getSparse();
     active.clear();
     active.reserve(cellsPerInhbitionArea + numDesired * inhibitionAreas );
 
@@ -362,7 +362,8 @@ public:
     {
       // Sort the columns by the amount of overlap.  First make a list of all of
       // the mini-column indexes.
-      auto activeBegin = active.end();
+      const auto activeBegin    = active.end();
+      const auto activeBeginIdx = active.size();
       for(UInt i = 0u; i < cellsPerInhbitionArea; i++)
         active.push_back( i + offset );
       // Do a partial sort to divide the winners from the losers.  This sort is
@@ -378,17 +379,17 @@ public:
       active.resize( active.size() - (cellsPerInhbitionArea - numDesired) );
 
       // Remove sub-threshold winners
-      for(auto iter = activeBegin; iter != active.end(); )
+      for(UInt i = activeBeginIdx; i < active.size(); )
       {
-        if( rawOverlaps_[*iter] < proximalSegmentThreshold ) {
-          *iter = active.back();
+        if( rawOverlaps_[ active[i] ] < proximalSegmentThreshold ) {
+          active[i] = active.back();
           active.pop_back();
         }
         else
-           ++iter;
+           ++i;
       }
     }
-    activeCells.setFlatSparse( active );
+    activeCells.setSparse( active );
   }
 
 
@@ -396,8 +397,8 @@ public:
                                const SDR &proximalInputLearning,
                                const SDR &active ) {
     SDR AF_SDR( AF->dimensions );
-    auto &activeSegments = AF_SDR.getSparse();
-    for(const auto &cell : active.getFlatSparse())
+    auto &activeSegments = AF_SDR.getCoordinates();
+    for(const auto &cell : active.getSparse())
     {
       // Adapt Proximal Segments
       const auto &maxSegment = proximalMaxSegment_[cell];
@@ -413,7 +414,7 @@ public:
     }
     // TODO: Grow new synapses from the learning inputs?
 
-    AF_SDR.setSparse( activeSegments );
+    AF_SDR.setCoordinates( activeSegments );
     AF->addData( AF_SDR );
   }
 
@@ -457,14 +458,14 @@ public:
     vector<vector<UInt>> inputCoords;//(cell.dimensions.size());
     for(auto i = 0u; i < cell.dimensions.size(); i++)
     {
-      const Real columnCoord = cell.getSparse()[i][0];
+      const Real columnCoord = cell.getCoordinates()[i][0];
       const Real inputCoord = (columnCoord + 0.5f) *
                               (potentialPool.dimensions[i] / (Real)cell.dimensions[i]);
       inputCoords.push_back({ (UInt32)floor(inputCoord) });
     }
-    potentialPool.setSparse(inputCoords);
-    NTA_CHECK(potentialPool.getFlatSparse().size() == 1u);
-    const auto centerInput = potentialPool.getFlatSparse()[0];
+    potentialPool.setCoordinates(inputCoords);
+    NTA_CHECK(potentialPool.getSparse().size() == 1u);
+    const auto centerInput = potentialPool.getSparse()[0];
 
     vector<UInt> columnInputs;
     if (wrapAround) {
@@ -480,7 +481,7 @@ public:
 
     const UInt numPotential = (UInt)round(columnInputs.size() * potentialPct);
     const auto selectedInputs = Random().sample<UInt>(columnInputs, numPotential);
-    potentialPool.setFlatSparse( selectedInputs );
+    potentialPool.setSparse( selectedInputs );
   }
 };
 
