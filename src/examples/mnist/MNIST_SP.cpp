@@ -24,21 +24,28 @@
  */
 
 #include <algorithm>
-#include <cmath>
-#include <ctime>
+#include <cstdint> //uint8_t
 #include <iostream>
 #include <vector>
 
+#include <nupic/algorithms/SpatialPooler.hpp>
 #include <nupic/algorithms/ColumnPooler.cpp>
 #include <nupic/algorithms/SDRClassifier.hpp>
 #include <nupic/algorithms/ClassifierResult.hpp>
 #include <nupic/utils/Random.hpp>
 #include <nupic/utils/SdrMetrics.hpp>
 
+#include <mnist/mnist_reader.hpp> // MNIST data itself + read methods, namespace mnist::
+
+namespace examples {
+
 using namespace std;
 using namespace nupic;
-// using nupic::algorithms::spatial_pooler_extended::SpatialPoolerExtended;
 namespace column_pooler = nupic::algorithms::column_pooler;
+
+using nupic::algorithms::spatial_pooler::SpatialPooler;
+using nupic::algorithms::column_pooler::DefaultTopology;
+using nupic::algorithms::connections::Permanence;
 using nupic::algorithms::sdr_classifier::SDRClassifier;
 using nupic::algorithms::cla_classifier::ClassifierResult;
 
@@ -174,13 +181,22 @@ int main(int argc, char **argv) {
     /* actValueAlpha */ .3,
                         verbosity);
 
+  dataset = mnist::read_dataset<std::vector, std::vector, uint8_t, uint8_t>(string("../ThirdParty/mnist_data/mnist-src/")); //from CMake
+}
+
+void train() {
   // Train
-  auto train_images = read_mnist_images("./mnist_data/train-images-idx3-ubyte");
-  auto train_labels = read_mnist_labels("./mnist_data/train-labels-idx1-ubyte");
+
   if(verbosity)
-    cout << "Training for " << (train_dataset_iterations * train_labels.size())
+    cout << "Training for " << (train_dataset_iterations * dataset.training_labels.size())
          << " cycles ..." << endl;
-  for(auto i = 0u; i < train_dataset_iterations; i++) {
+  size_t i = 0;
+
+  SDR_Metrics inputStats(input,    1402);
+  SDR_Metrics columnStats(columns, 1402);
+
+  for(auto epoch = 0u; epoch < train_dataset_iterations; epoch++) {
+    NTA_INFO << "epoch " << epoch;
     // Shuffle the training data.
     vector<UInt> index( train_labels.size() );
     for(auto s = 0u; s < train_labels.size(); s++)
@@ -189,12 +205,14 @@ int main(int argc, char **argv) {
 
     for(auto s = 0u; s < train_labels.size(); s++) {
       // Get the input & label
-      UInt *image = train_images[ index[s] ];
-      UInt label  = train_labels[ index[s] ];
+      const auto image = dataset.training_images.at(idx);
+      const UInt label  = dataset.training_labels.at(idx);
 
       // Compute & Train
       input.setDense( image );
-      htm.compute(input, true, cells);
+      //sp.compute(input, true, columns); //TOGGLE SP/CP computation
+      cp.compute(input, true, columns);
+
       ClassifierResult result;
       clsr.compute(htm.iterationNum, cells.getSparse(),
         /* bucketIdxList */   {label},
@@ -203,25 +221,25 @@ int main(int argc, char **argv) {
         /* learn */           true,
         /* infer */           false,
                               &result);
-      if( verbosity and htm.iterationNum % 1000 == 0 )
-        cout << "." << flush;
+      if( verbosity && (++i % 1000 == 0) ) cout << "." << flush;
     }
+    if( verbosity ) cout << endl;
   }
-  if( verbosity ) cout << endl;
+  cout << "epoch ended" << endl;
+  cout << inputStats << endl;
+  cout << columnStats << endl;
+}
 
-  cout << columnStats;
-
+void test() {
   // Test
-  auto test_images  = read_mnist_images("./mnist_data/t10k-images-idx3-ubyte");
-  auto test_labels  = read_mnist_labels("./mnist_data/t10k-labels-idx1-ubyte");
   Real score = 0;
   UInt n_samples = 0;
   if(verbosity)
-    cout << "Testing for " << test_labels.size() << " cycles ..." << endl;
-  for(UInt i = 0; i < test_labels.size(); i++) {
+    cout << "Testing for " << dataset.test_labels.size() << " cycles ..." << endl;
+  for(UInt i = 0; i < dataset.test_labels.size(); i++) {
     // Get the input & label
-    UInt *image = test_images[i];
-    UInt label  = test_labels[i];
+    const auto image  = dataset.test_images.at(i);
+    const UInt label  = dataset.test_labels.at(i);
 
     // Compute
     input.setDense( image );
@@ -237,17 +255,28 @@ int main(int argc, char **argv) {
     // Check results
     for(auto iter : result) {
       if( iter.first == 0 ) {
-          auto *pdf = iter.second;
-          auto max  = std::max_element(pdf->begin(), pdf->end());
-          UInt cls  = max - pdf->begin();
+          const auto *pdf = iter.second;
+          const auto max  = std::max_element(pdf->cbegin(), pdf->cend());
+          const UInt cls  = max - pdf->cbegin();
           if(cls == label)
             score += 1;
           n_samples += 1;
       }
     }
-    if( verbosity and i % 1000 == 0 )
-      cout << "." << flush;
+    if( verbosity && i % 1000 == 0 ) cout << "." << flush;
   }
   if( verbosity ) cout << endl;
-  cout << "Score: " << score / n_samples << endl;
+  cout << "Score: " << 100.0 * score / n_samples << "% " << endl;
+}
+
+};  // End class MNIST
+}   // End namespace examples
+
+int main(int argc, char **argv) {
+  examples::MNIST m;
+  m.setup();
+  m.train();
+  m.test();
+
+  return 0;
 }
