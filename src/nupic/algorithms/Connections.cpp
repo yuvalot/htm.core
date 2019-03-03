@@ -438,7 +438,8 @@ void Connections::computeActivity(
 }
 
 
-void Connections::adaptSegment(const Segment segment, const SDR &inputs,
+void Connections::adaptSegment(const Segment segment, 
+		               const SDR &inputs,
                                const Permanence increment,
                                const Permanence decrement)
 {
