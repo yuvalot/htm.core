@@ -71,6 +71,7 @@ public:
 
   Real sparsity;
 
+  // Maybe shared pointer?
   Topology_t* potentialPool;
   UInt        proximalSegments;
   UInt        proximalSegmentThreshold;
@@ -83,13 +84,14 @@ public:
   UInt       distalSegmentThreshold;
   UInt       distalSegmentMatch;
   UInt       distalAddSynapses;
+  Permanence distalInitialPermanence; // TODO: Add to python bindings, add to MNIST
   Permanence distalIncrement;
   Permanence distalDecrement;
   Permanence distalMispredictDecrement;
   Permanence distalSynapseThreshold;
 
-  Real stability_rate;
-  Real fatigue_rate;
+  Real stability_rate;    // TODO: Fix naming convention
+  Real fatigue_rate;      // TODO: Fix naming convention
 
   Real period;
   Int  seed;
@@ -97,6 +99,10 @@ public:
 };
 
 const Parameters DefaultParameters = {
+  // TODO
+};
+
+const Parameters DefaultParametersNoDistalDendrites = {
   // TODO
 };
 
@@ -116,6 +122,7 @@ private:
   vector<Real> X_act;
   vector<Real> X_inact;
 
+  // This is used by boosting.
   SDR_ActivationFrequency *AF_;
 
 public:
@@ -184,10 +191,10 @@ public:
 
     // Setup the distal dendrites
     distalConnections.initialize(
-        /* columnDimensions */            {2048},
+        /* columnDimensions */            cellDimensions,
         /* cellsPerColumn */              1,
         /* activationThreshold */         args_.distalSegmentThreshold,
-        /* initialPermanence */           0.21, // TODO: Needs to be a parameter!!!
+        /* initialPermanence */           args_.distalInitialPermanence,
         /* connectedPermanence */         args_.distalSynapseThreshold,
         /* minThreshold */                args_.distalSegmentMatch,
         /* maxNewSynapseCount */          args_.distalAddSynapses,
@@ -198,7 +205,7 @@ public:
         /* maxSegmentsPerCell */          args_.distalMaxSegments,
         /* maxSynapsesPerSegment */       args_.distalMaxSynapsesPerSegment,
         /* checkInputs */                 true,
-        /* extra */                       0);
+        /* extra */                       SDR(args_.distalInputDimensions).size);
 
     iterationNum_      = 0u;
     iterationLearnNum_ = 0u;
@@ -206,9 +213,9 @@ public:
     reset();
 
     if( PP_Sp.min() * proximalInputs.size < args_.proximalSegmentThreshold )
-      cerr << "WARNING: Proximal segment has fewer synapses than the segment threshold." << endl;
+      NTA_WARN << "WARNING: Proximal segment has fewer synapses than the segment threshold." << endl;
     if( PP_AF.min() == 0.0f )
-      cerr << "WARNING: Proximal input is unused." << endl;
+      NTA_WARN << "WARNING: Proximal input is unused." << endl;
 
     if( args_.verbose ) {
       // TODO: Print all parameters
@@ -256,21 +263,20 @@ public:
     if( learn )
       iterationLearnNum_++;
 
-    vector<Real> cellExcitements( active.size );
-    activateProximalDendrites( proximalInputActive, cellExcitements );
+    // Feed Forward Input / Proximal Dendrites
+    vector<Real> cellOverlaps( active.size );
+    activateProximalDendrites( proximalInputActive, cellOverlaps );
 
-    // activateDistalDendrites( distalInputActive );
-    // distalConnections.activateDendrites(learn);
-    // const auto &predictiveCells = distalConnections.getPredictiveCells();
+    distalConnections.activateDendrites(learn, distalInputActive, distalInputLearning);
+    SDR predictedCells( cellDimensions );
+    distalConnections.getPredictiveCells( predictedCells );
 
-    activateCells( cellExcitements,
-        // predictiveCells,
-        active );
+    activateCells( cellOverlaps, predictedCells, active );
 
+    // Learn
+    distalConnections.activateCells( active, learn );
     if( learn ) {
       learnProximalDendrites( proximalInputActive, proximalInputLearning, active );
-      // learnDistalDendrites( distalInputActive, distalInputLearning );
-      // distalConnections.compute();
     }
   }
 
@@ -334,7 +340,7 @@ public:
 
 
   void activateCells( vector<Real> &overlaps,
-                      // const SDR    &predictiveCells,
+                      const SDR    &predictiveCells,
                             SDR    &activeCells)
   {
     const UInt inhibitionAreas = activeCells.size / args_.cellsPerInhibitionArea;
@@ -410,19 +416,6 @@ public:
     AF_SDR.setCoordinates( activeSegments );
     AF_->addData( AF_SDR );
   }
-
-
-  // void learnDistalDendrites( SDR &activeCells ) {
-
-    // Adapt Predicted Active Cells
-    // TODO
-
-    // Grow Unpredicted Active Cells
-    // TODO
-
-    // Punish Predicted Inactive Cells
-    // TODO
-  // }
 
 
   Real initProximalPermanence(Real connectedPct = 0.5f) {

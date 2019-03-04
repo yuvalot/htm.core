@@ -102,7 +102,7 @@ void setup(bool spNotCp = false)
     params.sparsity                    = .015;
     params.potentialPool               = new column_pooler::DefaultTopology(.9, 4., false);
     params.proximalSegments            = 1;
-    params.proximalSegmentThreshold    = 3, // 7, // 14;
+    params.proximalSegmentThreshold    = 3;
     params.proximalIncrement           = .032;
     params.proximalDecrement           = .00928;
     params.proximalSynapseThreshold    = .422;
@@ -134,9 +134,8 @@ void setup(bool spNotCp = false)
   dataset = mnist::read_dataset<std::vector, std::vector, uint8_t, uint8_t>(string("../ThirdParty/mnist_data/mnist-src/")); //from CMake
 }
 
-void train() {
-  // Train
-
+void train()
+{
   if(verbosity)
     cout << "Training for " << (train_dataset_iterations * dataset.training_labels.size())
          << " cycles ..." << endl;
