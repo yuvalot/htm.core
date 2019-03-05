@@ -100,7 +100,7 @@ void setup(bool spNotCp = false)
     params.inhibitionDimensions        = {10, 10};
     params.cellsPerInhibitionArea      = 120;
     params.sparsity                    = .015;
-    params.potentialPool               = new column_pooler::DefaultTopology(.9, 4., false);
+    params.potentialPool               = column_pooler::DefaultTopology(.9, 4., false);
     params.proximalSegments            = 1;
     params.proximalSegmentThreshold    = 3;
     params.proximalIncrement           = .032;
@@ -162,8 +162,10 @@ void train()
       input.setDense( image );
       if( spNotCp )
         sp.compute(input, true, columns);
-      else
+      else {
+        cp.reset();
         cp.compute(input, true, columns);
+      }
 
       ClassifierResult result;
       if( spNotCp ) {
@@ -208,8 +210,10 @@ void test() {
     input.setDense( image );
     if( spNotCp )
       sp.compute(input, false, columns);
-    else
+    else {
+      cp.reset();
       cp.compute(input, false, columns);
+    }
     ClassifierResult result;
     if( spNotCp ) {
       clsr.compute(sp.getIterationNum(), columns.getSparse(),

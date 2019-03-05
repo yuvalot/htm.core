@@ -72,7 +72,7 @@ public:
   Real sparsity;
 
   // Maybe shared pointer?
-  Topology_t* potentialPool;
+  Topology_t  potentialPool;
   UInt        proximalSegments;
   UInt        proximalSegmentThreshold;
   Permanence  proximalIncrement;
@@ -168,8 +168,7 @@ public:
           auto segment = proximalConnections.createSegment( cell );
 
           // Make synapses.
-          NTA_CHECK(args_.potentialPool != nullptr);
-          (*args_.potentialPool)( inhibitionAreas, proximalInputs, rng_ );
+          args_.potentialPool( inhibitionAreas, proximalInputs, rng_ );
           for(const auto presyn : proximalInputs.getSparse() ) {
             auto permanence = initProximalPermanence();
             proximalConnections.createSynapse( segment, presyn, permanence);
@@ -274,6 +273,7 @@ public:
     activateCells( cellOverlaps, predictedCells, active );
 
     // Learn
+    std::sort( active.getSparse().begin(), active.getSparse().end() );
     distalConnections.activateCells( active, learn );
     if( learn ) {
       learnProximalDendrites( proximalInputActive, proximalInputLearning, active );
@@ -419,6 +419,7 @@ public:
 
 
   Real initProximalPermanence(Real connectedPct = 0.5f) {
+    // TODO: connectedPct as a true parameter? Maybe? Someday?
     if( rng_.getReal64() <= connectedPct )
         return args_.proximalSynapseThreshold +
           (1.0f - args_.proximalSynapseThreshold) * rng_.getReal64();
@@ -444,9 +445,9 @@ public:
     if( newParameters.sparsity                    != parameters.sparsity ) {
       NTA_THROW << "Setter unimplemented.";
     }
-    if( newParameters.potentialPool               != parameters.potentialPool ) {
-      NTA_THROW << "Setter unimplemented.";
-    }
+    // if( newParameters.potentialPool               != parameters.potentialPool ) {
+    //   NTA_THROW << "Setter unimplemented.";
+    // }
     if( newParameters.proximalSegments            != parameters.proximalSegments ) {
       NTA_THROW << "Setter unimplemented.";
     }
@@ -508,19 +509,9 @@ public:
 };
 
 
-class DefaultTopology : public Topology_t
+Topology_t DefaultTopology(Real potentialPct, Real potentialRadius, bool wrapAround)
 {
-public:
-  Real potentialPct;
-  Real potentialRadius;
-  bool wrapAround;
-
-  DefaultTopology(Real potentialPct, Real radius, bool wrapAround)
-  : potentialPct(potentialPct), potentialRadius(radius), wrapAround(wrapAround) 
-  {}
-
-  void operator()(SDR& cell, SDR& potentialPool, Random &rng) {
-
+  return [=](SDR& cell, SDR& potentialPool, Random &rng) {
     vector<vector<UInt>> inputCoords;//(cell.dimensions.size());
     for(auto i = 0u; i < cell.dimensions.size(); i++)
     {
@@ -548,8 +539,16 @@ public:
     const UInt numPotential = (UInt)round(columnInputs.size() * potentialPct);
     const auto selectedInputs = rng.sample<UInt>(columnInputs, numPotential);
     potentialPool.setSparse( selectedInputs );
-  }
-};
+  };
+}
+
+// TODO: Test this!
+Topology_t NoTopology(Real potentialPct)
+{
+  return [=](SDR& cell, SDR& potentialPool, Random &rng) {
+    potentialPool.randomize( potentialPct, rng );
+  };
+}
 
 } // End namespace column_pooler
 } // End namespace algorithmn
