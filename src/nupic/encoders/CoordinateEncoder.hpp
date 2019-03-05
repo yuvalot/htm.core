@@ -64,7 +64,7 @@ public:
     radius_     = radius;
     // Use the given seed to make a better, more randomized seed.
     Random apple( seed );
-    seed_ = apple();
+    seed_ = apple() / 2;
 
     NTA_CHECK(sparsity >= 0.0f);
     NTA_CHECK(sparsity <= 1.0f);
@@ -82,23 +82,20 @@ public:
   void encode(vector<Real> coordinate, SDR &output) const {
     NTA_CHECK( coordinate.size() == ndim );
     NTA_CHECK( output.size == size );
-    SDR_dense_t data( size, 0 );
     const UInt n_active   = round(size * sparsity);
-    const Real resolution = (Real) 2.0f * radius / n_active;
 
     // Dimensions of the squarest area with N-dimensions & area of n_active
     vector<UInt> neighborhoodDimensions( ndim );
     auto remainder = n_active;
-    for(UInt dim = ndim; dim > 0u; ++dim)
+    for(UInt dim = ndim; dim > 0u; --dim)
     {
       UInt X = round(pow( (Real) remainder, (Real) 1.0f / dim ));
-      neighborhoodDimensions[dim]  = X;
-      remainder         /= X;
+      remainder /= X;
+      neighborhoodDimensions[dim - 1u]  = X;
     }
     NTA_ASSERT( remainder == 1 );
     // Use an SDR to find the coordinates of every location in the neighborhood.
     SDR neighborhood( neighborhoodDimensions );
-    NTA_ASSERT( neighborhood.size == n_active );
     SDR_sparse_t allNeighbors( neighborhood.size );
     iota( allNeighbors.begin(), allNeighbors.end(), 0u );
     neighborhood.setSparse( allNeighbors );
@@ -106,11 +103,14 @@ public:
 
     // Find where we are in the space.
     vector<UInt> index( ndim );
-    for(UInt dim = 0; dim < ndim; ++dim)
-      index.push_back( seed_ + (UInt) (coordinate[dim] / resolution) );
+    for(UInt dim = 0; dim < ndim; ++dim) {
+      const Real resolution = (Real) 2.0f * radius / neighborhood.dimensions[dim];
+      index[dim] = seed_ + (UInt) (coordinate[dim] / resolution);
+    }
 
     // Iterate through the area near this location.  Hash each nearby location
     // and use each hash to set a bit in the output SDR.
+    SDR_dense_t data( size, 0 );
     hash<std::string> h;
     for(UInt loc = 0; loc < neighborhood.getSum(); ++loc) {
       std::stringstream temp;
