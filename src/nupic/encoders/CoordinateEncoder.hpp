@@ -89,8 +89,8 @@ public:
     auto remainder = n_active;
     for(UInt dim = ndim; dim > 0u; --dim)
     {
-      UInt X = round(pow( (Real) remainder, (Real) 1.0f / dim ));
-      remainder /= X;
+      UInt X    = round(pow( (Real) remainder, (Real) 1.0f / dim ));
+      remainder = round( (Real) remainder / X );
       neighborhoodDimensions[dim - 1u]  = X;
     }
     NTA_ASSERT( remainder == 1 );
