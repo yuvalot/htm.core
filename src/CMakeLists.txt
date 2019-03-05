@@ -105,6 +105,7 @@ set(algorithm_files
 set(encoders_files 
     nupic/encoders/ScalarEncoder.cpp
     nupic/encoders/ScalarEncoder.hpp
+    nupic/encoders/CoordinateEncoder.hpp
 )
     
 set(engine_files
