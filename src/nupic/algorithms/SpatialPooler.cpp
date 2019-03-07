@@ -459,18 +459,16 @@ void SpatialPooler::initialize(
   inhibitionRadius_ = 0;
 
   connections_.initialize(numColumns_, synPermConnected_);
-  for (Size i = 0; i < numColumns_; ++i) {
-    connections_.createSegment( (connections::CellIdx)i );
+  for (Size column = 0; column < numColumns_; column++) {
+    connections_.createSegment( (connections::CellIdx)column );
 
-    // Note: initMapPotential_ & initPermanence_ return dense arrays.
-    const vector<UInt> potential = initMapPotential_((UInt)i, wrapAround_);
+    const auto potential    = initMapPotential_((UInt)column, wrapAround_);
     const vector<Real> perm = initPermanence_(potential, initConnectedPct_);
-    for(UInt presyn = 0; presyn < numInputs_; presyn++) {
-      if( potential[presyn] )
-        connections_.createSynapse( (connections::Segment)i, presyn, perm[presyn] );
+    for(const auto presyn : potential.getSparse()) {
+        connections_.createSynapse( (connections::Segment)column, presyn, perm[presyn] );
     }
 
-    connections_.raisePermanencesToThreshold( (connections::Segment)i, synPermConnected_, stimulusThreshold_ );
+    connections_.raisePermanencesToThreshold( (connections::Segment)column, synPermConnected_, stimulusThreshold_ );
   }
 
   updateInhibitionRadius_();
@@ -549,7 +547,7 @@ UInt SpatialPooler::initMapColumn_(UInt column) const {
 }
 
 
-vector<UInt> SpatialPooler::initMapPotential_(UInt column, bool wrapAround) {
+const SDR SpatialPooler::initMapPotential_(UInt column, bool wrapAround) {
   NTA_ASSERT(column < numColumns_);
   const UInt centerInput = initMapColumn_(column);
 
@@ -569,7 +567,7 @@ vector<UInt> SpatialPooler::initMapPotential_(UInt column, bool wrapAround) {
   const auto selectedInputs = rng_.sample<UInt>(columnInputs, numPotential);
   SDR potential( {numInputs_} );
   potential.setSparse(selectedInputs);
-  return potential.getDense();
+  return potential;
 }
 
 
@@ -587,14 +585,9 @@ Real SpatialPooler::initPermNonConnected_() {
 }
 
 
-vector<Real> SpatialPooler::initPermanence_(const vector<UInt> &potential, //TODO make potential sparse
-                                            Real connectedPct) {
+const vector<Real> SpatialPooler::initPermanence_(const SDR &potential, const Real connectedPct) {
   vector<Real> perm(numInputs_, 0);
-  for (UInt i = 0; i < numInputs_; i++) {
-    if (potential[i] < 1) {
-      continue;
-    }
-
+  for (const auto i : potential.getSparse()) { //TODO add SDR iterator over sparse indices?
     if (rng_.getReal64() <= connectedPct) {
       perm[i] = initPermConnected_();
     } else {
