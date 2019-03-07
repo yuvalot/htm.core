@@ -169,7 +169,7 @@ current value.)");
                 for(auto dim = 0u; dim < self.dimensions.size(); dim++) {
                     NTA_CHECK( (UInt) buf.shape[dim] == self.dimensions[dim] );
                 }
-                Byte *data = (Byte*) buf.ptr;
+                UInt *data = (UInt*) buf.ptr;
                 if( data == self.getDense().data() )
                     // We got our own data back, set inplace instead of copying.
                     self.setDense( self.getDense() );
