@@ -32,14 +32,12 @@
 #include <nupic/algorithms/SpatialPooler.hpp>
 #include <nupic/math/Topology.hpp>
 #include <nupic/math/Math.hpp> // nupic::Epsilon
-#include <nupic/utils/VectorHelpers.hpp>
 
 #define VERSION 2  // version for stream serialization
 
 using namespace nupic;
 using nupic::algorithms::spatial_pooler::SpatialPooler;
 using namespace nupic::math::topology;
-using nupic::utils::VectorHelpers;
 
 // Round f to 5 digits of precision. This is used to set
 // permanence values and help avoid small amounts of drift between
@@ -465,8 +463,8 @@ void SpatialPooler::initialize(
     connections_.createSegment( (connections::CellIdx)i );
 
     // Note: initMapPotential_ & initPermanence_ return dense arrays.
-    vector<UInt> potential = initMapPotential_((UInt)i, wrapAround_);
-    vector<Real> perm = initPermanence_(potential, initConnectedPct_);
+    const vector<UInt> potential = initMapPotential_((UInt)i, wrapAround_);
+    const vector<Real> perm = initPermanence_(potential, initConnectedPct_);
     for(UInt presyn = 0; presyn < numInputs_; presyn++) {
       if( potential[presyn] )
         connections_.createSynapse( (connections::Segment)i, presyn, perm[presyn] );
@@ -569,8 +567,9 @@ vector<UInt> SpatialPooler::initMapPotential_(UInt column, bool wrapAround) {
 
   const UInt numPotential = (UInt)round(columnInputs.size() * potentialPct_);
   const auto selectedInputs = rng_.sample<UInt>(columnInputs, numPotential);
-  const vector<UInt> potential = VectorHelpers::sparseToBinary<UInt>(selectedInputs, numInputs_);
-  return potential;
+  SDR potential( {numInputs_} );
+  potential.setSparse(selectedInputs);
+  return potential.getDense();
 }
 
 
