@@ -115,10 +115,9 @@ Real64 BenchmarkHotgym::run(UInt EPOCHS, bool useSPlocal, bool useSPglobal, bool
 
     //Encode
     tEnc.start();
-    enc.encodeIntoArray(r, input.getSparse().data());
-    input.setSparseInplace(); //update SDR
+    enc.encodeIntoArray(r, input.getDense().data()); //TODO make encoder use SDR
+    input.setSparse(input.getSparse()); //update SDR
     tEnc.stop();
-    cout << "OK" << endl;
 
     //SP (global x local) 
     if(useSPlocal) {
@@ -132,7 +131,6 @@ Real64 BenchmarkHotgym::run(UInt EPOCHS, bool useSPlocal, bool useSPglobal, bool
     spGlobal.compute(input, true, outSP);
     tSPglob.stop();
     }
-    outSP.setSparseInplace();
     NTA_CHECK(outSP.size == COLS);
     NTA_CHECK(outSP.getSum() < COLS);
 
