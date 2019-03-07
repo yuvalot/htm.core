@@ -123,13 +123,13 @@ Real64 BenchmarkHotgym::run(UInt EPOCHS, bool useSPlocal, bool useSPglobal, bool
     //SP (global x local) 
     if(useSPlocal) {
     tSPloc.start();
-    spLocal.compute(input.getDense().data(), true, outSP.getSparse().data());
+    spLocal.compute(input, true, outSP);
     tSPloc.stop();
     }
 
     if(useSPglobal) {
     tSPglob.start();
-    spGlobal.compute(input.getDense().data(), true, outSP.getSparse().data());
+    spGlobal.compute(input, true, outSP);
     tSPglob.stop();
     }
     outSP.setSparseInplace();
@@ -140,7 +140,7 @@ Real64 BenchmarkHotgym::run(UInt EPOCHS, bool useSPlocal, bool useSPglobal, bool
     //TP (TP x BackTM x TM)
     if(useTP) {
     tTP.start();
-    rIn = VectorHelpers::castVectorType<UInt, Real>(outSP.getDense());
+    rIn = VectorHelpers::castVectorType<Byte, Real>(outSP.getDense());
     tp.compute(rIn.data(), rOut.data(), true, true);
     outTP = VectorHelpers::castVectorType<Real, UInt>(rOut);
     tTP.stop();
@@ -170,11 +170,12 @@ Real64 BenchmarkHotgym::run(UInt EPOCHS, bool useSPlocal, bool useSPglobal, bool
 
     //Anomaly (pure x likelihood)
     tAn.start();
-    res = an.compute(outSP.getDense() /*active*/, prevPred_ /*prev predicted*/);
+    auto tmp = VectorHelpers::castVectorType<Byte, UInt>(outSP.getDense()); //TODO remove this
+    res = an.compute(tmp /*active*/, prevPred_ /*prev predicted*/);
     tAn.stop();
 
     tAnLikelihood.start();
-    anLikelihood.compute(outSP.getDense() /*active*/, prevPred_ /*prev predicted*/);
+    anLikelihood.compute(tmp /*active*/, prevPred_ /*prev predicted*/);
     tAnLikelihood.stop();
 
     prevPred_ = outTP; //to be used as predicted T-1
