@@ -35,7 +35,7 @@ using namespace std;
 
 namespace nupic {
 
-typedef vector<UInt>          SDR_dense_t; //TODO add templated types for SDR<DenseElemT, SparseElemT, CoordElemT> + default SDR<Byte, UInt, UInt> 
+typedef vector<Byte>          SDR_dense_t; //TODO add templated types for SDR<DenseElemT, SparseElemT, CoordElemT> + default SDR<Byte, UInt, UInt> 
 typedef vector<UInt>          SDR_sparse_t;
 typedef vector<vector<UInt>>  SDR_coordinate_t;
 typedef function<void()>      SDR_callback_t;
