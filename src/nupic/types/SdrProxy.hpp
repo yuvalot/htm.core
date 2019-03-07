@@ -284,19 +284,19 @@ public:
         if( !dense_valid_lazy ) {
             // Setup for copying the data as rows & strides.
             const UInt    n_dim = (UInt)inputs[0]->dimensions.size();
-            vector<Byte*> buffers;
+            vector<UInt*> buffers;
             vector<UInt>  row_lengths;
             for(const auto &sdr : inputs) {
                 buffers.push_back( sdr->getDense().data() );
-                UInt row = 1u;
-                for(UInt d = axis; d < n_dim; ++d)
-                    row *= sdr->dimensions[d];
-                row_lengths.push_back( row );
+                UInt dimProduct = 1u;
+                for(const auto dimAxis : sdr->dimensions)
+                    dimProduct *= dimAxis;
+                row_lengths.push_back( dimProduct );
             }
             // Get the output buffer.
             dense_.resize( size );
-                  Byte *dense_data = dense_.data();
-            const Byte *data_end   = dense_data + size;
+            auto  dense_data       = dense_.data();
+            const auto data_end    = dense_data + size;
             const auto n_inputs    = inputs.size();
             while( dense_data < data_end ) {
                 // Copy one row from each input SDR.
