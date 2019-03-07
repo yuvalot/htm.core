@@ -339,9 +339,9 @@ namespace nupic {
         }
         // Check data
         return std::equal(
-            getDense().begin(),
-            getDense().end(), 
-            sdr.getDense().begin());
+            getSparse().begin(),
+            getSparse().end(), 
+            sdr.getSparse().begin());
     }
 
 
