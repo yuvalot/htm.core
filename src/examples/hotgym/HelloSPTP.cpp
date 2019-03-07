@@ -118,6 +118,7 @@ Real64 BenchmarkHotgym::run(UInt EPOCHS, bool useSPlocal, bool useSPglobal, bool
     enc.encodeIntoArray(r, input.getSparse().data());
     input.setSparseInplace(); //update SDR
     tEnc.stop();
+    cout << "OK" << endl;
 
     //SP (global x local) 
     if(useSPlocal) {
