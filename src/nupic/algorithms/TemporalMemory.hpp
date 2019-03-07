@@ -275,6 +275,7 @@ public:
                        const vector<UInt> &extraWinners = {std::numeric_limits<UInt>::max()});
   virtual void compute(const SDR &activeColumns, bool learn,
                        const SDR &extraActive, const SDR &extraWinners);
+  void compute(const SDR &activeColumns, bool learn) { compute(activeColumns, learn, SDR({0}), SDR({0})); }
 
   // ==============================
   //  Helper functions
@@ -537,7 +538,7 @@ protected:
 
   Random rng_;
 
-public:
+public: //TODO make private
   Connections connections;
 };
 
