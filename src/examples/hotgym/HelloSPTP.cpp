@@ -45,6 +45,7 @@ namespace examples {
 using namespace std;
 using namespace nupic;
 using namespace nupic::utils;
+using nupic::sdr::SDR;
 
 using nupic::ScalarEncoder;
 
@@ -114,10 +115,15 @@ Real64 BenchmarkHotgym::run(UInt EPOCHS, bool useSPlocal, bool useSPglobal, bool
     tRng.stop();
 
     //Encode
+    {
     tEnc.start();
-    enc.encodeIntoArray(r, input.getDense().data()); //TODO make encoder use SDR
-    input.setSparse(input.getSparse()); //update SDR
+    auto tmp = VectorHelpers::castVectorType<char, UInt>(input.getDense());
+    enc.encodeIntoArray(r, tmp.data()); //TODO make encoder use SDR
+    auto tmpChar = VectorHelpers::castVectorType<UInt, char>(tmp);
+    input.setDense(tmpChar);
+    input.setDense(input.getDense()); //update SDR
     tEnc.stop();
+    }
 
     //SP (global x local) 
     if(useSPlocal) {
