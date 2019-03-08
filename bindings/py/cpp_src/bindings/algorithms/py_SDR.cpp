@@ -140,12 +140,12 @@ other.)",
 
         py_SDR.def_property_readonly("dimensions",
             [](const SDR &self) {
-                return self.dimensions; },
+                return self.dimensions(); },
             "A list of dimensions of the SDR.");
 
         py_SDR.def_property_readonly("size",
             [](const SDR &self) {
-                return self.size; },
+                return self.size(); },
             "The total number of boolean values in the SDR.");
 
         py_SDR.def("zero", &SDR::zero,
@@ -155,21 +155,22 @@ current value.)");
         py_SDR.def_property("dense",
             [](SDR &self) {
                 auto capsule = py::capsule(&self, [](void *self) {});
-                vector<UInt> strides( self.dimensions.size(), 0u );
+		auto dims = self.dimensions();
+                vector<UInt> strides( dims.size(), 0u );
                 auto z = sizeof(Byte);
-                for(int i = (int)self.dimensions.size() - 1; i >= 0; --i) {
+                for(int i = (int)dims.size() - 1; i >= 0; --i) {
                     strides[i] = (UInt)z;
-                    z *= self.dimensions[i];
+                    z *= dims[i];
                 }
-                return py::array(self.dimensions, strides, self.getDense().data(), capsule);
+                return py::array(dims, strides, self.getDense().data(), capsule);
             },
             [](SDR &self, py::array_t<Byte> dense) {
                 py::buffer_info buf = dense.request();
-                NTA_CHECK( (UInt) buf.ndim == self.dimensions.size() );
-                for(auto dim = 0u; dim < self.dimensions.size(); dim++) {
-                    NTA_CHECK( (UInt) buf.shape[dim] == self.dimensions[dim] );
+                NTA_CHECK( (UInt) buf.ndim == self.dimensions().size() );
+                for(auto dim = 0u; dim < self.dimensions().size(); dim++) {
+                    NTA_CHECK( (UInt) buf.shape[dim] == self.dimensions()[dim] );
                 }
-                UInt *data = (UInt*) buf.ptr;
+                Byte *data = (Byte*) buf.ptr;
                 if( data == self.getDense().data() )
                     // We got our own data back, set inplace instead of copying.
                     self.setDense( self.getDense() );
@@ -188,7 +189,7 @@ date.  If you did't copy this data, then SDR won't copy either.)");
                 return py::array(self.getSum(), self.getSparse().data(), capsule);
             },
             [](SDR &self, SDR_sparse_t data) {
-                NTA_CHECK( data.size() <= self.size );
+                NTA_CHECK( data.size() <= self.size() );
                 self.setSparse( data ); },
 R"(A numpy array containing the indices of only the true values in the SDR.
 These are indices into the flattened SDR. This format allows for quickly
@@ -199,14 +200,14 @@ accessing all of the true bits in the SDR.)");
                 auto capsule = py::capsule(&self, [](void *self) {});
                 auto outer   = py::list();
                 auto coords  = self.getCoordinates().data();
-                for(auto dim = 0u; dim < self.dimensions.size(); ++dim) {
+                for(auto dim = 0u; dim < self.dimensions().size(); ++dim) {
                     auto vec = py::array(coords[dim].size(), coords[dim].data(), capsule);
                     outer.append(vec);
                 }
                 return outer;
             },
             [](SDR &self, SDR_coordinate_t data) {
-                NTA_CHECK( data.size() == self.dimensions.size() );
+                NTA_CHECK( data.size() == self.dimensions().size() );
                 self.setCoordinates( data ); },
 R"(List of numpy arrays, containing the coordinates of only the true values in
 the SDR.  This is a list of lists: the outter list contains an entry for each
@@ -215,7 +216,7 @@ The inner lists run in parallel. This format is useful because it contains the
 location of each true bit inside of the SDR's dimensional space.)");
 
         py_SDR.def("setSDR", [](SDR &self, SDR &other) {
-            NTA_CHECK( self.dimensions == other.dimensions );
+            NTA_CHECK( self.dimensions() == other.dimensions() );
             self.setSDR( other ); },
 R"(Deep Copy the given SDR to this SDR.  This overwrites the current value of this
 SDR.  This SDR and the given SDR will have no shared data and they can be
@@ -230,7 +231,7 @@ true out of the total number of bits in the SDR.
 I.E.  sparsity = sdr.getSum() / sdr.size)");
 
         py_SDR.def("getOverlap", [](SDR &self, SDR &other) {
-            NTA_CHECK( self.dimensions == other.dimensions );
+            NTA_CHECK( self.dimensions() == other.dimensions() );
             return self.getOverlap( other ); },
 "Calculates the number of true bits which both SDRs have in common.");
 

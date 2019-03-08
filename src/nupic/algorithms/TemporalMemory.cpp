@@ -448,7 +448,7 @@ static void punishPredictedColumn(
 }
 
 void TemporalMemory::activateCells(const SDR &activeColumns, bool learn) {
-    NTA_CHECK( activeColumns.dimensions == columnDimensions_ );
+    NTA_CHECK( activeColumns.dimensions() == columnDimensions_ );
     const auto &sparse = activeColumns.getSparse();
     activateCells(sparse.size(), sparse.data(), learn);
 }
@@ -526,8 +526,8 @@ void TemporalMemory::activateDendrites(bool learn,
 {
     if( extra_ )
     {
-        NTA_CHECK( extraActive.size  == extra_ );
-        NTA_CHECK( extraWinners.size == extra_ );
+        NTA_CHECK( extraActive.size()  == extra_ );
+        NTA_CHECK( extraWinners.size() == extra_ );
         activateDendrites( learn, extraActive.getSparse(),
                                   extraWinners.getSparse());
     }
@@ -674,7 +674,7 @@ vector<CellIdx> TemporalMemory::getActiveCells() const { return activeCells_; }
 
 void TemporalMemory::getActiveCells(SDR &activeCells) const
 {
-  NTA_CHECK( activeCells.size == numberOfCells() );
+  NTA_CHECK( activeCells.size() == numberOfCells() );
   activeCells.setSparse( getActiveCells() );
 }
 
@@ -698,7 +698,7 @@ vector<CellIdx> TemporalMemory::getPredictiveCells() const {
 
 void TemporalMemory::getPredictiveCells(SDR &predictiveCells) const
 {
-  NTA_CHECK( predictiveCells.size == numberOfCells() );
+  NTA_CHECK( predictiveCells.size() == numberOfCells() );
   predictiveCells.setSparse( getPredictiveCells() );
 }
 
@@ -706,7 +706,7 @@ vector<CellIdx> TemporalMemory::getWinnerCells() const { return winnerCells_; }
 
 void TemporalMemory::getWinnerCells(SDR &winnerCells) const
 {
-  NTA_CHECK( winnerCells.size == numberOfCells() );
+  NTA_CHECK( winnerCells.size() == numberOfCells() );
   winnerCells.setSparse( getWinnerCells() );
 }
 

@@ -42,7 +42,8 @@
 
 #define VERSION 1 // version for streaming serialization format
 
-namespace nupic {
+using namespace nupic;
+using nupic::sdr::SDR_sparse_t;
 
 SPRegion::SPRegion(const ValueMap &values, Region *region)
     : RegionImpl(region), computeCallback_(nullptr)  {
@@ -117,8 +118,8 @@ void SPRegion::initialize() {
   }
 
   // Take the dimensions directly from the SDRs.
-  std::vector<UInt32> inputDimensions = inputBuffer.getSDR()->dimensions;
-  std::vector<UInt32> columnDimensions = outputBuffer.getSDR()->dimensions;
+  std::vector<UInt32> inputDimensions = inputBuffer.getSDR()->dimensions();
+  std::vector<UInt32> columnDimensions = outputBuffer.getSDR()->dimensions();
   if (args_.potentialRadius == 0)
     args_.potentialRadius = args_.inputWidth;
 
@@ -979,4 +980,3 @@ void SPRegion::deserialize(BundleIO &bundle) {
     sp_ = nullptr;
 }
 
-} // namespace nupic

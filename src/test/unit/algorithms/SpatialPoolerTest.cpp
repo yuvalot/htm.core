@@ -37,12 +37,15 @@
 #include <nupic/types/Types.hpp>
 #include <nupic/utils/Log.hpp>
 #include <nupic/os/Timer.hpp>
+#include <nupic/utils/VectorHelpers.hpp>
 
 namespace testing {
 
 using namespace std;
 using namespace nupic;
 using namespace nupic::algorithms::spatial_pooler;
+using namespace nupic::sdr;
+using nupic::utils::VectorHelpers;
 
 UInt countNonzero(const vector<UInt> &vec) {
   UInt count = 0;
@@ -1609,35 +1612,39 @@ TEST(SpatialPoolerTest, testinitMapPotential1D) {
   sp.initialize(inputDim, columnDim);
   sp.setPotentialRadius(potentialRadius);
 
-  vector<UInt> mask;
 
   // Test without wrapAround and potentialPct = 1
   sp.setPotentialPct(1.0);
 
   UInt expectedMask1[12] = {1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0};
-  mask = sp.initMapPotential_(0, false);
-  ASSERT_TRUE(check_vector_eq(expectedMask1, mask));
+  auto mask = sp.initMapPotential_(0, false).getDense();
+  auto tmp = VectorHelpers::castVectorType<char, UInt>(mask);
+  ASSERT_TRUE(check_vector_eq(expectedMask1, tmp));
 
   UInt expectedMask2[12] = {0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 0, 0};
-  mask = sp.initMapPotential_(2, false);
-  ASSERT_TRUE(check_vector_eq(expectedMask2, mask));
+  mask = sp.initMapPotential_(2, false).getDense();
+  tmp = VectorHelpers::castVectorType<char, UInt>(mask);
+  ASSERT_TRUE(check_vector_eq(expectedMask2, tmp));
 
   // Test with wrapAround and potentialPct = 1
   sp.setPotentialPct(1.0);
 
   UInt expectedMask3[12] = {1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 1};
-  mask = sp.initMapPotential_(0, true);
-  ASSERT_TRUE(check_vector_eq(expectedMask3, mask));
+  mask = sp.initMapPotential_(0, true).getDense();
+  tmp = VectorHelpers::castVectorType<char, UInt>(mask);
+  ASSERT_TRUE(check_vector_eq(expectedMask3, tmp));
 
   UInt expectedMask4[12] = {1, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1};
-  mask = sp.initMapPotential_(3, true);
-  ASSERT_TRUE(check_vector_eq(expectedMask4, mask));
+  mask = sp.initMapPotential_(3, true).getDense();
+  tmp = VectorHelpers::castVectorType<char, UInt>(mask);
+  ASSERT_TRUE(check_vector_eq(expectedMask4, tmp));
 
   // Test with potentialPct < 1
   sp.setPotentialPct(0.5);
   UInt supersetMask1[12] = {1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 1};
-  mask = sp.initMapPotential_(0, true);
-  ASSERT_TRUE(accumulate(mask.begin(), mask.end(), 0.0f) == 3u);
+  auto a = sp.initMapPotential_(0, true);
+  mask = a.getDense();
+  ASSERT_TRUE(a.getSum() == 3u);
 
   UInt unionMask1[12] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
   for (UInt i = 0; i < 12; i++) {
@@ -1661,22 +1668,23 @@ TEST(SpatialPoolerTest, testinitMapPotential2D) {
   sp.setPotentialRadius(potentialRadius);
   sp.setPotentialPct(potentialPct);
 
-  vector<UInt> mask;
 
   // Test without wrapAround
   UInt expectedMask1[72] = {
       1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0,
       1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
       0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
-  mask = sp.initMapPotential_(0, false);
-  ASSERT_TRUE(check_vector_eq(expectedMask1, mask));
+  auto mask = sp.initMapPotential_(0, false).getDense();
+  auto tmp = VectorHelpers::castVectorType<char, UInt>(mask);
+  ASSERT_TRUE(check_vector_eq(expectedMask1, tmp));
 
   UInt expectedMask2[72] = {
       0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0,
       0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
       0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
-  mask = sp.initMapPotential_(2, false);
-  ASSERT_TRUE(check_vector_eq(expectedMask2, mask));
+  mask = sp.initMapPotential_(2, false).getDense();
+  tmp = VectorHelpers::castVectorType<char, UInt>(mask);
+  ASSERT_TRUE(check_vector_eq(expectedMask2, tmp));
 
   // Test with wrapAround
   potentialRadius = 2;
@@ -1685,15 +1693,17 @@ TEST(SpatialPoolerTest, testinitMapPotential2D) {
       1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 1,
       1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 1,
       0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 1};
-  mask = sp.initMapPotential_(0, true);
-  ASSERT_TRUE(check_vector_eq(expectedMask3, mask));
+  mask = sp.initMapPotential_(0, true).getDense();
+  tmp = VectorHelpers::castVectorType<char, UInt>(mask);
+  ASSERT_TRUE(check_vector_eq(expectedMask3, tmp));
 
   UInt expectedMask4[72] = {
       1, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1,
       1, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1,
       0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1};
-  mask = sp.initMapPotential_(3, true);
-  ASSERT_TRUE(check_vector_eq(expectedMask4, mask));
+  mask = sp.initMapPotential_(3, true).getDense();
+  tmp = VectorHelpers::castVectorType<char, UInt>(mask);
+  ASSERT_TRUE(check_vector_eq(expectedMask4, tmp));
 }
 
 
@@ -2021,7 +2031,8 @@ TEST(SpatialPoolerTest, ExactOutput) {
 
   SDR inputs({ 1000 });
   SDR columns({ 200 });
-  SpatialPooler sp({inputs.dimensions}, {columns.dimensions},
+  SpatialPooler sp({inputs.dimensions()}, 
+		   {columns.dimensions()},
                    /*potentialRadius*/ 99999,
                    /*potentialPct*/ 0.5f,
                    /*globalInhibition*/ true,

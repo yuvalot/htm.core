@@ -47,6 +47,9 @@ typedef UInt16 SynapseIdx; /** Index of synapse in segment. */
 typedef UInt32 Segment;    /** Index of segment's data. */
 typedef UInt32 Synapse;    /** Index of synapse's data. */
 typedef Real32 Permanence;
+
+using nupic::sdr::SDR;
+
 const Permanence minPermanence = 0.0f;
 const Permanence maxPermanence = 1.0f;
 
@@ -567,8 +570,8 @@ protected:
    * connected or not.
    */
   void removeSynapseFromPresynapticMap_(const Synapse index,
-                                  vector<Synapse> &synapsesForPresynapticCell,
-                                  vector<Synapse> &segmentsForPresynapticCell);
+                                  std::vector<Synapse> &synapsesForPresynapticCell,
+                                  std::vector<Synapse> &segmentsForPresynapticCell);
 
 private:
   std::vector<CellData>    cells_;

@@ -60,7 +60,7 @@ void setup() {
 
   input.initialize({28, 28});
   sp.initialize(
-    /* inputDimensions */             input.dimensions,
+    /* inputDimensions */             input.dimensions(),
     /* columnDimensions */            {28, 28}, //mostly affects speed, to some threshold accuracy only marginally
     /* potentialRadius */             5u,
     /* potentialPct */                0.5f,

@@ -41,6 +41,8 @@ namespace algorithms {
 namespace spatial_pooler {
 
 using namespace std;
+using nupic::sdr::SDR;
+
 static const int DISABLED = -1; //value denoting a feature is disabled
 
 /**

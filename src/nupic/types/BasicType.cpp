@@ -29,6 +29,7 @@
 
 
 using namespace nupic;
+using nupic::sdr::SDR;
 
 bool BasicType::isValid(NTA_BasicType t) {
   return (t >= 0) && (t < NTA_BasicType_Last);

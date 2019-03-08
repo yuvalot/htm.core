@@ -99,7 +99,7 @@ Real64 BenchmarkHotgym::run(UInt EPOCHS, bool useSPlocal, bool useSPglobal, bool
   vector<Real> rIn(COLS); // input for TP (must be Reals)
   vector<Real> rOut(tp.nCells());
   Real res = 0.0; //for anomaly:
-  vector<UInt> prevPred_(outSP.size);
+  vector<UInt> prevPred_(outSP.size());
   Random rnd;
 
   // Start a stopwatch timer
@@ -137,7 +137,7 @@ Real64 BenchmarkHotgym::run(UInt EPOCHS, bool useSPlocal, bool useSPglobal, bool
     spGlobal.compute(input, true, outSP);
     tSPglob.stop();
     }
-    NTA_CHECK(outSP.size == COLS);
+    NTA_CHECK(outSP.size() == COLS);
     NTA_CHECK(outSP.getSum() < COLS);
 
 

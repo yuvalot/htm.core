@@ -32,10 +32,11 @@
 using namespace std;
 using namespace nupic;
 using namespace nupic::algorithms::connections;
+using nupic::sdr::SDR_dense_t;
 
 #define EPSILON 0.0000001
 
-namespace {
+namespace testing {
 
 void setupSampleConnections(Connections &connections) {
   // Cell with 1 segment.

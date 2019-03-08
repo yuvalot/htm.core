@@ -225,7 +225,7 @@ public:
     Array a(type_);
     if (getCount() > 0) {
       if (type_ == NTA_BasicType_SDR)
-        a.allocateBuffer(getSDR()->dimensions);
+        a.allocateBuffer(getSDR()->dimensions());
       else
         a.allocateBuffer(getCount());
       memcpy((char *)a.getBuffer(), (char *)getBuffer(),

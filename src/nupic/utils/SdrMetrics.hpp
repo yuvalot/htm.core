@@ -31,10 +31,9 @@
 #include <cmath> // std::log2 isnan
 #include <regex>
 
-using namespace std;
-
 namespace nupic {
-
+using namespace std;
+using nupic::sdr::SDR;
 
 /**
  * Helper for SDR metrics trackers, including: SDR_Sparsity,
@@ -76,7 +75,7 @@ protected:
      * @param period Time scale for exponential moving average.
      */
     SDR_MetricsHelper_( SDR &dataSource, UInt period )
-        : SDR_MetricsHelper_(dataSource.dimensions, period)
+        : SDR_MetricsHelper_(dataSource.dimensions(), period)
     {
         dataSource_ = &dataSource;
         callback_handle_ = dataSource_->addCallback( [&](){
@@ -120,7 +119,7 @@ public:
      */
     void addData(SDR &data) {
         NTA_CHECK( dataSource_ == nullptr );
-        NTA_CHECK( dimensions_ == data.dimensions );
+        NTA_CHECK( dimensions_ == data.dimensions() );
         callback( data, 1.0f / std::min( period_, (UInt) ++samples_ ));
     }
 
@@ -266,7 +265,7 @@ public:
      */
     SDR_ActivationFrequency( SDR &dataSource, UInt period )
         : SDR_MetricsHelper_( dataSource, period )
-        { initialize( dataSource.size ); }
+        { initialize( dataSource.size() ); }
 
     /**
      * @param dimensions of SDR.  Add data to this SDR_ActivationFrequency
@@ -429,7 +428,7 @@ public:
      */
     SDR_Overlap( SDR &dataSource, UInt period )
         : SDR_MetricsHelper_( dataSource, period ),
-          previous_( dataSource.dimensions )
+          previous_( dataSource.dimensions() )
         { initialize(); }
 
     /**
@@ -503,7 +502,7 @@ public:
      * @param period Time scale for exponential moving average.
      */
     SDR_Metrics( SDR &dataSource, UInt period )
-        : dimensions_( dataSource.dimensions ),
+        : dimensions_( dataSource.dimensions() ),
           sparsity_(            dataSource, period ),
           activationFrequency_( dataSource, period ),
           overlap_(             dataSource, period )

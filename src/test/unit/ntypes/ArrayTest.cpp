@@ -40,7 +40,10 @@
 
 #include <gtest/gtest.h>
 
+namespace testing {
+
 using namespace nupic;
+using namespace nupic::sdr;
 
 // First, some structures to help in testing.
 struct ArrayTestParameters {
@@ -640,3 +643,5 @@ void ArrayTest::setupArrayTests() {
   testCases_["Non-existent NTA_BasicType"] =
       ArrayTestParameters((NTA_BasicType)-1, 0, 10, "N/A", true);
 }
+
+} //-ns

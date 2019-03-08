@@ -21,8 +21,11 @@
 #include <vector>
 #include <random>
 
+namespace testing {
+
 using namespace std;
 using namespace nupic;
+using namespace nupic::sdr;
 
 /* This also tests the size and dimensions are correct */
 TEST(SdrTest, TestConstructor) {
@@ -146,9 +149,9 @@ TEST(SdrTest, TestSetDenseVec) {
 
 TEST(SdrTest, TestSetDenseUInt) {
     SDR a({11, 10, 4});
-    auto vec = SDR_dense_t(a.size, 1);
+    auto vec = SDR_dense_t(a.size(), 1);
     a.setDense( (UInt*) vec.data() );
-    ASSERT_EQ( a.getDense(), SDR_dense_t(a.size, 1) );
+    ASSERT_EQ( a.getDense(), SDR_dense_t(a.size(), 1) );
     ASSERT_NE( a.getDense().data(), (const UInt*) vec.data()); // true copy not a reference
 }
 
@@ -156,20 +159,20 @@ TEST(SdrTest, TestSetDenseInplace) {
     SDR a({10, 10});
     auto& a_data = a.getDense();
     ASSERT_EQ( a_data, SDR_dense_t(100, 0) );
-    a_data.assign( a.size, 1 );
+    a_data.assign( a.size(), 1 );
     a.setDense( a_data );
     ASSERT_EQ( a.getDense().data(), a.getDense().data() );
     ASSERT_EQ( a.getDense().data(), a_data.data() );
-    ASSERT_EQ( a.getDense(), SDR_dense_t(a.size, 1) );
+    ASSERT_EQ( a.getDense(), SDR_dense_t(a.size(), 1) );
     ASSERT_EQ( a.getDense(), a_data );
 }
 
 TEST(SdrTest, TestSetSparseVec) {
     SDR a({11, 10, 4});
     auto before = a.getSparse().data();
-    auto vec = SDR_dense_t(a.size, 1);
+    auto vec = SDR_dense_t(a.size(), 1);
     auto data = vec.data();
-    for(UInt i = 0; i < a.size; i++)
+    for(UInt i = 0; i < a.size(); i++)
         vec[i] = i;
     a.setSparse( vec );
     auto after = a.getSparse().data();
@@ -179,11 +182,11 @@ TEST(SdrTest, TestSetSparseVec) {
 
 TEST(SdrTest, TestSetSparsePtr) {
     SDR a({11, 10, 4});
-    auto vec = SDR_sparse_t(a.size, 1);
-    for(UInt i = 0; i < a.size; i++)
+    auto vec = SDR_sparse_t(a.size(), 1);
+    for(UInt i = 0; i < a.size(); i++)
         vec[i] = i;
     a.zero();
-    a.setSparse( (UInt*) vec.data(), a.size );
+    a.setSparse( (UInt*) vec.data(), a.size() );
     ASSERT_EQ( a.getSparse(), vec );
     ASSERT_NE( a.getSparse().data(), vec.data()); // true copy not a reference
 }
@@ -203,7 +206,7 @@ TEST(SdrTest, TestSetSparseInplace) {
     ASSERT_EQ( a.getSparse(), SDR_sparse_t(1) );
     a_data.clear();
     a.setSparse( a_data );
-    ASSERT_EQ( a.getDense(), SDR_dense_t(a.size, 0) );
+    ASSERT_EQ( a.getDense(), SDR_dense_t(a.size(), 0) );
 }
 
 TEST(SdrTest, TestSetCoordinates) {
@@ -257,7 +260,7 @@ TEST(SdrTest, TestSetCoordinatesInplace) {
     a_data[0].clear();
     a_data[1].clear();
     a.setCoordinates( a_data );
-    ASSERT_EQ( a.getDense(), vector<UInt>(a.size, 0) );
+    ASSERT_EQ( a.getDense(), vector<UInt>(a.size(), 0) );
 }
 
 TEST(SdrTest, TestSetSDR) {
@@ -342,7 +345,7 @@ TEST(SdrTest, TestGetSparseFromDense) {
     ASSERT_EQ(a.getSparse().at(1), 8ul);
 
     // Test zero'd SDR.
-    a.setDense( SDR_dense_t(a.size, 0) );
+    a.setDense( SDR_dense_t(a.size(), 0) );
     ASSERT_EQ( a.getSparse().size(), 0ul );
 }
 
@@ -401,7 +404,7 @@ TEST(SdrTest, TestGetCoordinatesFromDense) {
         { 2, 2 }}) );
 
     // Test zero'd SDR.
-    a.setDense( SDR_dense_t(a.size, 0) );
+    a.setDense( SDR_dense_t(a.size(), 0) );
     ASSERT_EQ( a.getCoordinates()[0].size(), 0ul );
     ASSERT_EQ( a.getCoordinates()[1].size(), 0ul );
 }
@@ -423,13 +426,13 @@ TEST(SdrTest, TestAt) {
 TEST(SdrTest, TestSumSparsity) {
     SDR a({31, 17, 3});
     auto& dense = a.getDense();
-    for(UInt i = 0; i < a.size; i++) {
+    for(UInt i = 0; i < a.size(); i++) {
         ASSERT_EQ( i, a.getSum() );
-        EXPECT_FLOAT_EQ( (Real) i / a.size, a.getSparsity() );
+        EXPECT_FLOAT_EQ( (Real) i / a.size(), a.getSparsity() );
         dense[i] = 1;
         a.setDense( dense );
     }
-    ASSERT_EQ( a.size, a.getSum() );
+    ASSERT_EQ( a.size(), a.getSum() );
     ASSERT_FLOAT_EQ( 1, a.getSparsity() );
 }
 
@@ -510,7 +513,7 @@ TEST(SdrTest, TestRandomize) {
     SDR af_test({ 97 /* prime number */ });
     UInt iterations = 10000;
     Real sparsity   = .25f;
-    vector<Real> af( af_test.size, 0 );
+    vector<Real> af( af_test.size(), 0 );
     for( UInt i = 0; i < iterations; i++ ) {
         af_test.randomize( sparsity );
         for( auto idx : af_test.getSparse() )
@@ -773,16 +776,16 @@ TEST(SdrTest, TestIntersection) {
     ASSERT_EQ( Xp->getSum(), 0u );
 
     // Test deleting input SDR before SDR_Intersection
-    SDR *C = new SDR({A.size});
+    SDR *C = new SDR({A.size()});
     SDR *Y = new SDR_Intersection(A, B, *C);
     delete C;
     delete Y;
 
     // Test subclass attribute access
-    SDR C2({A.size});
-    SDR D({A.size});
+    SDR C2({A.size()});
+    SDR D({A.size()});
     SDR_Intersection Z(A, B, C2, D);
-    ASSERT_EQ(Z.size, A.size);                            // Access SDR
+    ASSERT_EQ(Z.size(), A.size());                            // Access SDR
     ASSERT_EQ(Z.inputs, vector<SDR*>({&A, &B, &C2, &D})); // Access SDR_Intersection
 }
 
@@ -791,12 +794,12 @@ TEST(SdrTest, TestConcatenationExampleUsage) {
     SDR               A({ 100 });
     SDR               B({ 100 });
     SDR_Concatenation C( A, B );
-    ASSERT_EQ(C.dimensions, vector<UInt>({ 200 }));
+    ASSERT_EQ(C.dimensions(), vector<UInt>({ 200 }));
 
     SDR               D({ 640, 480, 3 });
     SDR               E({ 640, 480, 7 });
     SDR_Concatenation F( D, E, 2 );
-    ASSERT_EQ(F.dimensions, vector<UInt>({ 640, 480, 10 }));
+    ASSERT_EQ(F.dimensions(), vector<UInt>({ 640, 480, 10 }));
 }
 
 TEST(SdrTest, TestConcatenation) {
@@ -811,3 +814,5 @@ TEST(SdrTest, TestConcatenation) {
     ASSERT_LT( C.getSparsity(), 0.55f );
     ASSERT_GT( C.getSparsity(), 0.45f );
 }
+
+} //-ns
