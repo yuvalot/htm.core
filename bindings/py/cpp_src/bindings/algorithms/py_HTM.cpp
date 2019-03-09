@@ -111,6 +111,7 @@ using nupic::algorithms::connections::Permanence;
         }
         ));
 
+        py_HTM.def("reset", &HTM_t::reset);
 
         py_HTM.def("activateCells", [](HTM_t& self, py::array_t<nupic::UInt32>& activeColumns, bool learn)
         {
@@ -134,6 +135,8 @@ using nupic::algorithms::connections::Permanence;
 
             return py::array_t<nupic::UInt32>(activeCells.size(), activeCells.data());
         });
+        py_HTM.def("getActiveCells", [](const HTM_t& self, SDR &active)
+            { self.getActiveCells(active); });
 
         py_HTM.def("getPredictiveCells", [](const HTM_t& self)
         {

@@ -31,7 +31,7 @@
 #include <nupic/algorithms/SpatialPooler.hpp>
 #include <nupic/algorithms/ColumnPooler.cpp>
 #include <nupic/algorithms/SDRClassifier.hpp>
-#include <nupic/algorithms/ClassifierResult.hpp>
+#include <nupic/types/ClassifierResult.hpp>
 #include <nupic/utils/SdrMetrics.hpp>
 
 #include <mnist/mnist_reader.hpp> // MNIST data itself + read methods, namespace mnist::
@@ -46,7 +46,7 @@ using nupic::algorithms::spatial_pooler::SpatialPooler;
 using nupic::algorithms::column_pooler::DefaultTopology;
 using nupic::algorithms::connections::Permanence;
 using nupic::algorithms::sdr_classifier::SDRClassifier;
-using nupic::algorithms::cla_classifier::ClassifierResult;
+using nupic::types::ClassifierResult;
 
 
 class MNIST {
@@ -175,7 +175,7 @@ void train()
           /* category */        true,
           /* learn */           true,
           /* infer */           false,
-                                &result);
+                                result);
       }
       else {
         clsr.compute(cp.iterationNum, columns.getSparse(), 
@@ -184,7 +184,7 @@ void train()
           /* category */        true,
           /* learn */           true,
           /* infer */           false,
-                                &result);
+                                result);
       }
       if( verbosity && (++i % 1000 == 0) ) cout << "." << flush;
     }
@@ -222,7 +222,7 @@ void test() {
         /* category */        true,
         /* learn */           false,
         /* infer */           true,
-                              &result);      
+                              result);      
     }
     else {
       clsr.compute(cp.iterationNum, columns.getSparse(),
@@ -231,7 +231,7 @@ void test() {
         /* category */        true,
         /* learn */           false,
         /* infer */           true,
-                              &result);
+                              result);
     }
     // Check results
     for(auto iter : result) {

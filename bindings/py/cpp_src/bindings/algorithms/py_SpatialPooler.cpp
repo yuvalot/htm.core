@@ -184,6 +184,9 @@ namespace nupic_ext
             self.compute(get_it<UInt>(x), learn, get_it<UInt>(y));
         });
 
+        py_SpatialPooler.def("compute", [](SpatialPooler& self, SDR &input, bool learn, SDR &active)
+            { self.compute(input, learn, active); });
+
         // setBoostFactors
         py_SpatialPooler.def("setBoostFactors", [](SpatialPooler& self, py::array_t<Real>& x)
         {

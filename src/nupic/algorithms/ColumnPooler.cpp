@@ -211,10 +211,12 @@ public:
 
     reset();
 
-    if( PP_Sp.min() * proximalInputs.size < args_.proximalSegmentThreshold )
+    if( PP_Sp.min() * proximalInputs.size < args_.proximalSegmentThreshold ) {
       NTA_WARN << "WARNING: Proximal segment has fewer synapses than the segment threshold." << endl;
-    if( PP_AF.min() == 0.0f )
+    }
+    if( PP_AF.min() == 0.0f ) {
       NTA_WARN << "WARNING: Proximal input is unused." << endl;
+    }
 
     if( args_.verbose ) {
       // TODO: Print all parameters
@@ -297,10 +299,8 @@ public:
     for(auto cell = 0u; cell < proximalConnections.numCells(); ++cell) {
       Real maxOverlap    = -1.0;
       UInt maxSegment    = -1;
-      // UInt maxRawOverlap = 0u;
       for(const auto &segment : proximalConnections.segmentsForCell( cell ) ) {
         const auto raw = rawOverlaps_[segment];
-        // maxRawOverlap = raw > maxRawOverlap ? raw : maxRawOverlap;
 
         Real overlap = (Real) raw; // Typecase to floating point.
 
@@ -337,7 +337,6 @@ public:
       cellExcitements[cell] = X_act[cell];
     }
   }
-
 
   void activateCells( vector<Real> &overlaps,
                       const SDR    &predictiveCells,
