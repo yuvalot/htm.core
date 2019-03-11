@@ -54,7 +54,12 @@ using namespace nupic::algorithms::connections;
 using nupic::algorithms::temporal_memory::TemporalMemory;
 
 
-// TODO: Connections learning rules are different.
+// TODO: Connections learning rules are different...
+// Don't apply the same learning update to a synapse twice in a row, because
+// otherwise staring at the same object for too long will mess up the synapses.
+// This change allows it to work with timeseries data which moves very slowly,
+// instead of the usual HTM inputs which reliably change every cycle. See kropff
+// & treves 2008
 
 
 /* Topology( location, potentialPool, RNG ) */
@@ -227,6 +232,16 @@ public:
   }
 
 
+  Real initProximalPermanence(Real connectedPct = 0.5f) {
+    // TODO: connectedPct as a true parameter? Maybe? Someday?
+    if( rng_.getReal64() <= connectedPct )
+        return args_.proximalSynapseThreshold +
+          (1.0f - args_.proximalSynapseThreshold) * rng_.getReal64();
+      else
+        return args_.proximalSynapseThreshold * rng_.getReal64();
+  }
+
+
   void reset() {
     X_act.assign( proximalConnections.numCells(), 0.0f );
     X_inact.assign( proximalConnections.numCells(), 0.0f );
@@ -285,7 +300,7 @@ public:
 
   // TODO: apply segment overlap threshold
   void activateProximalDendrites( const SDR &feedForwardInputs,
-                                  vector<Real> &cellExcitements )
+                                  vector<Real> &cellOverlaps )
   {
     // Proximal Feed Forward Excitement
     rawOverlaps_.assign( proximalConnections.numSegments(), 0.0f );
@@ -299,6 +314,7 @@ public:
     for(auto cell = 0u; cell < proximalConnections.numCells(); ++cell) {
       Real maxOverlap    = -1.0;
       UInt maxSegment    = -1;
+      // TODO: THIS FOR LOOP SHOULD USE INDEX MATH!
       for(const auto &segment : proximalConnections.segmentsForCell( cell ) ) {
         const auto raw = rawOverlaps_[segment];
 
@@ -330,63 +346,12 @@ public:
       }
       proximalMaxSegment_[cell] = maxSegment - cell;
 
-      cellExcitements[cell] = maxOverlap;
+      cellOverlaps[cell] = maxOverlap;
       // Apply Stability & Fatigue
       X_act[cell]   += (1.0f - args_.stability_rate) * (maxOverlap - X_act[cell] - X_inact[cell]);
       X_inact[cell] += args_.fatigue_rate * (maxOverlap - X_inact[cell]);
-      cellExcitements[cell] = X_act[cell];
+      cellOverlaps[cell] = X_act[cell];
     }
-  }
-
-  void activateCells( vector<Real> &overlaps,
-                      const SDR    &predictiveCells,
-                            SDR    &activeCells)
-  {
-    const UInt inhibitionAreas = activeCells.size / args_.cellsPerInhibitionArea;
-    const UInt numDesired = (UInt) std::round(args_.sparsity * args_.cellsPerInhibitionArea);
-    NTA_CHECK(numDesired > 0) << "Not enough cellsPerInhibitionArea ("
-      << args_.cellsPerInhibitionArea << ") for desired density (" << args_.sparsity << ").";
-
-    // Compare the cell indexes by their overlap.
-    auto compare = [&overlaps](const UInt &a, const UInt &b) -> bool
-      {return overlaps[a] > overlaps[b];};
-
-    auto &active = activeCells.getSparse();
-    active.clear();
-    active.reserve(args_.cellsPerInhibitionArea + numDesired * inhibitionAreas );
-
-    for(UInt offset = 0u; offset < activeCells.size; offset += args_.cellsPerInhibitionArea)
-    {
-      // Sort the columns by the amount of overlap.  First make a list of all of
-      // the mini-column indexes.
-      const auto activeBegin    = active.end();
-      const auto activeBeginIdx = active.size();
-      for(UInt i = 0u; i < args_.cellsPerInhibitionArea; i++)
-        active.push_back( i + offset );
-      // Do a partial sort to divide the winners from the losers.  This sort is
-      // faster than a regular sort because it stops after it partitions the
-      // elements about the Nth element, with all elements on their correct side of
-      // the Nth element.
-      std::nth_element(
-        activeBegin,
-        activeBegin + numDesired,
-        active.end(),
-        compare);
-      // Remove the columns which lost the competition.
-      active.resize( active.size() - (args_.cellsPerInhibitionArea - numDesired) );
-
-      // Remove sub-threshold winners
-      for(UInt i = activeBeginIdx; i < active.size(); )
-      {
-        if( rawOverlaps_[ active[i] ] < args_.proximalSegmentThreshold ) {
-          active[i] = active.back();
-          active.pop_back();
-        }
-        else
-           ++i;
-      }
-    }
-    activeCells.setSparse( active );
   }
 
 
@@ -399,6 +364,7 @@ public:
     {
       // Adapt Proximal Segments
       NTA_CHECK(cell < proximalMaxSegment_.size()) << "cell oob! " << cell << " < " << proximalMaxSegment_.size();
+
       const auto &maxSegment = proximalMaxSegment_[cell];
       proximalConnections.adaptSegment(maxSegment, proximalInputActive,
                                        args_.proximalIncrement, args_.proximalDecrement);
@@ -417,15 +383,141 @@ public:
   }
 
 
-  Real initProximalPermanence(Real connectedPct = 0.5f) {
-    // TODO: connectedPct as a true parameter? Maybe? Someday?
-    if( rng_.getReal64() <= connectedPct )
-        return args_.proximalSynapseThreshold +
-          (1.0f - args_.proximalSynapseThreshold) * rng_.getReal64();
-      else
-        return args_.proximalSynapseThreshold * rng_.getReal64();
+  void activateCells( const vector<Real> &overlaps,
+                      const SDR          &predictiveCells,
+                            SDR          &activeCells)
+  {
+    const UInt inhibitionAreas = activeCells.size / args_.cellsPerInhibitionArea;
+    const UInt numDesired = (UInt) std::round(args_.sparsity * args_.cellsPerInhibitionArea);
+    NTA_CHECK(numDesired > 0) << "Not enough cellsPerInhibitionArea ("
+      << args_.cellsPerInhibitionArea << ") for desired density (" << args_.sparsity << ").";
+
+
+    auto &allActive = activeCells.getSparse();
+    allActive.clear();
+    allActive.reserve(numDesired * inhibitionAreas );
+
+    for(UInt offset = 0u; offset < activeCells.size; offset += args_.cellsPerInhibitionArea)
+    {
+      SDR_sparse_t localActive;
+      activateInhibitionArea(
+          overlaps, predictiveCells,
+          offset, offset + args_.cellsPerInhibitionArea,
+          numDesired,
+          localActive);
+
+      for(const auto &cell : localActive) {
+        allActive.push_back( cell );
+      }
+    }
+    activeCells.setSparse( allActive );
   }
 
+
+  void activateInhibitionArea(
+      const vector<Real> &overlaps,
+      const SDR          &predictiveCells,
+            UInt          areaStart,
+            UInt          areaEnd,
+            UInt          numDesired,
+            vector<UInt> &active)
+  {
+    // Inhibition areas are contiguous blocks of cells, find the size of it.
+    const auto areaSize = areaEnd - areaStart;
+    const auto &predictiveCellsDense = predictiveCells.getDense();
+    // Compare the cell indexes by their overlap.
+    auto compare = [&overlaps](const UInt &a, const UInt &b) -> bool
+                    { return overlaps[a] > overlaps[b]; };
+    // Make a list of all of the cell indexes which are in this inhibition area.
+    vector<UInt> cells;
+    cells.resize( areaSize );
+    std::iota( cells.begin(), cells.end(), areaStart );
+
+    // PHASE ONE: Predicted cells compete to activate.
+
+    // Select the predicted cells.
+    vector<UInt> phase1Active;
+    for(const auto &idx : cells) {
+      if( predictiveCellsDense[idx] ) {
+        phase1Active.push_back( idx );
+      }
+    }
+    if( !phase1Active.empty() ) {
+      if( phase1Active.size() > numDesired ) {
+        // Do a partial sort to divide the winners from the losers.  This sort is
+        // faster than a regular sort because it stops after it partitions the
+        // elements about the Nth element, with all elements on their correct side of
+        // the Nth element.
+        std::nth_element(
+          phase1Active.begin(),
+          phase1Active.begin() + numDesired,
+          phase1Active.end(),
+          compare);
+        // Remove cells which lost the competition.
+        phase1Active.resize( numDesired );
+      }
+
+      // Apply proximal segments activation threshold.
+      auto end = phase1Active.end();
+      for( auto iter = phase1Active.begin(); iter != end; ) {
+        if( rawOverlaps_[ *iter ] < args_.proximalSegmentThreshold ) {
+          *iter = phase1Active.back();
+          phase1Active.pop_back();
+          --end;
+        }
+        else {
+           ++iter;
+        }
+      }
+      NTA_CHECK( phase1Active.empty() ); // DEBUGGING!
+    }
+
+    // PHASE TWO: All remaining inactive cells compete to activate.
+
+    const UInt phase2NumDesired = max((UInt) (numDesired - phase1Active.size()), (UInt)0u );
+
+    // Make a look up table of phase1 active cells for fast access.
+    vector<Byte> phase1ActiveDense( areaSize, 0u );
+    for( const auto &idx : phase1Active ) {
+      NTA_THROW << "BUFFER OVERRUN HERE!";
+      phase1ActiveDense[idx] = 1u;
+    }
+    // Select all cells which are still inactive.
+    vector<UInt> phase2Active;
+    phase2Active.reserve( areaSize );
+    for( UInt idx = 0; idx < areaSize; ++idx ) {
+      if( not phase1ActiveDense[idx] ) {
+        phase2Active.push_back( cells[idx] );
+      }
+    }
+    NTA_CHECK( phase2Active.size() == areaSize ); // DEBUGGING!
+
+    // Do a partial sort to divide the winners from the losers.
+    std::nth_element(
+      phase2Active.begin(),
+      phase2Active.begin() + phase2NumDesired,
+      phase2Active.end(),
+      compare);
+    // Remove cells which lost the competition.
+    phase2Active.resize( phase2NumDesired );
+
+    // PH2 Apply activation threshold to proximal segments.
+    // TODO!!!
+
+    // PH2 Chose winner cells.
+    // TODO!!!
+      // PH2 First check for matching segments on distal dendrites.
+      // TODO!!!
+      // PH2 Chose new winners from the least used cells.
+      // TODO!!!
+
+    for( const auto &idx : phase1Active ) {
+      active.push_back( idx );
+    }
+    for( const auto &idx : phase2Active ) {
+      active.push_back( idx );
+    }
+  }
 
   void setParameters( Parameters &newParameters )
   {
@@ -542,6 +634,7 @@ Topology_t DefaultTopology(Real potentialPct, Real potentialRadius, bool wrapAro
 }
 
 // TODO: Test this!
+// TODO: Document this because this is the one users should copy-paste to make their own topology.
 Topology_t NoTopology(Real potentialPct)
 {
   return [=](SDR& cell, SDR& potentialPool, Random &rng) {
