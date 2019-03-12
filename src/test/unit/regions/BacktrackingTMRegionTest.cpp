@@ -481,23 +481,22 @@ TEST(BacktrackingTMRegionTest, checkTMRegionIO) {
     // The outputs could vary depending on the algorithm.
     // The best we can do for this test is to just be sure there is
     // an output.
-    std::vector<Real32>dense;
     //cout << "bottomUpOut " << n1region1->getOutput("bottomUpOut")->getData() << std::endl;
     EXPECT_TRUE(n1region1->getOutput("bottomUpOut")->getData().getCount() > 0);
     //cout << "topDownOut " << n1region1->getOutput("topDownOut")->getData() << std::endl;
-    dense = n1region1->getOutput("topDownOut")->getData().asVector<Real32>(); //TODO can I get as SDR?
-    EXPECT_TRUE(VectorHelpers::binaryToSparse(dense).size() == 0);
+    auto dense = n1region1->getOutput("topDownOut")->getData().getSDR();
+    EXPECT_TRUE(dense.getSum() == 0);
     //cout << "activeCells " << n1region1->getOutput("activeCells")->getData() << std::endl;
-    dense = n1region1->getOutput("activeCells")->getData().asVector<Real32>();
-    EXPECT_TRUE(VectorHelpers::binaryToSparse(dense).size() == 0);
+    dense = n1region1->getOutput("activeCells")->getData().getSDR();
+    EXPECT_TRUE(dense.getSum() == 0);
     //cout << "predictedActiveCells " << n1region1->getOutput("predictedActiveCells")->getData() << std::endl;
-    dense = n1region1->getOutput("predictedActiveCells")->getData().asVector<Real32>();
-    EXPECT_TRUE(VectorHelpers::binaryToSparse(dense).size() == 0);
+    dense = n1region1->getOutput("predictedActiveCells")->getData().getSDR();
+    EXPECT_TRUE(dense.getSum() == 0);
     //cout << "anomalyScore " << n1region1->getOutput("anomalyScore")->getData() << std::endl;
     EXPECT_TRUE(((Real32*)n1region1->getOutput("anomalyScore")->getData().getBuffer())[0] == 0);
     //cout << "lrnActiveStateT " << n1region1->getOutput("lrnActiveStateT")->getData() << std::endl;
-    dense = n1region1->getOutput("lrnActiveStateT")->getData().asVector<Real32>();
-    EXPECT_TRUE(VectorHelpers::binaryToSparse(dense).size() == 0);
+    dense = n1region1->getOutput("lrnActiveStateT")->getData().getSDR();
+    EXPECT_TRUE(dense.getSum() == 0);
   } catch (nupic::Exception &ex) {
     FAIL() << "Failure: Exception: " << ex.getFilename() << "("
            << ex.getLineNumber() << ") " << ex.getMessage() << "" << std::endl;
