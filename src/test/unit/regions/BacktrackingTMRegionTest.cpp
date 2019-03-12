@@ -62,7 +62,6 @@
 #include <nupic/os/Path.hpp>
 #include <nupic/os/Timer.hpp>
 #include <nupic/types/Exception.hpp>
-#include <nupic/utils/VectorHelpers.hpp>
 
 #include <cmath>   // fabs/abs
 #include <cstdlib> // exit
@@ -77,6 +76,8 @@
 #include "yaml-cpp/yaml.h"
 #include "gtest/gtest.h"
 
+namespace testing {
+
 #define VERBOSE if (verbose) std::cerr << "[          ] "
 static bool verbose = false; // turn this on to print extra stuff for debugging the test.
 
@@ -84,10 +85,8 @@ static bool verbose = false; // turn this on to print extra stuff for debugging 
 // verified.
 #define EXPECTED_SPEC_COUNT 34 // The number of parameters expected in the TMRegion Spec
 
-using namespace nupic;
-using namespace nupic::utils;
 
-namespace testing {
+using namespace nupic;
 
 // Verify that all parameters are working.
 // Assumes that the default value in the Spec is the same as the default when
@@ -290,8 +289,9 @@ TEST(BacktrackingTMRegionTest, testLinking) {
       << r2InputArray.getCount();
   EXPECT_TRUE(r2InputArray.getType() == NTA_BasicType_Real32);
   VERBOSE << "   " << r2InputArray << "\n";
-  Array expected2in = Array(VectorHelpers::sparseToBinary<Real32>(
-    { 0 }, (UInt32)r2InputArray.getCount()));
+  std::vector<UInt> tmp((UInt32)r2InputArray.getCount(), 0u);
+  tmp[0] = 1u; //set first el to 1
+  Array expected2in = Array(tmp);
   EXPECT_TRUE(r2InputArray == expected2in);
   EXPECT_TRUE(r2InputArray == r1OutputArray);
 
@@ -306,8 +306,8 @@ TEST(BacktrackingTMRegionTest, testLinking) {
   UInt32 nCells = columnCount * cellsPerColumn;
   Array r2OutputArray = region2->getOutputData("bottomUpOut");
   VERBOSE << "   " << r2OutputArray << "\n";
-  Array expected2out = Array(VectorHelpers::sparseToBinary<Real32>(
-    {  }, (UInt32)r2OutputArray.getCount()));
+  std::vector<UInt> tmp2((UInt32)r2OutputArray.getCount(), 0u);
+  Array expected2out = Array(tmp);
   EXPECT_TRUE(r2OutputArray == expected2out);
 
   VERBOSE << "  VectorFileEffector input" << std::endl;
@@ -485,7 +485,7 @@ TEST(BacktrackingTMRegionTest, checkTMRegionIO) {
     //cout << "bottomUpOut " << n1region1->getOutput("bottomUpOut")->getData() << std::endl;
     EXPECT_TRUE(n1region1->getOutput("bottomUpOut")->getData().getCount() > 0);
     //cout << "topDownOut " << n1region1->getOutput("topDownOut")->getData() << std::endl;
-    dense = n1region1->getOutput("topDownOut")->getData().asVector<Real32>();
+    dense = n1region1->getOutput("topDownOut")->getData().asVector<Real32>(); //TODO can I get as SDR?
     EXPECT_TRUE(VectorHelpers::binaryToSparse(dense).size() == 0);
     //cout << "activeCells " << n1region1->getOutput("activeCells")->getData() << std::endl;
     dense = n1region1->getOutput("activeCells")->getData().asVector<Real32>();

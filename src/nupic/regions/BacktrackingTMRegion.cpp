@@ -42,13 +42,11 @@
 #include <nupic/ntypes/Value.hpp>
 #include <nupic/regions/BacktrackingTMRegion.hpp>
 #include <nupic/utils/Log.hpp>
-#include <nupic/utils/VectorHelpers.hpp>
 
 #define VERSION 1
 
 using namespace nupic;
 using namespace nupic::algorithms::anomaly;
-using namespace nupic::utils;  // for VectorHelpers
 using namespace nupic::algorithms::backtracking_tm;
 
 BacktrackingTMRegion::BacktrackingTMRegion(const ValueMap &params, 
@@ -171,7 +169,10 @@ void BacktrackingTMRegion::compute() {
   }
   if (args_.anomalyMode) {
     Array p(NTA_BasicType_Real32, tm_->topDownCompute(), args_.numberOfCols);
-    prevPredictedColumns_ = VectorHelpers::binaryToSparse(p.asVector<Real32>());
+    const vector<Byte> tmpDense = p.asVector<Byte>();
+    SDR tmp({(UInt)tmpDense.size()});
+    tmp.setDense(tmpDense);
+    prevPredictedColumns_ = tmp.getSparse();
   }
 
   // Perform inference and / or learning
@@ -218,7 +219,10 @@ void BacktrackingTMRegion::compute() {
     Size size = args_.numberOfCols * args_.cellsPerColumn;
     getOutput("lrnActiveStateT")->getData() = Array(NTA_BasicType_Byte, lrn, size);
 
-    auto activeColumns = VectorHelpers::binaryToSparse(bottomUpIn.asVector<Real32>());
+    const auto tmpDense = bottomUpIn.asVector<Byte>();
+    SDR tmp({(UInt) tmpDense.size()});
+    tmp.setDense(tmpDense);
+    auto activeColumns = tmp.getSparse();
     Real32 anomalyScore = algorithms::anomaly::computeRawAnomalyScore(
         activeColumns, prevPredictedColumns_);
     getOutput("anomalyScore")->getData() = Array(NTA_BasicType_Real32, &anomalyScore, 1);
