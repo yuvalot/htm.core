@@ -147,7 +147,7 @@ TEST(SdrTest, TestSetDenseVec) {
 TEST(SdrTest, TestSetDenseUInt) {
     SDR a({11, 10, 4});
     auto vec = SDR_dense_t(a.size, 1);
-    a.setDense( (UInt*) vec.data() );
+    a.setDense(vec );
     ASSERT_EQ( a.getDense(), SDR_dense_t(a.size, 1) );
     ASSERT_NE( a.getDense().data(), (const Byte*) vec.data()); // true copy not a reference
 }
@@ -166,12 +166,12 @@ TEST(SdrTest, TestSetDenseInplace) {
 
 TEST(SdrTest, TestSetSparseVec) {
     SDR a({11, 10, 4});
-    const auto before = a.getSparse().data();
+    const auto before = a.getSparse();
     SDR_sparse_t data = {1, 2, 3};
     a.setSparse( data );
-    const auto after = a.getSparse().data();
+    const auto after = a.getSparse();
     ASSERT_NE( before, after );
-    ASSERT_EQ( after, data.data() );
+    ASSERT_EQ( after, data );
 }
 
 TEST(SdrTest, TestSetSparsePtr) {
