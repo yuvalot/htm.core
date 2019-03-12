@@ -283,7 +283,6 @@ public:
         NTA_ASSERT( dense_valid );
         if( !dense_valid_lazy ) {
             // Setup for copying the data as rows & strides.
-            const UInt    n_dim = (UInt)inputs[0]->dimensions.size();
             vector<Byte*> buffers;
             vector<UInt>  row_lengths;
             for(const auto &sdr : inputs) {
