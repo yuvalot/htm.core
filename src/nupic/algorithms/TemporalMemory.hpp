@@ -47,7 +47,6 @@ using nupic::algorithms::connections::Permanence;
 using nupic::algorithms::connections::Segment;
 using nupic::algorithms::connections::CellIdx;
 using nupic::algorithms::connections::Synapse;
-using nupic::sdr::SDR;
 
 /**
  * Temporal Memory implementation in C++.

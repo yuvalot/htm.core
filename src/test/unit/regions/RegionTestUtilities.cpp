@@ -38,9 +38,8 @@
 #include <nupic/engine/Spec.hpp>
 #include <nupic/ntypes/Array.hpp>
 
-namespace testing {
 using namespace nupic;
-using namespace std;
+namespace testing {
 
 
 // a utility function to compare parameters in the spec with getters/setters.

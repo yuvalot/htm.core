@@ -30,7 +30,6 @@
 #include <cmath> //fmod
 
 #include <nupic/algorithms/SpatialPooler.hpp>
-
 #include <nupic/math/Topology.hpp>
 #include <nupic/math/Math.hpp> // nupic::Epsilon
 
@@ -39,9 +38,6 @@
 using namespace nupic;
 using nupic::algorithms::spatial_pooler::SpatialPooler;
 using namespace nupic::math::topology;
-using namespace std;
-using nupic::sdr::SDR;
-
 
 // Round f to 5 digits of precision. This is used to set
 // permanence values and help avoid small amounts of drift between

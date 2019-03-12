@@ -27,10 +27,9 @@
 #include <nupic/types/Types.hpp>
 #include <nupic/types/Serializable.hpp>
 
-namespace nupic { //TODO move to ns nupic::sdr
-
 using namespace std;
-using namespace nupic::sdr;
+
+namespace nupic {
 
 class SDR_ReadOnly_ : public SDR
 {
@@ -95,14 +94,14 @@ public:
      * dimensions as the given SDR.
      */
     SDR_Reshape(SDR &sdr)
-        : SDR_Reshape(sdr, sdr.dimensions())
+        : SDR_Reshape(sdr, sdr.dimensions)
         {}
 
     SDR_Reshape(SDR &sdr, const vector<UInt> &dimensions)
         : SDR_ReadOnly_( dimensions ) {
         clear();
         parent = &sdr;
-        NTA_CHECK( size() == parent->size() ) << "SDR Reshape must have same size as given SDR.";
+        NTA_CHECK( size == parent->size ) << "SDR Reshape must have same size as given SDR.";
         callback_handle = parent->addCallback( [&] () {
             clear();
             do_callbacks();
@@ -127,9 +126,9 @@ public:
 
     SDR_coordinate_t& getCoordinates() const override {
         NTA_CHECK( parent != nullptr ) << "Parent SDR has been destroyed!";
-        if( dimensions().size() == parent->dimensions().size() &&
-            equal( dimensions().begin(), dimensions().end(),
-                   parent->dimensions().begin() )) {
+        if( dimensions.size() == parent->dimensions.size() &&
+            equal( dimensions.begin(), dimensions.end(),
+                   parent->dimensions.begin() )) {
             // All things equal, prefer reusing the parent's cached value.
             return parent->getCoordinates();
         }
@@ -243,19 +242,19 @@ public:
             << "Not enough inputs to SDR_Concatenation, need at least 2 SDRs got " << inputs.size() << ".";
         inputs_.assign( inputs.begin(), inputs.end() );
         axis_ = axis;
-        const UInt n_dim = (UInt)inputs[0]->dimensions().size();
+        const UInt n_dim = (UInt)inputs[0]->dimensions.size();
         NTA_CHECK( axis_ < n_dim );
         // Determine dimensions & check input dimensions.
-        vector<UInt> dims = inputs[0]->dimensions();
+        vector<UInt> dims = inputs[0]->dimensions;
         dims[axis] = 0;
         for(auto i = 0u; i < inputs.size(); ++i) {
-            NTA_CHECK( inputs[i]->dimensions().size() == n_dim )
+            NTA_CHECK( inputs[i]->dimensions.size() == n_dim )
                 << "All inputs to SDR_Concatenation must have the same number of dimensions!";
             for(auto d = 0u; d < n_dim; d++) {
                 if( d == axis )
-                    dims[axis] += inputs[i]->dimensions()[d];
+                    dims[axis] += inputs[i]->dimensions[d];
                 else
-                    NTA_CHECK( inputs[i]->dimensions()[d] == dims[d] )
+                    NTA_CHECK( inputs[i]->dimensions[d] == dims[d] )
                         << "All dimensions except the axis must be the same! "
                         << "Argument #" << i << " dimension #" << d << ".";
             }
@@ -284,20 +283,20 @@ public:
         NTA_ASSERT( dense_valid );
         if( !dense_valid_lazy ) {
             // Setup for copying the data as rows & strides.
-            const UInt    n_dim = (UInt)inputs[0]->dimensions().size();
-            vector<char*> buffers;
+            const UInt    n_dim = (UInt)inputs[0]->dimensions.size();
+            vector<UInt*> buffers;
             vector<UInt>  row_lengths;
             for(const auto &sdr : inputs) {
                 buffers.push_back( sdr->getDense().data() );
                 UInt dimProduct = 1u;
-                for(const auto dimAxis : sdr->dimensions())
+                for(const auto dimAxis : sdr->dimensions)
                     dimProduct *= dimAxis;
                 row_lengths.push_back( dimProduct );
             }
             // Get the output buffer.
-            dense_.resize( size() );
+            dense_.resize( size );
             auto  dense_data       = dense_.data();
-            const auto data_end    = dense_data + size();
+            const auto data_end    = dense_data + size;
             const auto n_inputs    = inputs.size();
             while( dense_data < data_end ) {
                 // Copy one row from each input SDR.
@@ -388,7 +387,7 @@ public:
     {
         NTA_CHECK( inputs.size() >= 1u )
             << "Not enough inputs to SDR_Intersection, need at least 2 SDRs got " << inputs.size() << ".";
-        SDR::initialize( inputs[0]->dimensions() );
+        SDR::initialize( inputs[0]->dimensions );
         inputs_.assign( inputs.begin(), inputs.end() );
 
         callback_handles_.clear();

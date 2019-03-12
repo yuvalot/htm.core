@@ -31,16 +31,14 @@
 #include <nupic/types/Serializable.hpp>
 #include <nupic/utils/Random.hpp>
 
-
-namespace nupic {
-namespace sdr {
-
 using namespace std;
 
-using SDR_dense_t  =  vector<Byte>; //TODO add templated types for SDR<DenseElemT, SparseElemT, CoordElemT> + default SDR<Byte, UInt, UInt> 
-using SDR_sparse_t =  vector<UInt>;
-using SDR_coordinate_t = vector<vector<UInt>>;
-using SDR_callback_t =  function<void()>;
+namespace nupic {
+
+typedef vector<Byte>          SDR_dense_t; //TODO add templated types for SDR<DenseElemT, SparseElemT, CoordElemT> + default SDR<Byte, UInt, UInt> 
+typedef vector<UInt>          SDR_sparse_t;
+typedef vector<vector<UInt>>  SDR_coordinate_t;
+typedef function<void()>      SDR_callback_t;
 
 /**
  * SparseDistributedRepresentation class
@@ -232,12 +230,12 @@ public:
     /**
      * @attribute dimensions A list of dimensions of the SDR.
      */
-    const vector<UInt> &dimensions() const { return dimensions_; }
+    const vector<UInt> &dimensions = dimensions_;
 
     /**
      * @attribute size The total number of boolean values in the SDR.
      */
-    UInt size() const { return size_; }
+    const UInt &size = size_;
 
     /**
      * Set all of the values in the SDR to false.  This method overwrites the
@@ -261,7 +259,7 @@ public:
      */
      template<typename T>
      void setDense( const vector<T> &value ) {
-       NTA_ASSERT(value.size() == size());
+       NTA_ASSERT(value.size() == size);
        setDense(value.data());
      }
 
@@ -273,9 +271,9 @@ public:
      template<typename T>
      void setDense( const T *value ) {
        NTA_ASSERT(value != nullptr);
-       dense_.resize( size() );
+       dense_.resize( size );
        const T zero = (T) 0;
-       for(auto i = 0u; i < size(); i++)
+       for(auto i = 0u; i < size; i++)
          dense_[i] = value[i] != zero;
        setDenseInplace();
      }
@@ -372,8 +370,8 @@ public:
      */
     template<typename T>
     void setCoordinates( const vector<vector<T>> &value ) {
-      NTA_ASSERT(value.size() == dimensions().size());
-      for(UInt dim = 0; dim < dimensions().size(); dim++) {
+      NTA_ASSERT(value.size() == dimensions.size());
+      for(UInt dim = 0; dim < dimensions.size(); dim++) {
         coordinates_[dim].clear();
 		coordinates_[dim].resize(value[dim].size());
         // Use an explicit type cast.  Otherwise Microsoft Visual Studio will
@@ -419,7 +417,7 @@ public:
      * @returns The fraction of values in the SDR which are true.
      */
     inline Real getSparsity() const
-        { return (Real) getSum() / size(); }
+        { return (Real) getSum() / size; }
 
     /**
      * Calculates the number of true bits which both SDRs have in common.
@@ -467,9 +465,9 @@ public:
     friend std::ostream& operator<< (std::ostream& stream, const SparseDistributedRepresentation &sdr)
     {
         stream << "SDR( ";
-        for( UInt i = 0; i < (UInt)sdr.dimensions().size(); i++ ) {
-            stream << sdr.dimensions()[i];
-            if( i + 1 != (UInt)sdr.dimensions().size() )
+        for( UInt i = 0; i < (UInt)sdr.dimensions.size(); i++ ) {
+            stream << sdr.dimensions[i];
+            if( i + 1 != (UInt)sdr.dimensions.size() )
                 stream << ", ";
         }
         stream << " ) ";
@@ -550,7 +548,7 @@ public:
     void removeDestroyCallback(UInt index);
 };
 
-using SDR = SparseDistributedRepresentation;
+typedef SparseDistributedRepresentation SDR;
 
-}} // end namespace nupic
+} // end namespace nupic
 #endif // end ifndef SDR_HPP

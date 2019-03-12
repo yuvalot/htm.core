@@ -58,7 +58,7 @@ ArrayBase::ArrayBase(NTA_BasicType type, void *buffer, size_t count) {
  */
 ArrayBase::ArrayBase(const SDR &sdr) {
   type_ = NTA_BasicType_SDR;
-  auto dim = sdr.dimensions();
+  auto dim = sdr.dimensions;
   allocateBuffer(dim);
   if (has_buffer()) {
     std::memcpy((char *)getBuffer(), (char *)sdr.getDense().data(), count_);
@@ -119,7 +119,7 @@ void ArrayBase::allocateBuffer( const std::vector<UInt> dimensions) { // only fo
   std::shared_ptr<char> sp((char *)(sdr));
   buffer_ = sp;
   own_ = true;
-  count_ = sdr->size();
+  count_ = sdr->size;
   capacity_ = count_ * sizeof(Byte);
 }
 
@@ -155,7 +155,7 @@ void ArrayBase::setBuffer(void *buffer, size_t count) {
 void ArrayBase::setBuffer(SDR &sdr) {
   type_ = NTA_BasicType_SDR;
   buffer_ = std::shared_ptr<char>((char *)&sdr, nonDeleter());
-  count_ = sdr.size();
+  count_ = sdr.size;
   capacity_ = count_ * BasicType::getSize(type_);
   own_ = false;
 }
@@ -208,7 +208,7 @@ const SDR *ArrayBase::getSDR() const {
  */
 size_t ArrayBase::getBufferSize() const {
   if (has_buffer() && type_ == NTA_BasicType_SDR) {
-    return getSDR()->size();
+    return getSDR()->size;
   }
   return capacity_;
 }
@@ -218,7 +218,7 @@ size_t ArrayBase::getBufferSize() const {
  */
 size_t ArrayBase::getCount() const {
   if (has_buffer() && type_ == NTA_BasicType_SDR) {
-    return ((SDR *)(buffer_.get()))->size();
+    return ((SDR *)(buffer_.get()))->size;
   }
   return count_;
 };
@@ -391,8 +391,8 @@ void ArrayBase::load(std::istream &inStream) {
     sdr->load(inStream);
     std::shared_ptr<char> sp((char *)(sdr));
     buffer_ = sp;
-    count_ = sdr->size();
-    capacity_ = sdr->size();
+    count_ = sdr->size;
+    capacity_ = sdr->size;
   } else {
     allocateBuffer(count);
     inStream.ignore(1);

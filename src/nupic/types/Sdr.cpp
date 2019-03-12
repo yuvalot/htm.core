@@ -29,8 +29,7 @@
 
 using namespace std;
 
-using namespace nupic::sdr;
-using namespace nupic;
+namespace nupic {
 
     void SparseDistributedRepresentation::clear() const {
         dense_valid       = false;
@@ -47,7 +46,7 @@ using namespace nupic;
 
     void SparseDistributedRepresentation::setDenseInplace() const {
         // Check data is valid.
-        NTA_ASSERT( dense_.size() == size() );
+        NTA_ASSERT( dense_.size() == size );
         // Set the valid flags.
         clear();
         dense_valid = true;
@@ -57,9 +56,9 @@ using namespace nupic;
     void SparseDistributedRepresentation::setSparseInplace() const {
         // Check data is valid.
         #ifdef NTA_ASSERTIONS_ON
-            NTA_ASSERT(sparse_.size() <= size());
+            NTA_ASSERT(sparse_.size() <= size);
             for(auto idx : sparse_) {
-                NTA_ASSERT(idx < size());
+                NTA_ASSERT(idx < size);
             }
         #endif
         // Set the valid flags.
@@ -71,13 +70,13 @@ using namespace nupic;
     void SparseDistributedRepresentation::setCoordinatesInplace() const {
         // Check data is valid.
         #ifdef NTA_ASSERTIONS_ON
-            NTA_ASSERT(coordinates_.size() == dimensions_.size());
-            for(UInt dim = 0; dim < dimensions_.size(); dim++) {
+            NTA_ASSERT(coordinates_.size() == dimensions.size());
+            for(UInt dim = 0; dim < dimensions.size(); dim++) {
                 const auto &coord_vec = coordinates_[dim];
                 NTA_ASSERT(coord_vec.size() <= size);
                 NTA_ASSERT(coord_vec.size() == coordinates_[0].size()); // All coordinate vectors have same size.
                 for(const auto &idx : coord_vec) {
-                    NTA_ASSERT(idx < dimensions_[dim]);
+                    NTA_ASSERT(idx < dimensions[dim]);
                 }
             }
         #endif
@@ -111,11 +110,11 @@ using namespace nupic;
 
         // Calculate the SDR's size.
         size_ = 1;
-        for(UInt dim : dimensions_)
+        for(UInt dim : dimensions)
             size_ *= dim;
 
         // Special case: placeholder for SDR type used in NetworkAPI
-        if(dimensions_ != vector<UInt>{0}) {
+        if(dimensions != vector<UInt>{0}) {
             NTA_CHECK(size_ > 0) << "SDR: all dimensions must be > 0";
         }
 
@@ -130,7 +129,7 @@ using namespace nupic;
 
     SparseDistributedRepresentation::SparseDistributedRepresentation(
                                 const SparseDistributedRepresentation &value )
-        : SparseDistributedRepresentation( value.dimensions() )
+        : SparseDistributedRepresentation( value.dimensions )
         { setSDR( value ); }
 
     SparseDistributedRepresentation::~SparseDistributedRepresentation()
@@ -151,7 +150,7 @@ using namespace nupic;
     SDR_dense_t& SparseDistributedRepresentation::getDense() const {
         if( !dense_valid ) {
             // Convert from flatSparse to dense.
-            dense_.assign( size_, 0 );
+            dense_.assign( size, 0 );
             for(const auto &idx : getSparse()) {
                 dense_[idx] = 1;
             }
@@ -162,12 +161,12 @@ using namespace nupic;
 
     Byte SparseDistributedRepresentation::at(const vector<UInt> &coordinates) const {
         UInt flat = 0;
-        NTA_ASSERT(coordinates.size() == dimensions_.size())
+        NTA_ASSERT(coordinates.size() == dimensions.size())
                     << "SDR::at() coordinates must have same dimensions as SDR!";
-        for(UInt i = 0; i < dimensions_.size(); i++) {
-            NTA_ASSERT( coordinates[i] < dimensions_[i] )
+        for(UInt i = 0; i < dimensions.size(); i++) {
+            NTA_ASSERT( coordinates[i] < dimensions[i] )
                                     << "SDR::at() coordinates out of bounds!";
-            flat *= dimensions_[i];
+            flat *= dimensions[i];
             flat += coordinates[i];
         }
         return getDense()[flat];
@@ -185,12 +184,12 @@ using namespace nupic;
             if( coordinates_valid ) {
                 // Convert from coordinates to flat-sparse.
                 const auto &coords = getCoordinates();
-                const auto num_nz = size_ ? coords[0].size() : 0u;
+                const auto num_nz = size ? coords[0].size() : 0u;
                 sparse_.reserve( num_nz );
                 for(UInt nz = 0; nz < num_nz; ++nz) {
                     UInt flat = 0;
-                    for(UInt dim = 0; dim < dimensions_.size(); ++dim) {
-                        flat *= dimensions_[dim];
+                    for(UInt dim = 0; dim < dimensions.size(); ++dim) {
+                        flat *= dimensions[dim];
                         flat += coords[dim][nz];
                     }
                     sparse_.push_back(flat);
@@ -199,7 +198,7 @@ using namespace nupic;
             else if( dense_valid ) {
                 // Convert from dense to flatSparse.
                 const auto &dense = getDense();
-                for(UInt idx = 0; idx < size_; idx++)
+                for(UInt idx = 0; idx < size; idx++)
                     if( dense[idx] != 0 )
                         sparse_.push_back( idx );
             }
@@ -224,8 +223,8 @@ using namespace nupic;
         }
         // Convert from sparse to coordinates.
         for( auto idx : getSparse() ) {
-          for(UInt dim = (UInt)(dimensions_.size() - 1); dim > 0; --dim) {
-            const auto dim_sz = dimensions_[dim];
+          for(UInt dim = (UInt)(dimensions.size() - 1); dim > 0; --dim) {
+            const auto dim_sz = dimensions[dim];
             coordinates_[dim].push_back( idx % dim_sz );
             idx /= dim_sz;
           }
@@ -238,7 +237,7 @@ using namespace nupic;
 
 
     void SparseDistributedRepresentation::setSDR( const SparseDistributedRepresentation &value ) {
-        NTA_ASSERT( value.dimensions() == dimensions() );
+        NTA_ASSERT( value.dimensions == dimensions );
         clear();
 
         dense_valid = value.dense_valid;
@@ -251,7 +250,7 @@ using namespace nupic;
         }
         coordinates_valid = value.coordinates_valid;
         if( coordinates_valid ) {
-            for(UInt dim = 0; dim < dimensions_.size(); dim++)
+            for(UInt dim = 0; dim < dimensions.size(); dim++)
                 coordinates_[dim].assign( value.coordinates_[dim].begin(), value.coordinates_[dim].end() );
         }
         // Subclasses may override these getters and ignore the valid flags...
@@ -265,12 +264,12 @@ using namespace nupic;
 
 
     UInt SparseDistributedRepresentation::getOverlap(const SparseDistributedRepresentation &sdr) const {
-        NTA_ASSERT( dimensions() == sdr.dimensions() );
+        NTA_ASSERT( dimensions == sdr.dimensions );
 
         UInt ovlp = 0u;
         const auto a = this->getDense();
         const auto b = sdr.getDense();
-        for( UInt i = 0u; i < size_; i++ )
+        for( UInt i = 0u; i < size; i++ )
             ovlp += a[i] && b[i];
         return ovlp;
     }
@@ -283,12 +282,12 @@ using namespace nupic;
 
     void SparseDistributedRepresentation::randomize(Real sparsity, Random &rng) {
         NTA_ASSERT( sparsity >= 0.0f and sparsity <= 1.0f );
-        UInt nbits = (UInt) std::round( size_ * sparsity );
+        UInt nbits = (UInt) std::round( size * sparsity );
 
-        SDR_sparse_t range( size_ );
+        SDR_sparse_t range( size );
         iota( range.begin(), range.end(), 0u );
         sparse_.resize( nbits );
-        rng.sample( range.data(),      size_,
+        rng.sample( range.data(),      size,
                     sparse_.data(), nbits);
         setSparseInplace();
     }
@@ -312,7 +311,7 @@ using namespace nupic;
         auto& dns = getDense();
 
         vector<UInt> off_pop;
-        for(UInt idx = 0; idx < size_; idx++) {
+        for(UInt idx = 0; idx < size; idx++) {
             if( dns[idx] == 0 )
                 off_pop.push_back( idx );
         }
@@ -332,23 +331,23 @@ using namespace nupic;
 
     bool SparseDistributedRepresentation::operator==(const SparseDistributedRepresentation &sdr) const {
         // Check attributes
-        if( sdr.size() != size() or dimensions_.size() != sdr.dimensions().size() )
+        if( sdr.size != size or dimensions.size() != sdr.dimensions.size() )
             return false;
-        for( UInt i = 0; i < dimensions_.size(); i++ ) {
-            if( dimensions_[i] != sdr.dimensions()[i] )
+        for( UInt i = 0; i < dimensions.size(); i++ ) {
+            if( dimensions[i] != sdr.dimensions[i] )
                 return false;
         }
         // Check data
         return std::equal(
-            getDense().cbegin(),
-            getDense().cend(), 
-            sdr.getDense().cbegin());
+            getSparse().begin(),
+            getSparse().end(), 
+            sdr.getSparse().begin());
     }
 
 
     void SparseDistributedRepresentation::save(std::ostream &outStream) const {
 
-        auto writeVector = [&outStream] (const vector<UInt> &vec) { //TODO use StlIo.hpp
+        auto writeVector = [&outStream] (const vector<UInt> &vec) {
             outStream << vec.size() << " ";
             for( auto elem : vec ) {
                 outStream << elem << " ";
@@ -360,7 +359,7 @@ using namespace nupic;
         outStream << "SDR " << SERIALIZE_VERSION << " " << endl;
 
         // Store the dimensions.
-        writeVector( dimensions() );
+        writeVector( dimensions );
 
         // Store the data in the flat-sparse format.
         writeVector( getSparse() );
@@ -370,7 +369,7 @@ using namespace nupic;
 
     void SparseDistributedRepresentation::load(std::istream &inStream) {
 
-        auto readVector = [&inStream] (vector<UInt> &vec) { //TODO add to Serializable, use StlIo
+        auto readVector = [&inStream] (vector<UInt> &vec) { //TODO add to Serializable
             vec.clear();
             UInt size;
             inStream >> size;
@@ -395,10 +394,10 @@ using namespace nupic;
         // Initialize the SDR.
         // Calculate the SDR's size.
         size_ = 1;
-        for(UInt dim : dimensions_)
+        for(UInt dim : dimensions)
             size_ *= dim;
         // Initialize sparse tuple.
-        coordinates_.assign( dimensions_.size(), {} );
+        coordinates_.assign( dimensions.size(), {} );
 
         // Read the data.
         readVector( sparse_ );
@@ -452,3 +451,4 @@ using namespace nupic;
         destroyCallbacks[index] = nullptr;
     }
 
+} // end namespace nupic

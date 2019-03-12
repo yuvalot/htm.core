@@ -50,7 +50,6 @@
 
 namespace nupic
 {
-using nupic::sdr::SDR; //TODO add namespace nupic::networkapi here, so not exposed to whole ::nupic
 
   /**
    * An ArrayBase is used for passing arrays of data back and forth between

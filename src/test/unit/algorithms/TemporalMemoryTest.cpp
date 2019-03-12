@@ -1543,7 +1543,7 @@ TEST(TemporalMemoryTest, testExtraActive) {
 
   SDR columns({120});
 
-  vector<SDR> pattern( 10, columns.dimensions() );
+  vector<SDR> pattern( 10, columns.dimensions );
   for(auto i = 0u; i < pattern.size(); i++) {
     Random rng( i + 99u );             // Use deterministic seeds for unit tests.
     auto &sdr = pattern[i];
@@ -1552,7 +1552,7 @@ TEST(TemporalMemoryTest, testExtraActive) {
     std::sort(data.begin(), data.end());
   }
 
-  auto tm = TemporalMemory(columns.dimensions(),
+  auto tm = TemporalMemory(columns.dimensions,
     /* cellsPerColumn */               12,
     /* activationThreshold */          13,
     /* initialPermanence */            0.21f,
@@ -1566,7 +1566,7 @@ TEST(TemporalMemoryTest, testExtraActive) {
     /* maxSegmentsPerCell */           255,
     /* maxSynapsesPerSegment */        255,
     /* checkInputs */                  true,
-    /* extra */                        (UInt)(columns.size() * 12u));
+    /* extra */                        (UInt)(columns.size * 12u));
   Real anom = 1.0f;
 
   // Look at the pattern.
