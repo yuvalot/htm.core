@@ -66,28 +66,6 @@ TEST(VectorHelpersTest, stringToFloatVector)
 };
 
 
-TEST(VectorHelpersTest, binaryToSparse)
-{
-  vector<Real32> v{0.0f,0.0f,1.0f,1.0f,0.0f};
-  vector<UInt> expected {2, 3};
-  vector<UInt> res = VectorHelpers::binaryToSparse<Real>(v);
-  for(UInt i=0; i< res.size(); i++) {
-    ASSERT_EQ(res[i], expected[i]);
-  }
-};
-
-
-TEST(VectorHelpersTest, sparseToBinary)
-{
-  vector<Real32> expected{0.0f,0.0f,1.0f,1.0f,0.0f};
-  vector<UInt> v {2u, 3u};
-  vector<Real> res = VectorHelpers::sparseToBinary<Real>(v, 5);
-  for(size_t i=0; i< res.size(); i++) {
-    ASSERT_EQ(res[i], expected[i]);
-  }
-};
-
-
 TEST(VectorHelpers, cellsToColumns)
 { // using binary vector 3x3 (3 cols with 3 cells per column)
   vector<UInt> v{0,0,0, 0,1u,1u, 0,0,1u};
