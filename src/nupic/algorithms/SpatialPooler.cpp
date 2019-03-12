@@ -464,7 +464,8 @@ void SpatialPooler::initialize(
   for (Size column = 0; column < numColumns_; column++) {
     connections_.createSegment( (connections::CellIdx)column );
 
-    const auto potential    = initMapPotential_((UInt)column, wrapAround_);
+    SDR potential({numInputs_});
+    initMapPotential_((UInt)column, wrapAround_, potential);
     const vector<Real> perm = initPermanence_(potential, initConnectedPct_);
     for(const auto presyn : potential.getSparse()) {
         connections_.createSynapse( (connections::Segment)column, presyn, perm[presyn] );
@@ -549,8 +550,10 @@ UInt SpatialPooler::initMapColumn_(UInt column) const {
 }
 
 
-const SDR SpatialPooler::initMapPotential_(UInt column, bool wrapAround) {
-  NTA_ASSERT(column < numColumns_);
+void SpatialPooler::initMapPotential_(UInt column, bool wrapAround, SDR& potential) {
+  NTA_CHECK(potential.size == numInputs_);
+  NTA_CHECK(column < numColumns_);
+
   const UInt centerInput = initMapColumn_(column);
 
   vector<UInt> columnInputs;
@@ -567,9 +570,7 @@ const SDR SpatialPooler::initMapPotential_(UInt column, bool wrapAround) {
 
   const UInt numPotential = (UInt)round(columnInputs.size() * potentialPct_);
   const auto selectedInputs = rng_.sample<UInt>(columnInputs, numPotential);
-  SDR potential( {numInputs_} );
   potential.setSparse(selectedInputs);
-  return potential;
 }
 
 

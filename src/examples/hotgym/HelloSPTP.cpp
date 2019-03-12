@@ -45,7 +45,6 @@ namespace examples {
 using namespace std;
 using namespace nupic;
 using namespace nupic::utils;
-using nupic::sdr::SDR;
 
 using nupic::ScalarEncoder;
 

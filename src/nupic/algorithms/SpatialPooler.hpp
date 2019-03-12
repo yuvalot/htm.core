@@ -820,8 +820,10 @@ public:
 
     @param wrapAround  A boolean value indicating that boundaries should be
                        ignored.
+    @param potential  A SDR (sized as input), the return values are written to
+    this field
   */
-  const SDR initMapPotential_(UInt column, bool wrapAround);
+  void initMapPotential_(UInt column, bool wrapAround, SDR& potential);
 
   /**
   Returns a randomly generated permanence value for a synapses that is

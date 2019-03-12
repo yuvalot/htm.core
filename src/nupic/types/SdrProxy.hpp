@@ -284,7 +284,7 @@ public:
         if( !dense_valid_lazy ) {
             // Setup for copying the data as rows & strides.
             const UInt    n_dim = (UInt)inputs[0]->dimensions.size();
-            vector<UInt*> buffers;
+            vector<Byte*> buffers;
             vector<UInt>  row_lengths;
             for(const auto &sdr : inputs) {
                 buffers.push_back( sdr->getDense().data() );
