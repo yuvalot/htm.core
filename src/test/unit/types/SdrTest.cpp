@@ -167,7 +167,7 @@ TEST(SdrTest, TestSetDenseInplace) {
 TEST(SdrTest, TestSetSparseVec) {
     SDR a({11, 10, 4});
     const auto before = a.getSparse();
-    SDR_sparse_t data = {1, 2, 3};
+    const SDR_sparse_t data = {1, 2, 3};
     a.setSparse( data );
     const auto after = a.getSparse();
     ASSERT_NE( before, after );
