@@ -26,6 +26,8 @@
 
 #include "HelloSPTP.hpp"
 
+#include "nupic/types/Sdr.hpp"
+
 #include "nupic/algorithms/Anomaly.hpp"
 
 #include "nupic/algorithms/Cells4.hpp"
@@ -46,7 +48,8 @@ using namespace std;
 using namespace nupic;
 using namespace nupic::utils;
 
-using nupic::ScalarEncoder;
+using nupic::encoders::ScalarEncoder;
+using nupic::encoders::ScalarEncoderParameters;
 
 using nupic::algorithms::spatial_pooler::SpatialPooler;
 
@@ -75,7 +78,12 @@ Real64 BenchmarkHotgym::run(UInt EPOCHS, bool useSPlocal, bool useSPglobal, bool
 
   // initialize SP, TP, Anomaly, AnomalyLikelihood
   tInit.start();
-  ScalarEncoder enc(133, -100.0, 100.0, DIM_INPUT, 0.0, 0.0, false);
+  ScalarEncoderParameters encParams;
+  encParams.activeBits = 133;
+  encParams.minimum = -100.0;
+  encParams.maximum = 100.0;
+  encParams.size = DIM_INPUT;
+  ScalarEncoder enc( encParams );
   NTA_INFO << "SP (l) local inhibition is slow, so we reduce its data 10x smaller"; //to make it reasonably fast for test, for comparison x10
   SpatialPooler spGlobal(vector<UInt>{DIM_INPUT}, vector<UInt>{COLS}); // Spatial pooler with globalInh
   SpatialPooler spLocal(vector<UInt>{DIM_INPUT}, vector<UInt>{COLS/10u}); // Spatial pooler with local inh
@@ -116,11 +124,7 @@ Real64 BenchmarkHotgym::run(UInt EPOCHS, bool useSPlocal, bool useSPglobal, bool
     //Encode
     {
     tEnc.start();
-    auto tmp = VectorHelpers::castVectorType<char, UInt>(input.getDense());
-    enc.encodeIntoArray(r, tmp.data()); //TODO make encoder use SDR
-    auto tmpChar = VectorHelpers::castVectorType<UInt, char>(tmp);
-    input.setDense(tmpChar);
-    input.setDense(input.getDense()); //update SDR
+    enc.encode(r, input);
     tEnc.stop();
     }
 
