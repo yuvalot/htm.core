@@ -174,17 +174,8 @@ namespace nupic {
 
 
     void SparseDistributedRepresentation::setSparse(SDR_sparse_t &value ) {
-	#ifdef NTA_ASSERTIONS_ON
-          const auto orig = SDR_sparse_t(value);
-        #endif
         sparse_.swap( value );
         setSparseInplace();
-        #ifdef NTA_ASSERTIONS_ON
-	  NTA_ASSERT(orig.size() == value.size()) << "orig " << orig.size() << " vs. " << value.size();
-          for(size_t i = 0; i < orig.size(); i++) {
-	    NTA_ASSERT(orig[i] == value[i]);
-	  }
-        #endif
     }
 
     SDR_sparse_t& SparseDistributedRepresentation::getSparse() const {
