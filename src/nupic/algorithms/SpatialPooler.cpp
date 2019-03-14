@@ -525,6 +525,7 @@ void SpatialPooler::compute(const SDR &input, bool learn, SDR &active) {
 
 void SpatialPooler::boostOverlaps_(const vector<UInt> &overlaps, //TODO use Eigen sparse vector here
                                    vector<Real> &boosted) const {
+  NTA_ASSERT(overlaps.size() == numColumns_);
   for (UInt i = 0; i < numColumns_; i++) {
     boosted[i] = overlaps[i] * boostFactors_[i];
   }
@@ -754,7 +755,7 @@ void SpatialPooler::updateDutyCyclesHelper_(vector<Real> &dutyCycles,
                                             SDR &newValues,
                                             UInt period) {
   NTA_ASSERT(period > 0);
-  NTA_ASSERT(dutyCycles.size() == newValues.size);
+  NTA_ASSERT(dutyCycles.size() == newValues.size) << dutyCycles.size() << " " << newValues.size;
 
   // Duty cycles are exponential moving averages, typically written like:
   //   alpha = 1 / period
