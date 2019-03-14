@@ -79,6 +79,8 @@ namespace nupic_ext
     py_ColumnPooler.def("setParameters", &ColumnPooler::setParameters);
     py_ColumnPooler.def_property_readonly("cellDimensions", [](const ColumnPooler &self)
         { return self.cellDimensions; });
+    py_ColumnPooler.def_property_readonly("parameters", [](const ColumnPooler &self)
+        { return self.parameters; });
     py_ColumnPooler.def_property_readonly_static("defaultParameters",
         [](py::object self) { return DefaultParameters; });
 

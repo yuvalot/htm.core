@@ -30,6 +30,7 @@
 #include <vector>
 #include <string>
 #include <algorithm>
+#include <limits>  // std::numeric_limits
 #include <iomanip> // std::setprecision
 #include <functional> // function
 
@@ -76,7 +77,6 @@ public:
 
   Real sparsity;
 
-  // Maybe shared pointer?
   Topology_t  potentialPool;
   UInt        proximalSegments;
   UInt        proximalSegmentThreshold;
@@ -163,8 +163,8 @@ public:
 
     // Setup the proximal segments & synapses.
     proximalConnections.initialize(cells.size, args_.proximalSynapseThreshold);
-    SDR_Sparsity PP_Sp(            proximalInputs.dimensions, 10 * proximalInputs.size);
-    SDR_ActivationFrequency PP_AF( proximalInputs.dimensions, 10 * proximalInputs.size);
+    SDR_Sparsity            PP_Sp( proximalInputs.dimensions, cells.size * args_.proximalSegments * 2);
+    SDR_ActivationFrequency PP_AF( proximalInputs.dimensions, cells.size * args_.proximalSegments * 2);
     UInt cell = 0u;
     for(auto inhib = 0u; inhib < inhibitionAreas.size; ++inhib) {
       inhibitionAreas.setSparse(SDR_sparse_t{ inhib });
@@ -298,7 +298,6 @@ public:
   }
 
 
-  // TODO: apply segment overlap threshold
   void activateProximalDendrites( const SDR &feedForwardInputs,
                                   vector<Real> &cellOverlaps )
   {
@@ -344,9 +343,8 @@ public:
           maxSegment = segment;
         }
       }
-      proximalMaxSegment_[cell] = maxSegment - cell;
+      proximalMaxSegment_[cell] = maxSegment;
 
-      cellOverlaps[cell] = maxOverlap;
       // Apply Stability & Fatigue
       X_act[cell]   += (1.0f - args_.stability_rate) * (maxOverlap - X_act[cell] - X_inact[cell]);
       X_inact[cell] += args_.fatigue_rate * (maxOverlap - X_inact[cell]);
@@ -355,11 +353,29 @@ public:
   }
 
 
+  void applyProximalSegmentThreshold( vector<UInt> &cells, UInt threshold )
+  {
+    for( UInt idx = 0; idx < cells.size(); )
+    {
+      const auto &maxSeg  = proximalMaxSegment_[ cells[idx] ];
+      const auto &segOvlp = rawOverlaps_[ maxSeg ];
+
+      if( segOvlp < threshold ) {
+        cells[idx] = cells.back();
+        cells.pop_back();
+      }
+      else {
+        ++idx;
+      }
+    }
+  }
+
+
   void learnProximalDendrites( const SDR &proximalInputActive,
                                const SDR &proximalInputLearning,
                                const SDR &active ) {
     SDR AF_SDR( AF_->dimensions );
-    auto &activeSegments = AF_SDR.getCoordinates();
+    auto &activeSegments = AF_SDR.getSparse();
     for(const auto &cell : active.getSparse())
     {
       // Adapt Proximal Segments
@@ -373,12 +389,10 @@ public:
                                    args_.proximalSynapseThreshold,
                                    args_.proximalSegmentThreshold);
 
-      activeSegments[0].push_back(cell);
-      activeSegments[1].push_back(maxSegment);
+      activeSegments.push_back(maxSegment);
     }
     // TODO: Grow new synapses from the learning inputs?
-
-    AF_SDR.setCoordinates( activeSegments );
+    AF_SDR.setSparse( activeSegments );
     AF_->addData( AF_SDR );
   }
 
@@ -391,7 +405,6 @@ public:
     const UInt numDesired = (UInt) std::round(args_.sparsity * args_.cellsPerInhibitionArea);
     NTA_CHECK(numDesired > 0) << "Not enough cellsPerInhibitionArea ("
       << args_.cellsPerInhibitionArea << ") for desired density (" << args_.sparsity << ").";
-
 
     auto &allActive = activeCells.getSparse();
     allActive.clear();
@@ -428,7 +441,7 @@ public:
     // Compare the cell indexes by their overlap.
     auto compare = [&overlaps](const UInt &a, const UInt &b) -> bool
                     { return overlaps[a] > overlaps[b]; };
-    // Make a list of all of the cell indexes which are in this inhibition area.
+    // Make a sorted list of all of the cell indexes which are in this inhibition area.
     vector<UInt> cells;
     cells.resize( areaSize );
     std::iota( cells.begin(), cells.end(), areaStart );
@@ -437,7 +450,7 @@ public:
 
     // Select the predicted cells.
     vector<UInt> phase1Active;
-    for(const auto &idx : cells) {
+    for( const auto &idx : cells ) {
       if( predictiveCellsDense[idx] ) {
         phase1Active.push_back( idx );
       }
@@ -458,40 +471,29 @@ public:
       }
 
       // Apply proximal segments activation threshold.
-      auto end = phase1Active.end();
-      for( auto iter = phase1Active.begin(); iter != end; ) {
-        if( rawOverlaps_[ *iter ] < args_.proximalSegmentThreshold ) {
-          *iter = phase1Active.back();
-          phase1Active.pop_back();
-          --end;
-        }
-        else {
-           ++iter;
-        }
-      }
-      NTA_CHECK( phase1Active.empty() ); // DEBUGGING!
+      applyProximalSegmentThreshold( phase1Active, args_.proximalSegmentThreshold );
     }
 
     // PHASE TWO: All remaining inactive cells compete to activate.
 
     const UInt phase2NumDesired = max((UInt) (numDesired - phase1Active.size()), (UInt)0u );
 
-    // Make a look up table of phase1 active cells for fast access.
-    vector<Byte> phase1ActiveDense( areaSize, 0u );
-    for( const auto &idx : phase1Active ) {
-      NTA_THROW << "BUFFER OVERRUN HERE!";
-      phase1ActiveDense[idx] = 1u;
-    }
+    // Sort the phase 1 active cell indexes for fast access.
+    std::sort( phase1Active.begin(), phase1Active.end() );
+    phase1Active.push_back( std::numeric_limits<UInt>::max() ); // Append a sentinel
+    auto phase1ActiveIter = phase1Active.begin();
     // Select all cells which are still inactive.
     vector<UInt> phase2Active;
     phase2Active.reserve( areaSize );
-    for( UInt idx = 0; idx < areaSize; ++idx ) {
-      if( not phase1ActiveDense[idx] ) {
-        phase2Active.push_back( cells[idx] );
+    for( const auto &idx : cells ) {
+      if( idx == *phase1ActiveIter ) {
+        ++phase1ActiveIter;
+      }
+      else {
+        phase2Active.push_back( idx );
       }
     }
-    NTA_CHECK( phase2Active.size() == areaSize ); // DEBUGGING!
-
+    phase1Active.pop_back(); // Remove the sentinel
     // Do a partial sort to divide the winners from the losers.
     std::nth_element(
       phase2Active.begin(),
@@ -501,8 +503,8 @@ public:
     // Remove cells which lost the competition.
     phase2Active.resize( phase2NumDesired );
 
-    // PH2 Apply activation threshold to proximal segments.
-    // TODO!!!
+    // Apply activation threshold to proximal segments.
+    applyProximalSegmentThreshold( phase2Active, args_.proximalSegmentThreshold );
 
     // PH2 Chose winner cells.
     // TODO!!!
@@ -521,6 +523,8 @@ public:
 
   void setParameters( Parameters &newParameters )
   {
+    args_ = newParameters;  // TODO: replace this eventually...
+
     if( newParameters.proximalInputDimensions     != parameters.proximalInputDimensions ) {
       NTA_THROW << "Setter unimplemented.";
     }
