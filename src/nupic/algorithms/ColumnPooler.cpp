@@ -66,6 +66,9 @@ using nupic::algorithms::temporal_memory::TemporalMemory;
 /* Topology( location, potentialPool, RNG ) */
 typedef function<void(SDR&, SDR&, Random&)> Topology_t;
 
+typedef function<Permanence(Random&)> InitialPermanence_t;
+
+Topology_t NoTopology(Real potentialPct); // DEBUG
 
 struct Parameters
 {
@@ -173,7 +176,10 @@ public:
           auto segment = proximalConnections.createSegment( cell );
 
           // Make synapses.
-          args_.potentialPool( inhibitionAreas, proximalInputs, rng_ );
+// cerr << &proximalInputs << endl;
+          // args_.potentialPool( inhibitionAreas, proximalInputs, rng_ );
+          NoTopology(.9)( inhibitionAreas, proximalInputs, rng_ );
+NTA_CHECK(proximalInputs.getSum() > 0);
           for(const auto presyn : proximalInputs.getSparse() ) {
             auto permanence = initProximalPermanence();
             proximalConnections.createSynapse( segment, presyn, permanence);
@@ -329,8 +335,8 @@ public:
         // Normalize Proximal Excitement by the number of connected synapses.
         const auto nConSyns = proximalConnections.dataForSegment( segment ).numConnected;
         if( nConSyns == 0 )
-          overlap = 1.0f;
-          // overlap = 0.0f;
+          // overlap = 1.0f;
+          overlap = 0.0f;
         else
           overlap /= nConSyns;
 
@@ -523,7 +529,7 @@ public:
 
   void setParameters( Parameters &newParameters )
   {
-    args_ = newParameters;  // TODO: replace this eventually...
+    args_ = newParameters;
 
     if( newParameters.proximalInputDimensions     != parameters.proximalInputDimensions ) {
       NTA_THROW << "Setter unimplemented.";
@@ -642,9 +648,18 @@ Topology_t DefaultTopology(Real potentialPct, Real potentialRadius, bool wrapAro
 Topology_t NoTopology(Real potentialPct)
 {
   return [=](SDR& cell, SDR& potentialPool, Random &rng) {
+// cerr << &potentialPool << potentialPool.getSum() << endl;
     potentialPool.randomize( potentialPct, rng );
   };
 }
+
+// TODO: USE THIS!
+InitialPermanence_t DefaultInitialPermanence(Permanence connectedThreshold) {
+  return [=](Random &rng) -> Permanence {
+    return rng.getReal64(); // placeholder
+  };
+}
+
 
 } // End namespace column_pooler
 } // End namespace algorithmn
