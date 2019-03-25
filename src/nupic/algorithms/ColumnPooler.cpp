@@ -50,6 +50,7 @@ namespace column_pooler {
 
 using namespace std;
 using namespace nupic;
+using namespace nupic::sdr;
 using namespace nupic::math::topology;
 using namespace nupic::algorithms::connections;
 using nupic::algorithms::temporal_memory::TemporalMemory;
@@ -62,13 +63,9 @@ using nupic::algorithms::temporal_memory::TemporalMemory;
 // instead of the usual HTM inputs which reliably change every cycle. See kropff
 // & treves 2008
 
-
-/* Topology( location, potentialPool, RNG ) */
-typedef function<void(SDR&, SDR&, Random&)> Topology_t;
+typedef function<SDR (SDR&, const vector<UInt>&, Random&)> Topology_t;
 
 typedef function<Permanence(Random&)> InitialPermanence_t;
-
-Topology_t NoTopology(Real potentialPct); // DEBUG
 
 struct Parameters
 {
@@ -131,7 +128,7 @@ private:
   vector<Real> X_inact;
 
   // This is used by boosting.
-  SDR_ActivationFrequency *AF_;
+  ActivationFrequency *AF_;
 
 public:
   const Parameters   &parameters     = args_;
@@ -166,8 +163,8 @@ public:
 
     // Setup the proximal segments & synapses.
     proximalConnections.initialize(cells.size, args_.proximalSynapseThreshold);
-    SDR_Sparsity            PP_Sp( proximalInputs.dimensions, cells.size * args_.proximalSegments * 2);
-    SDR_ActivationFrequency PP_AF( proximalInputs.dimensions, cells.size * args_.proximalSegments * 2);
+    Sparsity            PP_Sp( proximalInputs.dimensions, cells.size * args_.proximalSegments * 2);
+    ActivationFrequency PP_AF( proximalInputs.dimensions, cells.size * args_.proximalSegments * 2);
     UInt cell = 0u;
     for(auto inhib = 0u; inhib < inhibitionAreas.size; ++inhib) {
       inhibitionAreas.setSparse(SDR_sparse_t{ inhib });
@@ -176,10 +173,9 @@ public:
           auto segment = proximalConnections.createSegment( cell );
 
           // Make synapses.
-// cerr << &proximalInputs << endl;
-          // args_.potentialPool( inhibitionAreas, proximalInputs, rng_ );
-          NoTopology(.9)( inhibitionAreas, proximalInputs, rng_ );
-NTA_CHECK(proximalInputs.getSum() > 0);
+          proximalInputs.setSDR(
+            args_.potentialPool( inhibitionAreas, args_.proximalInputDimensions, rng_ ));
+          NTA_CHECK(proximalInputs.getSum() > 0);
           for(const auto presyn : proximalInputs.getSparse() ) {
             auto permanence = initProximalPermanence();
             proximalConnections.createSynapse( segment, presyn, permanence);
@@ -196,26 +192,26 @@ NTA_CHECK(proximalInputs.getSum() > 0);
       tieBreaker_[i] = 0.01f * rng_.getReal64();
     }
     proximalMaxSegment_.resize( cells.size );
-    AF_ = new SDR_ActivationFrequency( {cells.size, args_.proximalSegments}, args_.period );
+    AF_ = new ActivationFrequency( {cells.size, args_.proximalSegments}, args_.period );
     AF_->initializeToValue( args_.sparsity / args_.proximalSegments );
 
-    // Setup the distal dendrites
-    distalConnections.initialize(
-        /* columnDimensions */            cellDimensions,
-        /* cellsPerColumn */              1,
-        /* activationThreshold */         args_.distalSegmentThreshold,
-        /* initialPermanence */           args_.distalInitialPermanence,
-        /* connectedPermanence */         args_.distalSynapseThreshold,
-        /* minThreshold */                args_.distalSegmentMatch,
-        /* maxNewSynapseCount */          args_.distalAddSynapses,
-        /* permanenceIncrement */         args_.distalIncrement,
-        /* permanenceDecrement */         args_.distalDecrement,
-        /* predictedSegmentDecrement */   args_.distalMispredictDecrement,
-        /* seed */                        rng_(),
-        /* maxSegmentsPerCell */          args_.distalMaxSegments,
-        /* maxSynapsesPerSegment */       args_.distalMaxSynapsesPerSegment,
-        /* checkInputs */                 true,
-        /* extra */                       SDR(args_.distalInputDimensions).size);
+    // // Setup the distal dendrites
+    // distalConnections.initialize(
+    //     /* columnDimensions */            cellDimensions,
+    //     /* cellsPerColumn */              1,
+    //     /* activationThreshold */         args_.distalSegmentThreshold,
+    //     /* initialPermanence */           args_.distalInitialPermanence,
+    //     /* connectedPermanence */         args_.distalSynapseThreshold,
+    //     /* minThreshold */                args_.distalSegmentMatch,
+    //     /* maxNewSynapseCount */          args_.distalAddSynapses,
+    //     /* permanenceIncrement */         args_.distalIncrement,
+    //     /* permanenceDecrement */         args_.distalDecrement,
+    //     /* predictedSegmentDecrement */   args_.distalMispredictDecrement,
+    //     /* seed */                        rng_(),
+    //     /* maxSegmentsPerCell */          args_.distalMaxSegments,
+    //     /* maxSynapsesPerSegment */       args_.distalMaxSynapsesPerSegment,
+    //     /* checkInputs */                 true,
+    //     /* extra */                       SDR(args_.distalInputDimensions).size);
 
     iterationNum_      = 0u;
     iterationLearnNum_ = 0u;
@@ -252,20 +248,20 @@ NTA_CHECK(proximalInputs.getSum() > 0);
     X_act.assign( proximalConnections.numCells(), 0.0f );
     X_inact.assign( proximalConnections.numCells(), 0.0f );
     // TODO Zero Previous Updates
-    distalConnections.reset();
+    // distalConnections.reset();
   }
 
 
   void compute(
-        const SDR& proximalInputActive,
+        SDR& proximalInputActive,
         bool learn,
         SDR& active) {
     SDR none( args_.distalInputDimensions );
     SDR none2( active.dimensions );
-    compute(proximalInputActive, proximalInputActive, none, none, learn, active, none2 );
+    compute_(proximalInputActive, proximalInputActive, none, none, learn, active, none2 );
   }
 
-  void compute(
+  void compute_(
         const SDR& proximalInputActive,
         const SDR& proximalInputLearning,
         const SDR& distalInputActive,
@@ -289,15 +285,15 @@ NTA_CHECK(proximalInputs.getSum() > 0);
     vector<Real> cellOverlaps( active.size );
     activateProximalDendrites( proximalInputActive, cellOverlaps );
 
-    distalConnections.activateDendrites(learn, distalInputActive, distalInputLearning);
+    // distalConnections.activateDendrites(learn, distalInputActive, distalInputLearning);
     SDR predictedCells( cellDimensions );
-    distalConnections.getPredictiveCells( predictedCells );
+    // distalConnections.getPredictiveCells( predictedCells );
 
     activateCells( cellOverlaps, predictedCells, active );
 
     // Learn
     std::sort( active.getSparse().begin(), active.getSparse().end() );
-    distalConnections.activateCells( active, learn );
+    // distalConnections.activateCells( active, learn );
     if( learn ) {
       learnProximalDendrites( proximalInputActive, proximalInputLearning, active );
     }
@@ -610,48 +606,69 @@ NTA_CHECK(proximalInputs.getSum() > 0);
 };
 
 
-Topology_t DefaultTopology(Real potentialPct, Real potentialRadius, bool wrapAround)
-{
-  return [=](SDR& cell, SDR& potentialPool, Random &rng) {
-    vector<vector<UInt>> inputCoords;//(cell.dimensions.size());
+Topology_t  DefaultTopology(
+    Real potentialPct,
+    Real potentialRadius,
+    bool wrapAround)
+  {
+  return [=] (SDR& cell, const vector<UInt>& potentialPoolDimensions, Random &rng) -> SDR {
+    // Uniform topology over trailing input dimensions.
+    auto inputTopology = potentialPoolDimensions;
+    UInt extraDimensions = 1u;
+    while( inputTopology.size() > cell.dimensions.size() ) {
+      extraDimensions *= inputTopology.back();
+      inputTopology.pop_back();
+    }
+
+    // Convert the coordinates of the target cell, from a location in
+    // cellDimensions to inputTopology.
+    NTA_ASSERT( cell.getSum() == 1u );
+    vector<vector<UInt>> inputCoords;
     for(auto i = 0u; i < cell.dimensions.size(); i++)
     {
       const Real columnCoord = cell.getCoordinates()[i][0];
       const Real inputCoord = (columnCoord + 0.5f) *
-                              (potentialPool.dimensions[i] / (Real)cell.dimensions[i]);
+                              (inputTopology[i] / (Real)cell.dimensions[i]);
       inputCoords.push_back({ (UInt32)floor(inputCoord) });
     }
-    potentialPool.setCoordinates(inputCoords);
-    NTA_CHECK(potentialPool.getSparse().size() == 1u);
-    const auto centerInput = potentialPool.getSparse()[0];
+    SDR inputTopologySDR( inputTopology );
+    inputTopologySDR.setCoordinates( inputCoords );
+    const auto centerInput = inputTopologySDR.getSparse()[0];
 
     vector<UInt> columnInputs;
-    if (wrapAround) {
-      for (UInt input : WrappingNeighborhood(centerInput, potentialRadius, potentialPool.dimensions)) {
-        columnInputs.push_back(input);
+    if( wrapAround ) {
+      for( UInt input : WrappingNeighborhood(centerInput, potentialRadius, inputTopology)) {
+        for( UInt extra = 0; extra < extraDimensions; ++extra ) {
+          columnInputs.push_back( input * extraDimensions + extra );
+        }
       }
-    } else {
-      for (UInt input :
-           Neighborhood(centerInput, potentialRadius, potentialPool.dimensions)) {
-        columnInputs.push_back(input);
+    }
+    else {
+      for( UInt input :
+           Neighborhood(centerInput, potentialRadius, inputTopology)) {
+        for( UInt extra = 0; extra < extraDimensions; ++extra ) {
+          columnInputs.push_back( input * extraDimensions + extra );
+        }
       }
     }
 
     const UInt numPotential = (UInt)round(columnInputs.size() * potentialPct);
     const auto selectedInputs = rng.sample<UInt>(columnInputs, numPotential);
+    SDR potentialPool( potentialPoolDimensions );
     potentialPool.setSparse( selectedInputs );
+    return potentialPool;
   };
 }
 
 // TODO: Test this!
 // TODO: Document this because this is the one users should copy-paste to make their own topology.
-Topology_t NoTopology(Real potentialPct)
-{
-  return [=](SDR& cell, SDR& potentialPool, Random &rng) {
-// cerr << &potentialPool << potentialPool.getSum() << endl;
-    potentialPool.randomize( potentialPct, rng );
-  };
-}
+// Topology_t NoTopology(Real potentialPct)
+// {
+//   return [=](SDR& cell, SDR& potentialPool, Random &rng) {
+// // cerr << &potentialPool << potentialPool.getSum() << endl;
+//     potentialPool.randomize( potentialPct, rng );
+//   };
+// }
 
 // TODO: USE THIS!
 InitialPermanence_t DefaultInitialPermanence(Permanence connectedThreshold) {

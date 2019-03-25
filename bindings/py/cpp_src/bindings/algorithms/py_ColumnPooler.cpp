@@ -67,12 +67,12 @@ namespace nupic_ext
     py_Parameters.def_readwrite("verbose",                      &Parameters::verbose);
 
     m.def("DefaultTopology", &DefaultTopology,
-        py::arg("potentialPct"),
-        py::arg("radius"),
-        py::arg("wrapAround"));
+        py::arg("potentialPct") = 0.0f,
+        py::arg("radius") = 0.0f,
+        py::arg("wrapAround") = false);
 
-    m.def("NoTopology", &NoTopology,
-        py::arg("potentialPct"));
+    // m.def("NoTopology", &NoTopology,
+    //     py::arg("potentialPct"));
 
     py::class_<ColumnPooler> py_ColumnPooler(m, "ColumnPooler");
     py_ColumnPooler.def(py::init<const Parameters&>());
@@ -86,21 +86,20 @@ namespace nupic_ext
 
     py_ColumnPooler.def("reset", &ColumnPooler::reset);
 
-    py_ColumnPooler.def("compute",
-        (void (ColumnPooler::*)(const SDR&, bool, SDR&)) &ColumnPooler::compute,
+    py_ColumnPooler.def("compute", &ColumnPooler::compute,
             py::arg("proximalInputActive"),
             py::arg("learn"),
             py::arg("active"));
 
-    py_ColumnPooler.def("compute",
-        (void (ColumnPooler::*)(const SDR&, const SDR&, const SDR&, const SDR&, bool, SDR&, SDR&))
-                &ColumnPooler::compute,
-            py::arg("proximalInputActive"),
-            py::arg("proximalInputLearning"),
-            py::arg("distalInputActive"),
-            py::arg("distalInputLearning"),
-            py::arg("learn"),
-            py::arg("active"),
-            py::arg("learning"));
+    // py_ColumnPooler.def("compute",
+    //     (void (ColumnPooler::*)(const SDR&, const SDR&, const SDR&, const SDR&, bool, SDR&, SDR&))
+    //             &ColumnPooler::compute,
+    //         py::arg("proximalInputActive"),
+    //         py::arg("proximalInputLearning"),
+    //         py::arg("distalInputActive"),
+    //         py::arg("distalInputLearning"),
+    //         py::arg("learn"),
+    //         py::arg("active"),
+    //         py::arg("learning"));
   }
 }

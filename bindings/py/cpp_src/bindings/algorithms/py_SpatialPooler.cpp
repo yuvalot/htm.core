@@ -39,6 +39,7 @@ PyBind11 bindings for SpatialPooler class
 
 namespace py = pybind11;
 using namespace nupic;
+using namespace nupic::sdr;
 using namespace nupic::algorithms::spatial_pooler;
 
 namespace nupic_ext
