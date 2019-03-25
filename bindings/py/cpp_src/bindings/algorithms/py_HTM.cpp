@@ -153,6 +153,11 @@ using nupic::algorithms::connections::Permanence;
             return py::array_t<nupic::UInt32>(winnerCells.size(), winnerCells.data());
         });
 
+        py_HTM.def("getWinnerCells", [](const HTM_t& self, SDR &winnerCells)
+        {
+            return self.getWinnerCells( winnerCells );
+        });
+
         py_HTM.def("getActiveSegments", [](const HTM_t& self)
         {
             auto activeSegments = self.getActiveSegments();
