@@ -256,25 +256,25 @@ public:
         SDR& proximalInputActive,
         bool learn,
         SDR& active) {
-    SDR none( args_.distalInputDimensions );
-    SDR none2( active.dimensions );
-    compute_(proximalInputActive, proximalInputActive, none, none, learn, active, none2 );
-  }
+  //   SDR none( args_.distalInputDimensions );
+  //   SDR none2( active.dimensions );
+  //   compute_(proximalInputActive, proximalInputActive, none, none, learn, active, none2 );
+  // }
 
-  void compute_(
-        const SDR& proximalInputActive,
-        const SDR& proximalInputLearning,
-        const SDR& distalInputActive,
-        const SDR& distalInputLearning,
-        bool learn,
-        SDR& active,
-        SDR& learning) {
+  // void compute_(
+  //       const SDR& proximalInputActive,
+  //       const SDR& proximalInputLearning,
+  //       const SDR& distalInputActive,
+  //       const SDR& distalInputLearning,
+  //       bool learn,
+  //       SDR& active,
+  //       SDR& learning) {
     NTA_CHECK( proximalInputActive.dimensions   == args_.proximalInputDimensions );
-    NTA_CHECK( proximalInputLearning.dimensions == args_.proximalInputDimensions );
-    NTA_CHECK( distalInputActive.dimensions     == args_.distalInputDimensions );
-    NTA_CHECK( distalInputLearning.dimensions   == args_.distalInputDimensions );
+    // NTA_CHECK( proximalInputLearning.dimensions == args_.proximalInputDimensions );
+    // NTA_CHECK( distalInputActive.dimensions     == args_.distalInputDimensions );
+    // NTA_CHECK( distalInputLearning.dimensions   == args_.distalInputDimensions );
     NTA_CHECK( active.dimensions                == cellDimensions );
-    NTA_CHECK( learning.dimensions              == cellDimensions );
+    // NTA_CHECK( learning.dimensions              == cellDimensions );
 
     // Update bookkeeping
     iterationNum_++;
@@ -295,7 +295,8 @@ public:
     std::sort( active.getSparse().begin(), active.getSparse().end() );
     // distalConnections.activateCells( active, learn );
     if( learn ) {
-      learnProximalDendrites( proximalInputActive, proximalInputLearning, active );
+      // learnProximalDendrites( proximalInputActive, proximalInputLearning, active );
+      learnProximalDendrites( proximalInputActive, proximalInputActive, active );
     }
   }
 
