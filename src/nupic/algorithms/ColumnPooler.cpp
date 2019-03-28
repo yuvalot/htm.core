@@ -63,7 +63,7 @@ using nupic::algorithms::temporal_memory::TemporalMemory;
 // instead of the usual HTM inputs which reliably change every cycle. See kropff
 // & treves 2008
 
-typedef function<SDR (SDR&, const vector<UInt>&, Random&)> Topology_t;
+typedef function<SDR (const SDR&, const vector<UInt>&, Random&)> Topology_t;
 
 typedef function<Permanence(Random&)> InitialPermanence_t;
 
@@ -612,7 +612,7 @@ Topology_t  DefaultTopology(
     Real potentialRadius,
     bool wrapAround)
   {
-  return [=] (SDR& cell, const vector<UInt>& potentialPoolDimensions, Random &rng) -> SDR {
+  return [=] (const SDR& cell, const vector<UInt>& potentialPoolDimensions, Random &rng) -> SDR {
     // Uniform topology over trailing input dimensions.
     auto inputTopology = potentialPoolDimensions;
     UInt extraDimensions = 1u;
@@ -663,13 +663,14 @@ Topology_t  DefaultTopology(
 
 // TODO: Test this!
 // TODO: Document this because this is the one users should copy-paste to make their own topology.
-// Topology_t NoTopology(Real potentialPct)
-// {
-//   return [=](SDR& cell, SDR& potentialPool, Random &rng) {
-// // cerr << &potentialPool << potentialPool.getSum() << endl;
-//     potentialPool.randomize( potentialPct, rng );
-//   };
-// }
+Topology_t NoTopology(Real potentialPct)
+{
+  return [=](const SDR& cell, const vector<UInt>& potentialPoolDimensions, Random &rng) -> SDR {
+    SDR potentialPool( potentialPoolDimensions );
+    potentialPool.randomize( potentialPct, rng );
+    return potentialPool;
+  };
+}
 
 // TODO: USE THIS!
 InitialPermanence_t DefaultInitialPermanence(Permanence connectedThreshold) {

@@ -36,8 +36,8 @@ and multi-column networks. We then discuss the capacity of the network.
 
 import numpy as np
 import random
+from nupic.bindings.sdr import *
 from nupic.bindings.algorithms import *
-import nupic.bindings.math as nm
 
 
 def dataset(nFeatures, nLocations, nObjects):
@@ -97,20 +97,17 @@ def L4():
 
 
 def L23(nExternal):
-    # def myTopo(cell, pp, rng):
-    #     print("0x%x"%id(pp))
-    #     pp.randomize( .8 )
     params = ColumnPooler.defaultParameters
     params.cellsPerInhibitionArea       = 4096
     params.inhibitionDimensions         = [1]
     params.sparsity                     = .01
-    # params.potentialPool                = myTopo # NoTopology( .80 ) # FIXME THIS IS BROKEN!!!!!
+    params.potentialPool                = NoTopology( .80 )
     params.proximalIncrement            = .1
     params.proximalDecrement            = .01
     params.proximalInputDimensions      = [150 * 16]
     params.proximalSynapseThreshold     = .6
     params.proximalSegmentThreshold     = 3
-    params.proximalSegments             = 3
+    params.proximalSegments             = 5
     params.distalIncrement              = .1
     params.distalDecrement              = .001
     params.distalMispredictDecrement    = .0
@@ -148,7 +145,7 @@ def basic_test():
     autoinc = 1
 
     l23_act   = SDR([ 1, 4096 ])
-    l23_stats = SDR_Metrics(l23_act, 999999999)
+    l23_stats = Metrics(l23_act, 999999999)
 
     def compute(obj, learn):
         l4_act = random.choice(obj)
@@ -157,13 +154,17 @@ def basic_test():
     def reset():
         l23.reset()
 
+    online = False
+
     # Train
+    reset()
     for x in range(10):
         index = list(range(len(objects)))
         random.shuffle(index)
         for lbl in index:
             obj = objects[lbl]
-            reset()
+            if not online:
+                reset()
             for q in range(10):
                 compute(obj, learn=True)
                 sdrc.compute(autoinc, l23_act.sparse,
@@ -187,9 +188,11 @@ def basic_test():
     # Test
     score = 0.
     score_samples = 0
+    reset()
     for lbl in range(len(objects)):
         obj = objects[lbl]
-        reset()
+        if not online:
+            reset()
         for i in range(5):
             compute(obj, learn=False)
         inference = sdrc.compute(autoinc, l23_act.sparse,

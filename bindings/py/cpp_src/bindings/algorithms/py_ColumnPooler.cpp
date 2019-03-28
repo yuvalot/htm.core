@@ -71,8 +71,8 @@ namespace nupic_ext
         py::arg("radius") = 0.0f,
         py::arg("wrapAround") = false);
 
-    // m.def("NoTopology", &NoTopology,
-    //     py::arg("potentialPct"));
+    m.def("NoTopology", &NoTopology,
+        py::arg("potentialPct"));
 
     py::class_<ColumnPooler> py_ColumnPooler(m, "ColumnPooler");
     py_ColumnPooler.def(py::init<const Parameters&>());
