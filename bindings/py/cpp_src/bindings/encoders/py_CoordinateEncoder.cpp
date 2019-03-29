@@ -52,7 +52,7 @@ TODO: DOCSTRINGS!
 
         py_CoordinateEncoder.def("encode", []
             (CoordinateEncoder &self, vector<Real> value) {
-                auto sdr = new SDR({ self.size });
+                auto sdr = new sdr::SDR({ self.size });
                 self.encode( value, *sdr );
                 return sdr;
         });

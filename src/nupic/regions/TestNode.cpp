@@ -20,11 +20,7 @@
  * ---------------------------------------------------------------------
  */
 
-#if defined(NTA_ARCH_64) && defined(NTA_OS_SPARC)
-#include <string>
-#else
-#include <string.h>
-#endif
+#include <cstring>
 #include <fstream>
 #include <iostream>
 #include <iterator>
@@ -52,7 +48,7 @@ TestNode::TestNode(const ValueMap &params, Region *region)
 {
   // params for get/setParameter testing
     // Populate the parameters with values.
-  outputElementCount_ = params.getScalarT<UInt32>("count", 2);
+  outputElementCount_ = params.getScalarT<UInt32>("count", 0);
   int32Param_ = params.getScalarT<Int32>("int32Param", 32);
   uint32Param_ = params.getScalarT<UInt32>("uint32Param", 33);
   int64Param_ = params.getScalarT<Int64>("int64Param", 64);
@@ -111,10 +107,11 @@ void TestNode::initialize() {
   bottomUpOut_ = getOutput("bottomUpOut");
   bottomUpIn_ = getInput("bottomUpIn");
   Dimensions dim = bottomUpOut_->getDimensions();
+	NTA_CHECK(dim.isSpecified());
   // does not really handle dimensions > 2 right but this will do.
-  nodeCount_ = 1;
-  for (size_t i = 1; i < dim.getDimensionCount(); i++) {
-    nodeCount_ *= dim[i];
+	nodeCount_ = 1;
+  if (dim.size() > 1) {
+  	nodeCount_ = dim.getCount()/dim[0];
   }
   outputElementCount_ = dim[0];
 
@@ -209,9 +206,9 @@ Spec *TestNode::createSpec() {
 							                   "Buffer size for bottomUpOut Output. "
                                  "Syntax: {count: 64}",  // description
 	                               NTA_BasicType_UInt32,
-							                   1,                         // elementCount (an array of unknown size)
+							                   1,                         // elementCount 
 							                   "",                        // constraints
-							                   "2",                      // defaultValue
+							                   "",                        // defaultValue
 							                   ParameterSpec::ReadWriteAccess));
 
 

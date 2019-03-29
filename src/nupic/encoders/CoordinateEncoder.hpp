@@ -30,6 +30,8 @@
 #include <nupic/types/Serializable.hpp>
 #include <nupic/utils/Random.hpp>
 
+using namespace std; // TODO!
+
 namespace nupic {
 
 // TODO: python bindings
@@ -79,7 +81,7 @@ public:
   /**
    * TODO DOCUMENTATION
    */
-  void encode(vector<Real> coordinate, SDR &output) const {
+  void encode(vector<Real> coordinate, sdr::SDR &output) const {
     NTA_CHECK( coordinate.size() == ndim );
     NTA_CHECK( output.size == size );
     const UInt n_active   = round(size * sparsity);
@@ -95,8 +97,8 @@ public:
     }
     NTA_ASSERT( remainder == 1 );
     // Use an SDR to find the coordinates of every location in the neighborhood.
-    SDR neighborhood( neighborhoodDimensions );
-    SDR_sparse_t allNeighbors( neighborhood.size );
+    sdr::SDR neighborhood( neighborhoodDimensions );
+    sdr::SDR_sparse_t allNeighbors( neighborhood.size );
     iota( allNeighbors.begin(), allNeighbors.end(), 0u );
     neighborhood.setSparse( allNeighbors );
     const auto &neighborOffsets = neighborhood.getCoordinates();
@@ -110,7 +112,7 @@ public:
 
     // Iterate through the area near this location.  Hash each nearby location
     // and use each hash to set a bit in the output SDR.
-    SDR_dense_t data( size, 0 );
+    sdr::SDR_dense_t data( size, 0 );
     hash<std::string> h;
     for(UInt loc = 0; loc < neighborhood.getSum(); ++loc) {
       std::stringstream temp;

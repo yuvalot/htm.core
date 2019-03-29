@@ -49,6 +49,7 @@
 
 using namespace std;
 using namespace nupic;
+using nupic::sdr::SDR;
 using nupic::algorithms::temporal_memory::TemporalMemory;
 using nupic::algorithms::connections::SynapseIdx;
 using nupic::algorithms::connections::SynapseData;
@@ -139,7 +140,7 @@ void TemporalMemory::initialize(
   extra_ = extra;
 
   // Initialize member variables
-  connections = Connections(numberOfColumns() * cellsPerColumn_);
+  connections = Connections(numberOfColumns() * cellsPerColumn_, connectedPermanence_);
   seed_((UInt64)(seed < 0 ? rand() : seed));
 
   maxSegmentsPerCell_ = maxSegmentsPerCell;
@@ -526,8 +527,8 @@ void TemporalMemory::activateDendrites(bool learn,
 {
     if( extra_ )
     {
-        NTA_CHECK( extraActive.size  == numberOfCells() );
-        NTA_CHECK( extraWinners.size == numberOfCells() );
+        NTA_CHECK( extraActive.size  == extra_ );
+        NTA_CHECK( extraWinners.size == extra_ );
         activateDendrites( learn, extraActive.getSparse(),
                                   extraWinners.getSparse());
     }
@@ -728,14 +729,6 @@ vector<Segment> TemporalMemory::getMatchingSegments() const
 
 UInt TemporalMemory::numberOfColumns() const { return numColumns_; }
 
-bool TemporalMemory::_validateCell(CellIdx cell) const
-{
-  if (cell < numberOfCells())
-    return true;
-
-  NTA_THROW << "Invalid cell " << cell;
-  return false;
-}
 
 vector<UInt> TemporalMemory::getColumnDimensions() const
 {
@@ -823,14 +816,6 @@ UInt TemporalMemory::version() const { return TM_VERSION; }
  * Create a RNG with given seed
  */
 void TemporalMemory::seed_(UInt64 seed) { rng_ = Random(seed); }
-
-size_t TemporalMemory::persistentSize() const {
-  stringstream s;
-  s.flags(ios::scientific);
-  s.precision(numeric_limits<double>::digits10 + 1);
-  this->save(s);
-  return s.str().size();
-}
 
 template <typename FloatType>
 static void saveFloat_(ostream &outStream, FloatType v) {
@@ -1107,26 +1092,4 @@ void TemporalMemory::printParameters() {
       << "maxSegmentsPerCell        = " << getMaxSegmentsPerCell() << std::endl
       << "maxSynapsesPerSegment     = " << getMaxSynapsesPerSegment()
       << std::endl;
-}
-
-void TemporalMemory::printState(vector<UInt> &state) {
-  std::cout << "[  ";
-  for (UInt i = 0; i != state.size(); ++i) {
-    if (i > 0 && i % 10 == 0) {
-      std::cout << "\n   ";
-    }
-    std::cout << state[i] << " ";
-  }
-  std::cout << "]\n";
-}
-
-void TemporalMemory::printState(vector<Real> &state) {
-  std::cout << "[  ";
-  for (UInt i = 0; i != state.size(); ++i) {
-    if (i > 0 && i % 10 == 0) {
-      std::cout << "\n   ";
-    }
-    std::printf("%6.3f ", state[i]);
-  }
-  std::cout << "]\n";
 }
