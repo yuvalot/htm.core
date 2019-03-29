@@ -89,7 +89,7 @@ public:
   UInt       distalSegmentThreshold;
   UInt       distalSegmentMatch;
   UInt       distalAddSynapses;
-  Permanence distalInitialPermanence; // TODO: Add to python bindings, add to MNIST
+  Permanence distalInitialPermanence;
   Permanence distalIncrement;
   Permanence distalDecrement;
   Permanence distalMispredictDecrement;
@@ -196,22 +196,22 @@ public:
     AF_->initializeToValue( args_.sparsity / args_.proximalSegments );
 
     // // Setup the distal dendrites
-    // distalConnections.initialize(
-    //     /* columnDimensions */            cellDimensions,
-    //     /* cellsPerColumn */              1,
-    //     /* activationThreshold */         args_.distalSegmentThreshold,
-    //     /* initialPermanence */           args_.distalInitialPermanence,
-    //     /* connectedPermanence */         args_.distalSynapseThreshold,
-    //     /* minThreshold */                args_.distalSegmentMatch,
-    //     /* maxNewSynapseCount */          args_.distalAddSynapses,
-    //     /* permanenceIncrement */         args_.distalIncrement,
-    //     /* permanenceDecrement */         args_.distalDecrement,
-    //     /* predictedSegmentDecrement */   args_.distalMispredictDecrement,
-    //     /* seed */                        rng_(),
-    //     /* maxSegmentsPerCell */          args_.distalMaxSegments,
-    //     /* maxSynapsesPerSegment */       args_.distalMaxSynapsesPerSegment,
-    //     /* checkInputs */                 true,
-    //     /* extra */                       SDR(args_.distalInputDimensions).size);
+    distalConnections.initialize(
+        /* columnDimensions */            cellDimensions,
+        /* cellsPerColumn */              1,
+        /* activationThreshold */         args_.distalSegmentThreshold,
+        /* initialPermanence */           args_.distalInitialPermanence,
+        /* connectedPermanence */         args_.distalSynapseThreshold,
+        /* minThreshold */                args_.distalSegmentMatch,
+        /* maxNewSynapseCount */          args_.distalAddSynapses,
+        /* permanenceIncrement */         args_.distalIncrement,
+        /* permanenceDecrement */         args_.distalDecrement,
+        /* predictedSegmentDecrement */   args_.distalMispredictDecrement,
+        /* seed */                        rng_(),
+        /* maxSegmentsPerCell */          args_.distalMaxSegments,
+        /* maxSynapsesPerSegment */       args_.distalMaxSynapsesPerSegment,
+        /* checkInputs */                 true,
+        /* extra */                       SDR(args_.distalInputDimensions).size);
 
     iterationNum_      = 0u;
     iterationLearnNum_ = 0u;
@@ -248,12 +248,13 @@ public:
     X_act.assign( proximalConnections.numCells(), 0.0f );
     X_inact.assign( proximalConnections.numCells(), 0.0f );
     // TODO Zero Previous Updates
-    // distalConnections.reset();
+    distalConnections.reset();
   }
 
 
   void compute(
         SDR& proximalInputActive,
+        SDR& distalInputActive,
         bool learn,
         SDR& active) {
   //   SDR none( args_.distalInputDimensions );
@@ -286,14 +287,15 @@ public:
     activateProximalDendrites( proximalInputActive, cellOverlaps );
 
     // distalConnections.activateDendrites(learn, distalInputActive, distalInputLearning);
+    distalConnections.activateDendrites(learn, distalInputActive, distalInputActive);
     SDR predictedCells( cellDimensions );
-    // distalConnections.getPredictiveCells( predictedCells );
+    distalConnections.getPredictiveCells( predictedCells );
 
     activateCells( cellOverlaps, predictedCells, active );
 
     // Learn
     std::sort( active.getSparse().begin(), active.getSparse().end() );
-    // distalConnections.activateCells( active, learn );
+    distalConnections.activateCells( active, learn );
     if( learn ) {
       // learnProximalDendrites( proximalInputActive, proximalInputLearning, active );
       learnProximalDendrites( proximalInputActive, proximalInputActive, active );
@@ -415,16 +417,11 @@ public:
 
     for(UInt offset = 0u; offset < activeCells.size; offset += args_.cellsPerInhibitionArea)
     {
-      SDR_sparse_t localActive;
       activateInhibitionArea(
           overlaps, predictiveCells,
           offset, offset + args_.cellsPerInhibitionArea,
           numDesired,
-          localActive);
-
-      for(const auto &cell : localActive) {
-        allActive.push_back( cell );
-      }
+          allActive);
     }
     activeCells.setSparse( allActive );
   }
@@ -508,13 +505,6 @@ public:
 
     // Apply activation threshold to proximal segments.
     applyProximalSegmentThreshold( phase2Active, args_.proximalSegmentThreshold );
-
-    // PH2 Chose winner cells.
-    // TODO!!!
-      // PH2 First check for matching segments on distal dendrites.
-      // TODO!!!
-      // PH2 Chose new winners from the least used cells.
-      // TODO!!!
 
     for( const auto &idx : phase1Active ) {
       active.push_back( idx );

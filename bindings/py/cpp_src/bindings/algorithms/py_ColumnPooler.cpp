@@ -56,6 +56,7 @@ namespace nupic_ext
     py_Parameters.def_readwrite("distalSegmentThreshold",       &Parameters::distalSegmentThreshold);
     py_Parameters.def_readwrite("distalSegmentMatch",           &Parameters::distalSegmentMatch);
     py_Parameters.def_readwrite("distalAddSynapses",            &Parameters::distalAddSynapses);
+    py_Parameters.def_readwrite("distalInitialPermanence",      &Parameters::distalInitialPermanence);
     py_Parameters.def_readwrite("distalIncrement",              &Parameters::distalIncrement);
     py_Parameters.def_readwrite("distalDecrement",              &Parameters::distalDecrement);
     py_Parameters.def_readwrite("distalMispredictDecrement",    &Parameters::distalMispredictDecrement);
@@ -88,6 +89,7 @@ namespace nupic_ext
 
     py_ColumnPooler.def("compute", &ColumnPooler::compute,
             py::arg("proximalInputActive"),
+            py::arg("distalInputActive"),
             py::arg("learn"),
             py::arg("active"));
 

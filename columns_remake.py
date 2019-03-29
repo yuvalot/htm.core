@@ -100,73 +100,89 @@ def L23(nExternal):
     params = ColumnPooler.defaultParameters
     params.cellsPerInhibitionArea       = 4096
     params.inhibitionDimensions         = [1]
-    params.sparsity                     = .01
+    params.sparsity                     = .02
     params.potentialPool                = NoTopology( .80 )
     params.proximalIncrement            = .1
     params.proximalDecrement            = .01
     params.proximalInputDimensions      = [150 * 16]
     params.proximalSynapseThreshold     = .6
     params.proximalSegmentThreshold     = 3
-    params.proximalSegments             = 5
-    params.distalIncrement              = .1
-    params.distalDecrement              = .001
-    params.distalMispredictDecrement    = .0
+    params.proximalSegments             = 1
     params.distalSynapseThreshold       = .5
-    params.distalAddSynapses            = 0 # 27
+    params.distalInitialPermanence      = .35
+    params.distalIncrement              = .1
+    params.distalDecrement              = .01
+    params.distalMispredictDecrement    = .001
+    params.distalAddSynapses            = 27
     params.distalSegmentThreshold       = 18
-    params.distalSegmentMatch           = 10
-    params.distalMaxSynapsesPerSegment  = 128
-    params.distalMaxSegments            = 128
+    params.distalSegmentMatch           = 11
+    params.distalMaxSynapsesPerSegment  = 64
+    params.distalMaxSegments            = 64
     params.distalInputDimensions        = [nExternal]
     params.period                       = 1000
     params.fatigue_rate                 = .0
-    params.stability_rate               = .95
+    params.stability_rate               = .50
     params.seed                         = 0
     params.verbose                      = True
     return ColumnPooler(params)
 
 
-def basic_test():
-    # Skip L4, instead generate plausible L4 activity
-    features = [SDR(150 * 16) for i in range(100)]
-    [l4.randomize( .02 ) for l4 in features]
-    objects = []
-    for obj in range(100):
-        objects.append( random.sample(features, 10) )
+if __name__ == '__main__':
+    n_objects = 100
+    n_areas   = 3
+    online    = True
 
-    l23  = L23(nExternal = 0)
+    # Skip L4, instead generate plausible L4 activity
+    features = [SDR(150 * 16) for i in range(50)]
+    [l4.randomize( .02 ) for l4 in features]
+    objects = [[] for o in range(n_areas)]
+    for obj in range(n_objects):
+        for area in range(n_areas):
+            objects[area].append( random.sample(features, 10) )
+
+    l23 = []
+    for area in range(n_areas):
+        l23.append( L23(nExternal = (n_areas-1) * 4096) )
 
     sdrc = SDRClassifier( steps = [0], alpha = 0.001, actValueAlpha = .3 )
-    sdrc.compute(0, [SDR(l23.cellDimensions).size-1],    # Initialize the table.
-        bucketIdx = [len(objects)-1],
-        actValue = [len(objects)-1.],
-        category = True,
+    sdrc.compute(0, [n_areas * 4096 -1],    # Initialize the table.
+        bucketIdx = [n_objects -1],
+        actValue  = [n_objects -1.],
+        category  = True,
         learn=True, infer=False)
     autoinc = 1
 
-    l23_act   = SDR([ 1, 4096 ])
-    l23_stats = Metrics(l23_act, 999999999)
+    l23_act_a = [SDR([ 1, 4096 ]) for i in range(n_areas)]
+    l23_act   = Concatenation(l23_act_a)
+    l23_stats = Metrics(l23_act.dimensions, 999999999)
 
-    def compute(obj, learn):
-        l4_act = random.choice(obj)
-        l23.compute(l4_act, learn, l23_act)
+    def compute(obj_lbl, learn):
+        prev_l23 = []
+        for idx, area in enumerate(l23_act_a):
+            prev_l23.append(
+                Concatenation( [z for i, z in enumerate(l23_act_a) if i != idx] ))
+            prev_l23[-1].sparse # Don't be lazy.
+        for obj, area, extra, sdr in zip(objects, l23, prev_l23, l23_act_a):
+            l4_act = random.choice(obj[obj_lbl])
+            area.compute(l4_act, extra, learn, sdr)
+
+        l23_stats.addData( l23_act )
 
     def reset():
-        l23.reset()
-
-    online = False
+        for area in l23:
+            area.reset()
+        l23_stats.reset()
 
     # Train
     reset()
     for x in range(10):
-        index = list(range(len(objects)))
+        index = list(range(n_objects))
         random.shuffle(index)
         for lbl in index:
-            obj = objects[lbl]
             if not online:
                 reset()
             for q in range(10):
-                compute(obj, learn=True)
+                compute(lbl, learn=True)
                 sdrc.compute(autoinc, l23_act.sparse,
                     bucketIdx = [lbl],
                     actValue  = [lbl + 0.],
@@ -189,12 +205,11 @@ def basic_test():
     score = 0.
     score_samples = 0
     reset()
-    for lbl in range(len(objects)):
-        obj = objects[lbl]
+    for lbl in range(n_objects):
         if not online:
             reset()
-        for i in range(5):
-            compute(obj, learn=False)
+        for i in range(3):
+            compute(lbl, learn=online)
         inference = sdrc.compute(autoinc, l23_act.sparse,
             bucketIdx = [],
             actValue  = [],
@@ -206,6 +221,3 @@ def basic_test():
         score_samples += 1
     if score_samples > 0:
         print("SCORE:", 100 * score / score_samples, "%")
-
-if __name__ == '__main__':
-    basic_test()

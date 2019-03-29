@@ -164,7 +164,7 @@ void train()
         sp.compute(input, true, columns);
       else {
         cp.reset();
-        cp.compute(input, true, columns);
+        // cp.compute(input, true, columns);
       }
 
       ClassifierResult result;
@@ -212,7 +212,7 @@ void test() {
       sp.compute(input, false, columns);
     else {
       cp.reset();
-      cp.compute(input, false, columns);
+      // cp.compute(input, false, columns);
     }
     ClassifierResult result;
     if( spNotCp ) {
