@@ -33,13 +33,19 @@
 namespace nupic {
 namespace encoders {
 
+/*
+ * TODO: DOCUMENTATION
+ */
 struct CoordinateEncoderParameters : public RDSE_Parameters {
   /*
-   *
+   * TODO: DOCUMENTATION
    */
   UInt numDimensions;
 };
 
+/*
+ * TODO: DOCUMENTATION
+ */
 class CoordinateEncoder : public BaseEncoder<const std::vector<Real64> &>
 {
 public:
@@ -51,8 +57,8 @@ public:
 
   void encode(const std::vector<Real64> &coordinates, sdr::SDR &output) override;
 
-  void save(std::ostream& ) const override {};
-  void load(std::istream& ) override {};
+  void save(std::ostream& ) const override {}; // TODO: IMPLEMENTATION
+  void load(std::istream& ) override {}; // TODO: IMPLEMENTATION
 
   ~CoordinateEncoder() override {};
 
@@ -71,7 +77,8 @@ private:
  * Implement the CoordinateEncoder
  */
 
-#include <cmath> // tgamma, M_PI
+#define _USE_MATH_DEFINES
+#include <math.h> // tgamma, M_PI
 #include <nupic/utils/MurmurHash3.hpp>
 
 using namespace std;
@@ -104,7 +111,7 @@ void CoordinateEncoder::initialize( const CoordinateEncoderParameters &parameter
   const auto &coordinates = neighborhood_.getCoordinates();
 
   // Find how far each coordinate is from the center of the sphere.
-  Real center = radius + 1.01f; // Center the sphere in the box, don't let it touch the boundaries.
+  Real center = radius + 1.33f; // Center the sphere in the box, don't let it touch the boundaries.
   vector<Real> distances( neighborhood_.getSum() );
   for(UInt idx = 0; idx < neighborhood_.getSum(); ++idx) {
     Real d = 0.0f;
@@ -129,7 +136,12 @@ void CoordinateEncoder::encode(const vector<Real64> &coordinates, sdr::SDR &outp
   NTA_CHECK( coordinates.size() == args_.numDimensions );
   NTA_CHECK( output.size == args_.size );
 
-  // TODO: Check for nan's
+  for(const auto &input : coordinates) {
+    if( isnan(input) ) {
+      output.zero();
+      return;
+    }
+  }
 
   auto &data = output.getDense();
   fill( data.begin(), data.end(), 0u );

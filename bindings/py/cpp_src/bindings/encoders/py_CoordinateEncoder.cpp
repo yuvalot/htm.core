@@ -27,35 +27,44 @@
 namespace py = pybind11;
 
 // using namespace std;
+using namespace nupic;
 using namespace nupic::encoders;
+using nupic::sdr::SDR;
 
 namespace nupic_ext
 {
   void init_CoordinateEncoder(py::module& m)
   {
     py::class_<CoordinateEncoderParameters, RDSE_Parameters>
-                            py_CoordEncParams(m, "CoordinateEncoderParameters");
+                            py_CoordEncParams(m, "CoordinateEncoderParameters",
+R"(TODO: DOCUMENTATION)");
 
     py_CoordEncParams.def(py::init<>());
 
-    py_CoordEncParams.def_readwrite("numDimensions", &CoordinateEncoderParameters::numDimensions);
+    py_CoordEncParams.def_readwrite("numDimensions", &CoordinateEncoderParameters::numDimensions,
+R"(TODO: DOCUMENTATION)");
 
     py::class_<CoordinateEncoder> py_CoordinateEncoder(m, "CoordinateEncoder",
-R"(
-TODO: DOCSTRINGS!
-)");
+R"(TODO: DOCSTRINGS!)");
 
-    py_CoordinateEncoder.def(py::init<CoordinateEncoderParameters>());
+    py_CoordinateEncoder.def(py::init<CoordinateEncoderParameters&>());
 
-    // TODO Accessors for parameters
+    py_CoordinateEncoder.def_property_readonly("dimensions",
+        [](const CoordinateEncoder &self) { return self.dimensions; });
+    py_CoordinateEncoder.def_property_readonly("size",
+        [](const CoordinateEncoder &self) { return self.size; });
+    py_CoordinateEncoder.def_property_readonly("parameters",
+        [](const CoordinateEncoder &self) { return self.parameters; },
+R"(Contains the parameter structure which this encoder uses internally. All
+fields are filled in automatically.)");
 
     py_CoordinateEncoder.def("encode", &CoordinateEncoder::encode);
 
-    // py_CoordinateEncoder.def("encode", []
-    // (CoordinateEncoder &self, vector<Real> value) {
-    // auto sdr = new sdr::SDR({ self.size });
-    // self.encode( value, *sdr );
-    // return sdr;
-    // });
+    py_CoordinateEncoder.def("encode", []
+        (CoordinateEncoder &self, vector<Real64> value) {
+            auto sdr = new SDR({ self.size });
+            self.encode( value, *sdr );
+            return sdr;
+    });
   }
 }
