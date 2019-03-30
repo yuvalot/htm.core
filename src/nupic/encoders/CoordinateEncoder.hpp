@@ -15,11 +15,10 @@
  * along with this program.  If not, see http://www.gnu.org/licenses.
  *
  * http://numenta.org/licenses/
- * ---------------------------------------------------------------------
- */
+ * --------------------------------------------------------------------- */
 
 /** @file
- * Define the CoordinateEncoder
+ * Define the CoordinateEncoder & CoordinateEncoderParameters
  */
 
 #ifndef NTA_ENCODERS_COORD
@@ -27,111 +26,135 @@
 
 #include <nupic/types/Sdr.hpp>
 #include <nupic/types/Types.hpp>
-#include <nupic/types/Serializable.hpp>
 #include <nupic/utils/Random.hpp>
-
-using namespace std; // TODO!
+#include <nupic/types/Serializable.hpp>
+#include <nupic/encoders/RandomDistributedScalarEncoder.hpp>
 
 namespace nupic {
+namespace encoders {
 
-// TODO: python bindings
-// TODO: unit tests
-// TODO: docs
+struct CoordinateEncoderParameters : public RDSE_Parameters {
+  /*
+   *
+   */
+  UInt numDimensions;
+};
 
-/**
- * TODO DOCUMENTATION
-      COPY FROM NUPIC!
- */
-class CoordinateEncoder // : public Serializable // TODO Serializable unimplemented!
+class CoordinateEncoder : public BaseEncoder<const std::vector<Real64> &>
 {
-private:
-  UInt size_;
-  Real sparsity_;
-  UInt ndim_;
-  Real radius_;
-  UInt seed_;
-
 public:
-  /**
-   * TODO DOCUMENTATION
-   * https://arxiv.org/pdf/1602.05925.pdf
-   */
-  CoordinateEncoder(UInt size, Real sparsity, UInt ndim, Real radius, UInt seed = 0u)
-    { initialize(size, sparsity, ndim, radius, seed); }
+  CoordinateEncoder() {}
+  CoordinateEncoder( const CoordinateEncoderParameters &parameters );
+  void initialize( const CoordinateEncoderParameters &parameters );
 
-  void initialize(UInt size, Real sparsity, UInt ndim, Real radius, UInt seed = 0u) {
-    size_       = size;
-    sparsity_   = sparsity;
-    ndim_       = ndim;
-    radius_     = radius;
-    // Use the given seed to make a better, more randomized seed.
-    Random apple( seed );
-    seed_ = apple() / 2;
+  const CoordinateEncoderParameters &parameters = args_;
 
-    NTA_CHECK(sparsity >= 0.0f);
-    NTA_CHECK(sparsity <= 1.0f);
-    NTA_CHECK(radius > 0.0f);
-  }
+  void encode(const std::vector<Real64> &coordinates, sdr::SDR &output) override;
 
-  const UInt &size      = size_;
-  const Real &sparsity  = sparsity_;
-  const UInt &ndim      = ndim_;
-  const Real &radius    = radius_;
+  void save(std::ostream& ) const override {};
+  void load(std::istream& ) override {};
 
-  /**
-   * TODO DOCUMENTATION
-   */
-  void encode(vector<Real> coordinate, sdr::SDR &output) const {
-    NTA_CHECK( coordinate.size() == ndim );
-    NTA_CHECK( output.size == size );
-    const UInt n_active   = round(size * sparsity);
+  ~CoordinateEncoder() override {};
 
-    // Dimensions of the squarest area with N-dimensions & area of n_active
-    vector<UInt> neighborhoodDimensions( ndim );
-    auto remainder = n_active;
-    for(UInt dim = ndim; dim > 0u; --dim)
-    {
-      UInt X    = round(pow( (Real) remainder, (Real) 1.0f / dim ));
-      remainder = round( (Real) remainder / X );
-      neighborhoodDimensions[dim - 1u]  = X;
-    }
-    NTA_ASSERT( remainder == 1 );
-    // Use an SDR to find the coordinates of every location in the neighborhood.
-    sdr::SDR neighborhood( neighborhoodDimensions );
-    sdr::SDR_sparse_t allNeighbors( neighborhood.size );
-    iota( allNeighbors.begin(), allNeighbors.end(), 0u );
-    neighborhood.setSparse( allNeighbors );
-    const auto &neighborOffsets = neighborhood.getCoordinates();
-
-    // Find where we are in the space.
-    vector<UInt> index( ndim );
-    for(UInt dim = 0; dim < ndim; ++dim) {
-      const Real resolution = (Real) 2.0f * radius / neighborhood.dimensions[dim];
-      index[dim] = seed_ + (UInt) (coordinate[dim] / resolution);
-    }
-
-    // Iterate through the area near this location.  Hash each nearby location
-    // and use each hash to set a bit in the output SDR.
-    sdr::SDR_dense_t data( size, 0 );
-    hash<std::string> h;
-    for(UInt loc = 0; loc < neighborhood.getSum(); ++loc) {
-      std::stringstream temp;
-      for(UInt d = 0; d < ndim; ++d)
-        temp << index[d] + neighborOffsets[d][loc];
-      UInt bucket = h(temp.str()) % size;
-      // Don't worry about hash collisions.  Instead measure the critical
-      // properties of the encoder in unit tests and quantify how significant
-      // the hash collisions are.  This encoder can not fix the collisions
-      // because it does not record past encodings.  Collisions cause small
-      // deviations in the sparsity or semantic similarity, depending on how
-      // they're handled.
-      // TODO: Calculate the probability of a hash collision and account for
-      // it in n_active.
-      data[bucket] = 1u;
-    }
-    output.setDense( data );
-  }
+private:
+  CoordinateEncoderParameters args_;
+  sdr::SDR neighborhood_;
 };     // End class CoordinateEncoder
-
+}      // End namespace encoders
 }      // End namespace nupic
+
+
+// =============================================================================
+// SOURCE CODE
+
+/** @file
+ * Implement the CoordinateEncoder
+ */
+
+#include <cmath> // tgamma, M_PI
+#include <nupic/utils/MurmurHash3.hpp>
+
+using namespace std;
+using namespace nupic::encoders;
+
+CoordinateEncoder::CoordinateEncoder(const CoordinateEncoderParameters &parameters)
+  { initialize( parameters ); }
+
+void CoordinateEncoder::initialize( const CoordinateEncoderParameters &parameters ) {
+  // TODO: Check parameters
+  args_ = parameters;
+  // TODO: Fill in remaining parameters
+  // args_.resolution = (Real) 2.0f * radius / maxExtent;
+
+  // Find radius of sphere in numDimensions & volume of activeBits.
+  const Real volume     = (Real) args_.activeBits;
+  const Real nd         = (Real) args_.numDimensions;
+  const Real radiusToND = volume * tgamma( nd / 2.0f + 1.0f ) / pow( M_PI, nd / 2.0f );
+  const Real radius     = pow( radiusToND, 1.0f / nd );
+
+  // Find all coordinates inside of the sphere's bounding box.
+  UInt maxExtent = (UInt) 2 * radius + 3; // Pad the box so that the sphere does not touch the edge.
+  // Use an SDR to manage coordinates & conversions.
+  vector<UInt> neighborhoodDimensions( args_.numDimensions, maxExtent );
+  neighborhood_.initialize( neighborhoodDimensions );
+  // Activate every location in the neighborhood.
+  auto &dense = neighborhood_.getDense();
+  fill( dense.begin(), dense.end(), 1u );
+  neighborhood_.setDense( dense );
+  const auto &coordinates = neighborhood_.getCoordinates();
+
+  // Find how far each coordinate is from the center of the sphere.
+  Real center = radius + 1.01f; // Center the sphere in the box, don't let it touch the boundaries.
+  vector<Real> distances( neighborhood_.getSum() );
+  for(UInt idx = 0; idx < neighborhood_.getSum(); ++idx) {
+    Real d = 0.0f;
+    for(UInt dim = 0; dim < args_.numDimensions; ++dim) {
+      d += pow((Real) coordinates[dim][idx] - center, 2.0f);
+    }
+    distances[idx] = d;
+  }
+
+  // Sort the coordinates by distance from center of the sphere.
+  const auto cmp = [&distances] (const UInt &A, const UInt &B)
+                                        { return distances[A] < distances[B]; };
+  auto &index = neighborhood_.getSparse();
+  sort( index.begin(), index.end(), cmp );
+  // Discard extra coordinates, from the corners of the bounding box.
+  index.resize( args_.activeBits );
+  // Save the coordinates of the bits we want.
+  neighborhood_.setSparse( index );
+}
+
+void CoordinateEncoder::encode(const vector<Real64> &coordinates, sdr::SDR &output) {
+  NTA_CHECK( coordinates.size() == args_.numDimensions );
+  NTA_CHECK( output.size == args_.size );
+
+  // TODO: Check for nan's
+
+  auto &data = output.getDense();
+  fill( data.begin(), data.end(), 0u );
+
+  // Find where we are in the space.
+  vector<UInt> location( args_.numDimensions );
+  for(UInt dim = 0; dim < args_.numDimensions; ++dim) {
+    location[dim] = (UInt) (coordinates[dim] / args_.resolution);
+  }
+
+  // Iterate through the area near this location.  Hash each nearby location and
+  // use each hash to set a bit in the output SDR.
+
+  const auto &neigh = neighborhood_.getCoordinates();
+  vector<UInt> hash_buffer( args_.numDimensions );
+  for(UInt idx = 0; idx < neighborhood_.getSum(); ++idx) {
+    for(UInt dim = 0; dim < args_.numDimensions; ++dim) {
+      hash_buffer[dim] = location[dim] + neigh[dim][idx];
+    }
+    UInt32 bucket = MurmurHash3_x86_32( hash_buffer.data(),
+                                        hash_buffer.size() * sizeof(UInt),
+                                        args_.seed);
+    data[bucket % output.size] = 1u;
+  }
+  output.setDense( data );
+}
+
 #endif // End ifdef NTA_ENCODERS_COORD

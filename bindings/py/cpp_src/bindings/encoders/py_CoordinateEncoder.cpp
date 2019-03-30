@@ -26,35 +26,36 @@
 
 namespace py = pybind11;
 
-using namespace nupic;
+// using namespace std;
+using namespace nupic::encoders;
 
 namespace nupic_ext
 {
-    void init_CoordinateEncoder(py::module& m)
-    {
-        py::class_<CoordinateEncoder> py_CoordinateEncoder(m, "CoordinateEncoder",
+  void init_CoordinateEncoder(py::module& m)
+  {
+    py::class_<CoordinateEncoderParameters, RDSE_Parameters>
+                            py_CoordEncParams(m, "CoordinateEncoderParameters");
+
+    py_CoordEncParams.def(py::init<>());
+
+    py_CoordEncParams.def_readwrite("numDimensions", &CoordinateEncoderParameters::numDimensions);
+
+    py::class_<CoordinateEncoder> py_CoordinateEncoder(m, "CoordinateEncoder",
 R"(
 TODO: DOCSTRINGS!
 )");
 
-        py_CoordinateEncoder.def(py::init<UInt, Real, UInt, Real, UInt>(),
-        // TODO DOCSTRINGS FOR INIT
-            py::arg("size"),
-            py::arg("sparsity"),
-            py::arg("ndim"),
-            py::arg("radius"),
-            py::arg("seed") = 0u);
+    py_CoordinateEncoder.def(py::init<CoordinateEncoderParameters>());
 
-        // TODO Accessors for: size, sparsity, ndim, radius
+    // TODO Accessors for parameters
 
-        // TODO DOCSTRINGS FOR ENCODE
-        py_CoordinateEncoder.def("encode", &CoordinateEncoder::encode);
+    py_CoordinateEncoder.def("encode", &CoordinateEncoder::encode);
 
-        py_CoordinateEncoder.def("encode", []
-            (CoordinateEncoder &self, vector<Real> value) {
-                auto sdr = new sdr::SDR({ self.size });
-                self.encode( value, *sdr );
-                return sdr;
-        });
-    }
+    // py_CoordinateEncoder.def("encode", []
+    // (CoordinateEncoder &self, vector<Real> value) {
+    // auto sdr = new sdr::SDR({ self.size });
+    // self.encode( value, *sdr );
+    // return sdr;
+    // });
+  }
 }
