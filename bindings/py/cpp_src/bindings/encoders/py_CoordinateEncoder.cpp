@@ -26,7 +26,7 @@
 
 namespace py = pybind11;
 
-// using namespace std;
+using namespace std;
 using namespace nupic;
 using namespace nupic::encoders;
 using nupic::sdr::SDR;
