@@ -33,11 +33,22 @@ CoordinateEncoder::CoordinateEncoder(const CoordinateEncoderParameters &paramete
   { initialize( parameters ); }
 
 void CoordinateEncoder::initialize( const CoordinateEncoderParameters &parameters ) {
-  // TODO: Check parameters
+  // Check parameters:  This has all of the same constraints as the RDSE does.
+  // The RDSE will raise an exception if the parameters are bad.
+  RDSE rdse( parameters );
+  NTA_CHECK( parameters.numDimensions > 0u );
+
   BaseEncoder<const vector<Real64> &>::initialize({ parameters.size });
   args_ = parameters;
-  // TODO: Fill in remaining parameters
-  // args_.resolution = (Real) 2.0f * radius / maxExtent;
+  // Fill in remaining parameters.
+  args_.activeBits = rdse.activeBits;
+  args_.sparsity   = rdse.sparsity;
+  args_.seed       = rdse.seed;
+  // args_.resolution = TODO
+  // args_.radius = (Real64) 2.0f * radius / maxExtent;
+  assert(args_.radius == 0.0f); // For now disable.
+
+  // TODO: EXPLAIN what this next section does...  hashes neighborhoods ...
 
   // Find radius of sphere in numDimensions & volume of activeBits.
   const Real volume     = (Real) args_.activeBits;
@@ -77,6 +88,7 @@ void CoordinateEncoder::initialize( const CoordinateEncoderParameters &parameter
   // Save the coordinates of the bits we want.
   neighborhood_.setSparse( index );
 }
+
 
 void CoordinateEncoder::encode(const vector<Real64> &coordinates, sdr::SDR &output) {
   NTA_CHECK( coordinates.size() == args_.numDimensions );
