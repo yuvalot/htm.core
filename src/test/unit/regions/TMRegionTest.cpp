@@ -85,7 +85,7 @@ static bool verbose = true; // turn this on to print extra stuff for debugging t
 #define EXPECTED_SPEC_COUNT 17 // The number of parameters expected in the TMRegion Spec
 
 using namespace nupic;
-
+using namespace nupic::sdr;
 
 // Verify that all parameters are working.
 // Assumes that the default value in the Spec is the same as the default when

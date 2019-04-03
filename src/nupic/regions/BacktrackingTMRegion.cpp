@@ -170,7 +170,7 @@ void BacktrackingTMRegion::compute() {
   if (args_.anomalyMode) {
     Array p(NTA_BasicType_Real32, tm_->topDownCompute(), args_.numberOfCols);
     const vector<Byte> tmpDense = p.asVector<Byte>();
-    SDR tmp({(UInt)tmpDense.size()});
+    sdr::SDR tmp({(UInt)tmpDense.size()});
     tmp.setDense(tmpDense);
     prevPredictedColumns_ = tmp.getSparse();
   }
@@ -220,7 +220,7 @@ void BacktrackingTMRegion::compute() {
     getOutput("lrnActiveStateT")->getData() = Array(NTA_BasicType_Byte, lrn, size);
 
     const auto tmpDense = bottomUpIn.asVector<Byte>();
-    SDR tmp({(UInt) tmpDense.size()});
+    sdr::SDR tmp({(UInt) tmpDense.size()});
     tmp.setDense(tmpDense);
     auto activeColumns = tmp.getSparse();
     Real32 anomalyScore = algorithms::anomaly::computeRawAnomalyScore(
