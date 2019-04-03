@@ -33,11 +33,11 @@
 #include <nupic/math/Topology.hpp>
 #include <nupic/math/Math.hpp> // nupic::Epsilon
 
-#define VERSION 2  // version for stream serialization
-
+using namespace std;
 using namespace nupic;
 using nupic::algorithms::spatial_pooler::SpatialPooler;
 using namespace nupic::math::topology;
+using nupic::sdr::SDR;
 
 // Round f to 5 digits of precision. This is used to set
 // permanence values and help avoid small amounts of drift between
@@ -96,7 +96,7 @@ SpatialPooler::SpatialPooler(
     : SpatialPooler::SpatialPooler()
 {
   // The current version number for serialzation.
-  version_ = VERSION;
+  version_ = 2;
 
   initialize(inputDimensions,
              columnDimensions,
@@ -576,15 +576,13 @@ void SpatialPooler::initMapPotential_(UInt column, bool wrapAround, SDR& potenti
 
 
 Real SpatialPooler::initPermConnected_() {
-  Real p =
-      synPermConnected_ + (Real)((connections::maxPermanence - synPermConnected_) * rng_.getReal64());
-
+  Real p =  rng_.realRange(synPermConnected_, connections::maxPermanence);
   return round5_(p);
 }
 
 
 Real SpatialPooler::initPermNonConnected_() {
-  Real p = (Real)(synPermConnected_ * rng_.getReal64());
+  Real p = rng_.realRange(connections::minPermanence, synPermConnected_);
   return round5_(p);
 }
 
@@ -973,16 +971,6 @@ void SpatialPooler::inhibitColumnsLocal_(const vector<Real> &overlaps,
 
 bool SpatialPooler::isUpdateRound_() const {
   return (iterationNum_ % updatePeriod_) == 0;
-}
-
-
-UInt SpatialPooler::persistentSize() const {
-  // TODO: this won't scale!
-  stringstream s;
-  s.flags(ios::scientific);
-  s.precision(numeric_limits<double>::digits10 + 1);
-  this->save(s);
-  return (UInt)s.str().size();
 }
 
 

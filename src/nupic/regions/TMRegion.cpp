@@ -49,6 +49,7 @@
 using namespace nupic;
 using namespace nupic::utils;
 using namespace nupic::algorithms::temporal_memory;
+using nupic::sdr::SDR;
 
 TMRegion::TMRegion(const ValueMap &params, Region *region)
     : RegionImpl(region), computeCallback_(nullptr) {
@@ -838,7 +839,7 @@ void TMRegion::deserialize(BundleIO &bundle) {
   f.ignore(1);
   f.read((char *)&args_, len);
   f >> columnDimensions_;
-  f.ignore(1);
+  f >> std::ws;  // ignore whitespace
 
   if (args_.init) {
     TemporalMemory* tm = new TemporalMemory();

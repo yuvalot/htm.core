@@ -30,6 +30,7 @@ namespace py = pybind11;
 namespace nupic_ext
 {
   using namespace nupic::encoders;
+  using nupic::sdr::SDR;
 
   void init_ScalarEncoder(py::module& m)
   {
@@ -98,7 +99,8 @@ The ScalarEncoder encodes a numeric (floating point) value into an array of
 bits. The output is 0's except for a contiguous block of 1's. The location of
 this contiguous block varies continuously with the input value.
 
-TODO, Example Usage & unit test for it.)");
+For help or to examine this run:
+$ python -m nupic.examples.rf_view_ScalarEncoder --help.)");
 
     py_ScalarEnc.def(py::init<ScalarEncoderParameters&>(), R"()");
     py_ScalarEnc.def_property_readonly("parameters",
@@ -106,10 +108,15 @@ TODO, Example Usage & unit test for it.)");
 R"(Contains the parameter structure which this encoder uses internally. All
 fields are filled in automatically.)");
 
+    py_ScalarEnc.def_property_readonly("dimensions",
+        [](const ScalarEncoder &self) { return self.dimensions; });
+    py_ScalarEnc.def_property_readonly("size",
+        [](const ScalarEncoder &self) { return self.size; });
+
     py_ScalarEnc.def("encode", &ScalarEncoder::encode, R"()");
 
     py_ScalarEnc.def("encode", [](ScalarEncoder &self, nupic::Real64 value) {
-        auto output = new nupic::SDR( self.dimensions );
+        auto output = new SDR( self.dimensions );
         self.encode( value, *output );
         return output; },
 R"()");

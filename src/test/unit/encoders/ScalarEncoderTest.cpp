@@ -30,7 +30,10 @@
 #include <nupic/encoders/ScalarEncoder.hpp>
 #include <vector>
 
+namespace testing {
+    
 using namespace nupic;
+using nupic::sdr::SDR;
 using nupic::encoders::ScalarEncoder;
 using nupic::encoders::ScalarEncoderParameters;
 
@@ -172,7 +175,7 @@ TEST(ScalarEncoder, PeriodicRoundNearestMultipleOfResolution) {
 }
 
 TEST(ScalarEncoder, Serialization) {
-  vector<ScalarEncoder*> inputs;
+  std::vector<ScalarEncoder*> inputs;
   ScalarEncoderParameters p;
   p.minimum    = -1.234;
   p.maximum    = 12.34;
@@ -190,8 +193,8 @@ TEST(ScalarEncoder, Serialization) {
   ScalarEncoderParameters q;
   q.minimum  = -1.0f;
   q.maximum  =  1.0003f;
-  q.size     = 100;
-  q.sparsity = 0.15;
+  q.size     = 100u;
+  q.sparsity = 0.15f;
   inputs.push_back( new ScalarEncoder( q ) );
 
   std::stringstream buf;
@@ -218,4 +221,6 @@ TEST(ScalarEncoder, Serialization) {
     EXPECT_NEAR(p1.radius,     p2.radius,        1.0f / 100000 );
     delete enc1;
   }
+}
+
 }

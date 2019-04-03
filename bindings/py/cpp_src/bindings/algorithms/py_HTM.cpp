@@ -43,6 +43,7 @@ namespace nupic_ext
 
 namespace py = pybind11;
 using namespace nupic;
+using nupic::sdr::SDR;
 using nupic::algorithms::connections::Permanence; 
 
     void init_HTM(py::module& m)
@@ -85,7 +86,6 @@ using nupic::algorithms::connections::Permanence;
         {
             // __getstate__
             std::ostringstream os;
-            //s << self.persistentSize();
 
             os.flags(std::ios::scientific);
             os.precision(std::numeric_limits<double>::digits10 + 1);

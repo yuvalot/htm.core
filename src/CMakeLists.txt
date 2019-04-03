@@ -76,7 +76,6 @@ set(algorithm_files
     nupic/algorithms/Anomaly.hpp
     nupic/algorithms/AnomalyLikelihood.cpp
     nupic/algorithms/AnomalyLikelihood.hpp
-    nupic/algorithms/ArrayBuffer.hpp
     nupic/algorithms/BacktrackingTM.cpp
     nupic/algorithms/BacktrackingTM.hpp
     nupic/algorithms/Cell.cpp
@@ -106,6 +105,8 @@ set(encoders_files
     nupic/encoders/BaseEncoder.hpp
     nupic/encoders/ScalarEncoder.cpp
     nupic/encoders/ScalarEncoder.hpp
+    nupic/encoders/RandomDistributedScalarEncoder.hpp
+    nupic/encoders/RandomDistributedScalarEncoder.cpp
 )
     
 set(engine_files
@@ -150,7 +151,6 @@ set(ntypes_files
     nupic/ntypes/ArrayBase.hpp
     nupic/ntypes/BundleIO.hpp
     nupic/ntypes/Collection.hpp
-    nupic/ntypes/Dimensions.cpp
     nupic/ntypes/Dimensions.hpp
     nupic/ntypes/Scalar.cpp
     nupic/ntypes/Scalar.hpp
@@ -204,7 +204,8 @@ set(types_files
     nupic/types/Serializable.hpp
     nupic/types/Sdr.hpp
     nupic/types/Sdr.cpp
-    nupic/types/SdrProxy.hpp
+    nupic/types/SdrTools.hpp
+    nupic/types/SdrTools.cpp
 )
 
 set(utils_files
@@ -222,7 +223,10 @@ set(utils_files
     nupic/utils/StringUtils.cpp
     nupic/utils/StringUtils.hpp
     nupic/utils/VectorHelpers.hpp
+    nupic/utils/SdrMetrics.cpp
     nupic/utils/SdrMetrics.hpp
+    nupic/utils/MurmurHash3.hpp
+    nupic/utils/MurmurHash3.cpp
 )
 
 set(examples_files

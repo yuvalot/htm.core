@@ -26,7 +26,7 @@ import pytest
 import time
 
 from nupic.bindings.encoders import ScalarEncoder, ScalarEncoderParameters
-from nupic.bindings.algorithms import SDR, SDR_Metrics
+from nupic.bindings.sdr import SDR, Metrics
 
 class ScalarEncoder_Test(unittest.TestCase):
     @pytest.mark.skip("TODO UNIMPLEMENTED!")
@@ -40,6 +40,8 @@ class ScalarEncoder_Test(unittest.TestCase):
         p.minimum    = 0
         p.maximum    = 345
         enc = ScalarEncoder( p )
+        assert( enc.dimensions == [1000] )
+        assert( enc.size == 1000 )
         assert( not enc.parameters.clipInput )
         assert( not enc.parameters.periodic )
         assert( abs(enc.parameters.sparsity   - 20./1000) < .01 )
@@ -232,7 +234,7 @@ class ScalarEncoder_Test(unittest.TestCase):
         p.periodic   = True
         enc = ScalarEncoder( p )
         out = SDR( enc.parameters.size )
-        mtr = SDR_Metrics(out, 9999)
+        mtr = Metrics(out, 9999)
 
         for i in range(201 * 10 + 1):
             x = (i % 201) / 10.
@@ -256,7 +258,7 @@ class ScalarEncoder_Test(unittest.TestCase):
         enc = ScalarEncoder( p )
         del p
         out = SDR( enc.parameters.size )
-        mtr = SDR_Metrics(out, 9999)
+        mtr = Metrics(out, 9999)
 
         # The activation frequency of bits near the endpoints of the range is a
         # little weird, because the bits at the very end are not used as often

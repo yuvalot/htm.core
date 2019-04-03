@@ -53,6 +53,7 @@ set(algorithm_tests
                
 set(encoders_tests
            unit/encoders/ScalarEncoderTest.cpp
+           unit/encoders/RandomDistributedScalarEncoderTest.cpp
            )
 	   
 set(engine_tests
@@ -99,7 +100,7 @@ set(types_tests
 	   unit/types/BasicTypeTest.cpp
 	   unit/types/ExceptionTest.cpp
 	   unit/types/SdrTest.cpp
-	   unit/types/SdrProxyTest.cpp
+	   unit/types/SdrToolsTest.cpp
 	   )
 	   
 set(utils_tests
