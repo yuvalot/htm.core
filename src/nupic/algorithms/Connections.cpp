@@ -440,8 +440,8 @@ void Connections::adaptSegment(const Segment segment,
 
   const auto &inputArray = inputs.getDense();
 
-  for (SynapseIdx i = 0; i < synapses.size(); i++) {
-    const SynapseData &synapseData = dataForSynapse(synapses[i]);
+  for (const Synapse& syn : synapses) {
+    const SynapseData &synapseData = dataForSynapse(syn);
 
     Permanence permanence = synapseData.permanence;
     if( inputArray[synapseData.presynapticCell] ) {
@@ -450,7 +450,7 @@ void Connections::adaptSegment(const Segment segment,
       permanence -= decrement;
     }
 
-    updateSynapsePermanence(synapses[i], permanence);
+    updateSynapsePermanence(syn, permanence);
   }
 }
 
