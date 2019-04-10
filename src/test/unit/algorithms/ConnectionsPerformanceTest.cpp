@@ -173,7 +173,7 @@ float runSpatialPoolerTest(
 TEST(ConnectionsPerformanceTest, testTM) {
 	auto tim = runTemporalMemoryTest(COLS, W, EPOCHS, SEQ, "temporal memory");
 #ifdef NDEBUG
-	ASSERT_LE(tim, 3.3f*Timer::getSpeed()); //there are times, we must be better. Bit underestimated for slow CI
+	ASSERT_LE(tim, 3.0f*Timer::getSpeed()); //there are times, we must be better. Bit underestimated for slow CI
 #endif
   UNUSED(tim);
 }
@@ -184,7 +184,7 @@ TEST(ConnectionsPerformanceTest, testTM) {
 TEST(ConnectionsPerformanceTest, testTMLarge) {
   auto tim = runTemporalMemoryTest(2*COLS, 6*W, EPOCHS/2, SEQ, "temporal memory (large)");
 #ifdef NDEBUG
-  ASSERT_LE(tim, 15*Timer::getSpeed());
+  ASSERT_LE(tim, 12*Timer::getSpeed());
 #endif
   UNUSED(tim);
 }
@@ -201,7 +201,7 @@ TEST(ConnectionsPerformanceTest, testSP) {
     /* label */              "spatial pooler");
 
 #ifdef NDEBUG
-  ASSERT_LE(tim, 4.0f * Timer::getSpeed());
+  ASSERT_LE(tim, 2.7f * Timer::getSpeed());
 #endif
   UNUSED(tim);
 }
