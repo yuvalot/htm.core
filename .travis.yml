@@ -103,6 +103,8 @@ install:
   - make install 2>&1|grep -v -F 'Installing:'
   - echo "Installing Python bindings" 
   - python $TRAVIS_BUILD_DIR/setup.py install
+  - echo "Generating binary release:"
+  - make package
 
 script:
   # Some tests (e.g., helloregion) expect this to be the current directory and
