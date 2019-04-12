@@ -29,10 +29,10 @@
 #include <iostream>
 #include <vector>
 #include <string>
-#include <algorithm>
-#include <limits>  // std::numeric_limits
-#include <iomanip> // std::setprecision
-#include <functional> // function
+#include <algorithm> // accumulate
+#include <limits>  // numeric_limits
+#include <iomanip> // setprecision
+#include <functional> // function, multiplies
 
 // #include <nupic/algorithms/ColumnPooler.hpp>
 #include <nupic/types/Types.hpp>
@@ -98,7 +98,7 @@ public:
   Real stability_rate;    // TODO: Fix naming convention
   Real fatigue_rate;      // TODO: Fix naming convention
 
-  Real period;
+  UInt period;
   Int  seed;
   bool verbose;
 };
@@ -152,8 +152,10 @@ public:
     { initialize( parameters ); }
 
   void initialize( const Parameters &parameters ) {
-    args_ = parameters;
+    NTA_CHECK( parameters.proximalSegments > 0u );
+    NTA_CHECK( parameters.cellsPerInhibitionArea > 0u );
 
+    args_ = parameters;
     SDR proximalInputs(  args_.proximalInputDimensions );
     SDR inhibitionAreas( args_.inhibitionDimensions );
     cellDimensions_ = inhibitionAreas.dimensions;
@@ -195,7 +197,7 @@ public:
     AF_ = new ActivationFrequency( {cells.size, args_.proximalSegments},
                         args_.period, args_.sparsity / args_.proximalSegments );
 
-    // // Setup the distal dendrites
+    // Setup the distal dendrites
     distalConnections.initialize(
         /* columnDimensions */            cellDimensions,
         /* cellsPerColumn */              1,
@@ -344,6 +346,9 @@ public:
       }
       proximalMaxSegment_[cell] = maxSegment;
 
+      // TODO: apply stability & fatigue before boosting?  My previous
+      // experiments w/ grid cells apply stab+fatigue b4 boosting...
+
       // Apply Stability & Fatigue
       X_act[cell]   += (1.0f - args_.stability_rate) * (maxOverlap - X_act[cell] - X_inact[cell]);
       X_inact[cell] += args_.fatigue_rate * (maxOverlap - X_inact[cell]);
@@ -377,9 +382,6 @@ public:
     auto &activeSegments = AF_SDR.getSparse();
     for(const auto &cell : active.getSparse())
     {
-      // Adapt Proximal Segments
-      NTA_CHECK(cell < proximalMaxSegment_.size()) << "cell oob! " << cell << " < " << proximalMaxSegment_.size();
-
       const auto &maxSegment = proximalMaxSegment_[cell];
       proximalConnections.adaptSegment(maxSegment, proximalInputActive,
                                        args_.proximalIncrement, args_.proximalDecrement);
@@ -587,6 +589,10 @@ public:
       NTA_THROW << "Setter unimplemented.";
     }
   }
+
+  // Real anomaly() {
+  //   return distalConnections.anomaly();
+  // }
 };
 
 
