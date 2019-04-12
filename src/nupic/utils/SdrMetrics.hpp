@@ -213,18 +213,6 @@ public:
     ActivationFrequency( const std::vector<UInt> &dimensions, UInt period,
                          Real initialValue = -1 );
 
-    /**
-     * TODO: DOCS
-     */
-    void initializeToValue( Real initialValue )
-    {
-        NTA_ASSERT( samples_ < 1 );
-        NTA_CHECK( initialValue >= 0.0f );
-        NTA_CHECK( initialValue <= 1.0f );
-        activationFrequency_.assign( activationFrequency_.size(), initialValue );
-        samples_ = period;
-    }
-
     const std::vector<Real> &activationFrequency = activationFrequency_;
 
     Real min() const;

@@ -192,8 +192,8 @@ public:
       tieBreaker_[i] = 0.01f * rng_.getReal64();
     }
     proximalMaxSegment_.resize( cells.size );
-    AF_ = new ActivationFrequency( {cells.size, args_.proximalSegments}, args_.period );
-    AF_->initializeToValue( args_.sparsity / args_.proximalSegments );
+    AF_ = new ActivationFrequency( {cells.size, args_.proximalSegments},
+                        args_.period, args_.sparsity / args_.proximalSegments );
 
     // // Setup the distal dendrites
     distalConnections.initialize(
