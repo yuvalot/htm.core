@@ -31,7 +31,6 @@
 #include <nupic/algorithms/SpatialPooler.hpp>
 #include <nupic/algorithms/ColumnPooler.cpp>
 #include <nupic/algorithms/SDRClassifier.hpp>
-#include <nupic/types/ClassifierResult.hpp>
 #include <nupic/utils/SdrMetrics.hpp>
 
 #include <mnist/mnist_reader.hpp> // MNIST data itself + read methods, namespace mnist::
@@ -46,7 +45,7 @@ using nupic::algorithms::spatial_pooler::SpatialPooler;
 using nupic::algorithms::column_pooler::DefaultTopology;
 using nupic::algorithms::connections::Permanence;
 using nupic::algorithms::sdr_classifier::SDRClassifier;
-using nupic::types::ClassifierResult;
+using nupic::algorithms::sdr_classifier::ClassifierResult;
 
 
 class MNIST {
@@ -164,7 +163,7 @@ void train()
         sp.compute(input, true, columns);
       else {
         cp.reset();
-        // cp.compute(input, true, columns);
+        cp.compute(input, true, columns);
       }
 
       ClassifierResult result;
@@ -212,7 +211,7 @@ void test() {
       sp.compute(input, false, columns);
     else {
       cp.reset();
-      // cp.compute(input, false, columns);
+      cp.compute(input, false, columns);
     }
     ClassifierResult result;
     if( spNotCp ) {
@@ -234,16 +233,9 @@ void test() {
                               result);
     }
     // Check results
-    for(auto iter : result) {
-      if( iter.first == 0 ) {
-          const auto *pdf = iter.second;
-          const auto max  = std::max_element(pdf->cbegin(), pdf->cend());
-          const UInt cls  = max - pdf->cbegin();
-          if(cls == label)
-            score += 1;
-          n_samples += 1;
-      }
-    }
+    if(clsr.getClassification( result[0] ) == label)
+        score += 1;
+    n_samples += 1;
     if( verbosity && i % 1000 == 0 ) cout << "." << flush;
   }
   if( verbosity ) cout << endl;

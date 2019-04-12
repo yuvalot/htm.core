@@ -89,7 +89,6 @@ namespace nupic_ext
 
     py_ColumnPooler.def("compute", &ColumnPooler::compute,
             py::arg("proximalInputActive"),
-            py::arg("distalInputActive"),
             py::arg("learn"),
             py::arg("active"));
 

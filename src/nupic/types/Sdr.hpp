@@ -12,8 +12,7 @@
  *
  * You should have received a copy of the GNU Affero Public License
  * along with this program.  If not, see http://www.gnu.org/licenses.
- * ----------------------------------------------------------------------
- */
+ * ---------------------------------------------------------------------- */
 
 /** @file
  * Definitions for SparseDistributedRepresentation class
@@ -27,6 +26,7 @@
 #include <algorithm> //sort
 #include <functional>
 #include <vector>
+
 #include <nupic/types/Types.hpp>
 #include <nupic/types/Serializable.hpp>
 #include <nupic/utils/Random.hpp>
@@ -34,10 +34,13 @@
 namespace nupic {
 namespace sdr {
 
-typedef std::vector<Byte>               SDR_dense_t;
-typedef std::vector<UInt>               SDR_sparse_t;
-typedef std::vector<std::vector<UInt>>  SDR_coordinate_t;
-typedef std::function<void()>           SDR_callback_t;
+using ElemDense        = Byte; //TODO allow changing this
+using ElemSparse       = UInt32; //must match with connections::CellIdx 
+
+using SDR_dense_t      = std::vector<ElemDense>;
+using SDR_sparse_t     = std::vector<ElemSparse>;
+using SDR_coordinate_t = std::vector<std::vector<UInt>>;
+using SDR_callback_t   = std::function<void()>;
 
 /**
  * SparseDistributedRepresentation class
@@ -148,14 +151,14 @@ private:
      * These hooks are called every time the SDR's value changes.  These can be
      * NULL pointers!  See methods addCallback & removeCallback for API details.
      */
-    std::vector<SDR_callback_t> callbacks;
+    mutable std::vector<SDR_callback_t> callbacks;
 
     /**
      * These hooks are called when the SDR is destroyed.  These can be NULL
      * pointers!  See methods addDestroyCallback & removeDestroyCallback for API
      * details.
      */
-    std::vector<SDR_callback_t> destroyCallbacks;
+    mutable std::vector<SDR_callback_t> destroyCallbacks;
 
 protected:
     /**
@@ -462,6 +465,62 @@ public:
     void addNoise(Real fractionNoise, Random &rng);
 
     /**
+     * This method calculates the set intersection of the active bits in each
+     * input SDR.
+     *
+     * @params This method has two overloads:
+     *          1) Accepts two SDRs, for convenience.
+     *          2) Accepts a list of SDRs, must contain at least two SDRs, can
+     *             contain as many SDRs as needed.
+     *
+     * @returns In both cases the output is stored in this SDR.  This method
+     * modifies this SDR and discards its current value!
+     *
+     * Example Usage:
+     *     SDR A({ 10 });
+     *     SDR B({ 10 });
+     *     SDR C({ 10 });
+     *     A.setSparse({0, 1, 2, 3});
+     *     B.setSparse(      {2, 3, 4, 5});
+     *     C.intersection(A, B);
+     *     C.getSparse() -> {2, 3}
+     */
+    void intersection(const SparseDistributedRepresentation &input1,
+                      const SparseDistributedRepresentation &input2);
+
+    void intersection(std::vector<const SparseDistributedRepresentation*> inputs);
+
+    /**
+     * Concatenates SDRs and stores the result in this SDR.
+     *
+     * @params This method has two overloads:
+     *          1) Accepts two SDRs, for convenience.
+     *          2) Accepts a list of SDR*, must contain at least two SDRs, can
+     *             contain as many SDRs as needed.
+     *
+     * @param UInt axis: This can concatenate along any axis, as long as the
+     * result has the same dimensions as this SDR.  The default axis is 0.
+     *
+     * @returns In both overloads the output is stored in this SDR.  This method
+     * modifies this SDR and discards its current value!
+     *
+     * Example Usage:
+     *      SDR A({ 10 });
+     *      SDR B({ 10 });
+     *      SDR C({ 20 });
+     *      A.setSparse({ 0, 1, 2 });
+     *      B.setSparse({ 0, 1, 2 });
+     *      C.concatenate( A, B );
+     *      C.getSparse() -> {0, 1, 2, 10, 11, 12}
+     */
+    void concatenate(const SparseDistributedRepresentation &inp1,
+                     const SparseDistributedRepresentation &inp2,
+                     UInt  axis = 0u);
+
+    void concatenate(std::vector<const SparseDistributedRepresentation*> inputs,
+                     UInt axis = 0u);
+
+    /**
      * Print a human readable version of the SDR.
      */
     friend std::ostream& operator<< (std::ostream& stream, const SparseDistributedRepresentation &sdr)
@@ -488,6 +547,8 @@ public:
     inline bool operator!=(const SparseDistributedRepresentation &sdr) const
         { return not ((*this) == sdr); }
 
+
+// TODO:Cereal- Remove these when Cereal is complete
     /**
      * Save (serialize) the current state of the SDR to the specified file.
      * This method can NOT save callbacks!  Only the dimensions and current data
@@ -506,6 +567,23 @@ public:
      */
     void load(std::istream &inStream) override;
 
+    CerealAdapter;
+
+    template<class Archive>
+    void save_ar(Archive & ar) const
+    {
+        getSparse(); // to make sure sparse is valid.
+        ar(cereal::make_nvp("dimensions", dimensions_), cereal::make_nvp("sparse", sparse_) );
+    }
+
+    template<class Archive>
+    void load_ar(Archive & ar)
+    {
+        ar( dimensions_, sparse_ );
+        initialize( dimensions_ );
+        setSparseInplace();
+    }
+
     /**
      * Callbacks notify you when this SDR's value changes.
      *
@@ -517,7 +595,7 @@ public:
      *
      * @returns UInt Handle for the given callback, needed to remove callback.
      */
-    UInt addCallback(SDR_callback_t callback);
+    UInt addCallback(SDR_callback_t callback) const;
 
     /**
      * Remove a previously registered callback.
@@ -525,7 +603,7 @@ public:
      * @param UInt Handle which was returned by addCallback when you registered
      * your callback.
      */
-    void removeCallback(UInt index);
+    void removeCallback(UInt index) const;
 
     /**
      * This callback notifies you when this SDR is deconstructed and freed from
@@ -539,7 +617,7 @@ public:
      *
      * @returns UInt Handle for the given callback, needed to remove callback.
      */
-    UInt addDestroyCallback(SDR_callback_t callback);
+    UInt addDestroyCallback(SDR_callback_t callback) const;
 
     /**
      * Remove a previously registered destroy callback.
@@ -547,7 +625,7 @@ public:
      * @param UInt Handle which was returned by addDestroyCallback when you
      * registered your callback.
      */
-    void removeDestroyCallback(UInt index);
+    void removeDestroyCallback(UInt index) const;
 };
 
 typedef SparseDistributedRepresentation SDR;

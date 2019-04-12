@@ -117,7 +117,7 @@ private:
   Parameters args_;
   vector<UInt> cellDimensions_;
 
-  vector<UInt32> rawOverlaps_;
+  vector<UInt16> rawOverlaps_;
   vector<UInt> proximalMaxSegment_;
 
   Random rng_;
@@ -181,7 +181,7 @@ public:
             proximalConnections.createSynapse( segment, presyn, permanence);
           }
           proximalConnections.raisePermanencesToThreshold( segment,
-                          args_.proximalSynapseThreshold, args_.proximalSegmentThreshold );
+                                              args_.proximalSegmentThreshold );
           PP_Sp.addData( proximalInputs );
           PP_AF.addData( proximalInputs );
         }
@@ -254,28 +254,24 @@ public:
 
   void compute(
         SDR& proximalInputActive,
-        SDR& distalInputActive,
         bool learn,
         SDR& active) {
-  //   SDR none( args_.distalInputDimensions );
-  //   SDR none2( active.dimensions );
-  //   compute_(proximalInputActive, proximalInputActive, none, none, learn, active, none2 );
-  // }
+    SDR none( args_.distalInputDimensions );
+    compute_(proximalInputActive, proximalInputActive, none, none, learn, active );
+  }
 
-  // void compute_(
-  //       const SDR& proximalInputActive,
-  //       const SDR& proximalInputLearning,
-  //       const SDR& distalInputActive,
-  //       const SDR& distalInputLearning,
-  //       bool learn,
-  //       SDR& active,
-  //       SDR& learning) {
+  void compute_(
+        const SDR& proximalInputActive,
+        const SDR& proximalInputLearning,
+        const SDR& distalInputActive,
+        const SDR& distalInputLearning,
+        bool learn,
+        SDR& active) {
     NTA_CHECK( proximalInputActive.dimensions   == args_.proximalInputDimensions );
-    // NTA_CHECK( proximalInputLearning.dimensions == args_.proximalInputDimensions );
-    // NTA_CHECK( distalInputActive.dimensions     == args_.distalInputDimensions );
-    // NTA_CHECK( distalInputLearning.dimensions   == args_.distalInputDimensions );
+    NTA_CHECK( proximalInputLearning.dimensions == args_.proximalInputDimensions );
+    NTA_CHECK( distalInputActive.dimensions     == args_.distalInputDimensions );
+    NTA_CHECK( distalInputLearning.dimensions   == args_.distalInputDimensions );
     NTA_CHECK( active.dimensions                == cellDimensions );
-    // NTA_CHECK( learning.dimensions              == cellDimensions );
 
     // Update bookkeeping
     iterationNum_++;
@@ -286,8 +282,7 @@ public:
     vector<Real> cellOverlaps( active.size );
     activateProximalDendrites( proximalInputActive, cellOverlaps );
 
-    // distalConnections.activateDendrites(learn, distalInputActive, distalInputLearning);
-    distalConnections.activateDendrites(learn, distalInputActive, distalInputActive);
+    distalConnections.activateDendrites(learn, distalInputActive, distalInputLearning);
     SDR predictedCells( cellDimensions );
     distalConnections.getPredictiveCells( predictedCells );
 
@@ -297,8 +292,7 @@ public:
     std::sort( active.getSparse().begin(), active.getSparse().end() );
     distalConnections.activateCells( active, learn );
     if( learn ) {
-      // learnProximalDendrites( proximalInputActive, proximalInputLearning, active );
-      learnProximalDendrites( proximalInputActive, proximalInputActive, active );
+      learnProximalDendrites( proximalInputActive, proximalInputLearning, active );
     }
   }
 
@@ -391,8 +385,7 @@ public:
                                        args_.proximalIncrement, args_.proximalDecrement);
 
       proximalConnections.raisePermanencesToThreshold(maxSegment,
-                                   args_.proximalSynapseThreshold,
-                                   args_.proximalSegmentThreshold);
+                                              args_.proximalSegmentThreshold);
 
       activeSegments.push_back(maxSegment);
     }
