@@ -57,8 +57,20 @@ public:
 
   void encode(const std::vector<Real64> &coordinates, sdr::SDR &output) override;
 
-  void save(std::ostream& ) const override {}; // TODO: IMPLEMENTATION
-  void load(std::istream& ) override {}; // TODO: IMPLEMENTATION
+
+  CerealAdapter;
+
+  template<class Archive>
+  void save_ar(Archive & ar) const
+  {
+    ar(neighborhood_); // TODO: Finish this!
+  }
+
+  template<class Archive>
+  void load_ar(Archive & ar)
+  {
+    ar(neighborhood_); // TODO: Finish this!
+  }
 
   ~CoordinateEncoder() override {};
 

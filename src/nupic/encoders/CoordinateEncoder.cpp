@@ -45,10 +45,10 @@ void CoordinateEncoder::initialize( const CoordinateEncoderParameters &parameter
   args_.sparsity   = rdse.parameters.sparsity;
   args_.seed       = rdse.parameters.seed;
   // args_.resolution = TODO
-  // args_.radius = (Real64) 2.0f * radius / maxExtent;
+  // args_.radius = (Real64) 2.0f * radius / maxExtent; // TODO Is this right?
   NTA_CHECK(args_.radius == 0.0f); // For now disable.
 
-  // TODO: EXPLAIN what this next section does...  hashes neighborhoods ...
+  // TODO: EXPLAIN what this next section does... hashes neighborhoods ...  Put this doc in public facing area...
 
   // Find radius of sphere in numDimensions & volume of activeBits.
   const Real volume     = (Real) args_.activeBits;

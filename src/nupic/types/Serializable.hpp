@@ -209,14 +209,20 @@ public:
     load(in);
     in.close();
   }
+
 	// TODO:Cereal- after all serialization using Cereal is complete, 
   //       remove save() and load() pairs from all derived classes
 	//       change all save_ar() load_ar() pairs to be save() load().
-	//       Remove the following two lines.
+	//       Remove the following two methods.
 
   // These must be implemented by the subclass.
-  virtual void save(std::ostream &stream) const = 0;
-  virtual void load(std::istream &stream) = 0;
+  virtual void save(std::ostream &stream) const {
+    saveToStream_ar(stream, SerializableFormat::JSON);
+  }
+
+  virtual void load(std::istream &stream) {
+    loadFromStream_ar(stream, SerializableFormat::JSON);
+  }
 
 
   virtual inline void saveToFile_ar(std::string filePath, SerializableFormat fmt=SerializableFormat::BINARY) const {
