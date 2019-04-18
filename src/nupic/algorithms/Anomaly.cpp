@@ -28,8 +28,7 @@
 
 #include "nupic/algorithms/Anomaly.hpp"
 #include "nupic/utils/Log.hpp"
-#include "nupic/utils/MovingAverage.hpp"
-#include "nupic/types/SdrTools.hpp" // sdr::Intersection
+#include "nupic/types/Sdr.hpp"
 
 using namespace std;
 using namespace nupic;
@@ -121,3 +120,14 @@ Real Anomaly::compute(vector<UInt>& active, vector<UInt>& predicted, int timesta
 
   return score;
 }
+
+bool Anomaly::operator==(const Anomaly &a) const {
+  if (mode_ != a.mode_) return false;
+  if (binaryThreshold_ != a.binaryThreshold_) return false;
+  if (movingAverage_ != nullptr && a.movingAverage_ == nullptr) return false;
+  if (movingAverage_ == nullptr && a.movingAverage_ != nullptr) return false;
+  if (movingAverage_ != nullptr && *(movingAverage_.get()) != *(a.movingAverage_.get())) return false;
+  if (likelihood_ != a.likelihood_) return false;
+  return true;
+}
+

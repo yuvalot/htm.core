@@ -24,7 +24,6 @@
 #include <pybind11/stl.h>
 
 #include <nupic/types/Sdr.hpp>
-#include <nupic/types/SdrTools.hpp>
 #include <nupic/utils/StringUtils.hpp>  // trim
 
 #include <memory> // shared_ptr
@@ -235,7 +234,8 @@ I.E.  sparsity = sdr.getSum() / sdr.size)");
         py_SDR.def("randomize",
             [](SDR &self, Real sparsity, UInt seed) {
             Random rng( seed );
-            self.randomize( sparsity, rng ); },
+            self.randomize( sparsity, rng );
+            return self; },
 R"(Make a random SDR, overwriting the current value of the SDR.  The result has
 uniformly random activations.
 
@@ -247,6 +247,16 @@ Optional argument seed is used for the random number generator.  Seed 0 is
 special, it is replaced with the system time  The default seed is 0.)",
             py::arg("sparsity"),
             py::arg("seed") = 0u);
+
+        py::module::import("nupic.bindings.math");
+        py_SDR.def("randomize",
+            [](SDR &self, Real sparsity, Random rng) {
+            self.randomize( sparsity, rng );
+            return self; },
+R"(This overload accepts Random Number Generators (RNG) intead of a random seed.
+RNGs must be instances of "nupic.bindings.math.Random".)",
+                py::arg("sparsity"),
+                py::arg("rng"));
 
         py_SDR.def("addNoise", [](SDR &self, Real fractionNoise, UInt seed = 0) {
             Random rng( seed );
@@ -307,6 +317,10 @@ R"(Argument sdr is the data source to reshape.
 
 Argument dimensions A list of dimension sizes, defining the shape of the SDR.)",
             py::arg("sdr"), py::arg("dimensions"));
+
+        py_SDR.def("reshape", [](SDR &self, vector<UInt> dimensions)
+            { return new Reshape(self, dimensions); },
+R"(See class nupic.bindings.sdr.Reshape)");
 
 
         py_SDR.def("intersection", [](SDR &self, SDR& inp1, SDR& inp2)
