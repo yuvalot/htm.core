@@ -120,8 +120,8 @@ def L23(nExternal):
     params.distalMaxSegments            = 64
     params.distalInputDimensions        = [nExternal]
     params.period                       = 1000
-    params.fatigue_rate                 = .0
-    params.stability_rate               = .50
+    params.fatigueRate                  = .0
+    params.stabilityRate                = .50
     params.seed                         = 0
     params.verbose                      = True
     return ColumnPooler(params)
@@ -198,7 +198,7 @@ if __name__ == '__main__':
     if False:
         print("Turning off stability for testing...")
         testArgs = l23.parameters
-        testArgs.stability_rate = 0
+        testArgs.stabilityRate = 0
         l23.setParameters( testArgs )
 
     # Test

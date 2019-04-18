@@ -61,8 +61,8 @@ namespace nupic_ext
     py_Parameters.def_readwrite("distalDecrement",              &Parameters::distalDecrement);
     py_Parameters.def_readwrite("distalMispredictDecrement",    &Parameters::distalMispredictDecrement);
     py_Parameters.def_readwrite("distalSynapseThreshold",       &Parameters::distalSynapseThreshold);
-    py_Parameters.def_readwrite("stability_rate",               &Parameters::stability_rate);
-    py_Parameters.def_readwrite("fatigue_rate",                 &Parameters::fatigue_rate);
+    py_Parameters.def_readwrite("stabilityRate",               &Parameters::stabilityRate);
+    py_Parameters.def_readwrite("fatigueRate",                 &Parameters::fatigueRate);
     py_Parameters.def_readwrite("period",                       &Parameters::period);
     py_Parameters.def_readwrite("seed",                         &Parameters::seed);
     py_Parameters.def_readwrite("verbose",                      &Parameters::verbose);
@@ -83,7 +83,7 @@ namespace nupic_ext
     py_ColumnPooler.def_property_readonly("parameters", [](const ColumnPooler &self)
         { return self.parameters; });
     py_ColumnPooler.def_property_readonly_static("defaultParameters",
-        [](py::object self) { return DefaultParameters; });
+        [](py::object self) { return new Parameters(); });
 
     py_ColumnPooler.def("reset", &ColumnPooler::reset);
 

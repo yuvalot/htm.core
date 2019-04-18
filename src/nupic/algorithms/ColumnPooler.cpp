@@ -19,8 +19,7 @@
  * along with this program.  If not, see http://www.gnu.org/licenses.
  *
  * http://numenta.org/licenses/
- * ----------------------------------------------------------------------
- */
+ * ---------------------------------------------------------------------- */
 
 /** @file
  * Implementation of ColumnPooler
@@ -65,51 +64,124 @@ using nupic::algorithms::temporal_memory::TemporalMemory;
 
 typedef function<SDR (const SDR&, const vector<UInt>&, Random&)> Topology_t;
 
+
+Topology_t  DefaultTopology(
+    Real potentialPct,
+    Real potentialRadius,
+    bool wrapAround)
+  {
+  return [=] (const SDR& cell, const vector<UInt>& potentialPoolDimensions, Random &rng) -> SDR {
+    // Uniform topology over trailing input dimensions.
+    auto inputTopology = potentialPoolDimensions;
+    UInt extraDimensions = 1u;
+    while( inputTopology.size() > cell.dimensions.size() ) {
+      extraDimensions *= inputTopology.back();
+      inputTopology.pop_back();
+    }
+
+    // Convert the coordinates of the target cell, from a location in
+    // cellDimensions to inputTopology.
+    NTA_ASSERT( cell.getSum() == 1u );
+    vector<vector<UInt>> inputCoords;
+    for(auto i = 0u; i < cell.dimensions.size(); i++)
+    {
+      const Real columnCoord = cell.getCoordinates()[i][0];
+      const Real inputCoord = (columnCoord + 0.5f) *
+                              (inputTopology[i] / (Real)cell.dimensions[i]);
+      inputCoords.push_back({ (UInt32)floor(inputCoord) });
+    }
+    SDR inputTopologySDR( inputTopology );
+    inputTopologySDR.setCoordinates( inputCoords );
+    const auto centerInput = inputTopologySDR.getSparse()[0];
+
+    vector<UInt> columnInputs;
+    if( wrapAround ) {
+      for( UInt input : WrappingNeighborhood(centerInput, potentialRadius, inputTopology)) {
+        for( UInt extra = 0; extra < extraDimensions; ++extra ) {
+          columnInputs.push_back( input * extraDimensions + extra );
+        }
+      }
+    }
+    else {
+      for( UInt input :
+           Neighborhood(centerInput, potentialRadius, inputTopology)) {
+        for( UInt extra = 0; extra < extraDimensions; ++extra ) {
+          columnInputs.push_back( input * extraDimensions + extra );
+        }
+      }
+    }
+
+    const UInt numPotential = (UInt)round(columnInputs.size() * potentialPct);
+    const auto selectedInputs = rng.sample<UInt>(columnInputs, numPotential);
+    SDR potentialPool( potentialPoolDimensions );
+    potentialPool.setSparse( selectedInputs );
+    return potentialPool;
+  };
+}
+
+// TODO: Test this!
+// TODO: Document this because this is the one users should copy-paste to make their own topology.
+Topology_t NoTopology(Real potentialPct)
+{
+  return [=](const SDR& cell, const vector<UInt>& potentialPoolDimensions, Random &rng) -> SDR {
+    SDR potentialPool( potentialPoolDimensions );
+    potentialPool.randomize( potentialPct, rng );
+    return potentialPool;
+  };
+}
+
+
 typedef function<Permanence(Random&)> InitialPermanence_t;
+
+// TODO: USE THIS!
+InitialPermanence_t DefaultInitialPermanence(Permanence connectedThreshold) {
+  return [=](Random &rng) -> Permanence {
+    return rng.getReal64(); // placeholder
+  };
+}
+
 
 struct Parameters
 {
 public:
+  // TODO SENSIBLE DEFAULTS
   vector<UInt> proximalInputDimensions;
-  vector<UInt> distalInputDimensions;
   vector<UInt> inhibitionDimensions;
   UInt         cellsPerInhibitionArea;
 
-  Real sparsity;
+  Real sparsity = 0.02f;
 
-  Topology_t  potentialPool;
-  UInt        proximalSegments;
-  UInt        proximalSegmentThreshold;
-  Permanence  proximalIncrement;
-  Permanence  proximalDecrement;
-  Permanence  proximalSynapseThreshold;
+  Topology_t  potentialPool     = NoTopology(1.0f);
+  UInt        proximalSegments  = 1u;
+  Permanence  proximalIncrement = 0.01f;
+  Permanence  proximalDecrement = 0.002f;
+  Permanence  proximalSynapseThreshold = 0.40f;
+  UInt        proximalSegmentThreshold = 1u;
 
-  UInt       distalMaxSegments;
-  UInt       distalMaxSynapsesPerSegment;
-  UInt       distalSegmentThreshold;
-  UInt       distalSegmentMatch;
-  UInt       distalAddSynapses;
-  Permanence distalInitialPermanence;
-  Permanence distalIncrement;
-  Permanence distalDecrement;
-  Permanence distalMispredictDecrement;
-  Permanence distalSynapseThreshold;
+  vector<UInt> distalInputDimensions       = {0u};
+  UInt         distalMaxSegments           = 255;
+  UInt         distalMaxSynapsesPerSegment = 255;
+  UInt         distalSegmentThreshold      = 13;
+  UInt         distalSegmentMatch          = 10;
+  UInt         distalAddSynapses           = 20;
+  Permanence   distalInitialPermanence     = 0.21;
+  Permanence   distalIncrement             = 0.10;
+  Permanence   distalDecrement             = 0.10;
+  Permanence   distalMispredictDecrement   = 0.0f;
+  Permanence   distalSynapseThreshold      = 0.50;
 
-  Real stability_rate;    // TODO: Fix naming convention
-  Real fatigue_rate;      // TODO: Fix naming convention
+  Real stabilityRate;
+  Real fatigueRate;
 
   UInt period;
-  Int  seed;
-  bool verbose;
+  Int  seed    = 0;
+  bool verbose = true;
 };
 
-const Parameters DefaultParameters = {
-  // TODO
-};
 
-const Parameters DefaultParametersNoDistalDendrites = {
-  // TODO
-};
+// TODO:
+// const extern Parameters SpatialPoolerParameters = {};
+
 
 class ColumnPooler // : public Serializable
 {
@@ -350,8 +422,8 @@ public:
       // experiments w/ grid cells apply stab+fatigue b4 boosting...
 
       // Apply Stability & Fatigue
-      X_act[cell]   += (1.0f - args_.stability_rate) * (maxOverlap - X_act[cell] - X_inact[cell]);
-      X_inact[cell] += args_.fatigue_rate * (maxOverlap - X_inact[cell]);
+      X_act[cell]   += (1.0f - args_.stabilityRate) * (maxOverlap - X_act[cell] - X_inact[cell]);
+      X_inact[cell] += args_.fatigueRate * (maxOverlap - X_inact[cell]);
       cellOverlaps[cell] = X_act[cell];
     }
   }
@@ -573,10 +645,10 @@ public:
     if( newParameters.distalSynapseThreshold      != parameters.distalSynapseThreshold ) {
       NTA_THROW << "Setter unimplemented.";
     }
-    if( newParameters.stability_rate              != parameters.stability_rate ) {
+    if( newParameters.stabilityRate              != parameters.stabilityRate ) {
       NTA_THROW << "Setter unimplemented.";
     }
-    if( newParameters.fatigue_rate                != parameters.fatigue_rate ) {
+    if( newParameters.fatigueRate                != parameters.fatigueRate ) {
       NTA_THROW << "Setter unimplemented.";
     }
     if( newParameters.period                      != parameters.period ) {
@@ -594,80 +666,6 @@ public:
   //   return distalConnections.anomaly();
   // }
 };
-
-
-Topology_t  DefaultTopology(
-    Real potentialPct,
-    Real potentialRadius,
-    bool wrapAround)
-  {
-  return [=] (const SDR& cell, const vector<UInt>& potentialPoolDimensions, Random &rng) -> SDR {
-    // Uniform topology over trailing input dimensions.
-    auto inputTopology = potentialPoolDimensions;
-    UInt extraDimensions = 1u;
-    while( inputTopology.size() > cell.dimensions.size() ) {
-      extraDimensions *= inputTopology.back();
-      inputTopology.pop_back();
-    }
-
-    // Convert the coordinates of the target cell, from a location in
-    // cellDimensions to inputTopology.
-    NTA_ASSERT( cell.getSum() == 1u );
-    vector<vector<UInt>> inputCoords;
-    for(auto i = 0u; i < cell.dimensions.size(); i++)
-    {
-      const Real columnCoord = cell.getCoordinates()[i][0];
-      const Real inputCoord = (columnCoord + 0.5f) *
-                              (inputTopology[i] / (Real)cell.dimensions[i]);
-      inputCoords.push_back({ (UInt32)floor(inputCoord) });
-    }
-    SDR inputTopologySDR( inputTopology );
-    inputTopologySDR.setCoordinates( inputCoords );
-    const auto centerInput = inputTopologySDR.getSparse()[0];
-
-    vector<UInt> columnInputs;
-    if( wrapAround ) {
-      for( UInt input : WrappingNeighborhood(centerInput, potentialRadius, inputTopology)) {
-        for( UInt extra = 0; extra < extraDimensions; ++extra ) {
-          columnInputs.push_back( input * extraDimensions + extra );
-        }
-      }
-    }
-    else {
-      for( UInt input :
-           Neighborhood(centerInput, potentialRadius, inputTopology)) {
-        for( UInt extra = 0; extra < extraDimensions; ++extra ) {
-          columnInputs.push_back( input * extraDimensions + extra );
-        }
-      }
-    }
-
-    const UInt numPotential = (UInt)round(columnInputs.size() * potentialPct);
-    const auto selectedInputs = rng.sample<UInt>(columnInputs, numPotential);
-    SDR potentialPool( potentialPoolDimensions );
-    potentialPool.setSparse( selectedInputs );
-    return potentialPool;
-  };
-}
-
-// TODO: Test this!
-// TODO: Document this because this is the one users should copy-paste to make their own topology.
-Topology_t NoTopology(Real potentialPct)
-{
-  return [=](const SDR& cell, const vector<UInt>& potentialPoolDimensions, Random &rng) -> SDR {
-    SDR potentialPool( potentialPoolDimensions );
-    potentialPool.randomize( potentialPct, rng );
-    return potentialPool;
-  };
-}
-
-// TODO: USE THIS!
-InitialPermanence_t DefaultInitialPermanence(Permanence connectedThreshold) {
-  return [=](Random &rng) -> Permanence {
-    return rng.getReal64(); // placeholder
-  };
-}
-
 
 } // End namespace column_pooler
 } // End namespace algorithmn

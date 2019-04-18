@@ -43,6 +43,7 @@ namespace column_pooler = nupic::algorithms::column_pooler;
 
 using nupic::algorithms::spatial_pooler::SpatialPooler;
 using nupic::algorithms::column_pooler::DefaultTopology;
+using namespace nupic::algorithms::column_pooler;
 using nupic::algorithms::connections::Permanence;
 using nupic::algorithms::sdr_classifier::SDRClassifier;
 using nupic::algorithms::sdr_classifier::ClassifierResult;
@@ -93,7 +94,7 @@ void setup(bool spNotCp = false)
   }
   else
   {
-    auto params = column_pooler::DefaultParameters;
+    Parameters params;
     params.proximalInputDimensions     = input.dimensions;
     params.distalInputDimensions       = {1};
     params.inhibitionDimensions        = {10, 10};
@@ -114,8 +115,8 @@ void setup(bool spNotCp = false)
     params.distalDecrement             = 0;
     params.distalMispredictDecrement   = 0;
     params.distalSynapseThreshold      = 0;
-    params.stability_rate              = 0;
-    params.fatigue_rate                = 0;
+    params.stabilityRate              = 0;
+    params.fatigueRate                = 0;
     params.period                      = 1402;
     params.seed                        = 0;
     params.verbose                     = verbosity;

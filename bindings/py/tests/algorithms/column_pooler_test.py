@@ -44,8 +44,8 @@ class columnPoolerTest(unittest.TestCase):
       enc = RDSE(enc)
 
       gcm = ColumnPooler.defaultParameters
-      gcm.stability_rate              = 1 - 0.05
-      gcm.fatigue_rate                = 0.05 / 3
+      gcm.stabilityRate               = 1 - 0.05
+      gcm.fatigueRate                 = 0.05 / 3
       gcm.proximalInputDimensions     = (enc.size,)
       gcm.inhibitionDimensions        = (1,)
       gcm.cellsPerInhibitionArea      = 200
