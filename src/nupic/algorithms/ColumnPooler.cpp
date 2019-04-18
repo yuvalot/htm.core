@@ -236,7 +236,7 @@ public:
     rng_ = Random(args_.seed);
 
     // Setup the proximal segments & synapses.
-    proximalConnections.initialize(cells.size, args_.proximalSynapseThreshold);
+    proximalConnections.initialize(cells.size, args_.proximalSynapseThreshold, true);
     Sparsity            PP_Sp( proximalInputs.dimensions, cells.size * args_.proximalSegments * 2);
     ActivationFrequency PP_AF( proximalInputs.dimensions, cells.size * args_.proximalSegments * 2);
     UInt cell = 0u;
@@ -321,7 +321,7 @@ public:
   void reset() {
     X_act.assign( proximalConnections.numCells(), 0.0f );
     X_inact.assign( proximalConnections.numCells(), 0.0f );
-    // TODO Zero Previous Updates
+    proximalConnections.reset();
     distalConnections.reset();
   }
 

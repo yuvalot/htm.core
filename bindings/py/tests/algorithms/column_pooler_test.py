@@ -27,7 +27,6 @@ import itertools
 import math
 import scipy.signal
 import time
-import matplotlib.pyplot as plt
 
 from nupic.bindings.sdr import SDR, Metrics
 from nupic.bindings.encoders import RDSE, RDSE_Parameters
