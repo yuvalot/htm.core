@@ -138,7 +138,9 @@ void TemporalMemory::initialize(
   extra_ = extra;
 
   // Initialize member variables
-  connections = Connections(static_cast<CellIdx>(numberOfColumns() * cellsPerColumn_), connectedPermanence_);
+  connections = Connections(
+      static_cast<CellIdx>(numberOfColumns() * cellsPerColumn_),
+      connectedPermanence_, true);
   rng_ = Random(seed);
 
   maxSegmentsPerCell_ = maxSegmentsPerCell;
@@ -654,6 +656,7 @@ void TemporalMemory::reset(void) {
   activeSegments_.clear();
   matchingSegments_.clear();
   segmentsValid_ = false;
+  connections.reset();
 }
 
 // ==============================
