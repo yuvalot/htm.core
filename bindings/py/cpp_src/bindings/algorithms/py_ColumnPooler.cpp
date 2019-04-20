@@ -44,7 +44,9 @@ namespace nupic_ext
     py_Parameters.def_readwrite("distalInputDimensions",        &Parameters::distalInputDimensions);
     py_Parameters.def_readwrite("inhibitionDimensions",         &Parameters::inhibitionDimensions);
     py_Parameters.def_readwrite("cellsPerInhibitionArea",       &Parameters::cellsPerInhibitionArea);
-    py_Parameters.def_readwrite("sparsity",                     &Parameters::sparsity);
+    py_Parameters.def_readwrite("minSparsity",                  &Parameters::minSparsity);
+    py_Parameters.def_readwrite("maxBurstSparsity",             &Parameters::maxBurstSparsity);
+    py_Parameters.def_readwrite("maxDepolarizedSparsity",       &Parameters::maxDepolarizedSparsity);
     py_Parameters.def_readwrite("potentialPool",                &Parameters::potentialPool);
     py_Parameters.def_readwrite("proximalSegments",             &Parameters::proximalSegments);
     py_Parameters.def_readwrite("proximalSegmentThreshold",     &Parameters::proximalSegmentThreshold);

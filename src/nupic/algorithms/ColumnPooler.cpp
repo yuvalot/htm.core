@@ -28,12 +28,12 @@
 #include <iostream>
 #include <vector>
 #include <string>
-#include <algorithm> // accumulate
+#include <algorithm> // accumulate, max
 #include <limits>  // numeric_limits
 #include <iomanip> // setprecision
 #include <functional> // function, multiplies
 
-// #include <nupic/algorithms/ColumnPooler.hpp>
+// TODO: #include <nupic/algorithms/ColumnPooler.hpp>
 #include <nupic/types/Types.hpp>
 #include <nupic/types/Serializable.hpp>
 #include <nupic/types/Sdr.hpp>
@@ -55,88 +55,17 @@ using namespace nupic::algorithms::connections;
 using nupic::algorithms::temporal_memory::TemporalMemory;
 
 
-// TODO: Connections learning rules are different...
-// Don't apply the same learning update to a synapse twice in a row, because
-// otherwise staring at the same object for too long will mess up the synapses.
-// This change allows it to work with timeseries data which moves very slowly,
-// instead of the usual HTM inputs which reliably change every cycle. See kropff
-// & treves 2008
+typedef function<Permanence(Random&, const SDR&, const SDR&)> InitialPermanence_t;
 
-typedef function<SDR (const SDR&, const vector<UInt>&, Random&)> Topology_t;
-
-
-Topology_t  DefaultTopology(
-    Real potentialPct,
-    Real potentialRadius,
-    bool wrapAround)
-  {
-  return [=] (const SDR& cell, const vector<UInt>& potentialPoolDimensions, Random &rng) -> SDR {
-    // Uniform topology over trailing input dimensions.
-    auto inputTopology = potentialPoolDimensions;
-    UInt extraDimensions = 1u;
-    while( inputTopology.size() > cell.dimensions.size() ) {
-      extraDimensions *= inputTopology.back();
-      inputTopology.pop_back();
-    }
-
-    // Convert the coordinates of the target cell, from a location in
-    // cellDimensions to inputTopology.
-    NTA_ASSERT( cell.getSum() == 1u );
-    vector<vector<UInt>> inputCoords;
-    for(auto i = 0u; i < cell.dimensions.size(); i++)
-    {
-      const Real columnCoord = cell.getCoordinates()[i][0];
-      const Real inputCoord = (columnCoord + 0.5f) *
-                              (inputTopology[i] / (Real)cell.dimensions[i]);
-      inputCoords.push_back({ (UInt32)floor(inputCoord) });
-    }
-    SDR inputTopologySDR( inputTopology );
-    inputTopologySDR.setCoordinates( inputCoords );
-    const auto centerInput = inputTopologySDR.getSparse()[0];
-
-    vector<UInt> columnInputs;
-    if( wrapAround ) {
-      for( UInt input : WrappingNeighborhood(centerInput, potentialRadius, inputTopology)) {
-        for( UInt extra = 0; extra < extraDimensions; ++extra ) {
-          columnInputs.push_back( input * extraDimensions + extra );
-        }
-      }
-    }
-    else {
-      for( UInt input :
-           Neighborhood(centerInput, potentialRadius, inputTopology)) {
-        for( UInt extra = 0; extra < extraDimensions; ++extra ) {
-          columnInputs.push_back( input * extraDimensions + extra );
-        }
-      }
-    }
-
-    const UInt numPotential = (UInt)round(columnInputs.size() * potentialPct);
-    const auto selectedInputs = rng.sample<UInt>(columnInputs, numPotential);
-    SDR potentialPool( potentialPoolDimensions );
-    potentialPool.setSparse( selectedInputs );
-    return potentialPool;
-  };
-}
-
-// TODO: Test this!
-// TODO: Document this because this is the one users should copy-paste to make their own topology.
-Topology_t NoTopology(Real potentialPct)
+InitialPermanence_t defaultProximalInitialPermanence(
+                        Permanence connectedThreshold, Real connectedPct)
 {
-  return [=](const SDR& cell, const vector<UInt>& potentialPoolDimensions, Random &rng) -> SDR {
-    SDR potentialPool( potentialPoolDimensions );
-    potentialPool.randomize( potentialPct, rng );
-    return potentialPool;
-  };
-}
-
-
-typedef function<Permanence(Random&)> InitialPermanence_t;
-
-// TODO: USE THIS!
-InitialPermanence_t DefaultInitialPermanence(Permanence connectedThreshold) {
-  return [=](Random &rng) -> Permanence {
-    return rng.getReal64(); // placeholder
+  return [=](Random &rng, const SDR& presyn, const SDR& postsyn) -> Permanence {
+    if( rng.getReal64() <= connectedPct )
+        return connectedThreshold +
+          (1.0f - connectedThreshold) * rng.getReal64();
+      else
+        return connectedThreshold * rng.getReal64();
   };
 }
 
@@ -149,7 +78,9 @@ public:
   vector<UInt> inhibitionDimensions;
   UInt         cellsPerInhibitionArea;
 
-  Real sparsity = 0.02f;
+  Real minSparsity            = 0.02f;
+  Real maxDepolarizedSparsity = 3.0f;
+  Real maxBurstSparsity       = 4.0f;
 
   Topology_t  potentialPool     = NoTopology(1.0f);
   UInt        proximalSegments  = 1u;
@@ -157,6 +88,8 @@ public:
   Permanence  proximalDecrement = 0.002f;
   Permanence  proximalSynapseThreshold = 0.40f;
   UInt        proximalSegmentThreshold = 1u;
+  InitialPermanence_t proximalInitialPermanence =
+                                  defaultProximalInitialPermanence(0.40f, 0.5f);
 
   vector<UInt> distalInputDimensions       = {0u};
   UInt         distalMaxSegments           = 255;
@@ -190,6 +123,7 @@ private:
   vector<UInt> cellDimensions_;
 
   vector<UInt16> rawOverlaps_;
+  vector<Real> cellOverlaps_;
   vector<UInt> proximalMaxSegment_;
 
   Random rng_;
@@ -201,6 +135,8 @@ private:
 
   // This is used by boosting.
   ActivationFrequency *AF_;
+
+  SDR predictiveCells_;
 
 public:
   const Parameters   &parameters     = args_;
@@ -218,14 +154,20 @@ public:
 
   TemporalMemory distalConnections;
 
-  ColumnPooler() {}; //default constructor, must call initialize to setup properly
+  ColumnPooler() {}; // Default constructor, call initialize to setup properly
 
   ColumnPooler( const Parameters &parameters )
     { initialize( parameters ); }
 
   void initialize( const Parameters &parameters ) {
+    // TODO: Move all of the parameter checks into setParameters
     NTA_CHECK( parameters.proximalSegments > 0u );
     NTA_CHECK( parameters.cellsPerInhibitionArea > 0u );
+
+    NTA_CHECK( parameters.minSparsity * parameters.cellsPerInhibitionArea > 0.5f )
+      << "Not enough cellsPerInhibitionArea ("
+      << args_.cellsPerInhibitionArea << ") for desired density (" << args_.minSparsity << ").";
+    // TODO: Check that minSparsity <= maxDepolarizedSparsity & maxBurstSparsity
 
     args_ = parameters;
     SDR proximalInputs(  args_.proximalInputDimensions );
@@ -235,39 +177,49 @@ public:
     SDR cells( cellDimensions_ );
     rng_ = Random(args_.seed);
 
-    // Setup the proximal segments & synapses.
+    // Setup Proximal segments & synapses.
     proximalConnections.initialize(cells.size, args_.proximalSynapseThreshold, true);
     Sparsity            PP_Sp( proximalInputs.dimensions, cells.size * args_.proximalSegments * 2);
     ActivationFrequency PP_AF( proximalInputs.dimensions, cells.size * args_.proximalSegments * 2);
     UInt cell = 0u;
-    for(auto inhib = 0u; inhib < inhibitionAreas.size; ++inhib) {
+    for(auto inhib = 0u; inhib < inhibitionAreas.size; ++inhib)
+    {
       inhibitionAreas.setSparse(SDR_sparse_t{ inhib });
-      for(auto c = 0u; c < args_.cellsPerInhibitionArea; ++c, ++cell) {
-        for(auto s = 0u; s < args_.proximalSegments; ++s) {
+      for(auto c = 0u; c < args_.cellsPerInhibitionArea; ++c, ++cell)
+      {
+        cells.setSparse(SDR_sparse_t{ cell });
+        for(auto s = 0u; s < args_.proximalSegments; ++s)
+        {
           auto segment = proximalConnections.createSegment( cell );
 
-          // Make synapses.
-          proximalInputs.setSDR(
-            args_.potentialPool( inhibitionAreas, args_.proximalInputDimensions, rng_ ));
-          NTA_CHECK(proximalInputs.getSum() > 0);
-          for(const auto presyn : proximalInputs.getSparse() ) {
-            auto permanence = initProximalPermanence();
+          // Find the pool of potential inputs to this proximal segment.
+          SDR pp = args_.potentialPool( inhibitionAreas, args_.proximalInputDimensions, rng_ );
+          PP_Sp.addData( pp );
+          PP_AF.addData( pp );
+          for(const auto presyn : pp.getSparse() )
+          {
+            // Find an initial permanence for this synapse.
+            proximalInputs.setSparse(SDR_sparse_t{ presyn });
+            auto permanence = args_.proximalInitialPermanence(rng_, proximalInputs, cells);
+
+            // Make the synapses.
             proximalConnections.createSynapse( segment, presyn, permanence);
           }
           proximalConnections.raisePermanencesToThreshold( segment,
                                               args_.proximalSegmentThreshold );
-          PP_Sp.addData( proximalInputs );
-          PP_AF.addData( proximalInputs );
         }
       }
     }
+    // Setup Proximal data structures.
+    rawOverlaps_.resize( proximalConnections.numSegments() );
+    cellOverlaps_.resize( cells.size );
+    proximalMaxSegment_.resize( cells.size );
     tieBreaker_.resize( proximalConnections.numSegments() );
     for(auto i = 0u; i < tieBreaker_.size(); ++i) {
       tieBreaker_[i] = 0.01f * rng_.getReal64();
     }
-    proximalMaxSegment_.resize( cells.size );
     AF_ = new ActivationFrequency( {cells.size, args_.proximalSegments},
-                        args_.period, args_.sparsity / args_.proximalSegments );
+                        args_.period, args_.minSparsity / args_.proximalSegments );
 
     // Setup the distal dendrites
     distalConnections.initialize(
@@ -287,6 +239,8 @@ public:
         /* checkInputs */                 true,
         /* extra */                       SDR(args_.distalInputDimensions).size);
 
+    predictiveCells_.initialize( cellDimensions );
+
     iterationNum_      = 0u;
     iterationLearnNum_ = 0u;
 
@@ -295,6 +249,7 @@ public:
     if( PP_Sp.min() * proximalInputs.size < args_.proximalSegmentThreshold ) {
       NTA_WARN << "WARNING: Proximal segment has fewer synapses than the segment threshold." << endl;
     }
+    NTA_CHECK( PP_Sp.min() > 0.0f );
     if( PP_AF.min() == 0.0f ) {
       NTA_WARN << "WARNING: Proximal input is unused." << endl;
     }
@@ -305,16 +260,6 @@ public:
            << PP_Sp
            << PP_AF << endl;
     }
-  }
-
-
-  Real initProximalPermanence(Real connectedPct = 0.5f) {
-    // TODO: connectedPct as a true parameter? Maybe? Someday?
-    if( rng_.getReal64() <= connectedPct )
-        return args_.proximalSynapseThreshold +
-          (1.0f - args_.proximalSynapseThreshold) * rng_.getReal64();
-      else
-        return args_.proximalSynapseThreshold * rng_.getReal64();
   }
 
 
@@ -331,7 +276,8 @@ public:
         bool learn,
         SDR& active) {
     SDR none( args_.distalInputDimensions );
-    compute_(proximalInputActive, proximalInputActive, none, none, learn, active );
+    SDR winner( cellDimensions );
+    compute_(proximalInputActive, proximalInputActive, none, none, learn, active, winner );
   }
 
   void compute_(
@@ -340,12 +286,14 @@ public:
         const SDR& distalInputActive,
         const SDR& distalInputLearning,
         bool learn,
-        SDR& active) {
+        SDR& active,
+        SDR& winner) {
     NTA_CHECK( proximalInputActive.dimensions   == args_.proximalInputDimensions );
     NTA_CHECK( proximalInputLearning.dimensions == args_.proximalInputDimensions );
     NTA_CHECK( distalInputActive.dimensions     == args_.distalInputDimensions );
     NTA_CHECK( distalInputLearning.dimensions   == args_.distalInputDimensions );
     NTA_CHECK( active.dimensions                == cellDimensions );
+    NTA_CHECK( winner.dimensions                == cellDimensions );
 
     // Update bookkeeping
     iterationNum_++;
@@ -353,33 +301,30 @@ public:
       iterationLearnNum_++;
 
     // Feed Forward Input / Proximal Dendrites
-    vector<Real> cellOverlaps( active.size );
-    activateProximalDendrites( proximalInputActive, cellOverlaps );
+    activateProximalDendrites( proximalInputActive );
 
     distalConnections.activateDendrites(learn, distalInputActive, distalInputLearning);
-    SDR predictedCells( cellDimensions );
-    distalConnections.getPredictiveCells( predictedCells );
+    distalConnections.getPredictiveCells( predictiveCells_ );
 
-    activateCells( cellOverlaps, predictedCells, active );
+    activateCells( active, winner );
 
     // Learn
     std::sort( active.getSparse().begin(), active.getSparse().end() );
     distalConnections.activateCells( active, learn );
     if( learn ) {
-      learnProximalDendrites( proximalInputActive, proximalInputLearning, active );
+      learnProximalDendrites( proximalInputActive, active );
     }
   }
 
 
-  void activateProximalDendrites( const SDR &feedForwardInputs,
-                                  vector<Real> &cellOverlaps )
+  void activateProximalDendrites( const SDR &feedForwardInputs )
   {
     // Proximal Feed Forward Excitement
-    rawOverlaps_.assign( proximalConnections.numSegments(), 0.0f );
+    fill( rawOverlaps_.begin(), rawOverlaps_.end(), 0.0f );
     proximalConnections.computeActivity(rawOverlaps_, feedForwardInputs.getSparse());
 
     // Setup for Boosting
-    const Real denominator = 1.0f / log2( args_.sparsity / args_.proximalSegments );
+    const Real denominator = 1.0f / log2( args_.minSparsity / args_.proximalSegments );
     const auto &af = AF_->activationFrequency;
 
     // Process Each Segment of Each Cell
@@ -390,7 +335,7 @@ public:
       for(const auto &segment : proximalConnections.segmentsForCell( cell ) ) {
         const auto raw = rawOverlaps_[segment];
 
-        Real overlap = (Real) raw; // Typecase to floating point.
+        Real overlap = (Real) raw; // Typecast to floating point.
 
         // Proximal Tie Breaker
         // NOTE: Apply tiebreakers before boosting, so that boosting is applied
@@ -418,37 +363,30 @@ public:
       }
       proximalMaxSegment_[cell] = maxSegment;
 
-      // TODO: apply stability & fatigue before boosting?  My previous
-      // experiments w/ grid cells apply stab+fatigue b4 boosting...
-
       // Apply Stability & Fatigue
       X_act[cell]   += (1.0f - args_.stabilityRate) * (maxOverlap - X_act[cell] - X_inact[cell]);
       X_inact[cell] += args_.fatigueRate * (maxOverlap - X_inact[cell]);
-      cellOverlaps[cell] = X_act[cell];
+      cellOverlaps_[cell] = X_act[cell];
     }
   }
 
 
   void applyProximalSegmentThreshold( vector<UInt> &cells, UInt threshold )
   {
-    for( UInt idx = 0; idx < cells.size(); )
+    for( Int idx = cells.size() - 1; idx >= 0; --idx )
     {
-      const auto &maxSeg  = proximalMaxSegment_[ cells[idx] ];
-      const auto &segOvlp = rawOverlaps_[ maxSeg ];
-
-      if( segOvlp < threshold ) {
+      const auto maxSeg  = proximalMaxSegment_[ cells[idx] ];
+      const auto segOvlp = rawOverlaps_[ maxSeg ];
+      if( segOvlp < threshold )
+      {
         cells[idx] = cells.back();
         cells.pop_back();
-      }
-      else {
-        ++idx;
       }
     }
   }
 
 
   void learnProximalDendrites( const SDR &proximalInputActive,
-                               const SDR &proximalInputLearning,
                                const SDR &active ) {
     SDR AF_SDR( AF_->dimensions );
     auto &activeSegments = AF_SDR.getSparse();
@@ -461,106 +399,117 @@ public:
       proximalConnections.raisePermanencesToThreshold(maxSegment,
                                               args_.proximalSegmentThreshold);
 
-      activeSegments.push_back(maxSegment);
+      activeSegments.push_back( maxSegment );
     }
-    // TODO: Grow new synapses from the learning inputs?
     AF_SDR.setSparse( activeSegments );
     AF_->addData( AF_SDR );
   }
 
 
-  void activateCells( const vector<Real> &overlaps,
-                      const SDR          &predictiveCells,
-                            SDR          &activeCells)
+  void activateDistalDendrites() {}
+  void learnDistalDendrites() {}
+
+
+  void activateCells(SDR &activeCells, SDR &winnerCells)
   {
-    const UInt inhibitionAreas = activeCells.size / args_.cellsPerInhibitionArea;
-    const UInt numDesired = (UInt) std::round(args_.sparsity * args_.cellsPerInhibitionArea);
-    NTA_CHECK(numDesired > 0) << "Not enough cellsPerInhibitionArea ("
-      << args_.cellsPerInhibitionArea << ") for desired density (" << args_.sparsity << ").";
+    auto &activeVec = activeCells.getSparse();
+    auto &winnerVec = winnerCells.getSparse();
+    activeVec.clear();
+    winnerVec.clear();
 
-    auto &allActive = activeCells.getSparse();
-    allActive.clear();
-    allActive.reserve(numDesired * inhibitionAreas );
-
-    for(UInt offset = 0u; offset < activeCells.size; offset += args_.cellsPerInhibitionArea)
-    {
+    for(UInt offset = 0u; offset < activeCells.size; offset += args_.cellsPerInhibitionArea) {
       activateInhibitionArea(
-          overlaps, predictiveCells,
-          offset, offset + args_.cellsPerInhibitionArea,
-          numDesired,
-          allActive);
+            offset, offset + args_.cellsPerInhibitionArea,
+            activeVec, winnerVec);
     }
-    activeCells.setSparse( allActive );
+    activeCells.setSparse( activeVec );
+    winnerCells.setSparse( winnerVec );
   }
 
 
   void activateInhibitionArea(
-      const vector<Real> &overlaps,
-      const SDR          &predictiveCells,
-            UInt          areaStart,
-            UInt          areaEnd,
-            UInt          numDesired,
-            vector<UInt> &active)
+            const UInt    areaStart,
+            const UInt    areaEnd,
+            vector<UInt> &active,
+            vector<UInt> &winner)
   {
     // Inhibition areas are contiguous blocks of cells, find the size of it.
     const auto areaSize = areaEnd - areaStart;
-    const auto &predictiveCellsDense = predictiveCells.getDense();
     // Compare the cell indexes by their overlap.
-    auto compare = [&overlaps](const UInt &a, const UInt &b) -> bool
-                    { return overlaps[a] > overlaps[b]; };
-    // Make a sorted list of all of the cell indexes which are in this inhibition area.
-    vector<UInt> cells;
-    cells.resize( areaSize );
-    std::iota( cells.begin(), cells.end(), areaStart );
+    auto compare = [&](const UInt &a, const UInt &b) -> bool
+                    { return cellOverlaps_[a] > cellOverlaps_[b]; };
 
-    // PHASE ONE: Predicted cells compete to activate.
+    // PHASE ONE: Predicted / depolarized cells compete to activate.
 
-    // Select the predicted cells.
-    vector<UInt> phase1Active;
-    for( const auto &idx : cells ) {
+    const UInt phase1numDesired = round( args_.maxDepolarizedSparsity * areaSize );
+
+    // Select the predicted cells.  Store them in-place in vector "phase1Active"
+    SDR_sparse_t phase1Active;
+    const auto &predictiveCellsDense = predictiveCells_.getDense();
+    for( auto idx = areaStart; idx < areaEnd; ++idx ) {
       if( predictiveCellsDense[idx] ) {
         phase1Active.push_back( idx );
       }
     }
-    if( !phase1Active.empty() ) {
-      if( phase1Active.size() > numDesired ) {
-        // Do a partial sort to divide the winners from the losers.  This sort is
-        // faster than a regular sort because it stops after it partitions the
-        // elements about the Nth element, with all elements on their correct side of
-        // the Nth element.
-        std::nth_element(
-          phase1Active.begin(),
-          phase1Active.begin() + numDesired,
-          phase1Active.end(),
-          compare);
-        // Remove cells which lost the competition.
-        phase1Active.resize( numDesired );
-      }
-
-      // Apply proximal segments activation threshold.
-      applyProximalSegmentThreshold( phase1Active, args_.proximalSegmentThreshold );
+    if( phase1Active.size() > phase1numDesired ) {
+      // Do a partial sort to divide the winners from the losers.  This sort is
+      // faster than a regular sort because it stops after it partitions the
+      // elements about the Nth element, with all elements on their correct side of
+      // the Nth element.
+      std::nth_element(
+        phase1Active.begin(),
+        phase1Active.begin() + phase1numDesired,
+        phase1Active.end(),
+        compare);
+      // Remove cells which lost the competition.
+      phase1Active.resize( phase1numDesired );
     }
+    // Apply proximal segments activation threshold.
+    applyProximalSegmentThreshold( phase1Active, args_.proximalSegmentThreshold );
+    // Sort the phase 1 active cell indexes for fast access (needed later).
+    std::sort( phase1Active.begin(), phase1Active.end() );
+    // Output the active & winner cells from Phase 1.
+    // All predicted active cells are winner cells.
+    for( const auto cell : phase1Active ) {
+      active.push_back( cell );
+      winner.push_back( cell );
+    }
+
+    // TODO: Consider calling the learning methods for phase 1 right here.
 
     // PHASE TWO: All remaining inactive cells compete to activate.
 
-    const UInt phase2NumDesired = max((UInt) (numDesired - phase1Active.size()), (UInt)0u );
+    const UInt minActive = round( args_.minSparsity * areaSize );
+    UInt phase2NumDesired;
+    UInt phase2NumWinners;
+    if( phase1Active.size() >= minActive ) {
+      // Predictive Regime
+      phase2NumDesired = 0u;
+      phase2NumWinners = 0u;
+    }
+    else {
+      // Burst Regime
+      const Real percentBurst = (Real) (minActive - phase1Active.size()) / minActive;
+      const UInt slope = round(args_.maxBurstSparsity * areaSize) - minActive;
+      const UInt totalActive = (percentBurst * slope) + minActive;
+      phase2NumDesired = totalActive - phase1Active.size();
 
-    // Sort the phase 1 active cell indexes for fast access.
-    std::sort( phase1Active.begin(), phase1Active.end() );
+      phase2NumWinners = minActive - phase1Active.size();
+    }
+
+    // Select all cells which are still inactive.  Store them in-place in vector "phase2Active"
+    SDR_sparse_t phase2Active;
+    phase2Active.reserve( areaSize - phase1Active.size() );
     phase1Active.push_back( std::numeric_limits<UInt>::max() ); // Append a sentinel
     auto phase1ActiveIter = phase1Active.begin();
-    // Select all cells which are still inactive.
-    vector<UInt> phase2Active;
-    phase2Active.reserve( areaSize );
-    for( const auto &idx : cells ) {
-      if( idx == *phase1ActiveIter ) {
+    for( auto idx = areaStart; idx < areaEnd; ++idx ) {
+      if( idx == *phase1ActiveIter ) { // This works because phase1Active is sorted.
         ++phase1ActiveIter;
       }
       else {
         phase2Active.push_back( idx );
       }
     }
-    phase1Active.pop_back(); // Remove the sentinel
     // Do a partial sort to divide the winners from the losers.
     std::nth_element(
       phase2Active.begin(),
@@ -569,19 +518,44 @@ public:
       compare);
     // Remove cells which lost the competition.
     phase2Active.resize( phase2NumDesired );
-
     // Apply activation threshold to proximal segments.
     applyProximalSegmentThreshold( phase2Active, args_.proximalSegmentThreshold );
+    // Output the active cells from Phase 2.
+    for( const auto idx : phase2Active ) {
+      active.push_back( idx );
+    }
 
-    for( const auto &idx : phase1Active ) {
-      active.push_back( idx );
+    // Promote some of the phase 2 active cells to winners.
+    if( phase2Active.size() > phase2NumWinners ) {
+      // Select the cells with the fewest distal segments.
+      vector<UInt> phase2numSegments; phase2numSegments.reserve( phase2Active.size() );
+      for( const auto cell : phase2Active ) {
+        phase2numSegments.push_back( distalConnections.connections.numSegments( cell ));
+      }
+      auto least_used = [&phase2numSegments](const UInt &A, const UInt &B) -> bool
+                      { return phase2numSegments[A] < phase2numSegments[B]; };
+
+      std::nth_element( phase2Active.begin(),
+                        phase2Active.begin() + phase2NumWinners,
+                        phase2Active.end(),
+                        least_used);
+
+      for( UInt i = 0; i < phase2NumWinners; ++i ) {
+        winner.push_back( phase2Active[i] );
+      }
     }
-    for( const auto &idx : phase2Active ) {
-      active.push_back( idx );
+    else {
+      // All phase 2 active cells are winners.
+      for( const auto cell : phase2Active ) {
+        winner.push_back( cell );
+      }
     }
+
+    // TODO: Consider calling the learning methods for phase 2 right here.
   }
 
-  void setParameters( Parameters &newParameters )
+
+  void setParameters( Parameters &newParameters, bool init=false ) // TODO Hide the init param
   {
     args_ = newParameters;
 
@@ -597,9 +571,9 @@ public:
     if( newParameters.cellsPerInhibitionArea      != parameters.cellsPerInhibitionArea ) {
       NTA_THROW << "Setter unimplemented.";
     }
-    if( newParameters.sparsity                    != parameters.sparsity ) {
-      NTA_THROW << "Setter unimplemented.";
-    }
+    // if( newParameters.sparsity                    != parameters.sparsity ) {
+    //   NTA_THROW << "Setter unimplemented.";
+    // }
     // if( newParameters.potentialPool               != parameters.potentialPool ) {
     //   NTA_THROW << "Setter unimplemented.";
     // }
