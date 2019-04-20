@@ -211,10 +211,11 @@ public:
     load(in);
     in.close();
   }
+
 	// TODO:Cereal- after all serialization using Cereal is complete, 
   //       remove save() and load() pairs from all derived classes
 	//       change all save_ar() load_ar() pairs to be save() load().
-	//       Remove the following two lines.
+	//       Remove the following two methods.
 
   // These must be implemented by the subclass.
   virtual void save(std::ostream &stream) const {};
