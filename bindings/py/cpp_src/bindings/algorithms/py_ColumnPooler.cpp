@@ -63,8 +63,8 @@ namespace nupic_ext
     py_Parameters.def_readwrite("distalDecrement",              &Parameters::distalDecrement);
     py_Parameters.def_readwrite("distalMispredictDecrement",    &Parameters::distalMispredictDecrement);
     py_Parameters.def_readwrite("distalSynapseThreshold",       &Parameters::distalSynapseThreshold);
-    py_Parameters.def_readwrite("stabilityRate",               &Parameters::stabilityRate);
-    py_Parameters.def_readwrite("fatigueRate",                 &Parameters::fatigueRate);
+    py_Parameters.def_readwrite("stabilityRate",                &Parameters::stabilityRate);
+    py_Parameters.def_readwrite("fatigueRate",                  &Parameters::fatigueRate);
     py_Parameters.def_readwrite("period",                       &Parameters::period);
     py_Parameters.def_readwrite("seed",                         &Parameters::seed);
     py_Parameters.def_readwrite("verbose",                      &Parameters::verbose);
@@ -89,20 +89,22 @@ namespace nupic_ext
 
     py_ColumnPooler.def("reset", &ColumnPooler::reset);
 
-    py_ColumnPooler.def("compute", &ColumnPooler::compute,
+    py_ColumnPooler.def("compute",
+        (void (ColumnPooler::*)(const SDR&, bool, SDR&))
+                &ColumnPooler::compute,
             py::arg("proximalInputActive"),
             py::arg("learn"),
             py::arg("active"));
 
-    // py_ColumnPooler.def("compute",
-    //     (void (ColumnPooler::*)(const SDR&, const SDR&, const SDR&, const SDR&, bool, SDR&, SDR&))
-    //             &ColumnPooler::compute,
-    //         py::arg("proximalInputActive"),
-    //         py::arg("proximalInputLearning"),
-    //         py::arg("distalInputActive"),
-    //         py::arg("distalInputLearning"),
-    //         py::arg("learn"),
-    //         py::arg("active"),
-    //         py::arg("learning"));
+    py_ColumnPooler.def("compute",
+        (void (ColumnPooler::*)(const SDR&, const SDR&, const SDR&, const SDR&, bool, SDR&, SDR&))
+                &ColumnPooler::compute,
+            py::arg("proximalInputActive"),
+            py::arg("proximalInputLearning"),
+            py::arg("distalInputActive"),
+            py::arg("distalInputLearning"),
+            py::arg("learn"),
+            py::arg("active"),
+            py::arg("winner"));
   }
 }

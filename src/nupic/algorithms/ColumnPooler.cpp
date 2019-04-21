@@ -272,15 +272,15 @@ public:
 
 
   void compute(
-        SDR& proximalInputActive,
+        const SDR& proximalInputActive,
         bool learn,
         SDR& active) {
     SDR none( args_.distalInputDimensions );
     SDR winner( cellDimensions );
-    compute_(proximalInputActive, proximalInputActive, none, none, learn, active, winner );
+    compute(proximalInputActive, proximalInputActive, none, none, learn, active, winner );
   }
 
-  void compute_(
+  void compute(
         const SDR& proximalInputActive,
         const SDR& proximalInputLearning,
         const SDR& distalInputActive,
@@ -442,40 +442,40 @@ public:
     // PHASE ONE: Predicted / depolarized cells compete to activate.
 
     const UInt phase1numDesired = round( args_.maxDepolarizedSparsity * areaSize );
-
-    // Select the predicted cells.  Store them in-place in vector "phase1Active"
-    SDR_sparse_t phase1Active;
-    const auto &predictiveCellsDense = predictiveCells_.getDense();
-    for( auto idx = areaStart; idx < areaEnd; ++idx ) {
-      if( predictiveCellsDense[idx] ) {
-        phase1Active.push_back( idx );
+    if( predictiveCells_.getSum() > 0u ) {
+      // Select the predicted cells.  Store them in-place in vector "phase1Active"
+      SDR_sparse_t phase1Active;
+      const auto &predictiveCellsDense = predictiveCells_.getDense();
+      for( auto idx = areaStart; idx < areaEnd; ++idx ) {
+        if( predictiveCellsDense[idx] ) {
+          phase1Active.push_back( idx );
+        }
       }
+      if( phase1Active.size() > phase1numDesired ) {
+        // Do a partial sort to divide the winners from the losers.  This sort is
+        // faster than a regular sort because it stops after it partitions the
+        // elements about the Nth element, with all elements on their correct side of
+        // the Nth element.
+        std::nth_element(
+          phase1Active.begin(),
+          phase1Active.begin() + phase1numDesired,
+          phase1Active.end(),
+          compare);
+        // Remove cells which lost the competition.
+        phase1Active.resize( phase1numDesired );
+      }
+      // Apply proximal segments activation threshold.
+      applyProximalSegmentThreshold( phase1Active, args_.proximalSegmentThreshold );
+      // Sort the phase 1 active cell indexes for fast access (needed later).
+      std::sort( phase1Active.begin(), phase1Active.end() );
+      // Output the active & winner cells from Phase 1.
+      // All predicted active cells are winner cells.
+      for( const auto cell : phase1Active ) {
+        active.push_back( cell );
+        winner.push_back( cell );
+      }
+      // TODO: Consider calling the learning methods for phase 1 right here.
     }
-    if( phase1Active.size() > phase1numDesired ) {
-      // Do a partial sort to divide the winners from the losers.  This sort is
-      // faster than a regular sort because it stops after it partitions the
-      // elements about the Nth element, with all elements on their correct side of
-      // the Nth element.
-      std::nth_element(
-        phase1Active.begin(),
-        phase1Active.begin() + phase1numDesired,
-        phase1Active.end(),
-        compare);
-      // Remove cells which lost the competition.
-      phase1Active.resize( phase1numDesired );
-    }
-    // Apply proximal segments activation threshold.
-    applyProximalSegmentThreshold( phase1Active, args_.proximalSegmentThreshold );
-    // Sort the phase 1 active cell indexes for fast access (needed later).
-    std::sort( phase1Active.begin(), phase1Active.end() );
-    // Output the active & winner cells from Phase 1.
-    // All predicted active cells are winner cells.
-    for( const auto cell : phase1Active ) {
-      active.push_back( cell );
-      winner.push_back( cell );
-    }
-
-    // TODO: Consider calling the learning methods for phase 1 right here.
 
     // PHASE TWO: All remaining inactive cells compete to activate.
 
@@ -519,7 +519,8 @@ public:
     // Remove cells which lost the competition.
     phase2Active.resize( phase2NumDesired );
     // Apply activation threshold to proximal segments.
-    applyProximalSegmentThreshold( phase2Active, args_.proximalSegmentThreshold );
+    // EXPERIMENT!
+    // applyProximalSegmentThreshold( phase2Active, args_.proximalSegmentThreshold );
     // Output the active cells from Phase 2.
     for( const auto idx : phase2Active ) {
       active.push_back( idx );
