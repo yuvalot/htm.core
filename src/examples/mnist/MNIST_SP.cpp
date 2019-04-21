@@ -42,11 +42,10 @@ using namespace nupic;
 namespace column_pooler = nupic::algorithms::column_pooler;
 
 using nupic::algorithms::spatial_pooler::SpatialPooler;
-using nupic::algorithms::column_pooler::DefaultTopology;
 using namespace nupic::algorithms::column_pooler;
 using nupic::algorithms::connections::Permanence;
-using nupic::algorithms::sdr_classifier::SDRClassifier;
-using nupic::algorithms::sdr_classifier::ClassifierResult;
+using nupic::algorithms::sdr_classifier::Classifier;
+using nupic::algorithms::sdr_classifier::argmax;
 
 
 class MNIST {
@@ -57,7 +56,7 @@ class MNIST {
     column_pooler::ColumnPooler cp;
     sdr::SDR input;
     sdr::SDR columns;
-    SDRClassifier clsr;
+    Classifier clsr;
     mnist::MNIST_dataset<std::vector, std::vector<uint8_t>, uint8_t> dataset;
 
   public:
@@ -127,11 +126,7 @@ void setup(bool spNotCp = false)
     columns.initialize(cp.cellDimensions);
   }
 
-  clsr.initialize(
-    /* steps */         {0},
-    /* alpha */         .001,
-    /* actValueAlpha */ .3,
-                        verbosity);
+  clsr.initialize( /* alpha */ .001);
 
   dataset = mnist::read_dataset<std::vector, std::vector, uint8_t, uint8_t>(string("../ThirdParty/mnist_data/mnist-src/")); //from CMake
 }
@@ -169,25 +164,7 @@ void train()
         cp.compute(input, true, columns);
       }
 
-      ClassifierResult result;
-      if( spNotCp ) {
-        clsr.compute(sp.getIterationNum(), columns.getSparse(),
-          /* bucketIdxList */   {label},
-          /* actValueList */    {(Real)label},
-          /* category */        true,
-          /* learn */           true,
-          /* infer */           false,
-                                result);
-      }
-      else {
-        clsr.compute(cp.iterationNum, columns.getSparse(), 
-          /* bucketIdxList */   {label},
-          /* actValueList */    {(Real)label},
-          /* category */        true,
-          /* learn */           true,
-          /* infer */           false,
-                                result);
-      }
+      clsr.learn(columns, {label});
       if( verbosity && (++i % 1000 == 0) ) cout << "." << flush;
     }
     if( verbosity ) cout << endl;
@@ -216,27 +193,8 @@ void test() {
       cp.reset();
       cp.compute(input, false, columns);
     }
-    ClassifierResult result;
-    if( spNotCp ) {
-      clsr.compute(sp.getIterationNum(), columns.getSparse(),
-        /* bucketIdxList */   {},
-        /* actValueList */    {},
-        /* category */        true,
-        /* learn */           false,
-        /* infer */           true,
-                              result);      
-    }
-    else {
-      clsr.compute(cp.iterationNum, columns.getSparse(),
-        /* bucketIdxList */   {},
-        /* actValueList */    {},
-        /* category */        true,
-        /* learn */           false,
-        /* infer */           true,
-                              result);
-    }
-    // Check results
-    if(clsr.getClassification( result[0] ) == label)
+
+    if( argmax( clsr.infer( columns ) ) == label)
         score += 1;
     n_samples += 1;
     if( verbosity && i % 1000 == 0 ) cout << "." << flush;

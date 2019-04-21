@@ -441,10 +441,10 @@ public:
 
     // PHASE ONE: Predicted / depolarized cells compete to activate.
 
+    SDR_sparse_t phase1Active;
     const UInt phase1numDesired = round( args_.maxDepolarizedSparsity * areaSize );
     if( predictiveCells_.getSum() > 0u ) {
       // Select the predicted cells.  Store them in-place in vector "phase1Active"
-      SDR_sparse_t phase1Active;
       const auto &predictiveCellsDense = predictiveCells_.getDense();
       for( auto idx = areaStart; idx < areaEnd; ++idx ) {
         if( predictiveCellsDense[idx] ) {
