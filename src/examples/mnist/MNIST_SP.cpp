@@ -170,8 +170,9 @@ void train()
     if( verbosity ) cout << endl;
   }
   cout << "epoch ended" << endl;
-  cout << inputStats << endl;
-  cout << columnStats << endl;
+  cout << "inputStats "  << inputStats << endl;
+  cout << "columnStats " << columnStats << endl;
+  cout << cp.proximalConnections << endl;
 }
 
 void test() {
