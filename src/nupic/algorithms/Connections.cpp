@@ -492,6 +492,16 @@ void Connections::adaptSegment(const Segment segment,
   }
 }
 
+// TODO: Add a segmentMaxConnected, and enforce it.
+//
+// Rational: You need potential synapses (disconencted) even when it's at the
+// full capacity for connected synapses.  Currently the HTM allows all potential
+// synapses to connect, all at once...  With this modificaiton, when the segment
+// reaches its maximum connected threshold, it doesn't fail (by having too many
+// synapases) instead the synapses keep learning, except instead of synapses
+// changing permanence in absolute units, they change relative too eachother
+// because the net/sum/total permanence has effectively reached a limit.
+//
 /**
  * Called for under-performing Segments (can have synapses pruned, etc.). After
  * the call, Segment will have at least segmentThreshold synapses connected, so
@@ -553,6 +563,36 @@ void Connections::bumpSegment(const Segment segment, const Permanence delta) {
   const vector<Synapse> &synapses = synapsesForSegment(segment);
   for( const auto &syn : synapses ) {
     updateSynapsePermanence(syn, synapses_[syn].permanence + delta);
+  }
+}
+
+
+void Connections::destroyMinPermanenceSynapses(Segment segment, UInt nDestroy, const SDR &excludeCells)
+{
+  // Don't destroy any cells that are in excludeCells.
+  vector<Synapse> destroyCandidates;
+  const auto &excludeCellsDense = excludeCells.getDense();
+  for( const auto synapse : synapsesForSegment(segment) ) {
+    const auto presynapticCell = dataForSynapse( synapse ).presynapticCell;
+
+    if( not excludeCellsDense[ presynapticCell ] ) {
+      destroyCandidates.push_back(synapse);
+    }
+  }
+
+  nDestroy = std::min( nDestroy, (UInt) destroyCandidates.size() );
+
+  const auto comparePermanences = [&](const auto A, const auto B) -> bool
+      { return dataForSynapse(A).permanence < dataForSynapse(B).permanence; };
+
+  std::nth_element( destroyCandidates.begin(),
+                    destroyCandidates.begin() + nDestroy,
+                    destroyCandidates.end(),
+                    comparePermanences);
+
+  destroyCandidates.resize( nDestroy );
+  for( const auto synapse : destroyCandidates ) {
+    destroySynapse( synapse );
   }
 }
 

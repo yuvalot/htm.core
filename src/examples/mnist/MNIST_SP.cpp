@@ -100,6 +100,7 @@ void setup(bool spNotCp = false)
     params.cellsPerInhibitionArea      = 200;
     params.minSparsity                 = .015;
     params.maxBurstSparsity            = .015;
+    params.maxDepolarizedSparsity      = .015;
     params.potentialPool               = DefaultTopology(.90, 4., false);
     params.proximalSegments            = 1;
     params.proximalSegmentThreshold    = 3;
@@ -161,7 +162,8 @@ void train()
         sp.compute(input, true, columns);
       else {
         cp.reset();
-        cp.compute(input, true, columns);
+        cp.compute(input, true);
+        columns.setSDR( cp.activeCells );
       }
 
       clsr.learn(columns, {label});
@@ -192,7 +194,8 @@ void test() {
       sp.compute(input, false, columns);
     else {
       cp.reset();
-      cp.compute(input, false, columns);
+      cp.compute(input, false);
+      columns.setSDR( cp.activeCells );
     }
 
     if( argmax( clsr.infer( columns ) ) == label)

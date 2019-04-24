@@ -105,46 +105,43 @@ if __name__ == "__main__":
   gcm.fatigueRate                 = 0.05 / 3
   gcm.proximalInputDimensions     = (enc.size,)
   gcm.inhibitionDimensions        = (1,)
-  gcm.cellsPerInhibitionArea      = 200 if not args.debug else 50
-  gcm.minSparsity                 = .2
+  gcm.cellsPerInhibitionArea      = 500 if not args.debug else 50
+  gcm.minSparsity                 = .05
   gcm.maxDepolarizedSparsity      = .2
-  gcm.maxBurstSparsity            = .2
+  gcm.maxBurstSparsity            = .3
   gcm.proximalSynapseThreshold    = 0.25
   gcm.proximalIncrement           = 0.005
   gcm.proximalDecrement           = 0.0008
   gcm.proximalSegments            = 1
-  gcm.proximalSegmentThreshold    = 0 # 10
+  gcm.proximalSegmentThreshold    = 0
   gcm.period                      = 10000
   gcm.potentialPool               = NoTopology( 0.95 )
   gcm.verbose                     = True
-  gcm.distalInputDimensions        = hd.dimensions
-  gcm.distalMaxSegments            = 0 # 32
-  gcm.distalMaxSynapsesPerSegment  = 0 # 64
-  gcm.distalAddSynapses            = 0 # 27
-  gcm.distalSegmentThreshold       = 0 # 18
-  gcm.distalSegmentMatch           = 0 # 11
-  gcm.distalSynapseThreshold       = 0 # .5
-  gcm.distalInitialPermanence      = 0 # .3
-  gcm.distalIncrement              = 0 # .01
-  gcm.distalDecrement              = 0 # .001
-  gcm.distalMispredictDecrement    = 0 # .0001
+  gcm.distalInputDimensions       = [hd.size + gcm.cellsPerInhibitionArea]
+  gcm.distalMaxSegments           =  32
+  gcm.distalMaxSynapsesPerSegment =  64
+  gcm.distalAddSynapses           =  27
+  gcm.distalSegmentThreshold      =  18
+  gcm.distalSegmentMatch          =  11
+  gcm.distalSynapseThreshold      =  .5
+  gcm.distalInitialPermanence     =  .3
+  gcm.distalIncrement             =  .01
+  gcm.distalDecrement             =  .01
+  gcm.distalMispredictDecrement   =  .001
   gcm = ColumnPooler(gcm)
 
   enc_sdr = enc.encode(env.position)
   hd_act  = hd.encode( env.angle )
-  gc_act  = SDR( gcm.cellDimensions )
-  gc_win  = SDR( gcm.cellDimensions )
   def compute(learn=True):
     enc.encode( env.position, enc_sdr )
     hd.encode(  env.angle,    hd_act )
+    distalActive = SDR(gcm.parameters.distalInputDimensions).concatenate(hd_act, gcm.activeCells.flatten())
+    distalWinner = SDR(gcm.parameters.distalInputDimensions).concatenate(hd_act, gcm.winnerCells.flatten())
     gcm.compute(
             proximalInputActive   = enc_sdr,
-            proximalInputLearning = enc_sdr,
-            distalInputActive     = hd_act,
-            distalInputLearning   = hd_act,
-            learn                 = learn,
-            active                = gc_act,
-            winner                = gc_win)
+            distalInputActive     = distalActive,
+            distalInputLearning   = distalWinner,
+            learn                 = learn)
 
 
   print("Training for %d cycles ..."%args.train_time)
@@ -155,7 +152,7 @@ if __name__ == "__main__":
       print("Cycle %d"%step)
     env.move()
     compute()
-    gc_metrics.addData( gc_act )
+    gc_metrics.addData( gcm.activeCells )
   print("Grid Cell Metrics", str(gc_metrics))
 
   print("Testing ...")
@@ -182,7 +179,7 @@ if __name__ == "__main__":
     for rf_idx, enc_idx in enumerate(enc_samples):
       enc_rfs[rf_idx][position] = enc_sdr.dense[enc_idx]
     for rf_idx, gc_idx in enumerate(gc_samples):
-      gc_rfs[rf_idx][position] = gc_act.dense.flatten()[gc_idx]
+      gc_rfs[rf_idx][position] = gcm.activeCells.flatten().dense[gc_idx]
 
   # Look for the grid properties.
   xcor     = []

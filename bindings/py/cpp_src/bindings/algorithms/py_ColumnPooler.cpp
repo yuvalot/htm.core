@@ -53,6 +53,7 @@ namespace nupic_ext
     py_Parameters.def_readwrite("proximalIncrement",            &Parameters::proximalIncrement);
     py_Parameters.def_readwrite("proximalDecrement",            &Parameters::proximalDecrement);
     py_Parameters.def_readwrite("proximalSynapseThreshold",     &Parameters::proximalSynapseThreshold);
+    py_Parameters.def_readwrite("proximalInitialPermanence",    &Parameters::proximalInitialPermanence);
     py_Parameters.def_readwrite("distalMaxSegments",            &Parameters::distalMaxSegments);
     py_Parameters.def_readwrite("distalMaxSynapsesPerSegment",  &Parameters::distalMaxSynapsesPerSegment);
     py_Parameters.def_readwrite("distalSegmentThreshold",       &Parameters::distalSegmentThreshold);
@@ -77,6 +78,8 @@ namespace nupic_ext
     m.def("NoTopology", &NoTopology,
         py::arg("potentialPct"));
 
+    m.def("defaultProximalInitialPermanence", &defaultProximalInitialPermanence);
+
     py::class_<ColumnPooler> py_ColumnPooler(m, "ColumnPooler");
     py_ColumnPooler.def(py::init<const Parameters&>());
     py_ColumnPooler.def("setParameters", &ColumnPooler::setParameters);
@@ -84,27 +87,37 @@ namespace nupic_ext
         { return self.cellDimensions; });
     py_ColumnPooler.def_property_readonly("parameters", [](const ColumnPooler &self)
         { return self.parameters; });
+    py_ColumnPooler.def_property_readonly("activeCells", [](const ColumnPooler &self)
+        { return &self.activeCells; });
+    py_ColumnPooler.def_property_readonly("winnerCells", [](const ColumnPooler &self)
+        { return &self.winnerCells; });
+    py_ColumnPooler.def_property_readonly("rawAnomaly", [](const ColumnPooler &self)
+        { return self.rawAnomaly; });
     py_ColumnPooler.def_property_readonly_static("defaultParameters",
         [](py::object self) { return new Parameters(); });
 
     py_ColumnPooler.def("reset", &ColumnPooler::reset);
 
     py_ColumnPooler.def("compute",
-        (void (ColumnPooler::*)(const SDR&, bool, SDR&))
+        (void (ColumnPooler::*)(const SDR&, const bool))
                 &ColumnPooler::compute,
             py::arg("proximalInputActive"),
-            py::arg("learn"),
-            py::arg("active"));
+            py::arg("learn"));
 
     py_ColumnPooler.def("compute",
-        (void (ColumnPooler::*)(const SDR&, const SDR&, const SDR&, const SDR&, bool, SDR&, SDR&))
+        (void (ColumnPooler::*)(const SDR&, const SDR&, const SDR&, const bool))
                 &ColumnPooler::compute,
             py::arg("proximalInputActive"),
-            py::arg("proximalInputLearning"),
             py::arg("distalInputActive"),
             py::arg("distalInputLearning"),
-            py::arg("learn"),
-            py::arg("active"),
-            py::arg("winner"));
+            py::arg("learn"));
+
+    py_ColumnPooler.def("__str__", [](const ColumnPooler &self)
+    {
+        stringstream buf;
+        buf << "Column Pooler\nProximal " << self.proximalConnections << endl << endl;
+        buf << "Distal " << self.distalConnections << endl;
+        return buf.str();
+    });
   }
 }

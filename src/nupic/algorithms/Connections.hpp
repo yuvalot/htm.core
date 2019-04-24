@@ -438,6 +438,12 @@ public:
 
 
   /**
+   *
+   */
+  void destroyMinPermanenceSynapses(Segment segment, UInt nDestroy, const sdr::SDR &excludeCells);
+
+
+  /**
    * Print diagnostic info
    */
   friend std::ostream& operator<< (std::ostream& stream, const Connections& self)

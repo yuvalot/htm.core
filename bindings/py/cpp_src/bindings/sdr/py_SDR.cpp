@@ -322,6 +322,10 @@ Argument dimensions A list of dimension sizes, defining the shape of the SDR.)",
             { return new Reshape(self, dimensions); },
 R"(See class nupic.bindings.sdr.Reshape)");
 
+        py_SDR.def("flatten", [](SDR &self)
+            { return new Reshape(self, {self.size}); },
+R"(See class nupic.bindings.sdr.Reshape)");
+
 
         py_SDR.def("intersection", [](SDR &self, SDR& inp1, SDR& inp2)
             { self.intersection({ &inp1, &inp2}); },
@@ -349,7 +353,7 @@ Example Usage:
             { self.intersection(inputs); });
 
         py_SDR.def("concatenate", [](SDR &self, const SDR& inp1, const SDR& inp2, UInt axis)
-            { self.concatenate(inp1, inp2, axis); },
+            { self.concatenate(inp1, inp2, axis); return self; },
 R"(Concatenates SDRs and stores the result in this SDR.
 
 This method has two overloads:
@@ -377,7 +381,7 @@ Example Usage:
                 py::arg("axis") = 0u );
 
         py_SDR.def("concatenate", [](SDR &self, vector<const SDR*> inputs, UInt axis)
-            { self.concatenate(inputs, axis); },
+            { self.concatenate(inputs, axis); return self; },
                 py::arg("inputs"),
                 py::arg("axis") = 0u );
     }
