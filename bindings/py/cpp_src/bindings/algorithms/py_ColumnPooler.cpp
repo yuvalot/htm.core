@@ -112,6 +112,9 @@ namespace nupic_ext
             py::arg("distalInputLearning"),
             py::arg("learn"));
 
+    py_ColumnPooler.def_readwrite("proximalConnections", &ColumnPooler::proximalConnections);
+    py_ColumnPooler.def_readwrite("distalConnections", &ColumnPooler::distalConnections);
+
     py_ColumnPooler.def("__str__", [](const ColumnPooler &self)
     {
         stringstream buf;

@@ -246,6 +246,7 @@ public:
             // Find an initial permanence for this synapse.
             proximalInputs.setSparse(SDR_sparse_t{ presyn });
             auto permanence = args_.proximalInitialPermanence(rng_, proximalInputs, cells);
+            rng_(); // Pybind copies this, so force it to a new state.
 
             // Make the synapses.
             proximalConnections.createSynapse( segment, presyn, permanence);
