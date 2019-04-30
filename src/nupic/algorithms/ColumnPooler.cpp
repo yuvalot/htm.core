@@ -434,6 +434,7 @@ public:
 
       proximalConnections.raisePermanencesToThreshold(maxSegment,
                                               args_.proximalSegmentThreshold);
+      // proximalConnections.synapseCompetition(maxSegment, 20, 60);
 
       activeSegments.push_back( maxSegment );
     }
@@ -537,7 +538,8 @@ public:
     }
 
     // Recalculate in case we weren't able to destroy as many synapses as needed.
-    const size_t nActualWithMax = std::min(nActual, (size_t)(maxSynapsesPerSegment) - distalConnections.numSynapses(segment));
+    const size_t nActualWithMax = std::min(nActual,
+        (size_t)(maxSynapsesPerSegment) - distalConnections.numSynapses(segment));
 
     // Pick nActual cells randomly.
 
@@ -636,7 +638,7 @@ public:
       winner.push_back( cell );
       learnDistalSegment( match.second, distalInputActivePrevious, distalInputWinnerPrevious );
     }
-    cerr << matches.size() << " / " << numWinners << endl;
+    // cerr << matches.size() << " / " << numWinners << endl;
     numWinners -= matches.size();
 
     if( numWinners > 0u ) {

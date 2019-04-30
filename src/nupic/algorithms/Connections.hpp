@@ -428,6 +428,12 @@ public:
   void raisePermanencesToThreshold(const Segment    segment,
                                    const UInt       segmentThreshold);
 
+
+  void synapseCompetition(
+                    const Segment    segment,
+                    const UInt       segmentMinSyns,
+                    const UInt       segmentMaxSyns);
+
   /**
    * Modify all permanence on the given segment, uniformly.
    *

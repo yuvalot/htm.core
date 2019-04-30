@@ -519,6 +519,8 @@ void Connections::raisePermanencesToThreshold(
   if( segData.numConnected >= segmentThreshold )
     return;   // The segment already satisfies the requirement, done.
 
+std::cout << "raisePermanencesToThreshold" << std::endl;
+
   vector<Synapse> &synapses = segData.synapses;
   if( synapses.empty())
     return;   // No synapses to raise permanences to, no work to do.
@@ -559,9 +561,52 @@ void Connections::raisePermanencesToThreshold(
 }
 
 
+void Connections::synapseCompetition(
+                  const Segment    segment,
+                  const UInt       segmentMinSyns,
+                  const UInt       segmentMaxSyns)
+{
+  const auto &segData = dataForSegment( segment );
+
+  vector<Synapse> synapses( segData.synapses.begin(), segData.synapses.end() );
+  if( synapses.empty())
+    return;   // No synapses to raise permanences of, no work to do.
+
+  // TODO: Keep this pointer in valid range!
+  vector<Synapse>::iterator minPermSynPtr = synapses.begin();
+  if( segData.numConnected < segmentMinSyns ) {
+    minPermSynPtr += segmentMinSyns - 1;
+  }
+  else if( segData.numConnected > segmentMaxSyns ) {
+    minPermSynPtr += segmentMaxSyns - 1;
+  }
+  else {
+    // The segment already satisfies the requirements, done.
+    return;
+  }
+
+  // Sort the potential pool by permanence values, and look for the synapse with
+  // the N'th greatest permanence, where N is the desired minimum number of
+  // connected synapses.  Then calculate how much to increase the N'th synapses
+  // permance by such that it becomes a connected synapse.  After that there
+  // will be at least N synapses connected.
+
+  const auto permanencesGreater = [&](const Synapse &A, const Synapse &B)
+    { return synapses_[A].permanence > synapses_[B].permanence; };
+  // Do a partial sort, it's faster than a full sort.
+  std::nth_element(synapses.begin(), minPermSynPtr, synapses.end(), permanencesGreater);
+
+  const Real increment = connectedThreshold_ - synapses_[ *minPermSynPtr ].permanence;
+
+  // Raise the permance of all synapses in the potential pool uniformly.
+  bumpSegment( segment, increment ) ;
+}
+
+
 void Connections::bumpSegment(const Segment segment, const Permanence delta) {
   const vector<Synapse> &synapses = synapsesForSegment(segment);
-  for( const auto &syn : synapses ) {
+  // TODO: vectorize?
+  for( const auto syn : synapses ) {
     updateSynapsePermanence(syn, synapses_[syn].permanence + delta);
   }
 }
@@ -608,6 +653,9 @@ std::ostream& operator<< (std::ostream& stream, const Connections& self)
          << ") ~> Outputs (" << self.cells_.size()
          << ") via Segments (" << self.numSegments() << ")" << std::endl;
 
+  UInt        segmentsMin   = -1;
+  Real        segmentsMean  = 0.0f;
+  UInt        segmentsMax   = -1;
   UInt        potentialMin  = -1;
   Real        potentialMean = 0.0f;
   UInt        potentialMax  = 0;
@@ -617,6 +665,11 @@ std::ostream& operator<< (std::ostream& stream, const Connections& self)
   UInt        synapsesDead      = 0;
   UInt        synapsesSaturated = 0;
   for( const auto cellData : self.cells_ ) {
+    const UInt numSegments = (UInt) segData.synapses.size();
+    segmentsMin   = std::min( segmentsMin, numSegments );
+    segmentsMax   = std::max( segmentsMax, numSegments );
+    segmentsMean += numSegments;
+
     for( const auto seg : cellData.segments ) {
       const auto &segData = self.dataForSegment( seg );
       const UInt numPotential = (UInt) segData.synapses.size();
@@ -637,9 +690,12 @@ std::ostream& operator<< (std::ostream& stream, const Connections& self)
       }
     }
   }
+  segmentsMean = segmentsMean  / self.numCells();
   potentialMean = potentialMean / self.numSegments();
   connectedMean = connectedMean / self.numSegments();
 
+  stream << "    Segments on Cell Min/Mean/Max "
+         << segmentsMin << " / " << segmentsMean << " / " << segmentsMax << std::endl;
   stream << "    Potential Synapses on Segment Min/Mean/Max "
          << potentialMin << " / " << potentialMean << " / " << potentialMax << std::endl;
   stream << "    Connected Synapses on Segment Min/Mean/Max "

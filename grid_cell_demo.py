@@ -122,9 +122,9 @@ if __name__ == "__main__":
   gcm.distalMaxSynapsesPerSegment =  64
   gcm.distalAddSynapses           =  27
   gcm.distalSegmentThreshold      =  18
-  gcm.distalSegmentMatch          =  11
+  gcm.distalSegmentMatch          =  5 # 11
   gcm.distalSynapseThreshold      =  .5
-  gcm.distalInitialPermanence     =  .3
+  gcm.distalInitialPermanence     =  .49 # .3
   gcm.distalIncrement             =  .01
   gcm.distalDecrement             =  .01
   gcm.distalMispredictDecrement   =  .001
@@ -154,6 +154,11 @@ if __name__ == "__main__":
     compute()
     gc_metrics.addData( gcm.activeCells )
   print("Grid Cell Metrics", str(gc_metrics))
+
+  with open("grid_cell_prox.connections", "wb") as f:
+      f.write( gcm.proximalConnections.save() )
+  with open("grid_cell_distal.connections", "wb") as f:
+      f.write( gcm.distalConnections.save() )
 
   print("Testing ...")
   enc_num_samples = 12
