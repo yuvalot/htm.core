@@ -119,16 +119,10 @@ using namespace nupic::algorithms::connections;
         ));
 
 
-        py_HTM.def("activateCells", [](HTM_t& self, py::array_t<nupic::UInt32>& activeColumns, bool learn)
+        py_HTM.def("activateCells", [](HTM_t& self, const SDR& activeColumns, bool learn)
         {
-            self.activateCells(activeColumns.size(), get_it(activeColumns), learn);
+            self.activateCells(activeColumns, learn);
         }, "Calculate the active cells, using the current active columns and dendrite segments.Grow and reinforce synapses."
-            , py::arg("activeColumns"), py::arg("learn") = true);
-
-        py_HTM.def("compute", [](HTM_t& self, py::array_t<nupic::UInt32>& activeColumns, bool learn)
-        {
-            self.compute(activeColumns.size(), get_it(activeColumns), learn);
-        }, "Perform one time step of the Temporal Memory algorithm."
             , py::arg("activeColumns"), py::arg("learn") = true);
 
         py_HTM.def("compute", [](HTM_t& self, const SDR &activeColumns, bool learn,
@@ -176,17 +170,6 @@ using namespace nupic::algorithms::connections;
             return py::array_t<nupic::UInt32>(cells.size(), cells.data());
         });
 
-        py_HTM.def("convertedActivateCells", [](HTM_t& self, py::array_t<nupic::UInt32>& activeColumns, bool learn)
-        {
-            self.activateCells(activeColumns.size(), get_it(activeColumns), learn);
-        }, ""
-            , py::arg("activeColumns"), py::arg("learn") = true);
-
-        py_HTM.def("convertedCompute", [](HTM_t& self, py::array_t<nupic::UInt32>& activeColumns, bool learn)
-        {
-            self.compute(activeColumns.size(), get_it(activeColumns), learn);
-        }, "", py::arg("activeColumns"), py::arg("learn") = true);
-
         py_HTM.def("createSegment", &HTM_t::createSegment);
 
         py_HTM.def("numberOfCells",   &HTM_t::numberOfCells);
@@ -195,6 +178,9 @@ using namespace nupic::algorithms::connections;
 
         py_HTM.def_property_readonly("extra", [](const HTM_t &self) { return self.extra; } );
 
+	py_HTM.def_property_readonly("anomaly", [](const HTM_t &self) { return self.anomaly; }, 
+	  "Anomaly score updated with each TM::compute() call. "	
+	);
     }
 
 } // namespace nupic_ext
