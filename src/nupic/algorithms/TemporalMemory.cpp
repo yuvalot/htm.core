@@ -298,7 +298,7 @@ static void growSynapses(Connections &connections,
 }
 
 static void activatePredictedColumn(
-    SDR &activeCellsSDR, 
+    SDR &activeCellsSDR,
     vector<CellIdx> &winnerCells,
     Connections &connections, 
     Random &rng,
@@ -543,12 +543,12 @@ void TemporalMemory::activateDendrites(const bool learn,
     {
         NTA_CHECK( extraActive.size  == extra_ );
         NTA_CHECK( extraWinners.size == extra_ );
-	NTA_CHECK( extraActive.dimensions == extraWinners.dimensions);
-#ifdef NTA_ASSERTIONS_ON
-  SDR both(extraActive.dimensions);
-  both.intersection(extraActive, extraWinners);
-  NTA_ASSERT(both == extraWinners) << "ExtraWinners must be a subset of ExtraActive";
-#endif
+        NTA_CHECK( extraActive.dimensions == extraWinners.dimensions);
+        #ifdef NTA_ASSERTIONS_ON
+          SDR both(extraActive.dimensions);
+          both.intersection(extraActive, extraWinners);
+          NTA_ASSERT(both == extraWinners) << "ExtraWinners must be a subset of ExtraActive";
+        #endif
     }
     else
     {
@@ -560,12 +560,8 @@ void TemporalMemory::activateDendrites(const bool learn,
   if( segmentsValid_ )
     return;
 
-#ifdef NTA_ASSERTIONS_ON
-  for(const auto &active : extraActive.getSparse()) {
-      NTA_ASSERT( active < extra_ );
-  }
-#endif
-  activeCells_.concatenate(activeCells_, extraActive);
+  SDR dendriteInputs({ activeCells_.size + extraActive.size });
+  dendriteInputs.concatenate(activeCells_.flatten(), extraActive.flatten());
 
   for(const auto &winner : extraWinners.getSparse()) {
       NTA_ASSERT( winner < extra_ );
@@ -578,7 +574,7 @@ void TemporalMemory::activateDendrites(const bool learn,
   numActivePotentialSynapsesForSegment_.assign(length, 0);
   connections.computeActivity(numActiveConnectedSynapsesForSegment_,
                               numActivePotentialSynapsesForSegment_,
-                              activeCells_.getSparse());
+                              dendriteInputs.getSparse());
 
   // Active segments, connected synapses.
   activeSegments_.clear();
