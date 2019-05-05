@@ -251,8 +251,9 @@ public:
             // Make the synapses.
             proximalConnections.createSynapse( segment, presyn, permanence);
           }
-          proximalConnections.raisePermanencesToThreshold( segment,
-                                              args_.proximalSegmentThreshold );
+          // proximalConnections.raisePermanencesToThreshold( segment,
+          //                                     args_.proximalSegmentThreshold );
+          proximalConnections.synapseCompetition(segment, 30, 35);
         }
       }
     }
@@ -432,9 +433,9 @@ public:
       proximalConnections.adaptSegment(maxSegment, proximalInputActive,
                                        args_.proximalIncrement, args_.proximalDecrement);
 
-      proximalConnections.raisePermanencesToThreshold(maxSegment,
-                                              args_.proximalSegmentThreshold);
-      // proximalConnections.synapseCompetition(maxSegment, 20, 60);
+      // proximalConnections.raisePermanencesToThreshold(maxSegment,
+      //                                         args_.proximalSegmentThreshold);
+      proximalConnections.synapseCompetition(maxSegment, 30, 35);
 
       activeSegments.push_back( maxSegment );
     }

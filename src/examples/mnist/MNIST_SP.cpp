@@ -1,5 +1,5 @@
 /* ---------------------------------------------------------------------
- * Copyright (C) 2018-2019, David McDougall.
+ * Copyright (C) 2018, David McDougall.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero Public License version 3 as
@@ -26,6 +26,7 @@
 #include <algorithm>
 #include <cstdint> //uint8_t
 #include <iostream>
+#include <fstream>      // std::ofstream
 #include <vector>
 
 #include <nupic/algorithms/SpatialPooler.hpp>
@@ -125,6 +126,10 @@ void setup(bool spNotCp = false)
     cp.initialize( params );
 
     columns.initialize(cp.cellDimensions);
+    // Save the connections to file for postmortem analysis.
+    ofstream dump("mnist_sp_initial.connections", ofstream::binary | ofstream::trunc | ofstream::out);
+    cp.proximalConnections.save( dump );
+    dump.close();
   }
 
   clsr.initialize( /* alpha */ .001);
@@ -175,6 +180,16 @@ void train()
   cout << "inputStats "  << inputStats << endl;
   cout << "columnStats " << columnStats << endl;
   cout << cp.proximalConnections << endl;
+
+  // Save the connections to file for postmortem analysis.
+  ofstream dump("mnist_sp_learned.connections", ofstream::binary | ofstream::trunc | ofstream::out);
+  cp.proximalConnections.save( dump );
+  dump.close();
+
+  ofstream af_dump("mnist_sp.af", ofstream::trunc | ofstream::out);
+  for( const auto af : columnStats.activationFrequency.activationFrequency)
+    af_dump << af << ", ";
+  af_dump.close();
 }
 
 void test() {

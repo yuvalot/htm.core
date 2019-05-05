@@ -655,7 +655,7 @@ std::ostream& operator<< (std::ostream& stream, const Connections& self)
 
   UInt        segmentsMin   = -1;
   Real        segmentsMean  = 0.0f;
-  UInt        segmentsMax   = -1;
+  UInt        segmentsMax   = 0u;
   UInt        potentialMin  = -1;
   Real        potentialMean = 0.0f;
   UInt        potentialMax  = 0;
@@ -665,13 +665,13 @@ std::ostream& operator<< (std::ostream& stream, const Connections& self)
   UInt        synapsesDead      = 0;
   UInt        synapsesSaturated = 0;
   for( const auto cellData : self.cells_ ) {
-    const UInt numSegments = (UInt) segData.synapses.size();
-    segmentsMin   = std::min( segmentsMin, numSegments );
-    segmentsMax   = std::max( segmentsMax, numSegments );
-    segmentsMean += numSegments;
-
     for( const auto seg : cellData.segments ) {
       const auto &segData = self.dataForSegment( seg );
+      const UInt numSegments = (UInt) segData.synapses.size();
+      segmentsMin   = std::min( segmentsMin, numSegments );
+      segmentsMax   = std::max( segmentsMax, numSegments );
+      segmentsMean += numSegments;
+
       const UInt numPotential = (UInt) segData.synapses.size();
       potentialMin   = std::min( potentialMin, numPotential );
       potentialMax   = std::max( potentialMax, numPotential );
