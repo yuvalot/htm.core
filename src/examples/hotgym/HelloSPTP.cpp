@@ -33,7 +33,6 @@
 
 #include "nupic/types/Sdr.hpp"
 #include "nupic/utils/Random.hpp"
-#include "nupic/types/Sdr.hpp"
 
 namespace examples {
 
@@ -100,7 +99,6 @@ Real64 BenchmarkHotgym::run(UInt EPOCHS, bool useSPlocal, bool useSPglobal, bool
   for (UInt e = 0; e < EPOCHS; e++) {
 
     //Encode
-    {
     tEnc.start();
     x+=0.01f; //step size for fn(x)
     enc.encode(sin(x), input); //model sin(x) function //TODO replace with CSV data
