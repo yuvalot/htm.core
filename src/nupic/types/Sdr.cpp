@@ -141,7 +141,7 @@ namespace sdr {
     }
 
 
-    void SparseDistributedRepresentation::setDense(SDR_dense_t &value ) {
+    void SparseDistributedRepresentation::setDense( SDR_dense_t &value ) {
         NTA_ASSERT(value.size() == size);
         dense_.swap( value );
         setDenseInplace();
@@ -173,7 +173,7 @@ namespace sdr {
     }
 
 
-    void SparseDistributedRepresentation::setSparse(SDR_sparse_t &value ) {
+    void SparseDistributedRepresentation::setSparse( SDR_sparse_t &value ) {
         sparse_.swap( value );
         setSparseInplace();
     }
@@ -210,7 +210,7 @@ namespace sdr {
     }
 
 
-    void SparseDistributedRepresentation::setCoordinates(SDR_coordinate_t &value ) {
+    void SparseDistributedRepresentation::setCoordinates( SDR_coordinate_t &value ) {
         coordinates_.swap( value );
         setCoordinatesInplace();
     }

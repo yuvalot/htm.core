@@ -252,7 +252,7 @@ public:
      *
      * @param value A dense vector<char> to swap into the SDR.
      */
-    void setDense(SDR_dense_t &value );
+    void setDense( SDR_dense_t &value );
 
     /**
      * Copy a new value into the SDR, overwritting the current value.
@@ -306,7 +306,7 @@ public:
      *
      * @param value A sparse vector<UInt> to swap into the SDR.
      */
-    void setSparse(SDR_sparse_t &value );
+    void setSparse( SDR_sparse_t &value );
 
     /**
      * Copy a vector of sparse indices of true values.  These indicies are into
@@ -358,7 +358,7 @@ public:
      * values to swap into the SDR.  The outter list is indexed using an index
      * into the sdr.dimensions list.  The inner lists are indexed in parallel.
      */
-    void setCoordinates(SDR_coordinate_t &value );
+    void setCoordinates( SDR_coordinate_t &value );
 
     /**
      * Copy a list of coordinates into the SDR, overwritting the SDRs current
