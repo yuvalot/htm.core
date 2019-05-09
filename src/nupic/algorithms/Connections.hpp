@@ -428,6 +428,12 @@ public:
   void raisePermanencesToThreshold(const Segment    segment,
                                    const UInt       segmentThreshold);
 
+
+  void synapseCompetition(
+                    const Segment    segment,
+                    const UInt       segmentMinSyns,
+                    const UInt       segmentMaxSyns);
+
   /**
    * Modify all permanence on the given segment, uniformly.
    *
@@ -437,65 +443,13 @@ public:
   void bumpSegment(const Segment segment, const Permanence delta);
 
 
-  /**
-   *
-   */
   void destroyMinPermanenceSynapses(Segment segment, UInt nDestroy, const sdr::SDR &excludeCells);
 
 
   /**
    * Print diagnostic info
    */
-  friend std::ostream& operator<< (std::ostream& stream, const Connections& self)
-  {
-    stream << "Connections:" << std::endl;
-    const auto numPresyns = self.potentialSynapsesForPresynapticCell_.size();
-    stream << "\tInputs (" << numPresyns
-           << ") ~> Outputs (" << self.cells_.size()
-           << ") on Segments (" << self.numSegments() << ")" << std::endl;
-
-    UInt        potentialMin  = -1;
-    Real        potentialMean = 0.0f;
-    UInt        potentialMax  = 0;
-    SynapseIdx  connectedMin  = -1;
-    Real        connectedMean = 0.0f;
-    SynapseIdx  connectedMax  = 0;
-    UInt        synapsesDead      = 0;
-    UInt        synapsesSaturated = 0;
-    for( const auto cellData : self.cells_ ) {
-      for( const auto seg : cellData.segments ) {
-        const auto &segData = self.dataForSegment( seg );
-        const UInt numPotential = (UInt) segData.synapses.size();
-        potentialMin   = std::min( potentialMin, numPotential );
-        potentialMax   = std::max( potentialMax, numPotential );
-        potentialMean += numPotential;
-
-        connectedMin   = std::min( connectedMin, segData.numConnected );
-        connectedMax   = std::max( connectedMax, segData.numConnected );
-        connectedMean += segData.numConnected;
-
-        for( const auto syn : segData.synapses ) {
-          const auto &synData = self.dataForSynapse( syn );
-          if( synData.permanence == minPermanence )
-            { synapsesDead++; }
-          else if( synData.permanence == minPermanence )
-            { synapsesSaturated++; }
-        }
-      }
-    }
-    potentialMean = potentialMean / self.numSegments();
-    connectedMean = connectedMean / self.numSegments();
-
-    stream << "\tPotential Synapses on Segment Min/Mean/Max "
-           << potentialMin << " / " << potentialMean << " / " << potentialMax << std::endl;
-    stream << "\tConnected Synapses on Segment Min/Mean/Max "
-           << connectedMin << " / " << connectedMean << " / " << connectedMax << std::endl;
-
-    stream << "\tSynapses Dead (" << (Real) synapsesDead / self.numSynapses()
-           << "%) Saturated (" <<   (Real) synapsesSaturated / self.numSynapses() << "%)" << std::endl;
-
-    return stream;
-  }
+  friend std::ostream& operator<< (std::ostream& stream, const Connections& self);
 
 
   // Serialization
@@ -562,15 +516,14 @@ public:
     }
   }
 
-
-  // Debugging
-
   /**
    * Gets the number of cells.
    *
    * @retval Number of cells.
    */
   size_t numCells() const { return cells_.size(); }
+
+  Permanence getConnectedThreshold() const { return connectedThreshold_; }
 
   /**
    * Gets the number of segments.
