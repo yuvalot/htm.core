@@ -148,6 +148,8 @@ private:
   SDR winnerCells_;
 
   Real rawAnomaly_;
+  Real meanAnomaly_;    // TODO
+  Real varAnomaly_;     // TODO
 
   UInt iterationNum_;
   UInt iterationLearnNum_;

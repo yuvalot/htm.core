@@ -471,59 +471,50 @@ class LabReport:
         memory_limit = None,):
         """
         """
-        pool = multiprocessing.Pool(processes, maxtasksperchild=1)
-        async_results = [] # Contains pairs of (Promise, Parameters)
+        process_pool = []
+        self.result_queue = multiprocessing.Queue()
+
+        # Start running new experiments
+        while len(process_pool) < processes:
+            # Pickle is picky, so clean up 'self' which is sent via pickle
+            # to the process pool. pickle_self only needs to work with
+            # evaluate_parameters
+            pickle_self = copy(self)
+            pickle_self.module = None  # Won't pickle, use self.module_reload instead.
+            # Pickle balks at circular references, remove them.
+            pickle_self.experiments    = None
+            pickle_self.experiment_ids = None
+            parameters = self.method(self)
+            parameters = self.typecast_parameters(parameters)
+            if self.verbose:
+                print("%X"%hash(parameters))
+            worker = multiprocessing.Process(
+                target = Experiment_evaluate_parameters,
+                name = hash(parameters),
+                args = (pickle_self, parameters,),
+                kwds = {'time_limit'   : time_limit,
+                        'memory_limit' : memory_limit,})
+            process_pool.append(worker)
+
+        # Check for jobs which have finished
+        process_pool = [p for p in process_pool if p.is_alive()]
+        while not self.result_queue.empty():
+            parameters, score = self.result_queue.get()
+            self.save_results(parameters, score)
 
         while True:
-            # Check for jobs which have finished
             run_slot = 0
             while run_slot < len(async_results):
                 promise, value = async_results[run_slot]
                 if promise.ready():
                     # Experiment run has finished, deal with the results.
                     result = self._get_promised_results(promise, value)
-                    self.save_results(value, result)
                     async_results.pop(run_slot)
                 else:
                     run_slot += 1
 
-            # Start running new experiments
-            while len(async_results) < processes:
-                # Pickle is picky, so clean up 'self' which is sent via pickle
-                # to the process pool. pickle_self only needs to work with
-                # evaluate_parameters
-                pickle_self = copy(self)
-                pickle_self.module = None  # Won't pickle, use self.module_reload instead.
-                # Pickle balks at circular references, remove them.
-                pickle_self.experiments    = None
-                pickle_self.experiment_ids = None
-                value = self.method(self)
-                value = self.typecast_parameters(value)
-                if self.verbose:
-                    print("%X"%hash(value))
-                promise = pool.apply_async(
-                    Experiment_evaluate_parameters,
-                    args = (pickle_self, value,),
-                    kwds = {'time_limit'   : time_limit,
-                            'memory_limit' : memory_limit,},)
-                async_results.append((promise, value))
-            # Wait for experiments to complete
-            time.sleep(1)
-
-    def _get_promised_results(self, promise, value):
-        try:
-            return promise.get()
-        except (ValueError, MemoryError, ZeroDivisionError, AssertionError) as err:
-            print("")
-            pprint.pprint(value)
-            print("%s:"%(type(err).__name__), err)
-            print("")
-        except Exception:
-            print("")
-            pprint.pprint(value)
-            print("Unhandled Exception.")
-            print("")
-            raise
+        # Wait for experiments to complete
+        time.sleep(1)
 
     def evaluate_parameters(self, parameters,
         time_limit   = None,
@@ -562,7 +553,20 @@ class LabReport:
                 ', '.join(repr(arg) for arg in self.argv[1:]),
                 str(self.verbose)))
         exec_globals = {}
-        exec(eval_str, exec_globals)
+
+        try:
+            exec(eval_str, exec_globals)
+        except (ValueError, MemoryError, ZeroDivisionError, AssertionError) as err:
+            print("")
+            pprint.pprint(parameters)
+            print("%s:"%(type(err).__name__), err)
+            print("")
+        except Exception:
+            print("")
+            pprint.pprint(parameters)
+            print("Unhandled Exception.")
+            print("")
+            raise
 
         # Clean up time limit
         if time_limit is not None:
