@@ -391,8 +391,11 @@ public:
         else
           overlap /= nConSyns;
 
-        // Boosting Function
+        // Logarithmic Boosting Function
         overlap *= log2( af[segment] ) * denominator;
+
+        // Exponential Boosting Function
+        // overlap *= exp((args_.minSparsity - af[segment]) * 25.0);
 
         // Maximum Segment Overlap Becomes Cell Overlap
         if( overlap > maxOverlap ) {
