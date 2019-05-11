@@ -101,6 +101,8 @@ R"(Compatibility Warning: This classes API is unstable and may change without wa
 
     py_Connections.def("raisePermanencesToThreshold", &Connections::raisePermanencesToThreshold);
 
+    py_Connections.def("synapseCompetition", &Connections::synapseCompetition);
+
     py_Connections.def("bumpSegment", &Connections::bumpSegment);
 
     py_Connections.def("numCells", &Connections::numCells);
