@@ -90,6 +90,8 @@ public:
   UInt        proximalSegmentThreshold = 1u;
   InitialPermanence_t proximalInitialPermanence =
                                   defaultProximalInitialPermanence(0.40f, 0.5f);
+  Real        proximalMinConnections = 0.05f;
+  Real        proximalMaxConnections = 0.30f;
 
   vector<UInt> distalInputDimensions       = {0u};
   UInt         distalMaxSegments           = 255;
@@ -110,14 +112,6 @@ public:
   Int  seed    = 0;
   bool verbose = true;
 };
-
-
-// TODO:
-// const extern Parameters SpatialPoolerParameters = {
-//      .distalMaxSegments           = 0, // Is this syntax good? does a compiler compile?
-//      .distalMaxSynapsesPerSegment = 0,
-//      .distalAddSynapses           = 0
-// };
 
 
 class ColumnPooler // : public Serializable
@@ -148,8 +142,8 @@ private:
   SDR winnerCells_;
 
   Real rawAnomaly_;
-  Real meanAnomaly_;    // TODO
-  Real varAnomaly_;     // TODO
+  Real meanAnomaly_;    // TODO Unimplemented
+  Real varAnomaly_;     // TODO Unimplemented
 
   UInt iterationNum_;
   UInt iterationLearnNum_;
@@ -157,7 +151,8 @@ private:
 
 public:
   const Parameters   &parameters     = args_;
-  const vector<UInt> &cellDimensions = cellDimensions_; // TODO: Rename to just "dimensions"
+  const vector<UInt> &cellDimensions = cellDimensions_;
+  const vector<UInt> &dimensions     = cellDimensions;
   const UInt         &size           = size_;
 
   const SDR & activeCells     = activeCells_;
@@ -253,9 +248,8 @@ public:
             // Make the synapses.
             proximalConnections.createSynapse( segment, presyn, permanence);
           }
-          // proximalConnections.raisePermanencesToThreshold( segment,
-          //                                     args_.proximalSegmentThreshold );
-          proximalConnections.synapseCompetition(segment, 30, 35);
+          proximalConnections.synapseCompetition(segment,
+                    args_.proximalMinConnections, args_.proximalMaxConnections);
         }
       }
     }
@@ -438,9 +432,8 @@ public:
       proximalConnections.adaptSegment(maxSegment, proximalInputActive,
                                        args_.proximalIncrement, args_.proximalDecrement);
 
-      // proximalConnections.raisePermanencesToThreshold(maxSegment,
-      //                                         args_.proximalSegmentThreshold);
-      proximalConnections.synapseCompetition(maxSegment, 30, 35);
+      proximalConnections.synapseCompetition(maxSegment,
+                    args_.proximalMinConnections, args_.proximalMaxConnections);
 
       activeSegments.push_back( maxSegment );
     }
