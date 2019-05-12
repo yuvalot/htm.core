@@ -618,48 +618,6 @@ void Connections::synapseCompetition(
 }
 
 
-void Connections::synapseCompetition(
-                  const Segment    segment,
-                  const UInt       segmentMinSyns,
-                  const UInt       segmentMaxSyns)
-{
-  const auto &segData = dataForSegment( segment );
-
-  vector<Synapse> synapses( segData.synapses.begin(), segData.synapses.end() );
-  if( synapses.empty())
-    return;   // No synapses to raise permanences of, no work to do.
-
-  // TODO: Keep this pointer in valid range!
-  vector<Synapse>::iterator minPermSynPtr = synapses.begin();
-  if( segData.numConnected < segmentMinSyns ) {
-    minPermSynPtr += segmentMinSyns - 1;
-  }
-  else if( segData.numConnected > segmentMaxSyns ) {
-    minPermSynPtr += segmentMaxSyns - 1;
-  }
-  else {
-    // The segment already satisfies the requirements, done.
-    return;
-  }
-
-  // Sort the potential pool by permanence values, and look for the synapse with
-  // the N'th greatest permanence, where N is the desired minimum number of
-  // connected synapses.  Then calculate how much to increase the N'th synapses
-  // permance by such that it becomes a connected synapse.  After that there
-  // will be at least N synapses connected.
-
-  const auto permanencesGreater = [&](const Synapse &A, const Synapse &B)
-    { return synapses_[A].permanence > synapses_[B].permanence; };
-  // Do a partial sort, it's faster than a full sort.
-  std::nth_element(synapses.begin(), minPermSynPtr, synapses.end(), permanencesGreater);
-
-  const Real increment = connectedThreshold_ - synapses_[ *minPermSynPtr ].permanence;
-
-  // Raise the permance of all synapses in the potential pool uniformly.
-  bumpSegment( segment, increment ) ;
-}
-
-
 void Connections::bumpSegment(const Segment segment, const Permanence delta) {
   const vector<Synapse> &synapses = synapsesForSegment(segment);
   // TODO: vectorize?

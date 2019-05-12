@@ -433,11 +433,6 @@ public:
                                    const UInt       segmentThreshold);
 
 
-  void synapseCompetition(
-                    const Segment    segment,
-                    const UInt       segmentMinSyns,
-                    const UInt       segmentMaxSyns);
-
   /**
    * Ensures that the number of connected synapses is sane.  This method
    * controls the sparsity of the synaptic connections, which is important for

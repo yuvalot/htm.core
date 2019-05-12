@@ -190,6 +190,8 @@ public:
     NTA_CHECK( RANGE_0_to_1( parameters.proximalIncrement ));
     NTA_CHECK( RANGE_0_to_1( parameters.proximalDecrement ));
     NTA_CHECK( RANGE_0_to_1( parameters.proximalSynapseThreshold ));
+    NTA_CHECK( RANGE_0_to_1( parameters.proximalMinConnections ));
+    NTA_CHECK( RANGE_0_to_1( parameters.proximalMaxConnections ));
     NTA_CHECK( RANGE_0_to_1( parameters.distalInitialPermanence ));
     NTA_CHECK( RANGE_0_to_1( parameters.distalSynapseThreshold ));
     NTA_CHECK( RANGE_0_to_1( parameters.distalIncrement ));
@@ -248,8 +250,10 @@ public:
             // Make the synapses.
             proximalConnections.createSynapse( segment, presyn, permanence);
           }
+          const auto numPotentialSyn = proximalConnections.dataForSegment( segment ).synapses.size();
           proximalConnections.synapseCompetition(segment,
-                    args_.proximalMinConnections, args_.proximalMaxConnections);
+                    (SynapseIdx) (args_.proximalMinConnections * numPotentialSyn),
+                    (SynapseIdx) (args_.proximalMaxConnections * numPotentialSyn));
         }
       }
     }
@@ -432,8 +436,10 @@ public:
       proximalConnections.adaptSegment(maxSegment, proximalInputActive,
                                        args_.proximalIncrement, args_.proximalDecrement);
 
+      const auto numPotentialSyn = proximalConnections.dataForSegment( maxSegment ).synapses.size();
       proximalConnections.synapseCompetition(maxSegment,
-                    args_.proximalMinConnections, args_.proximalMaxConnections);
+                (SynapseIdx) (args_.proximalMinConnections * numPotentialSyn),
+                (SynapseIdx) (args_.proximalMaxConnections * numPotentialSyn));
 
       activeSegments.push_back( maxSegment );
     }

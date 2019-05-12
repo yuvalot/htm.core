@@ -54,6 +54,8 @@ namespace nupic_ext
     py_Parameters.def_readwrite("proximalDecrement",            &Parameters::proximalDecrement);
     py_Parameters.def_readwrite("proximalSynapseThreshold",     &Parameters::proximalSynapseThreshold);
     py_Parameters.def_readwrite("proximalInitialPermanence",    &Parameters::proximalInitialPermanence);
+    py_Parameters.def_readwrite("proximalMinConnections",       &Parameters::proximalMinConnections);
+    py_Parameters.def_readwrite("proximalMaxConnections",       &Parameters::proximalMaxConnections);
     py_Parameters.def_readwrite("distalMaxSegments",            &Parameters::distalMaxSegments);
     py_Parameters.def_readwrite("distalMaxSynapsesPerSegment",  &Parameters::distalMaxSynapsesPerSegment);
     py_Parameters.def_readwrite("distalSegmentThreshold",       &Parameters::distalSegmentThreshold);
@@ -85,6 +87,10 @@ namespace nupic_ext
     py_ColumnPooler.def("setParameters", &ColumnPooler::setParameters);
     py_ColumnPooler.def_property_readonly("cellDimensions", [](const ColumnPooler &self)
         { return self.cellDimensions; });
+    py_ColumnPooler.def_property_readonly("dimensions", [](const ColumnPooler &self)
+        { return self.dimensions; });
+    py_ColumnPooler.def_property_readonly("size", [](const ColumnPooler &self)
+        { return self.size; });
     py_ColumnPooler.def_property_readonly("parameters", [](const ColumnPooler &self)
         { return self.parameters; });
     py_ColumnPooler.def_property_readonly("activeCells", [](const ColumnPooler &self)
