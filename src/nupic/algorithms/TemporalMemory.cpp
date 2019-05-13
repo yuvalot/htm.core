@@ -211,45 +211,6 @@ static void adaptSegment(Connections &connections, Segment segment,
   }
 }
 
-static void destroyMinPermanenceSynapses(Connections &connections, Random &rng,
-                                         Segment segment, Int nDestroy,
-                                         const vector<CellIdx> &excludeCells) {
-  // Don't destroy any cells that are in excludeCells.
-  vector<Synapse> destroyCandidates;
-  for (Synapse synapse : connections.synapsesForSegment(segment)) {
-    const CellIdx presynapticCell =
-        connections.dataForSynapse(synapse).presynapticCell;
-
-    if (!std::binary_search(excludeCells.begin(), excludeCells.end(),
-                            presynapticCell)) {
-      destroyCandidates.push_back(synapse);
-    }
-  }
-
-  // Find cells one at a time. This is slow, but this code rarely runs, and it
-  // needs to work around floating point differences between environments.
-  for (Int32 i = 0; i < nDestroy && !destroyCandidates.empty(); i++) {
-    Permanence minPermanence = std::numeric_limits<Permanence>::max();
-    vector<Synapse>::iterator minSynapse = destroyCandidates.end();
-
-    for (auto synapse = destroyCandidates.begin();
-         synapse != destroyCandidates.end(); synapse++) {
-      const Permanence permanence =
-          connections.dataForSynapse(*synapse).permanence;
-
-      // Use special Epsilon logic to compensate for floating point
-      // differences between C++ and other environments.
-      if (permanence < minPermanence - nupic::Epsilon) {
-        minSynapse = synapse;
-        minPermanence = permanence;
-      }
-    }
-
-    connections.destroySynapse(*minSynapse);
-    destroyCandidates.erase(minSynapse);
-  }
-}
-
 static void growSynapses(Connections &connections, 
 		         Random &rng, 
 			 const Segment& segment,
@@ -276,10 +237,10 @@ static void growSynapses(Connections &connections,
 
   const size_t nActual = std::min(static_cast<size_t>(nDesiredNewSynapses), candidates.size());
 
-  // Check if we're going to surpass the maximum number of synapses. //TODO delegate this to createSynapse(segment)
-  const size_t overrun = (connections.numSynapses(segment) + nActual - maxSynapsesPerSegment);
+  // Check if we're going to surpass the maximum number of synapses.
+  Int overrun = static_cast<Int>(connections.numSynapses(segment) + nActual - maxSynapsesPerSegment);
   if (overrun > 0) {
-    destroyMinPermanenceSynapses(connections, rng, segment, static_cast<Int>(overrun), prevWinnerCells);
+    connections.destroyMinPermanenceSynapses(segment, static_cast<Int>(overrun), prevWinnerCells);
   }
 
   // Recalculate in case we weren't able to destroy as many synapses as needed.
@@ -484,8 +445,8 @@ void TemporalMemory::activateCells(const SDR &activeColumns, const bool learn) {
            matchingSegments_, columnForSegment)) {
     UInt column;
     vector<Segment>::const_iterator activeColumnsBegin, activeColumnsEnd, 
-	columnActiveSegmentsBegin, columnActiveSegmentsEnd, 
-	columnMatchingSegmentsBegin, columnMatchingSegmentsEnd;
+	       columnActiveSegmentsBegin, columnActiveSegmentsEnd, 
+         columnMatchingSegmentsBegin, columnMatchingSegmentsEnd;
 
     std::tie(column, activeColumnsBegin, activeColumnsEnd, columnActiveSegmentsBegin,
              columnActiveSegmentsEnd, columnMatchingSegmentsBegin, columnMatchingSegmentsEnd
@@ -624,7 +585,7 @@ void TemporalMemory::reset(void) {
   activeSegments_.clear();
   matchingSegments_.clear();
   segmentsValid_ = false;
-  anomaly_ = -1;
+  anomaly_ = -1.0f;
 }
 
 // ==============================
@@ -645,7 +606,7 @@ UInt TemporalMemory::columnForCell(const CellIdx cell) const {
 
 SDR TemporalMemory::cellsToColumns(const SDR& cells) const {
   auto correctDims = getColumnDimensions(); //nD column dimensions (eg 10x100)
-  correctDims.push_back(getCellsPerColumn()); //add n+1-th dimension for cellsPerColumn (eg. 10x100x8)
+  correctDims.push_back(static_cast<CellIdx>(getCellsPerColumn())); //add n+1-th dimension for cellsPerColumn (eg. 10x100x8)
 
   NTA_CHECK(cells.dimensions == correctDims) 
 	  << "cells.dimensions must match TM's (column dims x cellsPerColumn) ";
@@ -691,7 +652,7 @@ SDR TemporalMemory::getPredictiveCells() const {
     << "Call TM.activateDendrites() before TM.getPredictiveCells()!";
 
   auto correctDims = getColumnDimensions();
-  correctDims.push_back(getCellsPerColumn());
+  correctDims.push_back(static_cast<CellIdx>(getCellsPerColumn()));
   SDR predictive(correctDims);
 
   auto& predictiveCells = predictive.getSparse();
@@ -833,6 +794,7 @@ void TemporalMemory::save(ostream &outStream) const {
   saveFloat_(outStream, permanenceIncrement_);
   saveFloat_(outStream, permanenceDecrement_);
   saveFloat_(outStream, predictedSegmentDecrement_);
+  saveFloat_(outStream, anomaly_);
 
   outStream << extra_ << " ";
   outStream << maxSegmentsPerCell_ << " " << maxSynapsesPerSegment_ << " "
@@ -892,8 +854,6 @@ void TemporalMemory::save(ostream &outStream) const {
   }
   outStream << endl;
 
-  outStream << anomaly_ << endl;
-
   outStream << "~TemporalMemory" << endl;
 }
 
@@ -914,7 +874,7 @@ void TemporalMemory::load(istream &inStream) {
   inStream >> numColumns_ >> cellsPerColumn_ >> activationThreshold_ >>
       initialPermanence_ >> connectedPermanence_ >> minThreshold_ >>
       maxNewSynapseCount_ >> checkInputs_ >> permanenceIncrement_ >>
-      permanenceDecrement_ >> predictedSegmentDecrement_ >> extra_ >>
+      permanenceDecrement_ >> predictedSegmentDecrement_ >> anomaly_ >> extra_ >>
       maxSegmentsPerCell_ >> maxSynapsesPerSegment_ >> iteration_;
 
   connections.load(inStream);
@@ -1010,8 +970,6 @@ void TemporalMemory::load(istream &inStream) {
   }
 
   lastUsedIterationForSegment_.resize(connections.segmentFlatListLength());
-
-  inStream >> anomaly_;
 
   inStream >> marker;
   NTA_CHECK(marker == "~TemporalMemory");
