@@ -627,12 +627,13 @@ void Connections::bumpSegment(const Segment segment, const Permanence delta) {
 }
 
 
-void Connections::destroyMinPermanenceSynapses(Segment segment, UInt nDestroy, const SDR &excludeCells)
+void Connections::destroyMinPermanenceSynapses(Segment segment, Int nDestroy, const SDR &excludeCells)
 {
+  assert(nDestroy >= 0);
   // Don't destroy any cells that are in excludeCells.
   vector<Synapse> destroyCandidates;
   const auto &excludeCellsDense = excludeCells.getDense();
-  for( const auto synapse : synapsesForSegment(segment) ) {
+  for( const auto synapse : synapsesForSegment( segment ) ) {
     const auto presynapticCell = dataForSynapse( synapse ).presynapticCell;
 
     if( not excludeCellsDense[ presynapticCell ] ) {
@@ -640,7 +641,7 @@ void Connections::destroyMinPermanenceSynapses(Segment segment, UInt nDestroy, c
     }
   }
 
-  nDestroy = std::min( nDestroy, (UInt) destroyCandidates.size() );
+  nDestroy = std::min( nDestroy, (Int) destroyCandidates.size() );
 
   const auto comparePermanences = [&](const auto A, const auto B) -> bool
       { return dataForSynapse(A).permanence < dataForSynapse(B).permanence; };
@@ -707,7 +708,7 @@ std::ostream& operator<< (std::ostream& stream, const Connections& self)
       }
     }
   }
-  segmentsMean = segmentsMean  / self.numCells();
+  segmentsMean  = segmentsMean  / self.numCells();
   potentialMean = potentialMean / self.numSegments();
   connectedMean = connectedMean / self.numSegments();
 
