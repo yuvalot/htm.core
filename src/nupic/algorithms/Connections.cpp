@@ -643,7 +643,7 @@ void Connections::destroyMinPermanenceSynapses(Segment segment, Int nDestroy, co
 
   nDestroy = std::min( nDestroy, (Int) destroyCandidates.size() );
 
-  const auto comparePermanences = [&](const auto A, const auto B) -> bool
+  const auto comparePermanences = [&](const Synapse A, const Synapse B) -> bool
       { return dataForSynapse(A).permanence < dataForSynapse(B).permanence; };
 
   std::nth_element( destroyCandidates.begin(),

@@ -83,7 +83,8 @@ namespace nupic_ext
     m.def("defaultProximalInitialPermanence", &defaultProximalInitialPermanence);
 
     py::class_<ColumnPooler> py_ColumnPooler(m, "ColumnPooler");
-    py_ColumnPooler.def(py::init<const Parameters&>());
+    py_ColumnPooler.def(py::init<const Parameters&>(),
+        py::call_guard<py::scoped_ostream_redirect, py::scoped_estream_redirect>());
     py_ColumnPooler.def("setParameters", &ColumnPooler::setParameters);
     py_ColumnPooler.def_property_readonly("cellDimensions", [](const ColumnPooler &self)
         { return self.cellDimensions; });

@@ -324,7 +324,6 @@ public:
     NTA_CHECK( proximalInputActive.dimensions == args_.proximalInputDimensions );
     NTA_CHECK( distalInputActive.dimensions   == args_.distalInputDimensions );
     NTA_CHECK( distalInputWinner.dimensions   == args_.distalInputDimensions );
-
     // Update bookkeeping
     iterationNum_++;
     if( learn )
@@ -521,7 +520,8 @@ public:
                     const SynapseIdx maxSynapsesPerSegment,
                     const SDR &distalInputWinnerPrevious) {
 
-    const auto &prevWinnerCells = distalInputWinnerPrevious.getSparse();
+    auto &prevWinnerCells = distalInputWinnerPrevious.getSparse();
+    std::sort(prevWinnerCells.begin(), prevWinnerCells.end());
     SDR_sparse_t candidates( prevWinnerCells.begin(), prevWinnerCells.end() ); // copy
     NTA_ASSERT(std::is_sorted(candidates.begin(), candidates.end()));
 
@@ -534,17 +534,17 @@ public:
       }
     }
 
-    const size_t nActual = std::min((size_t)(nDesiredNewSynapses), candidates.size());
+    const int nActual = std::min((int)(nDesiredNewSynapses), (int)candidates.size());
 
     // Check if we're going to surpass the maximum number of synapses. //TODO delegate this to createSynapse(segment)
-    const size_t overrun = (distalConnections.numSynapses(segment) + nActual - maxSynapsesPerSegment);
+    const int overrun = (distalConnections.numSynapses(segment) + nActual - maxSynapsesPerSegment);
     if (overrun > 0) {
       distalConnections.destroyMinPermanenceSynapses(segment, overrun, distalInputWinnerPrevious);
     }
 
     // Recalculate in case we weren't able to destroy as many synapses as needed.
-    const size_t nActualWithMax = std::min(nActual,
-        (size_t)(maxSynapsesPerSegment) - distalConnections.numSynapses(segment));
+    const int nActualWithMax = std::min((int)nActual,
+        (int)((maxSynapsesPerSegment) - distalConnections.numSynapses(segment)));
 
     // Pick nActual cells randomly.
 
@@ -554,7 +554,7 @@ public:
     // the existing synapses in a particular order.
     //
     // OR: Use random.sample....
-    for (size_t c = 0; c < nActualWithMax; c++) {
+    for (int c = 0; c < nActualWithMax; c++) {
       const auto i = rng_.getUInt32((UInt32)(candidates.size()));
       distalConnections.createSynapse(segment, candidates[i], initialPermanence);
       candidates.erase(candidates.begin() + i);
