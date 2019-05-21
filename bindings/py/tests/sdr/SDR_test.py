@@ -497,6 +497,12 @@ class ConcatenationTest(unittest.TestCase):
         D = C.concatenate( A.flatten(), B.flatten() )
         assert( C is D )
 
+    def testFlatten(self):
+        A = SDR(( 10, 10 )).randomize( .5, seed = 0xF )
+        B = SDR(( 10, 10 )).randomize( .5, seed = 0xF )
+        A = A.flatten().flatten().flatten()
+        assert( np.all(A.sparse == B.sparse) )
+
     def testMirroring(self):
         A = SDR( 100 )
         A.randomize( .05 )
