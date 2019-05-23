@@ -197,6 +197,8 @@ public:
     NTA_CHECK( RANGE_0_to_1( parameters.distalIncrement ));
     NTA_CHECK( RANGE_0_to_1( parameters.distalDecrement ));
     NTA_CHECK( RANGE_0_to_1( parameters.distalMispredictDecrement ));
+    NTA_CHECK( RANGE_0_to_1( parameters.stabilityRate ));
+    NTA_CHECK( RANGE_0_to_1( parameters.fatigueRate ));
     #undef RANGE_0_to_1
 
     NTA_CHECK( parameters.minSparsity * parameters.cellsPerInhibitionArea > 0.5f )

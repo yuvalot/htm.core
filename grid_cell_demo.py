@@ -12,6 +12,8 @@ import scipy.stats
 from scipy.ndimage.filters import maximum_filter
 import time
 import cv2
+import matplotlib.pyplot as plt
+import matplotlib as mpl
 
 from nupic.bindings.sdr import SDR, Metrics
 from nupic.bindings.encoders import CoordinateEncoder, CoordinateEncoderParameters
@@ -71,31 +73,34 @@ class Environment(object):
       plt.show()
 
 
-default_parameters = {
-  'gc' : {
-    'stabilityRate'            : 1 - 0.05,
-    'fatigueRate'              : 0.05 / 3,
-    'proximalSynapseThreshold' : 0.25,
-    'proximalIncrement'        : 0.005,
-    'proximalDecrement'        : 0.0008,
-    'proximalSegmentThreshold' : 0,
-    'proximalSegments'         : 1,
-    'period'                   : 10000,
-    'cellsPerInhibitionArea'    : 500,
-    'minSparsity'               : .05,
-    'maxDepolarizedSparsity'    : .1,
-    'maxBurstSparsity'          : .3,
-    "potentialPool"             : 0.95
-  }
-}
+default_parameters = {'gc':
+{ 'fatigueRate': 0.022478229433489705,
+  'maxBurstSparsity': 0.14331258040010797,
+  'maxDepolarizedSparsity': 0.,
+  'minSparsity': 0.,
+  'period': 14249,
+  'potentialPool': 0.8031840178298344,
+  'proximalDecrement': 0.00040185537435513295,
+  'proximalIncrement': 0.005197150484347867,
+  'proximalSegmentThreshold': 6,
+  'proximalSegments': 5,
+  'proximalSynapseThreshold': 0.23741760265930045,
+  'stabilityRate': 0.9599608984638882}}
 
 
 def main(parameters=default_parameters, argv=None, verbose=True):
 
   parser = argparse.ArgumentParser()
-  parser.add_argument('--train_time', type=int, default = 1000 * 1000,)
+  parser.add_argument('--steps', type=int, default = 1000 * 1000,)
   parser.add_argument('--debug', action='store_true')
   args = parser.parse_args(argv)
+
+  # Hold these parameters constant from swarming.
+  parameters['gc'].update({
+    'cellsPerInhibitionArea' : 100 if args.debug else 500,
+    'maxDepolarizedSparsity' : parameters['gc']['maxBurstSparsity'],
+    'minSparsity'            : parameters['gc']['maxBurstSparsity'],
+  })
 
   # Setup
   env = Environment(size = 200)
@@ -157,41 +162,39 @@ def main(parameters=default_parameters, argv=None, verbose=True):
             learn                 = learn)
     anomaly.append( gcm.rawAnomaly )
 
-  print("Learning for %d cycles ..."%args.train_time)
+  print("Learning for %d steps ..."%args.steps)
   gcm.reset()
-  gc_metrics = Metrics(gcm.cellDimensions, args.train_time)
-  for step in range(args.train_time):
-    if step % 10000 == 0:
-      print("Cycle %d"%step)
+  # TODO: Input metrics too!
+  gc_metrics = Metrics(gcm.cellDimensions, args.steps)
+  for step in range(args.steps):
+    if verbose and step % 10000 == 0:
+      print("Step %d"%step)
     env.move()
     compute()
     gc_metrics.addData( gcm.activeCells )
   print("Grid Cell Metrics", str(gc_metrics))
-
-  print()
+  print("")
   print("Proximal", gcm.proximalConnections)
-  with open("grid_cell_prox.connections", "wb") as f:
-      f.write( gcm.proximalConnections.save() )
-
-  print()
+  print("")
   print("Distal", gcm.distalConnections)
-  with open("grid_cell_distal.connections", "wb") as f:
-      f.write( gcm.distalConnections.save() )
-
+  print("")
   print("Anomaly Mean", np.mean(anomaly), "std", np.std(anomaly))
-
-  print("Evaluating Grid Cells ...")
-  enc_num_samples = 12
-  gc_num_samples  = 20
+  print("")
+  if verbose:
+      with open("grid_cell_prox.connections", "wb") as f:
+          f.write( gcm.proximalConnections.save() )
+      with open("grid_cell_distal.connections", "wb") as f:
+          f.write( gcm.distalConnections.save() )
 
   # Show how the agent traversed the environment.
-  if args.train_time <= 100000:
+  if args.steps <= 100000:
     env.plot_course(show=False)
   else:
     print("Not going to plot course, too long.")
 
   # Measure Grid Cell Receptive Fields.
-  enc_samples = random.sample(range(enc.parameters.size), enc_num_samples)
+  print("Evaluating Grid Cells ...")
+  enc_samples = random.sample(range(enc.parameters.size), 12 if verbose else 0)
   enc_rfs     = [np.zeros((env.size, env.size)) for idx in enc_samples]
   gc_rfs      = [np.zeros((env.size, env.size)) for idx in range(gcm.size)]
   for position in itertools.product(range(env.size), range(env.size)):
@@ -203,7 +206,7 @@ def main(parameters=default_parameters, argv=None, verbose=True):
     for rf_idx, enc_idx in enumerate(enc_samples):
       enc_rfs[rf_idx][position] = enc_sdr.dense[enc_idx]
     for gc_idx in range(gcm.size):
-      gc_rfs[gc_idx][position] = gcm.activeCells.flatten().dense[gc_idx]
+      gc_rfs[gc_idx][position] = SDR(gcm.activeCells).dense[0, gc_idx]
 
   # Look for the grid properties.
   xcor      = []
@@ -232,80 +235,81 @@ def main(parameters=default_parameters, argv=None, verbose=True):
     maxima = maximum_filter( half, size=10 ) == half
     maxima = np.logical_and( maxima, half > 0 ) # Filter out areas which are all zeros.
     maxima = np.nonzero( maxima )
+    align_pts = []
     for idx in np.argsort(-half[ maxima ])[ 1 : 4 ]:
       x_coord, y_coord = maxima[0][idx], maxima[1][idx]
       # Fix coordinate scale & offset.
       x_coord = (x_coord - dim/2 + .5) / zoom
       y_coord = (dim/2 - y_coord - .5) / zoom
-      alignment.append( ( x_coord, y_coord ) )
+      align_pts.append( ( x_coord, y_coord ) )
+    alignment.append(align_pts)
+
+  # Analyze the best examples of grid cells, by gridness scores.
+  if verbose:
+    # Select exactly 20 cells to display.
+    gc_num_samples = 20
+  else:
+    # Top 5% of grid cells.
+    gc_num_samples = int(round(len(gridness) * .05))
+  gc_samples = np.argsort(gridness)[ -gc_num_samples : ]
+
+  # Get the selected data.
+  gridness_all = gridness[:] # Save all gridness scores for histogram.
+  gc_samples   = sorted(gc_samples, key=lambda x: gridness[x])
+  gc_rfs       = [ gc_rfs[idx]    for idx in gc_samples ]
+  xcor         = [ xcor[idx]      for idx in gc_samples ]
+  gridness     = [ gridness[idx]  for idx in gc_samples ]
+  alignment    = [ alignment[idx] for idx in gc_samples ]
+  score = np.mean(gridness)
+  print("Score:", score)
 
   if verbose:
-    import matplotlib.pyplot as plt
-    import matplotlib as mpl
     # Show the Input/Encoder Receptive Fields.
-    if len(enc_rfs) > 0:
-      plt.figure("Input Receptive Fields")
-      nrows = int(len(enc_rfs) ** .5)
-      ncols = math.ceil((len(enc_rfs)+.0) / nrows)
-      for subplot_idx, rf in enumerate(enc_rfs):
-        plt.subplot(nrows, ncols, subplot_idx + 1)
-        plt.imshow(rf, interpolation='nearest')
+    plt.figure("Input Receptive Fields")
+    nrows = int(len(enc_rfs) ** .5)
+    ncols = math.ceil((len(enc_rfs)+.0) / nrows)
+    for subplot_idx, rf in enumerate(enc_rfs):
+      plt.subplot(nrows, ncols, subplot_idx + 1)
+      plt.imshow(rf, interpolation='nearest')
 
     # Show Histogram of gridness scores.
     plt.figure("Histogram of Gridness Scores")
-    plt.hist( gridness, bins=28, range=[-.3, 1.1] )
+    plt.hist( gridness_all, bins=28, range=[-.3, 1.1] )
     plt.ylabel("Number of cells")
     plt.xlabel("Gridness score")
 
-    # Select some interesting cells to display.
-    if True:
-        # Show the best & worst grid cells.
-        argsort = np.argsort(gridness)
-        gc_samples = list( argsort[ : gc_num_samples // 2] )
-        gc_samples.extend( argsort[ -(gc_num_samples - len(gc_samples)) : ])
-    elif False:
-        # Show the best grid cells.
-        gc_samples = np.argsort(gridness)[ -gc_num_samples : ]
-    else:
-        #  Show random sample of grid cells.
-        gc_samples = random.sample(range(len(gc_rfs)), gc_num_samples)
-    gc_rfs    = [ gc_rfs[idx]    for idx in gc_samples ]
-    xcor      = [ xcor[idx]      for idx in gc_samples ]
-    gridness  = [ gridness[idx]  for idx in gc_samples ]
-    alignment = [ alignment[idx] for idx in gc_samples ]
-
     # Show the Grid Cells Receptive Fields.
-    if gc_num_samples > 0:
-      plt.figure("Grid Cell Receptive Fields")
-      nrows = int(gc_num_samples ** .5)
-      ncols = math.ceil((gc_num_samples+.0) / nrows)
-      for subplot_idx, rf in enumerate(gc_rfs):
-        plt.subplot(nrows, ncols, subplot_idx + 1)
-        plt.title("Gridness score %g"%gridness[subplot_idx])
-        plt.imshow(rf, interpolation='nearest')
+    plt.figure("Grid Cell Receptive Fields")
+    nrows = int(len(gc_rfs) ** .5)
+    ncols = math.ceil((len(gc_rfs)+.0) / nrows)
+    for subplot_idx, rf in enumerate(gc_rfs):
+      plt.subplot(nrows, ncols, subplot_idx + 1)
+      plt.title("Gridness score %g"%gridness[subplot_idx])
+      plt.imshow(rf, interpolation='nearest')
 
-      # Show the autocorrelations of the grid cell receptive fields.
-      plt.figure("Grid Cell RF Autocorrelations")
-      for subplot_idx, X in enumerate(xcor):
-        plt.subplot(nrows, ncols, subplot_idx + 1)
-        plt.title("Gridness score %g"%gridness[subplot_idx])
-        plt.imshow(X, interpolation='nearest')
+    # Show the autocorrelations of the grid cell receptive fields.
+    plt.figure("Grid Cell RF Autocorrelations")
+    for subplot_idx, X in enumerate(xcor):
+      plt.subplot(nrows, ncols, subplot_idx + 1)
+      plt.title("Gridness score %g"%gridness[subplot_idx])
+      plt.imshow(X, interpolation='nearest')
 
-      # Show locations of the first 3 maxima of each x-correlation.
-      plt.figure("Spacing & Orientation")
-      # Replace duplicate points with larger points in the image.
-      coord_set = list(set(alignment))
-      x_coords, y_coords = zip(*coord_set)
-      defaultDotSz = mpl.rcParams['lines.markersize'] ** 2
-      scales = [alignment.count(c) * defaultDotSz for c in coord_set]
-      plt.scatter( x_coords, y_coords, scales)
+    # Show locations of the first 3 maxima of each x-correlation.
+    plt.figure("Spacing & Orientation")
+    alignment_flat = [];
+    [alignment_flat.extend(pts) for pts in alignment]
+    x_coords, y_coords = zip(*alignment_flat)
+    # Replace duplicate points with larger points in the image.
+    # coord_set = list(set(alignment))
+    # defaultDotSz = mpl.rcParams['lines.markersize'] ** 2
+    # scales = [alignment.count(c) * defaultDotSz for c in coord_set]
+    # plt.scatter( x_coords, y_coords, scales)
+    if x_coords and y_coords:
+      plt.scatter( x_coords, y_coords )
+    else:
+      print("No alignment points found!")
 
     plt.show()
-
-  # Score is the average of the top 5% of gridness scores.
-  gridness.sort()
-  score = np.mean(gridness[ -int(round(len(gridness) * .05)) :])
-  print("Score:", score)
   return score
 
 if __name__ == "__main__":
