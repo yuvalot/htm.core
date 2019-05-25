@@ -79,8 +79,8 @@ public:
   UInt         cellsPerInhibitionArea;
 
   Real minSparsity            = 0.02f;
-  Real maxDepolarizedSparsity = 0.05f;
-  Real maxBurstSparsity       = 0.10f;
+  Real maxBurstSparsity       = 0.10f; // TODO: Reformulate this as cellsPerMiniColumn * minSparsity
+  Real maxDepolarizedSparsity = 0.05f; // TODO: Reformulate this as maxPredictionsPerMiniColumn * minSparsity
 
   Topology_t  potentialPool     = NoTopology(1.0f);
   UInt        proximalSegments  = 1u;
@@ -124,6 +124,7 @@ private:
   // Proximal Dendrite Data:
   // TODO: Move distalConnections here, expose public references to all of this junk!
   vector<UInt16> rawOverlaps_;
+  vector<UInt16> potentialOverlaps_;
   vector<Real>   cellOverlaps_;
   vector<UInt>   proximalMaxSegment_;
   ActivationFrequency *AF_;   // This is used by boosting.
@@ -268,6 +269,7 @@ public:
     }
     // Setup Proximal data structures.
     rawOverlaps_.resize( proximalConnections.numSegments() );
+    potentialOverlaps_.resize( proximalConnections.numSegments() );
     cellOverlaps_.resize( cells.size );
     proximalMaxSegment_.resize( cells.size );
     tieBreaker_.resize( proximalConnections.numSegments() );
@@ -334,7 +336,6 @@ public:
     // Feed Forward Input / Proximal Dendrites
     computeProximalDendrites( proximalInputActive );
 
-    // TODO: Rename "activate" to "compute" ?
     computeDistalDendrites( distalInputActive, learn );
 
     activeCells_.getSparse().clear();
@@ -359,6 +360,8 @@ public:
   {
     // Proximal Feed Forward Excitement
     fill( rawOverlaps_.begin(), rawOverlaps_.end(), 0.0f );
+    fill( potentialOverlaps_.begin(), potentialOverlaps_.end(), 0.0f );
+    // proximalConnections.computeActivity(rawOverlaps_, potentialOverlaps_, feedForwardInputs.getSparse());
     proximalConnections.computeActivity(rawOverlaps_, feedForwardInputs.getSparse());
 
     // Setup for Boosting
@@ -722,9 +725,9 @@ public:
     auto compare = [&](const UInt &a, const UInt &b) -> bool
                     { return cellOverlaps_[a] > cellOverlaps_[b]; };
 
-    // Qualifying round of competition.  This does not activate cells, but
-    // rather disqualifies cells which clearly lost the competition for feed-
-    // forward / proximal input.
+    // Proximal competition, Qualifying round of competition.  This does not
+    // activate cells, but rather disqualifies cells which clearly lost the
+    // competition for feed-forward / proximal input.
     const UInt maxDesired = round( areaSize *
                   max( args_.maxDepolarizedSparsity, args_.maxBurstSparsity) );
     SDR_sparse_t qualifiedCells;  qualifiedCells.reserve( areaSize );
@@ -750,7 +753,8 @@ public:
     // Run the first round of competition, for predicted / deplarized cells.
     const UInt predictedNumDesired = round( args_.maxDepolarizedSparsity * areaSize );
     const auto &predictiveCellsDense = predictiveCells_.getDense();
-    // Also split the cells into predicted & unpredicted lists.
+    // Also split the cells into predicted & unpredicted lists.  Make big lists
+    // of activations, and then selectively remove the loser cells from them.
     SDR_sparse_t predictedActive;
     SDR_sparse_t unpredictedActive;
     for( const auto cell : qualifiedCells ) {

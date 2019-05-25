@@ -73,19 +73,21 @@ class Environment(object):
       plt.show()
 
 
-default_parameters = {'gc':
-{ 'fatigueRate': 0.022478229433489705,
-  'maxBurstSparsity': 0.14331258040010797,
-  'maxDepolarizedSparsity': 0.,
-  'minSparsity': 0.,
-  'period': 14249,
-  'potentialPool': 0.8031840178298344,
-  'proximalDecrement': 0.00040185537435513295,
-  'proximalIncrement': 0.005197150484347867,
-  'proximalSegmentThreshold': 6,
-  'proximalSegments': 5,
-  'proximalSynapseThreshold': 0.23741760265930045,
-  'stabilityRate': 0.9599608984638882}}
+default_parameters = {'gc': {
+        'fatigueRate': 0.02479904687946749,
+        'maxBurstSparsity': 0.16159121243882169,
+        'maxDepolarizedSparsity': 0.0,
+        'minSparsity': 0.0,
+        'period': 15452,
+        'potentialPool': 0.9653887215973943,
+        'proximalDecrement': 0.00041767455516643185,
+        'proximalIncrement': 0.0063514371595179385,
+        'proximalSegmentThreshold': 4,
+        'proximalSegments': 3,
+        'proximalSynapseThreshold': 0.2665465883854693,
+        'stabilityRate': 0.9599504061401867,
+        'proximalMinConnections': 0,
+        'proximalMaxConnections': 1,}}
 
 
 def main(parameters=default_parameters, argv=None, verbose=True):
@@ -164,14 +166,17 @@ def main(parameters=default_parameters, argv=None, verbose=True):
 
   print("Learning for %d steps ..."%args.steps)
   gcm.reset()
-  # TODO: Input metrics too!
+  pc_metrics = Metrics(enc.dimensions, args.steps)
   gc_metrics = Metrics(gcm.cellDimensions, args.steps)
   for step in range(args.steps):
     if verbose and step % 10000 == 0:
       print("Step %d"%step)
     env.move()
     compute()
+    pc_metrics.addData( enc_sdr )
     gc_metrics.addData( gcm.activeCells )
+  print("Place Cell Metrics", str(pc_metrics))
+  print("")
   print("Grid Cell Metrics", str(gc_metrics))
   print("")
   print("Proximal", gcm.proximalConnections)
@@ -249,8 +254,8 @@ def main(parameters=default_parameters, argv=None, verbose=True):
     # Select exactly 20 cells to display.
     gc_num_samples = 20
   else:
-    # Top 5% of grid cells.
-    gc_num_samples = int(round(len(gridness) * .05))
+    # Top 20% of grid cells.
+    gc_num_samples = int(round(len(gridness) * .20))
   gc_samples = np.argsort(gridness)[ -gc_num_samples : ]
 
   # Get the selected data.
@@ -298,15 +303,15 @@ def main(parameters=default_parameters, argv=None, verbose=True):
     plt.figure("Spacing & Orientation")
     alignment_flat = [];
     [alignment_flat.extend(pts) for pts in alignment]
-    x_coords, y_coords = zip(*alignment_flat)
     # Replace duplicate points with larger points in the image.
-    # coord_set = list(set(alignment))
-    # defaultDotSz = mpl.rcParams['lines.markersize'] ** 2
-    # scales = [alignment.count(c) * defaultDotSz for c in coord_set]
-    # plt.scatter( x_coords, y_coords, scales)
+    coord_set = list(set(alignment_flat))
+    defaultDotSz = mpl.rcParams['lines.markersize'] ** 2
+    scales = [alignment_flat.count(c) * defaultDotSz for c in coord_set]
+    x_coords, y_coords = zip(*coord_set)
     if x_coords and y_coords:
-      plt.scatter( x_coords, y_coords )
+      plt.scatter( x_coords, y_coords, scales )
     else:
+      plt.scatter( [], [] )
       print("No alignment points found!")
 
     plt.show()
