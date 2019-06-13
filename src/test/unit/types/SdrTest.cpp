@@ -150,6 +150,7 @@ TEST(SdrTest, TestReshape) {
 }
 
 TEST(SdrTest, TestSetDenseVec) {
+    // Tests that sdr.setDense() swaps vector content when data types are correct.
     SDR a({11, 10, 4});
     auto before = a.getDense().data();
     SDR_dense_t vec = SDR_dense_t(440, 1);
@@ -160,15 +161,8 @@ TEST(SdrTest, TestSetDenseVec) {
     ASSERT_EQ( after, data ); // correct data buffer.
 }
 
-TEST(SdrTest, TestSetDenseUInt) {
-    SDR a({11, 10, 4});
-    auto vec = SDR_dense_t(a.size, 1);
-    a.setDense(vec );
-    ASSERT_EQ( a.getDense(), SDR_dense_t(a.size, 1) );
-    ASSERT_NE( a.getDense().data(), (const Byte*) vec.data()); // true copy not a reference
-}
-
 TEST(SdrTest, TestSetDenseByte) {
+    // Tests sdr.setDense will copy data correctly, when given a pointer.
     SDR a({11, 10, 4});
     auto vec = vector<Byte>(a.size, 1);
     a.zero();
@@ -176,6 +170,15 @@ TEST(SdrTest, TestSetDenseByte) {
     ASSERT_EQ( a.getDense(), vec );
     ASSERT_NE( ((vector<Byte>&) a.getDense()).data(), vec.data() ); // true copy not a reference
     ASSERT_EQ( a.getDense().data(), a.getDense().data() ); // But not a copy every time.
+}
+
+TEST(SdrTest, TestSetDenseUInt) {
+    // Tests sdr.setDense will copy data correctly, when given input with the wrong data type.
+    SDR a({11, 10, 4});
+    auto vec = vector<UInt>(a.size, 1);
+    a.setDense(vec );
+    ASSERT_EQ( a.getDense(), SDR_dense_t(a.size, 1) );
+    ASSERT_NE( a.getDense().data(), (const Byte*) vec.data()); // true copy not a reference
 }
 
 TEST(SdrTest, TestSetDenseInplace) {
@@ -191,16 +194,22 @@ TEST(SdrTest, TestSetDenseInplace) {
 }
 
 TEST(SdrTest, TestSetSparseVec) {
+    // This tests that the SDR swaps vector contents instead of copying, when
+    // the given vector has the correct data type.
     SDR a({11, 10, 4});
-    const auto before = a.getSparse();
-    const SDR_sparse_t data = {1, 2, 3};
-    a.setSparse( data );
-    const auto after = a.getSparse();
+    UInt *before = a.getSparse().data();
+    auto vec = SDR_sparse_t(a.size, 1);
+    UInt *data = vec.data();
+    for(UInt i = 0; i < a.size; i++)
+        vec[i] = i;
+    a.setSparse( vec );
+    UInt *after = a.getSparse().data();
     ASSERT_NE( before, after );
     ASSERT_EQ( after, data );
 }
 
 TEST(SdrTest, TestSetSparsePtr) {
+    // Test sdr.setSparse copies data correctly when given a pointer.
     SDR a({11, 10, 4});
     auto vec = SDR_sparse_t(a.size, 1);
     for(UInt i = 0; i < a.size; i++)
