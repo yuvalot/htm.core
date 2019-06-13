@@ -566,7 +566,7 @@ Real SpatialPooler::initPermNonConnected_() {
 
 const vector<Real> SpatialPooler::initPermanence_(const SDR &potential, const Real connectedPct) {
   vector<Real> perm(numInputs_, 0);
-  for (const auto i : potential.getSparse()) { //TODO add SDR iterator over sparse indices?
+  for (const auto i : potential.getSparse()) {
     if (rng_.getReal64() <= connectedPct) {
       perm[i] = initPermConnected_();
     } else {

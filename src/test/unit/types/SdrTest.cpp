@@ -168,6 +168,16 @@ TEST(SdrTest, TestSetDenseUInt) {
     ASSERT_NE( a.getDense().data(), (const Byte*) vec.data()); // true copy not a reference
 }
 
+TEST(SdrTest, TestSetDenseByte) {
+    SDR a({11, 10, 4});
+    auto vec = vector<Byte>(a.size, 1);
+    a.zero();
+    a.setDense( (Byte*) vec.data());
+    ASSERT_EQ( a.getDense(), vec );
+    ASSERT_NE( ((vector<Byte>&) a.getDense()).data(), vec.data() ); // true copy not a reference
+    ASSERT_EQ( a.getDense().data(), a.getDense().data() ); // But not a copy every time.
+}
+
 TEST(SdrTest, TestSetDenseInplace) {
     SDR a({10, 10});
     auto& a_data = a.getDense();
