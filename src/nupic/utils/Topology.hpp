@@ -34,8 +34,6 @@
 #include <nupic/utils/Random.hpp>
 
 namespace nupic {
-namespace math {
-namespace topology {
 
 /**
  * Topology_t is a function which returns the pool of potential synapses for a
@@ -68,7 +66,7 @@ namespace topology {
  *      };
  *    }
  */
-typedef std::function<sdr::SDR (const sdr::SDR&, const std::vector<UInt>&, Random&)> Topology_t;
+typedef std::function<SDR (const SDR&, const std::vector<UInt>&, Random&)> Topology_t;
 
 /**
  * @param potentialRadius: This parameter determines the extent of the
@@ -274,8 +272,6 @@ private:
   const UInt radius_;
 };
 
-} // end namespace topology
-} // namespace math
 } // end namespace nupic
 
 #endif // NTA_TOPOLOGY_HPP

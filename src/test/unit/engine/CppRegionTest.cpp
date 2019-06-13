@@ -201,12 +201,12 @@ TEST(CppRegionTest, testYAML) {
 TEST(CppRegionTest, realmain) {
   Network n;
 
-  size_t count1 = n.getRegions().getCount();
+  size_t count1 = n.getRegions().size();
   EXPECT_TRUE(count1 == 0u);
   std::shared_ptr<Region> level1 = n.addRegion("level1", "TestNode", "{count: 2}");
 
 
-  size_t count = n.getRegions().getCount();
+  size_t count = n.getRegions().size();
   EXPECT_TRUE(count == 1u);
   std::string region_type = level1->getType();
   EXPECT_STREQ(region_type.c_str(), "TestNode");
@@ -279,10 +279,10 @@ TEST(CppRegionTest, RegionSerialization) {
 	std::shared_ptr<Region> r1 = n.addRegion("testnode", "TestNode", "{count: 2}");
 	
 	std::stringstream ss;
-	r1->saveToStream_ar(ss);
+	r1->save(ss);
 	
 	Region r2(&n);
-	r2.loadFromStream_ar(ss);
+	r2.load(ss);
 	EXPECT_EQ(*r1.get(), r2);
 
 }

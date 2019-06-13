@@ -30,14 +30,11 @@
 #include <cmath> //fmod
 
 #include <nupic/algorithms/SpatialPooler.hpp>
-#include <nupic/math/Topology.hpp>
-#include <nupic/math/Math.hpp> // nupic::Epsilon
+#include <nupic/utils/Topology.hpp>
+#include <nupic/utils/VectorHelpers.hpp>
 
 using namespace std;
 using namespace nupic;
-using namespace nupic::algorithms::spatial_pooler;
-using namespace nupic::math::topology;
-using nupic::sdr::SDR;
 
 class CoordinateConverterND {
 
@@ -215,8 +212,8 @@ void SpatialPooler::setUpdatePeriod(UInt updatePeriod) {
 Real SpatialPooler::getSynPermActiveInc() const { return synPermActiveInc_; }
 
 void SpatialPooler::setSynPermActiveInc(Real synPermActiveInc) {
-  NTA_CHECK( synPermActiveInc > connections::minPermanence );
-  NTA_CHECK( synPermActiveInc <= connections::maxPermanence );
+  NTA_CHECK( synPermActiveInc > minPermanence );
+  NTA_CHECK( synPermActiveInc <= maxPermanence );
   synPermActiveInc_ = synPermActiveInc;
 }
 
@@ -225,8 +222,8 @@ Real SpatialPooler::getSynPermInactiveDec() const {
 }
 
 void SpatialPooler::setSynPermInactiveDec(Real synPermInactiveDec) {
-  NTA_CHECK( synPermInactiveDec >= connections::minPermanence );
-  NTA_CHECK( synPermInactiveDec <= connections::maxPermanence );
+  NTA_CHECK( synPermInactiveDec >= minPermanence );
+  NTA_CHECK( synPermInactiveDec <= maxPermanence );
   synPermInactiveDec_ = synPermInactiveDec;
 }
 
@@ -235,14 +232,14 @@ Real SpatialPooler::getSynPermBelowStimulusInc() const {
 }
 
 void SpatialPooler::setSynPermBelowStimulusInc(Real synPermBelowStimulusInc) {
-  NTA_CHECK( synPermBelowStimulusInc > connections::minPermanence );
-  NTA_CHECK( synPermBelowStimulusInc <= connections::maxPermanence );
+  NTA_CHECK( synPermBelowStimulusInc > minPermanence );
+  NTA_CHECK( synPermBelowStimulusInc <= maxPermanence );
   synPermBelowStimulusInc_ = synPermBelowStimulusInc;
 }
 
 Real SpatialPooler::getSynPermConnected() const { return synPermConnected_; }
 
-Real SpatialPooler::getSynPermMax() const { return connections::maxPermanence; }
+Real SpatialPooler::getSynPermMax() const { return maxPermanence; }
 
 Real SpatialPooler::getMinPctOverlapDutyCycles() const {
   return minPctOverlapDutyCycles_;
@@ -343,13 +340,13 @@ void SpatialPooler::setPermanence(UInt column, const Real permanences[]) {
     connections_.updateSynapsePermanence( syn, permanences[presyn] );
 
 #ifndef NDEBUG
-    check_data[presyn] = connections::minPermanence;
+    check_data[presyn] = minPermanence;
 #endif
   }
 
 #ifndef NDEBUG
   for(UInt i = 0; i < numInputs_; i++) {
-    NTA_ASSERT(check_data[i] == connections::minPermanence)
+    NTA_ASSERT(check_data[i] == minPermanence)
           << "Can't setPermanence for synapse which is not in potential pool!";
   }
 #endif
@@ -454,16 +451,16 @@ void SpatialPooler::initialize(
 
   connections_.initialize(numColumns_, synPermConnected_);
   for (Size column = 0; column < numColumns_; column++) {
-    connections_.createSegment( (connections::CellIdx)column );
+    connections_.createSegment( static_cast<CellIdx>(column) );
 
     SDR potential({numInputs_});
-    initMapPotential_((UInt)column, wrapAround_, potential);
+    initMapPotential_(static_cast<UInt>(column), wrapAround_, potential);
     const vector<Real> perm = initPermanence_(potential, initConnectedPct_);
     for(const auto presyn : potential.getSparse()) {
-        connections_.createSynapse( (connections::Segment)column, presyn, perm[presyn] );
+        connections_.createSynapse( static_cast<Segment>(column), presyn, perm[presyn] );
     }
 
-    connections_.raisePermanencesToThreshold( (connections::Segment)column, stimulusThreshold_ );
+    connections_.raisePermanencesToThreshold( static_cast<Segment>(column), stimulusThreshold_ );
   }
 
   updateInhibitionRadius_();
@@ -476,8 +473,8 @@ void SpatialPooler::initialize(
 
 
 void SpatialPooler::compute(const SDR &input, const bool learn, SDR &active) {
-  NTA_CHECK( input.dimensions  == inputDimensions_ );
-  NTA_CHECK( active.dimensions == columnDimensions_ );
+  input.reshape(  inputDimensions_ );
+  active.reshape( columnDimensions_ );
   updateBookeepingVars_(learn);
   calculateOverlap_(input, overlaps_);
   calculateOverlapPct_(overlaps_, overlapsPct_);
@@ -489,6 +486,7 @@ void SpatialPooler::compute(const SDR &input, const bool learn, SDR &active) {
   // Notify the active SDR that its internal data vector has changed.  Always
   // call SDR's setter methods even if when modifying the SDR's own data
   // inplace.
+  sort( activeVector.begin(), activeVector.end() );
   active.setSparse( activeVector );
 
   if (learn) {
@@ -557,12 +555,12 @@ void SpatialPooler::initMapPotential_(UInt column, bool wrapAround, SDR& potenti
 
 
 Real SpatialPooler::initPermConnected_() {
-  return rng_.realRange(synPermConnected_, connections::maxPermanence);
+  return rng_.realRange(synPermConnected_, maxPermanence);
 }
 
 
 Real SpatialPooler::initPermNonConnected_() {
-  return rng_.realRange(connections::minPermanence, synPermConnected_);
+  return rng_.realRange(minPermanence, synPermConnected_);
 }
 
 
@@ -951,159 +949,12 @@ bool SpatialPooler::isUpdateRound_() const {
   return (iterationNum_ % updatePeriod_) == 0;
 }
 
-
-void SpatialPooler::save(ostream &outStream) const {
-  // Write a starting marker and version.
-  outStream << std::setprecision(std::numeric_limits<Real>::max_digits10);
-  outStream << "SpatialPooler" << endl;
-  outStream << version_ << endl;
-
-  // Store the simple variables first.
-  outStream << numInputs_ << " " << numColumns_ << " " << potentialRadius_
-            << " ";
-
-  outStream << potentialPct_ << " ";
-  outStream << initConnectedPct_ << " " << globalInhibition_ << " "
-	  << numActiveColumnsPerInhArea_ << " " << localAreaDensity_ << " ";
-
-  outStream << stimulusThreshold_ << " " << inhibitionRadius_ << " "
-            << dutyCyclePeriod_ << " ";
-
-  outStream << boostStrength_ << " ";
-
-  outStream << iterationNum_ << " " << iterationLearnNum_ << " " << spVerbosity_
-            << " " << updatePeriod_ << " ";
-
-  outStream << synPermInactiveDec_ << " "
-    << synPermActiveInc_ << " " << synPermBelowStimulusInc_ << " "
-    << synPermConnected_ << " " << minPctOverlapDutyCycles_ << " ";
-
-  outStream << wrapAround_ << " " << endl;
-
-  // Store vectors.
-  outStream << inputDimensions_.size() << " ";
-  for (auto &elem : inputDimensions_) {
-    outStream << elem << " ";
-  }
-  outStream << endl;
-
-  outStream << columnDimensions_.size() << " ";
-  for (auto &elem : columnDimensions_) {
-    outStream << elem << " ";
-  }
-  outStream << endl;
-
-  for (UInt i = 0; i < numColumns_; i++) {
-    outStream << boostFactors_[i] << " ";
-  }
-  outStream << endl;
-
-  for (UInt i = 0; i < numColumns_; i++) {
-    outStream << overlapDutyCycles_[i] << " ";
-  }
-  outStream << endl;
-
-  for (UInt i = 0; i < numColumns_; i++) {
-    outStream <<  activeDutyCycles_[i] << " ";
-  }
-  outStream << endl;
-
-  for (UInt i = 0; i < numColumns_; i++) {
-    outStream << minOverlapDutyCycles_[i] << " ";
-  }
-  outStream << endl;
-
-  for (UInt i = 0; i < numColumns_; i++) {
-    outStream << tieBreaker_[i] << " ";
-  }
-  outStream << endl;
-
-  connections_.save( outStream );
-
-  //Random
-  outStream << rng_ << endl;
-
-  outStream << "~SpatialPooler" << endl;
+namespace nupic {
+std::ostream& operator<< (std::ostream& stream, const SpatialPooler& self)
+{
+  stream << "Spatial Pooler " << self.connections;
+  return stream;
 }
-
-// Implementation note: this method sets up the instance using data from
-// inStream. This method does not call initialize. As such we have to be careful
-// that everything in initialize is handled properly here.
-void SpatialPooler::load(istream &inStream) {
-  // Current version
-  version_ = 2;
-
-  // Check the marker
-  string marker;
-  inStream >> marker;
-  NTA_CHECK(marker == "SpatialPooler");
-
-  // Check the saved version.
-  UInt version;
-  inStream >> version;
-  NTA_CHECK(version == version_);
-
-  // Retrieve simple variables
-  inStream >> numInputs_ >> numColumns_ >> potentialRadius_ >> potentialPct_ >>
-      initConnectedPct_ >> globalInhibition_ >> numActiveColumnsPerInhArea_ >>
-      localAreaDensity_ >> stimulusThreshold_ >> inhibitionRadius_ >>
-      dutyCyclePeriod_ >> boostStrength_ >> iterationNum_ >>
-      iterationLearnNum_ >> spVerbosity_ >> updatePeriod_ >>
-      synPermInactiveDec_ >> synPermActiveInc_ >> synPermBelowStimulusInc_ >>
-      synPermConnected_ >> minPctOverlapDutyCycles_;
-  inStream >> wrapAround_;
-
-  // Retrieve vectors.
-  UInt numInputDimensions;
-  inStream >> numInputDimensions;
-  inputDimensions_.resize(numInputDimensions);
-  for (UInt i = 0; i < numInputDimensions; i++) {
-    inStream >> inputDimensions_[i];
-  }
-
-  UInt numColumnDimensions;
-  inStream >> numColumnDimensions;
-  columnDimensions_.resize(numColumnDimensions);
-  for (UInt i = 0; i < numColumnDimensions; i++) {
-    inStream >> columnDimensions_[i];
-  }
-
-  boostFactors_.resize(numColumns_);
-  for (UInt i = 0; i < numColumns_; i++) {
-    inStream >> boostFactors_[i];
-  }
-
-  overlapDutyCycles_.resize(numColumns_);
-  for (UInt i = 0; i < numColumns_; i++) {
-    inStream >> overlapDutyCycles_[i];
-  }
-
-  activeDutyCycles_.resize(numColumns_);
-  for (UInt i = 0; i < numColumns_; i++) {
-    inStream >> activeDutyCycles_[i];
-  }
-
-  minOverlapDutyCycles_.resize(numColumns_);
-  for (UInt i = 0; i < numColumns_; i++) {
-    inStream >> minOverlapDutyCycles_[i];
-  }
-
-  tieBreaker_.resize(numColumns_);
-  for (UInt i = 0; i < numColumns_; i++) {
-    inStream >> tieBreaker_[i];
-  }
-
-  connections_.load( inStream );
-
-  inStream >> rng_;
-
-  inStream >> marker;
-  NTA_CHECK(marker == "~SpatialPooler");
-
-  // initialize ephemeral members
-  overlaps_.resize(numColumns_);
-  overlapsPct_.resize(numColumns_);
-  boostedOverlaps_.resize(numColumns_);
 }
 
 
@@ -1112,10 +963,9 @@ void SpatialPooler::load(istream &inStream) {
 //----------------------------------------------------------------------
 
 // Print the main SP creation parameters
-void SpatialPooler::printParameters() const {
-  std::cout << "------------CPP SpatialPooler Parameters ------------------\n";
-  std::cout
-      << "iterationNum                = " << getIterationNum() << std::endl
+void SpatialPooler::printParameters(std::ostream& out) const {
+  out << "------------CPP SpatialPooler Parameters ------------------\n";
+  out << "iterationNum                = " << getIterationNum() << std::endl
       << "iterationLearnNum           = " << getIterationLearnNum() << std::endl
       << "numInputs                   = " << getNumInputs() << std::endl
       << "numColumns                  = " << getNumColumns() << std::endl
@@ -1138,40 +988,70 @@ void SpatialPooler::printParameters() const {
       << "version                     = " << version() << std::endl;
 }
 
-void SpatialPooler::printState(vector<UInt> &state) {
-  std::cout << "[  ";
+void SpatialPooler::printState(const vector<UInt> &state, std::ostream& out) const {
+  out << "[  ";
   for (UInt i = 0; i != state.size(); ++i) {
     if (i > 0 && i % 10 == 0) {
-      std::cout << "\n   ";
+      out << "\n   ";
     }
-    std::cout << state[i] << " ";
+    out << state[i] << " ";
   }
-  std::cout << "]\n";
+  out << "]\n";
 }
 
-void SpatialPooler::printState(vector<Real> &state) {
-  std::cout << "[  ";
+void SpatialPooler::printState(const vector<Real> &state, std::ostream& out) const {
+  out << "[  ";
   for (UInt i = 0; i != state.size(); ++i) {
     if (i > 0 && i % 10 == 0) {
-      std::cout << "\n   ";
+      out << "\n   ";
     }
-    std::printf("%6.3f ", state[i]);
+    out << state[i];
   }
-  std::cout << "]\n";
+  out << "]\n";
 }
 
-/** equals implementation based on serialization */
+
+/** equals implementation based on text serialization */
 bool SpatialPooler::operator==(const SpatialPooler& o) const{
-  stringstream s;
-  s.flags(ios::scientific);
-  s.precision(numeric_limits<double>::digits10 + 1);
+  // Store the simple variables first.
+  if (numInputs_ != o.numInputs_) return false;
+  if (numColumns_ != o.numColumns_) return false;
+  if (potentialRadius_ != o.potentialRadius_) return false;
+  if (potentialPct_ != o.potentialPct_) return false;
+  if (initConnectedPct_ != o.initConnectedPct_) return false;
+  if (globalInhibition_ != o.globalInhibition_) return false;
+  if (numActiveColumnsPerInhArea_ != o.numActiveColumnsPerInhArea_) return false;
+  if (localAreaDensity_ != o.localAreaDensity_) return false;
+  if (stimulusThreshold_ != o.stimulusThreshold_) return false;
+  if (inhibitionRadius_ != o.inhibitionRadius_) return false;
+  if (dutyCyclePeriod_ != o.dutyCyclePeriod_) return false;
+  if (boostStrength_ != o.boostStrength_) return false;
+  if (iterationNum_ != o.iterationNum_) return false;
+  if (iterationLearnNum_ != o.iterationLearnNum_) return false;
+  if (spVerbosity_ != o.spVerbosity_) return false;
+  if (updatePeriod_ != o.updatePeriod_) return false;
+  if (synPermInactiveDec_ != o.synPermInactiveDec_) return false;
+  if (synPermActiveInc_ != o.synPermActiveInc_) return false;
+  if (synPermBelowStimulusInc_ != o.synPermBelowStimulusInc_) return false;
+  if (synPermConnected_ != o.synPermConnected_) return false;
+  if (minPctOverlapDutyCycles_ != o.minPctOverlapDutyCycles_) return false;
+  if (wrapAround_ != o.wrapAround_) return false;
 
-  this->save(s);
-  const string thisStr = s.str();
+  // compare vectors.
+  if (inputDimensions_      != o.inputDimensions_) return false;
+  if (columnDimensions_     != o.columnDimensions_) return false;
+  if (boostFactors_         != o.boostFactors_) return false;
+  if (overlapDutyCycles_    != o.overlapDutyCycles_) return false;
+  if (activeDutyCycles_     != o.activeDutyCycles_) return false;
+  if (minOverlapDutyCycles_ != o.minOverlapDutyCycles_) return false;
+  if (tieBreaker_           != o.tieBreaker_) return false;
 
-  s.str(""); //clear stream
-  o.save(s);
-  const string otherStr = s.str();
+  // compare connections
+  if (connections_ != o.connections_) return false;
 
-  return thisStr == otherStr;
+  //Random
+  if (rng_ != o.rng_) return false;
+  return true;
+
 }
+

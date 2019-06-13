@@ -35,11 +35,9 @@
 #include <nupic/engine/Spec.hpp>
 #include <nupic/ntypes/Array.hpp>
 #include <nupic/ntypes/ArrayBase.hpp>
-#include <nupic/ntypes/BundleIO.hpp>
 #include <nupic/ntypes/Value.hpp>
 #include <nupic/regions/SPRegion.hpp>
 #include <nupic/utils/Log.hpp>
-using nupic::sdr::SDR_sparse_t;
 
 #define VERSION 1 // version for streaming serialization format
 
@@ -83,11 +81,11 @@ SPRegion::SPRegion(const ValueMap &values, Region *region)
 
 }
 
-SPRegion::SPRegion(BundleIO &bundle, Region *region) 
-  : RegionImpl(region), computeCallback_(nullptr) {
-
-  deserialize(bundle);
+SPRegion::SPRegion(ArWrapper &wrapper, Region *region)
+  : RegionImpl(region), computeCallback_(nullptr)  {
+  cereal_adapter_load(wrapper);
 }
+
 
 SPRegion::~SPRegion() {}
 
@@ -140,8 +138,7 @@ void SPRegion::initialize() {
     args_.potentialRadius = args_.inputWidth;
 
   // instantiate a SpatialPooler.
-  sp_ = std::unique_ptr<algorithms::spatial_pooler::SpatialPooler>(
-          new algorithms::spatial_pooler::SpatialPooler(
+  sp_ = std::unique_ptr<SpatialPooler>( new SpatialPooler(
       inputDimensions, columnDimensions, args_.potentialRadius,
       args_.potentialPct, args_.globalInhibition, args_.localAreaDensity,
       args_.numActiveColumnsPerInhArea, args_.stimulusThreshold,
@@ -915,81 +912,33 @@ void SPRegion::setParameterBool(const std::string &name, Int64 index, bool value
 
 
 
-void SPRegion::serialize(BundleIO &bundle) {
-  std::ostream &f = bundle.getOutputStream();
-  // There is more than one way to do this. We could serialize to YAML, which
-  // would make a readable format, or we could serialize directly to the stream
-  // Choose the fastest executing one.
-  f << "SPRegion " << (int)VERSION << std::endl;
-  f << "args " << sizeof(args_) << " ";
-  f.write((const char *)&args_, sizeof(args_));
-  f << std::endl;
-  f << spatialImp_ << std::endl;
-  f << "outputs [";
-  std::map<std::string, Output *> outputs = region_->getOutputs();
-  for (auto iter : outputs) {
-    const Array &outputBuffer = iter.second->getData();
-    if (outputBuffer.getCount() != 0) {
-      f << iter.first << " ";
-      outputBuffer.save(f);
-    }
-  }
-  f << "] "; // end of all output buffers
+bool SPRegion::operator==(const RegionImpl &o) const {
+  if (o.getType() != "SPRegion") return false;
+  SPRegion& other = (SPRegion&)o;
+  if (args_.inputWidth != other.args_.inputWidth) return false;
+  if (args_.columnCount != other.args_.columnCount) return false;
+  if (args_.potentialRadius != other.args_.potentialRadius) return false;
+  if (args_.potentialPct != other.args_.potentialPct) return false;
+  if (args_.globalInhibition != other.args_.globalInhibition) return false;
+  if (args_.localAreaDensity != other.args_.localAreaDensity) return false;
+  if (args_.numActiveColumnsPerInhArea != other.args_.numActiveColumnsPerInhArea) return false;
+  if (args_.stimulusThreshold != other.args_.stimulusThreshold) return false;
+  if (args_.synPermInactiveDec != other.args_.synPermInactiveDec) return false;
+  if (args_.synPermActiveInc != other.args_.synPermActiveInc) return false;
+  if (args_.synPermConnected != other.args_.synPermConnected) return false;
+  if (args_.minPctOverlapDutyCycles != other.args_.minPctOverlapDutyCycles) return false;
+  if (args_.dutyCyclePeriod != other.args_.dutyCyclePeriod) return false;
+  if (args_.boostStrength != other.args_.boostStrength) return false;
+  if (args_.seed != other.args_.seed) return false;
+  if (args_.spVerbosity != other.args_.spVerbosity) return false;
+  if (args_.wrapAround != other.args_.wrapAround) return false;
+  if (args_.learningMode != other.args_.learningMode) return false;
 
-  bool init = ((sp_) ? true : false);
-  f << init << " ";
-  if (init)
-    sp_->save(f);
-}
+  if (dim_ != other.dim_) return false;  // from RegionImpl
+  if ((sp_ && !other.sp_) || (other.sp_ && !sp_)) return false;
+  if (sp_ && (*sp_ != *other.sp_)) return false;
 
-void SPRegion::deserialize(BundleIO &bundle) {
-  std::istream &f = bundle.getInputStream();
-  // There is more than one way to do this. We could serialize to YAML, which
-  // would make a readable format, or we could serialize directly to the stream
-  // Choose the easier one.
-  char bigbuffer[5000];
-  bool init;
-  std::string tag;
-  Size v;
-  f >> tag;
-  NTA_CHECK(tag == "SPRegion")
-      << "Bad serialization for region '" << region_->getName()
-      << "' of type SPRegion. Main serialization file must start "
-      << "with \"SPRegion\" but instead it starts with '" << tag << "'";
-
-  f >> v;
-  NTA_CHECK(v >= 1)
-      << "Unexpected version for SPRegion deserialization stream, "
-      << region_->getName();
-  f >> tag;
-  NTA_CHECK(tag == "args");
-  f >> v;
-  NTA_CHECK(v == sizeof(args_));
-  f.ignore(1);
-  f.read((char *)&args_, v);
-  f.ignore(1);
-  f.getline(bigbuffer, sizeof(bigbuffer));
-  spatialImp_ = bigbuffer;
-  f >> tag;
-  NTA_CHECK(tag == "outputs");
-  f.ignore(1);
-  NTA_CHECK(f.get() == '['); // start of outputs
-  while (true) {
-    f >> tag;
-    f.ignore(1);
-    if (tag == "]")
-      break;
-    Array& a = getOutput(tag)->getData();
-    a.load(f);
-  }
-  f >> init;
-  f.ignore(1);
-  if (init) {
-    sp_ = std::unique_ptr<algorithms::spatial_pooler::SpatialPooler>(
-            new algorithms::spatial_pooler::SpatialPooler());
-    sp_->load(f);
-  } else
-    sp_ = nullptr;
+  return true;
 }
 
 } // namespace nupic

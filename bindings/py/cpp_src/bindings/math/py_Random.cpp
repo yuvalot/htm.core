@@ -51,7 +51,10 @@ namespace nupic_ext {
             .def("getReal64", &Random_t::getReal64)
 			.def("getSeed", &Random_t::getSeed)
             .def("max", &Random_t::max)
-            .def("min", &Random_t::min);
+            .def("min", &Random_t::min)
+        	.def("__eq__", [](Random_t const & self, Random_t const & other) {//wrapping operator==
+            	return self == other;
+        	}, py::is_operator());
 
         Random.def_property_readonly_static("MAX32", [](py::object) {
 				return Random_t::MAX32;
@@ -63,14 +66,14 @@ namespace nupic_ext {
 
 
         Random.def("sample",
-            [](Random_t& r, py::array_t<nupic::UInt32>& population, nupic::UInt32 nSelect)
+            [](Random_t& r, py::array& population, const nupic::UInt32 nSelect)
         {
             if (population.ndim() != 1 )
             {
-                throw std::runtime_error("Number of dimensions must be one.");
+                throw std::invalid_argument("Number of dimensions must be one.");
             }
 
-	    std::vector<nupic::UInt32> tmp_pop(get_it(population), get_it(population) + population.size()); //vector from numpy.array
+	    std::vector<nupic::UInt32> tmp_pop(get_it<nupic::UInt32>(population), get_it<nupic::UInt32>(population) + population.size()); //vector from numpy.array
             return r.sample(tmp_pop, nSelect);
         });
 
@@ -79,7 +82,7 @@ namespace nupic_ext {
         /////////////////
 
         Random.def("shuffle",
-            [](Random_t& r, py::array_t<nupic::UInt32>& a)
+            [](Random_t& r, py::array& a)
         {
             //py::scoped_ostream_redirect stream(
             //    std::cout,                               // std::ostream&
@@ -88,17 +91,17 @@ namespace nupic_ext {
 
             if (a.ndim() != 1)
             {
-                throw std::runtime_error("Number of dimensions must be one.");
+                throw std::invalid_argument("Number of dimensions must be one.");
             }
 
-            r.shuffle(get_it(a), get_end(a));
+            r.shuffle(get_it<nupic::UInt32>(a), get_end<nupic::UInt32>(a));
         });
 
         ////////////////////
 
-        Random.def("initializeUInt32Array", [](Random_t& self, py::array_t<nupic::UInt32>& a, nupic::UInt32 max_value)
+        Random.def("initializeUInt32Array", [](Random_t& self, py::array& a, nupic::UInt32 max_value)
         {
-            auto array_data = get_it(a);
+            auto array_data = get_it<nupic::UInt32>(a);
 
             for (nupic::UInt32 i = 0; i != a.size(); ++i)
                 array_data[i] = self.getUInt32() % max_value;
@@ -109,6 +112,32 @@ namespace nupic_ext {
         //////////////////
         // serialization
         /////////////////
+				Random.def("saveToFile", [](Random_t& self, const std::string& name, int fmt) { 
+				  nupic::SerializableFormat fmt1;
+				  switch(fmt) {                                             
+			    case 0: fmt1 = nupic::SerializableFormat::BINARY; break;
+			    case 1: fmt1 = nupic::SerializableFormat::PORTABLE; break;
+					case 2: fmt1 = nupic::SerializableFormat::JSON; break;
+					case 3: fmt1 = nupic::SerializableFormat::XML; break;
+					default: NTA_THROW << "unknown serialization format.";
+					} 
+					self.saveToFile(name, fmt1); 
+				}, "serialize to a File, using BINARY=0, PORTABLE=1, JSON=2, or XML=3 format.",
+			  py::arg("name"), py::arg("fmt") = 0);
+				
+				Random.def("loadFromFile", [](Random_t& self, const std::string& name, int fmt) { 
+				  nupic::SerializableFormat fmt1;
+				  switch(fmt) {                                             
+			    case 0: fmt1 = nupic::SerializableFormat::BINARY; break;
+			    case 1: fmt1 = nupic::SerializableFormat::PORTABLE; break;
+					case 2: fmt1 = nupic::SerializableFormat::JSON; break;
+					case 3: fmt1 = nupic::SerializableFormat::XML; break;
+					default: NTA_THROW << "unknown serialization format.";
+					} 
+				  self.loadFromFile(name, fmt1);
+				}, "load from a File, using BINARY, PORTABLE, JSON, or XML format.",
+				py::arg("name"), py::arg("fmt") = 0);
+
         Random.def(py::pickle(
             [](const Random_t& r)
         {
@@ -130,9 +159,6 @@ namespace nupic_ext {
             return r;
         }
         ));
-
-        Random.def("saveToFile",   &Random_t::saveToFile);
-        Random.def("loadFromFile", &Random_t::loadFromFile);
 
     }
 

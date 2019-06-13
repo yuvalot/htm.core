@@ -37,8 +37,6 @@
 #include <nupic/types/Serializable.hpp>
 
 namespace nupic {
-namespace algorithms {
-namespace sdr_classifier {
 
 
 /**
@@ -119,7 +117,7 @@ public:
    * @returns: The Probablility Distribution Function (PDF) of the categories.
    *           This is indexed by the category label.
    */
-  PDF infer(const sdr::SDR & pattern);
+  PDF infer(const SDR & pattern);
 
   /**
    * Learn from example data.
@@ -127,7 +125,7 @@ public:
    * @param pattern:  The active input bit SDR.
    * @param categoryIdxList:  The current categories or bucket indices.
    */
-  void learn(const sdr::SDR & pattern, const std::vector<UInt> & categoryIdxList);
+  void learn(const SDR & pattern, const std::vector<UInt> & categoryIdxList);
 
   CerealAdapter;
   template<class Archive>
@@ -156,7 +154,7 @@ private:
 
   // Helper function to compute the error signal for learning.
   std::vector<Real> calculateError_(const std::vector<UInt> &bucketIdxList,
-                                    const sdr::SDR &pattern);
+                                    const SDR &pattern);
 };
 
 /**
@@ -246,7 +244,7 @@ public:
    *
    * @returns: A mapping from prediction step to PDF.
    */
-  Predictions infer(UInt recordNum, const sdr::SDR &pattern);
+  Predictions infer(UInt recordNum, const SDR &pattern);
 
   /**
    * Learn from example data.
@@ -256,7 +254,7 @@ public:
    * @param pattern: The active input SDR.
    * @param bucketIdxList: Vector of the current value bucket indices or categories.
    */
-  void learn(UInt recordNum, const sdr::SDR &pattern,
+  void learn(UInt recordNum, const SDR &pattern,
              const std::vector<UInt> &bucketIdxList);
 
   CerealAdapter;
@@ -278,16 +276,14 @@ private:
   std::vector<UInt> steps_;
 
   // Stores the input pattern history, starting with the previous input.
-  std::deque<sdr::SDR> patternHistory_;
-  std::deque<UInt>     recordNumHistory_;
-  void updateHistory_(UInt recordNum, const sdr::SDR & pattern);
+  std::deque<SDR>  patternHistory_;
+  std::deque<UInt> recordNumHistory_;
+  void updateHistory_(UInt recordNum, const SDR & pattern);
 
   // One per prediction step
   std::map<UInt, Classifier> classifiers_;
 
 };      // End of Predictor class
 
-}       // End of namespace sdr_classifier
-}       // End of namespace algorithms
 }       // End of namespace nupic
 #endif  // End of ifdef NTA_SDR_CLASSIFIER_HPP

@@ -232,18 +232,8 @@ void Link::shiftBufferedData() {
   }
 }
 
-void Link::serialize(std::ostream &f) {
-  size_t srcCount = ((!src_) ? (size_t)0 : src_->getData().getCount());
-
-  f << "{\n";
-  f << "linkType: " <<  getLinkType() << "\n";
-  f << "params: " << getLinkParams() << "\n";
-  f << "srcRegion: " << getSrcRegionName() << "\n";
-  f << "srcOutput: " << getSrcOutputName() << "\n";
-  f << "destRegion: " << getDestRegionName() << "\n";
-  f << "destInput: " << getDestInputName() << "\n";
-  f << "propagationDelay: " << propagationDelay_ << "\n";
-  f << "propagationDelayBuffer: [ " << propagationDelayBuffer_.size() << "\n";
+std::deque<Array> Link::preSerialize() const {
+  std::deque<Array> delay;
   if (propagationDelay_ > 0) {
     // we need to capture the propagationDelayBuffer_ used for propagationDelay
     // Do not copy the last entry.  It is the same as the output buffer.
@@ -251,124 +241,26 @@ void Link::serialize(std::ostream &f) {
     // The current contents of the Destination Input buffer also needs
     // to be captured as if it were the top value of the propagationDelayBuffer.
     // When restored, it will be copied to the dest input buffer and popped off
-    // before the next execution. If there is an offset, we only
+    // before the next execution. If there is a fanIn, we only
     // want to capture the amount of the input buffer contributed by
     // this link.
+    size_t srcCount = 0;
+    if (src_) {
+      const Array& s = src_->getData();
+      srcCount = s.getCount();
+    }
     Array a = dest_->getData().subset(destOffset_, srcCount);
-    a.save(f); // our part of the current Dest Input buffer.
+    delay.push_back(a); // our part of the current Dest Input buffer.
 
-    std::deque<Array>::iterator itr;
     for (auto itr = propagationDelayBuffer_.begin();
-         itr != propagationDelayBuffer_.end(); itr++) {
+          itr != propagationDelayBuffer_.end(); itr++) {
       if (itr + 1 == propagationDelayBuffer_.end())
         break; // skip the last buffer. Its the current output.
-      Array &buf = *itr;
-      buf.save(f);
+      delay.push_back(*itr);
     } // end for
   }
-  f << "]\n";  // end of list of buffers in propagationDelayBuffer
-
-  f << "}\n";  // end of sequence
+  return delay;
 }
-
-void Link::deserialize(std::istream &f) {
-  // Each link is a map -- extract the 9 values in the map
-  // The "circularBuffer" element is a two dimentional array only present if
-  // propogationDelay > 0.
-  char bigbuffer[5000];
-  std::string tag;
-  Size count;
-  std::string linkType;
-  std::string linkParams;
-  std::string srcRegionName;
-  std::string srcOutputName;
-  std::string destRegionName;
-  std::string destInputName;
-  Size propagationDelay;
-
-  f >> tag;
-  NTA_CHECK(tag == "{") << "Invalid network structure file -- bad link (not a map)";
-
-  // 1. type
-  f >> tag;
-  NTA_CHECK(tag == "linkType:");
-  f.ignore(1);
-  f.getline(bigbuffer, sizeof(bigbuffer));
-  linkType = bigbuffer;
-
-  // 2. params
-  f >> tag;
-  NTA_CHECK(tag == "params:");
-  f.ignore(1);
-  f.getline(bigbuffer, sizeof(bigbuffer));
-  linkParams = bigbuffer;
-
-  // 3. srcRegion (name)
-  f >> tag;
-  NTA_CHECK(tag == "srcRegion:");
-  f.ignore(1);
-  f.getline(bigbuffer, sizeof(bigbuffer));
-  srcRegionName = bigbuffer;
-
-  // 4. srcOutput
-  f >> tag;
-  NTA_CHECK(tag == "srcOutput:");
-  f.ignore(1);
-  f.getline(bigbuffer, sizeof(bigbuffer));
-  srcOutputName = bigbuffer;
-
-  // 5. destRegion
-  f >> tag;
-  NTA_CHECK(tag == "destRegion:");
-  f.ignore(1);
-  f.getline(bigbuffer, sizeof(bigbuffer));
-  destRegionName = bigbuffer;
-
-  // 6. destInput
-  f >> tag;
-  NTA_CHECK(tag == "destInput:");
-  f.ignore(1);
-  f.getline(bigbuffer, sizeof(bigbuffer));
-  destInputName = bigbuffer;
-
-
-
-  // 7. propagationDelay (number of cycles to delay propagation)
-  f >> tag;
-  NTA_CHECK(tag == "propagationDelay:");
-  f >> propagationDelay;
-
-  // fill in the data for the Link object
-  commonConstructorInit_(linkType, linkParams, srcRegionName, destRegionName,
-                         srcOutputName, destInputName, propagationDelay);
-
-  // 8. propagationDelayBuffer
-  f >> tag;
-  NTA_CHECK(tag == "propagationDelayBuffer:");
-  f >> tag;
-  NTA_CHECK(tag == "[")  << "Expected start of a sequence.";
-  f >> count;
-  f.ignore(1);
-  // if no propagationDelay (value = 0) then there should be an empty sequence.
-  NTA_CHECK(count == propagationDelay_) << "Invalid network structure file -- "
-            "link has " << count << " buffers in 'propagationDelayBuffer'. "
-            << "Expecting " << propagationDelay << ".";
-  Size idx = 0;
-  for (; idx < count; idx++) {
-    Array a;
-    a.load(f);
-    propagationDelayBuffer_.push_back(a);
-  }
-  // To complete the restore, call r->prepareInputs() and then shiftBufferedData();
-  // This is performed in Network class at the end of the load().
-  f >> tag;
-  NTA_CHECK(tag == "]");
-  f >> tag;
-  NTA_CHECK(tag == "}");
-  f.ignore(1);
-}
-
-
 
 bool Link::operator==(const Link &o) const {
   if (initialized_ != o.initialized_ ||
@@ -393,25 +285,20 @@ bool Link::operator==(const Link &o) const {
  * This is not part of the save/load facility.
  */
 std::ostream &operator<<(std::ostream &f, const Link &link) {
-  f << "<Link>\n";
-  f << "  <type>" << link.getLinkType() << "</type>\n";
-  f << "  <params>" << link.getLinkParams() << "</params>\n";
-  f << "  <srcRegion>" << link.getSrcRegionName() << "</srcRegion>\n";
-  f << "  <destRegion>" << link.getDestRegionName() << "</destRegion>\n";
-  f << "  <srcOutput>" << link.getSrcOutputName() << "</srcOutput>\n";
-  f << "  <destInput>" << link.getDestInputName() << "</destInput>\n";
-  f << "  <offset>" << link.destOffset_ << "</offset>\n";
-  f << "  <fanIn>" << link.is_FanIn_ << "</fanIn>\n";
-  f << "  <propagationDelay>" << link.getPropagationDelay()
-    << "</propagationDelay>\n";
+  f << "Link: {\n";
+  f << "  src: " << link.getSrcRegionName() << "." << link.getSrcOutputName() << ",\n";
+  f << "  dest: " << link.getDestRegionName() << "." << link.getDestInputName() << ",\n";
+  f << "  type: " << link.getLinkType() << ",  params: " << link.getLinkParams() << ",\n";
+  f << "  fanIn: " << link.is_FanIn_ << ",  offset: " << link.destOffset_ << ",\n";
+  f << "  propagationDelay: " << link.getPropagationDelay()<< ",\n";
   if (link.getPropagationDelay() > 0) {
-  	f <<   "   <propagationDelayBuffer>\n";
-	for (auto buf : link.propagationDelayBuffer_) {
-		f << buf << "\n";
-	}
-	f <<   "   </propagationDelayBuffer>\n";
+  	f <<   "   [\n";
+	  for (auto buf : link.propagationDelayBuffer_) {
+		  f << "    " << buf << "\n";
+	  }
+	  f <<   "   ]\n";
   }
-  f << "</Link>\n";
+  f << "}\n";
   return f;
 }
 

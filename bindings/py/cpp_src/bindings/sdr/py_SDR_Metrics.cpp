@@ -24,13 +24,11 @@
 #include <pybind11/numpy.h>
 
 #include <nupic/utils/SdrMetrics.hpp>
-#include <nupic/utils/StringUtils.hpp>  // trim
 
 namespace py = pybind11;
 
 using namespace std;
 using namespace nupic;
-using namespace nupic::sdr;
 
 namespace nupic_ext
 {
@@ -95,7 +93,7 @@ Argument period is time constant for exponential moving average.)",
         py_Sparsity.def("__str__", [](Sparsity &self){
             stringstream buf;
             buf << self;
-            return StringUtils::trim( buf.str() );
+            return py::str( buf.str() ).attr("strip")();
         });
 
         // =====================================================================
@@ -172,7 +170,7 @@ Returns binary entropy of SDR, scaled to range [0, 1].)");
         py_ActivationFrequency.def("__str__", [](ActivationFrequency &self){
             stringstream buf;
             buf << self;
-            return StringUtils::trim( buf.str() );
+            return py::str( buf.str() ).attr("strip")();
         });
 
         // =====================================================================
@@ -221,7 +219,7 @@ Argument period is time constant for exponential moving average.)",
         py_Overlap.def("__str__", [](Overlap &self){
             stringstream buf;
             buf << self;
-            return StringUtils::trim( buf.str() );
+            return py::str( buf.str() ).attr("strip")();
         });
 
         // =====================================================================
@@ -282,7 +280,7 @@ dimensions.)", py::arg("sdr"));
         py_Metrics.def("__str__", [](Metrics &self){
             stringstream buf;
             buf << self;
-            return StringUtils::trim( buf.str() );
+            return py::str( buf.str() ).attr("strip")();
         });
     }
 }

@@ -38,8 +38,6 @@
 
 using namespace std;
 using namespace nupic;
-using namespace nupic::sdr;
-using namespace nupic::algorithms::sdr_classifier;
 
 namespace testing {
 
@@ -221,9 +219,9 @@ TEST(SDRClassifierTest, SaveLoad) {
 
   // Save and load.
   stringstream ss;
-  EXPECT_NO_THROW(c1.saveToStream_ar(ss));
+  EXPECT_NO_THROW(c1.save(ss));
   Predictor c2;
-  EXPECT_NO_THROW(c2.loadFromStream_ar(ss));
+  EXPECT_NO_THROW(c2.load(ss));
 
   // Expect identical results.
   const auto c2_out = c2.infer( 0u, A );

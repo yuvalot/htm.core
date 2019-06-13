@@ -37,11 +37,8 @@
 
 
 namespace nupic {
-namespace algorithms {
-namespace spatial_pooler {
 
 using namespace std;
-using nupic::algorithms::connections::SynapseIdx;
 
 static const int DISABLED = -1; //value denoting a feature is disabled
 
@@ -247,7 +244,7 @@ public:
         inhibition. The size of the SDR is equal to the number of
         columns (also returned by the method getNumColumns).
    */
-  virtual void compute(const sdr::SDR &input, const bool learn, sdr::SDR &active);
+  virtual void compute(const SDR &input, const bool learn, SDR &active);
 
 
   /**
@@ -258,61 +255,17 @@ public:
   virtual UInt version() const { return version_; };
 
   /**
-  Save (serialize) the current state of the spatial pooler to the
-  specified file.
+  save_ar()/load_ar() Serialize the current state of the spatial pooler to the
+  specified file and deserialize it.
 
-  @param fd A valid file descriptor.
+  @param Archive& ar  See Serializable.hpp
    */
-  virtual void save(ostream &outStream) const override;
-
-
-  /**
-  Load (deserialize) and initialize the spatial pooler from the
-  specified input stream.
-
-  @param inStream A valid istream.
-   */
-  virtual void load(istream &inStream) override;
-
   CerealAdapter;  // see Serializable.hpp
   // FOR Cereal Serialization
   template<class Archive>
   void save_ar(Archive& ar) const {
-    ar(CEREAL_NVP(numInputs_),
-       CEREAL_NVP(numColumns_),
-       CEREAL_NVP(potentialRadius_),
-       CEREAL_NVP(potentialPct_),
-       CEREAL_NVP(initConnectedPct_),
-       CEREAL_NVP(globalInhibition_),
-       CEREAL_NVP(numActiveColumnsPerInhArea_),
-       CEREAL_NVP(localAreaDensity_),
-       CEREAL_NVP(stimulusThreshold_),
-       CEREAL_NVP(inhibitionRadius_),
-       CEREAL_NVP(dutyCyclePeriod_),
-       CEREAL_NVP(boostStrength_),
-       CEREAL_NVP(iterationNum_),
-       CEREAL_NVP(iterationLearnNum_),
-       CEREAL_NVP(spVerbosity_),
-       CEREAL_NVP(updatePeriod_),
-       CEREAL_NVP(synPermInactiveDec_),
-       CEREAL_NVP(synPermActiveInc_),
-       CEREAL_NVP(synPermBelowStimulusInc_),
-       CEREAL_NVP(synPermConnected_),
-       CEREAL_NVP(minPctOverlapDutyCycles_),
-       CEREAL_NVP(wrapAround_),
-       CEREAL_NVP(inputDimensions_),
-       CEREAL_NVP(columnDimensions_),
-       CEREAL_NVP(boostFactors_),
-       CEREAL_NVP(overlapDutyCycles_),
-       CEREAL_NVP(activeDutyCycles_),
-       CEREAL_NVP(minOverlapDutyCycles_),
-       CEREAL_NVP(tieBreaker_),
-       CEREAL_NVP(connections_),
-       CEREAL_NVP(rng_));
-  }
-  // FOR Cereal Deserialization
-  template<class Archive>
-  void load_ar(Archive& ar) {
+    ar(CEREAL_NVP(inputDimensions_),
+       CEREAL_NVP(columnDimensions_));
     ar(CEREAL_NVP(numInputs_),
        CEREAL_NVP(numColumns_),
        CEREAL_NVP(potentialRadius_),
@@ -335,13 +288,46 @@ public:
        CEREAL_NVP(synPermConnected_),
        CEREAL_NVP(minPctOverlapDutyCycles_),
        CEREAL_NVP(wrapAround_));
+    ar(CEREAL_NVP(boostFactors_));
+    ar(CEREAL_NVP(overlapDutyCycles_));
+    ar(CEREAL_NVP(activeDutyCycles_));
+    ar(CEREAL_NVP(minOverlapDutyCycles_));
+    ar(CEREAL_NVP(tieBreaker_));
+    ar(CEREAL_NVP(connections_));
+    ar(CEREAL_NVP(rng_));
+  }
+  // FOR Cereal Deserialization
+  template<class Archive>
+  void load_ar(Archive& ar) {
     ar(CEREAL_NVP(inputDimensions_),
        CEREAL_NVP(columnDimensions_));
-    ar(CEREAL_NVP(boostFactors_),
-       CEREAL_NVP(overlapDutyCycles_),
-       CEREAL_NVP(activeDutyCycles_),
-       CEREAL_NVP(minOverlapDutyCycles_),
-       CEREAL_NVP(tieBreaker_));
+    ar(CEREAL_NVP(numInputs_),
+       CEREAL_NVP(numColumns_),
+       CEREAL_NVP(potentialRadius_),
+       CEREAL_NVP(potentialPct_),
+       CEREAL_NVP(initConnectedPct_),
+       CEREAL_NVP(globalInhibition_),
+       CEREAL_NVP(numActiveColumnsPerInhArea_),
+       CEREAL_NVP(localAreaDensity_),
+       CEREAL_NVP(stimulusThreshold_),
+       CEREAL_NVP(inhibitionRadius_),
+       CEREAL_NVP(dutyCyclePeriod_),
+       CEREAL_NVP(boostStrength_),
+       CEREAL_NVP(iterationNum_),
+       CEREAL_NVP(iterationLearnNum_),
+       CEREAL_NVP(spVerbosity_),
+       CEREAL_NVP(updatePeriod_),
+       CEREAL_NVP(synPermInactiveDec_),
+       CEREAL_NVP(synPermActiveInc_),
+       CEREAL_NVP(synPermBelowStimulusInc_),
+       CEREAL_NVP(synPermConnected_),
+       CEREAL_NVP(minPctOverlapDutyCycles_),
+       CEREAL_NVP(wrapAround_));
+    ar(CEREAL_NVP(boostFactors_));
+    ar(CEREAL_NVP(overlapDutyCycles_));
+    ar(CEREAL_NVP(activeDutyCycles_));
+    ar(CEREAL_NVP(minOverlapDutyCycles_));
+    ar(CEREAL_NVP(tieBreaker_));
     ar(CEREAL_NVP(connections_));
     ar(CEREAL_NVP(rng_));
 
@@ -782,15 +768,6 @@ public:
   */
   void getConnectedCounts(UInt connectedCounts[]) const;
 
-  /**
-  Print the main SP creation parameters to stdout.
-   */
-  void printParameters() const;
-
-  friend std::ostream& operator<< (std::ostream& stream, const SpatialPooler& self) {
-    stream << "SpatialPooler " << self.connections_;
-    return stream;
-  }
 
   /**
   Returns the overlap score for each column.
@@ -932,7 +909,7 @@ public:
      a "connected state" (connected synapses) that are connected to
      input bits which are turned on.
   */
-  void calculateOverlap_(const sdr::SDR &input, vector<SynapseIdx> &overlap);
+  void calculateOverlap_(const SDR &input, vector<SynapseIdx> &overlap);
   void calculateOverlapPct_(const vector<SynapseIdx> &overlaps, vector<Real> &overlapPct) const;
 
   /**
@@ -1022,7 +999,7 @@ public:
       @param  activeColumns  an int vector containing the indices of the columns
      that survived inhibition.
    */
-  void adaptSynapses_(const sdr::SDR &input, const sdr::SDR &active);
+  void adaptSynapses_(const SDR &input, const SDR &active);
 
   /**
       This method increases the permanence values of synapses of columns whose
@@ -1116,8 +1093,8 @@ public:
       @return type void, the argument dutyCycles is updated with new values.
   */
   static void updateDutyCyclesHelper_(vector<Real> &dutyCycles,
-                                      const sdr::SDR &newValues, 
-				      const UInt period);
+                                      const SDR &newValues, 
+                                      const UInt period);
 
   /**
   Updates the duty cycles for each column. The OVERLAP duty cycle is a moving
@@ -1133,7 +1110,7 @@ public:
   @param activeArray  An int array containing the indices of the active columns,
                   the sprase set of columns which survived inhibition
   */
-  void updateDutyCycles_(const vector<SynapseIdx> &overlaps, sdr::SDR &active);
+  void updateDutyCycles_(const vector<SynapseIdx> &overlaps, SDR &active);
 
   /**
     Update the boost factors for all columns. The boost factors are used to
@@ -1204,11 +1181,19 @@ public:
   /**
    Print the given UInt array in a nice format
   */
-  void printState(vector<UInt> &state);
+  void printState(const vector<UInt> &state, std::ostream& out=std::cout) const ;
   /**
   Print the given Real array in a nice format
   */
-  void printState(vector<Real> &state);
+  void printState(const vector<Real> &state, std::ostream& out=std::cout) const;
+
+  /**
+  Print the main SP creation parameters to stdout.
+   */
+  void printParameters(std::ostream& out=std::cout) const;
+
+  friend std::ostream& operator<< (std::ostream& stream, const SpatialPooler& self);
+
 
 protected:
   UInt numInputs_;
@@ -1250,7 +1235,7 @@ protected:
    * Each mini-column has a single segment.  Because all of these regularities,
    * each mini-column's index is also its Cell and Segment index.
    */
-  connections::Connections connections_;
+  Connections connections_;
 
   vector<SynapseIdx> overlaps_;
   vector<Real> overlapsPct_;
@@ -1262,10 +1247,11 @@ protected:
   Random rng_;
 
 public:
-  const connections::Connections &connections = connections_;
+  const Connections &connections = connections_;
 };
 
-} // end namespace spatial_pooler
-} // end namespace algorithms
+std::ostream & operator<<(std::ostream & out, const SpatialPooler &sp);
+
+
 } // end namespace nupic
 #endif // NTA_spatial_pooler_HPP

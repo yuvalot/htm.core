@@ -34,6 +34,7 @@
 #include <nupic/engine/RegionImpl.hpp>
 #include <nupic/ntypes/Array.hpp>
 #include <nupic/types/Types.hpp>
+#include <nupic/types/Serializable.hpp>
 
 namespace nupic {
 
@@ -70,22 +71,32 @@ public:
 
   VectorFileEffector(const ValueMap &params, Region *region);
 
-  VectorFileEffector(BundleIO &bundle, Region *region);
-  VectorFileEffector(ArWrapper& wrapper, Region *region) : RegionImpl(region) {
-    // TODO:cereal  complete.
-  }
+  VectorFileEffector(ArWrapper& wrapper, Region *region);
 
   virtual ~VectorFileEffector();
 
-  // ---
-  /// Serialize state to bundle
-  // ---
-  virtual void serialize(BundleIO &bundle) override;
 
-  // ---
-  /// De-serialize state from bundle
-  // ---
-  virtual void deserialize(BundleIO &bundle) override;
+	CerealAdapter;  // see Serializable.hpp
+  // FOR Cereal Serialization
+  template<class Archive>
+  void save_ar(Archive& ar) const {
+    ar(cereal::make_nvp("outputFile", filename_));
+    ar(CEREAL_NVP(dim_));  // in base class
+  }
+
+  // FOR Cereal Deserialization
+  template<class Archive>
+  void load_ar(Archive& ar) {
+    ar(cereal::make_nvp("outputFile", filename_));
+		if (filename_ != "")
+		      openFile(filename_);
+    ar(CEREAL_NVP(dim_));  // in base class
+  }	
+
+  bool operator==(const RegionImpl &other) const override;
+  inline bool operator!=(const VectorFileEffector &other) const {
+    return !operator==(other);
+  }
 
 
   void compute() override;

@@ -33,9 +33,6 @@ namespace testing {
     
 using namespace std;
 using namespace nupic;
-using namespace nupic::algorithms::connections;
-using nupic::sdr::SDR;
-using nupic::sdr::SDR_dense_t;
 
 #define EPSILON 0.0000001
 
@@ -669,8 +666,8 @@ TEST(ConnectionsTest, testSaveLoad) {
 
   {
     stringstream ss;
-    c1.saveToStream_ar(ss);
-    c2.loadFromStream_ar(ss);
+    c1.save(ss);
+    c2.load(ss);
   }
 
   ASSERT_EQ(c1, c2);

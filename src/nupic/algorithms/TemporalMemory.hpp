@@ -36,13 +36,9 @@
 
 
 namespace nupic {
-namespace algorithms {
-namespace temporal_memory {
-
 
 using namespace std;
 using namespace nupic;
-using namespace nupic::algorithms::connections;
 
 /**
  * Temporal Memory implementation in C++.
@@ -55,18 +51,11 @@ using namespace nupic::algorithms::connections;
  *     while (true) {
  *        <get input vector, streaming spatiotemporal information>
  *        sp.compute(inputVector, learn, activeColumns)
- *        tm.compute(number of activeColumns, activeColumns, learn)
+ *        tm.compute(activeColumns, learn)
  *        <do something with the tm, e.g. classify tm.getActiveCells()>
  *     }
- *
- * The public API uses C arrays, not std::vectors, as inputs. C arrays are
- * a good lowest common denominator. You can get a C array from a vector,
- * but you can't get a vector from a C array without copying it. This is
- * important, for example, when using numpy arrays. The only way to
- * convert a numpy array into a std::vector is to copy it, but you can
- * access a numpy array's internal C array directly.
  */
-    class TemporalMemory : public Serializable
+class TemporalMemory : public Serializable
 {
 public:
   TemporalMemory();
@@ -122,6 +111,7 @@ public:
    * @param checkInputs
    * Whether to check that the activeColumns are sorted without
    * duplicates. Disable this for a small speed boost.
+   * DEPRECATED: The SDR class now enforces these properties.
    *
    * @param extra
    * Number of external predictive inputs.  These inputs are used in addition to
@@ -200,8 +190,8 @@ public:
    * @param learn
    * If true, reinforce / punish / grow synapses.
    */
-  void activateCells(const sdr::SDR &activeColumns, 
-		     const bool learn = true);
+  void activateCells(const SDR &activeColumns, 
+                     const bool learn = true);
 
   /**
    * Calculate dendrite segment activity, using the current active cells.  Call
@@ -228,12 +218,12 @@ public:
    *
    */
   void activateDendrites(const bool learn,
-                         const sdr::SDR &extraActive, 
-			                   const sdr::SDR &extraWinners);
+                         const SDR &extraActive, 
+                         const SDR &extraWinners);
 
   inline void activateDendrites(const bool learn = true) {
-    const sdr::SDR extraActive(std::vector<UInt>{ extra });
-    const sdr::SDR extraWinners(std::vector<UInt>{extra });
+    const SDR extraActive(std::vector<UInt>{ extra });
+    const SDR extraWinners(std::vector<UInt>{extra });
     activateDendrites(learn, extraActive, extraWinners);
   }
 
@@ -262,13 +252,13 @@ public:
    * External inputs must be cell indexes in the range [0, extra).
    *
    */
-  virtual void compute(const sdr::SDR &activeColumns, 
-		       const bool learn,
-                       const sdr::SDR &extraActive, 
-		       const sdr::SDR &extraWinners);
+  virtual void compute(const SDR &activeColumns, 
+                       const bool learn,
+                       const SDR &extraActive, 
+                       const SDR &extraWinners);
 
-  virtual void compute(const sdr::SDR &activeColumns, 
-		       const bool learn = true); 
+  virtual void compute(const SDR &activeColumns, 
+                       const bool learn = true);
 
   // ==============================
   //  Helper functions
@@ -310,13 +300,13 @@ public:
    * @returns (std::vector<CellIdx>) Vector of indices of active cells.
    */
   vector<CellIdx> getActiveCells() const; //TODO remove
-  void getActiveCells(sdr::SDR &activeCells) const;
+  void getActiveCells(SDR &activeCells) const;
 
   /**
    * @return SDR with indices of the predictive cells.
    * SDR dimensions are {TM column dims x TM cells per column}
    */
-  sdr::SDR getPredictiveCells() const;
+  SDR getPredictiveCells() const;
 
   /**
    * Returns the indices of the winner cells.
@@ -324,7 +314,7 @@ public:
    * @returns (std::vector<CellIdx>) Vector of indices of winner cells.
    */
   vector<CellIdx> getWinnerCells() const; //TODO remove?
-  void getWinnerCells(sdr::SDR &winnerCells) const;
+  void getWinnerCells(SDR &winnerCells) const;
 
   vector<Segment> getActiveSegments() const;
   vector<Segment> getMatchingSegments() const;
@@ -435,21 +425,30 @@ public:
   SynapseIdx getMaxSynapsesPerSegment() const;
 
   /**
-   * Save (serialize) the current state of the spatial pooler to the
-   * specified file.
+   * Save (serialize) / Load (deserialize) the current state of the spatial pooler
+   * to the specified stream.
    *
-   * @param fd A valid file descriptor.
+   * @param Archive & ar   a Cereal container.
    */
-  virtual void save(ostream &outStream) const override;
-  
+  // a container to hold the data for one sequence item during serialization
+  struct container_ar {
+    SegmentIdx idx;
+    CellIdx cell;
+    SynapseIdx syn;
 
-  /**
-   * Load (deserialize) and initialize the spatial pooler from the
-   * specified input stream.
-   *
-   * @param inStream A valid istream.
-   */
-  virtual void load(istream &inStream) override;
+    template<class Archive>
+    void save_ar(Archive & ar) const {
+      ar(CEREAL_NVP(idx),
+         CEREAL_NVP(cell),
+         CEREAL_NVP(syn));
+    }
+    template<class Archive>
+    void load_ar(Archive & ar) {
+      ar(CEREAL_NVP(idx),
+         CEREAL_NVP(cell),
+         CEREAL_NVP(syn));
+    }
+  };
 
   CerealAdapter;
   template<class Archive>
@@ -477,28 +476,34 @@ public:
        CEREAL_NVP(anomaly_),
        CEREAL_NVP(connections));
 
-    ar( cereal::make_size_tag(activeSegments_.size()));
+    cereal::size_type numActiveSegments = activeSegments_.size();
+    ar( cereal::make_size_tag(numActiveSegments));
     for (Segment segment : activeSegments_) {
-      const CellIdx cell = connections.cellForSegment(segment);
-      const vector<Segment> &segments = connections.segmentsForCell(cell);
+      struct container_ar c;
+      c.cell = connections.cellForSegment(segment);
+      const vector<Segment> &segments = connections.segmentsForCell(c.cell);
 
-      SegmentIdx idx = (SegmentIdx)std::distance(
+      c.idx = (SegmentIdx)std::distance(
                           segments.begin(), 
                           std::find(segments.begin(), 
                           segments.end(), segment));
-      ar(idx, cell, numActiveConnectedSynapsesForSegment_[segment]);
+      c.syn = numActiveConnectedSynapsesForSegment_[segment];
+      ar(c); // to keep iteration counts correct, only serialize one item per iteration.
     }
 
-    ar(cereal::make_size_tag(matchingSegments_.size()));
+    cereal::size_type numMatchingSegments = matchingSegments_.size();
+    ar(cereal::make_size_tag(numMatchingSegments));
     for (Segment segment : matchingSegments_) {
-      const CellIdx cell = connections.cellForSegment(segment);
-      const vector<Segment> &segments = connections.segmentsForCell(cell);
+      struct container_ar c;
+      c.cell = connections.cellForSegment(segment);
+      const vector<Segment> &segments = connections.segmentsForCell(c.cell);
 
-      SegmentIdx idx = (SegmentIdx)std::distance(
+      c.idx = (SegmentIdx)std::distance(
                           segments.begin(), 
                           std::find(segments.begin(), 
                           segments.end(), segment));
-      ar(idx, cell, numActivePotentialSynapsesForSegment_[segment]);
+      c.syn = numActivePotentialSynapsesForSegment_[segment];
+      ar(c);
     }
 
   }
@@ -530,29 +535,25 @@ public:
     numActiveConnectedSynapsesForSegment_.assign(connections.segmentFlatListLength(), 0);
     cereal::size_type numActiveSegments;
     ar(cereal::make_size_tag(numActiveSegments));
-    activeSegments_.resize(numActiveSegments);
-    for (cereal::size_type i = 0; i < numActiveSegments; i++) {
-      SegmentIdx idx;
-      CellIdx cellIdx;
-      SynapseIdx syn;
-      ar(idx, cellIdx, syn);
-      Segment segment = connections.getSegment(cellIdx, idx);
+    activeSegments_.resize(static_cast<size_t>(numActiveSegments));
+    for (size_t i = 0; i < static_cast<size_t>(numActiveSegments); i++) {
+      struct container_ar c;
+      ar(c);  
+      Segment segment = connections.getSegment(c.cell, c.idx);
       activeSegments_[i] = segment;
-      numActiveConnectedSynapsesForSegment_[segment] = syn;
+      numActiveConnectedSynapsesForSegment_[segment] = c.syn;
     }
 
     numActivePotentialSynapsesForSegment_.assign(connections.segmentFlatListLength(), 0);
     cereal::size_type numMatchingSegments;
     ar(cereal::make_size_tag(numMatchingSegments));
-    matchingSegments_.resize(numMatchingSegments);
-    for (size_t i = 0; i < numMatchingSegments; i++) {
-      SegmentIdx idx;
-      CellIdx cellIdx;
-      SynapseIdx syn;
-      ar(idx, cellIdx, syn);
-      Segment segment = connections.getSegment(cellIdx, idx);
+    matchingSegments_.resize(static_cast<size_t>(numMatchingSegments));
+    for (size_t i = 0; i < static_cast<size_t>(numMatchingSegments); i++) {
+      struct container_ar c;
+      ar(c);
+      Segment segment = connections.getSegment(c.cell, c.idx);
       matchingSegments_[i] = segment;
-      numActivePotentialSynapsesForSegment_[segment] = syn;
+      numActivePotentialSynapsesForSegment_[segment] = c.syn;
     }
 
     lastUsedIterationForSegment_.resize(connections.segmentFlatListLength());
@@ -568,9 +569,14 @@ public:
   //----------------------------------------------------------------------
 
   /**
+   * Print diagnostic info
+   */
+  friend std::ostream& operator<< (std::ostream& stream, const TemporalMemory& self);
+
+  /**
    * Print the main TM creation parameters
    */
-  void printParameters();
+  void printParameters(std::ostream& out=std::cout) const;
 
   /**
    * Returns the index of the (mini-)column that a cell belongs to.
@@ -600,7 +606,7 @@ public:
    *  @return SDR cols - which is size of TM's getColumnDimensions()
    *
    */
-  sdr::SDR cellsToColumns(const sdr::SDR& cells) const;
+  SDR cellsToColumns(const SDR& cells) const;
 
 protected:
   //all these could be const
@@ -637,7 +643,7 @@ private:
   Random rng_;
 
 public:
-  Connections connections; //TODO not public!
+  Connections connections;
   const UInt &extra = extra_;
   /*
    *  anomaly score computed for the current inputs
@@ -649,8 +655,6 @@ public:
   const Real &anomaly = anomaly_;
 };
 
-} // end namespace temporal_memory
-} // end namespace algorithms
 } // namespace nupic
 
 #endif // NTA_TEMPORAL_MEMORY_HPP

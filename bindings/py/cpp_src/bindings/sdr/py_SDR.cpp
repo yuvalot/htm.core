@@ -24,7 +24,6 @@
 #include <pybind11/stl.h>
 
 #include <nupic/types/Sdr.hpp>
-#include <nupic/utils/StringUtils.hpp>  // trim
 
 #include <memory> // shared_ptr
 
@@ -32,7 +31,6 @@ namespace py = pybind11;
 
 using namespace std;
 using namespace nupic;
-using namespace nupic::sdr;
 
 namespace nupic_ext
 {
@@ -139,7 +137,7 @@ other.)",
                 return self.size; },
             "The total number of boolean values in the SDR.");
 
-        py_SDR.def("zero", &SDR::zero,
+        py_SDR.def("zero", [](SDR *self) { self->zero(); return self; },
 R"(Set all of the values in the SDR to false.  This method overwrites the SDRs
 current value.)");
 
@@ -184,10 +182,21 @@ date.  If you did't copy this data, then SDR won't copy either.)");
             },
             [](SDR &self, SDR_sparse_t data) {
                 NTA_CHECK( data.size() <= self.size );
+                // Sort data and check for duplicates.
+                if( ! is_sorted( data.begin(), data.end() ))
+                    sort( data.begin(), data.end() );
+                UInt previous = -1;
+                for( const UInt idx : data ) {
+                    NTA_CHECK( idx != previous )
+                        << "Sparse data must not contain duplicates!";
+                    previous = idx;
+                }
                 self.setSparse( data ); },
 R"(A numpy array containing the indices of only the true values in the SDR.
 These are indices into the flattened SDR. This format allows for quickly
-accessing all of the true bits in the SDR.)");
+accessing all of the true bits in the SDR.
+
+Sparse data must contain no duplicates.)");
 
         py_SDR.def_property("coordinates",
             [](shared_ptr<SDR> self) {
@@ -209,7 +218,9 @@ R"(List of numpy arrays, containing the coordinates of only the true values in
 the SDR.  This is a list of lists: the outter list contains an entry for each
 dimension in the SDR. The inner lists contain the coordinates of each true bit.
 The inner lists run in parallel. This format is useful because it contains the
-location of each true bit inside of the SDR's dimensional space.)");
+location of each true bit inside of the SDR's dimensional space.
+
+Coordinate data must be sorted and contain no duplicates.)");
 
         py_SDR.def("setSDR", [](SDR *self, SDR &other) {
             NTA_CHECK( self->dimensions == other.dimensions );
@@ -277,10 +288,22 @@ special, it is replaced with the system time.  The default seed is 0.)",
             py::arg("fractionNoise"),
             py::arg("seed") = 0u);
 
+        py_SDR.def("killCells", [](SDR *self, Real fraction, UInt seed) {
+            self->killCells( fraction, seed ); return self; },
+R"(Modify the SDR by setting a fraction of the bits to zero.
+
+Argument fraction must be between 0 and 1 (inclusive).  This fraction of the
+cells in the SDR will be set to zero, regardless of their current state.
+
+Argument seed is for a random number generator.  If not given, this uses the
+magic seed 0.  Use the same seed to consistently kill the same cells.)",
+            py::arg("fraction"),
+            py::arg("seed") = 0u);
+
         py_SDR.def("__str__", [](SDR &self){
             stringstream buf;
             buf << self;
-            return StringUtils::trim( buf.str() ); });
+            return py::str( buf.str() ).attr("strip")(); });
 
         py_SDR.def("__eq__", [](SDR &self, SDR &other){ return self == other; });
         py_SDR.def("__ne__", [](SDR &self, SDR &other){ return self != other; });
@@ -298,35 +321,13 @@ special, it is replaced with the system time.  The default seed is 0.)",
                 return self;
         }));
 
+        py_SDR.def("reshape", [](SDR *self, const vector<UInt> &dimensions)
+            { self->reshape( dimensions ); return self; },
+R"(Change the dimensions of the SDR.  The total size must not change.)");
 
-        py::class_<Reshape, shared_ptr<Reshape>, SDR> py_Reshape(m, "Reshape",
-R"(Reshape presents a view onto an SDR with different dimensions.
-    * The resulting SDR always has the same value as its source SDR.
-    * The resulting SDR is read only.
-
-Example Usage:
-    # Convert SDR dimensions from (4 x 4) to (8 x 2)
-    A = SDR([ 4, 4 ])
-    B = Reshape( A, [8, 2])
-    A.coordinates =  ([1, 1, 2], [0, 1, 2])
-    B.coordinates -> ([2, 2, 5], [0, 1, 0])
-
-Reshape supports pickle, however loading a pickled SDR Reshape will return
-an SDR object, not a Reshape object.)");
-
-        py_Reshape.def( py::init<SDR&, vector<UInt>>(),
-R"(Argument sdr is the data source to reshape.
-
-Argument dimensions A list of dimension sizes, defining the shape of the SDR.)",
-            py::arg("sdr"), py::arg("dimensions"));
-
-        py_SDR.def("reshape", [](SDR &self, vector<UInt> dimensions)
-            { return new Reshape(self, dimensions); },
-R"(See class nupic.bindings.sdr.Reshape)");
-
-        py_SDR.def("flatten", [](SDR &self)
-            { return new Reshape(self, {self.size}); },
-R"(See class nupic.bindings.sdr.Reshape)");
+        py_SDR.def("flatten", [](SDR *self)
+            { self->reshape({ self->size }); return self; },
+R"(Change the dimensions of the SDR into one big dimension.)");
 
         py_SDR.def("intersection", [](SDR *self, SDR& inp1, SDR& inp2)
             { self->intersection({ &inp1, &inp2}); return self; },
@@ -352,6 +353,24 @@ Example Usage:
 )");
         py_SDR.def("intersection", [](SDR *self, vector<const SDR*> inputs)
             { self->intersection(inputs); return self; });
+
+        py_SDR.def("union", [](SDR *self, SDR& inp1, SDR& inp2)
+            { self->set_union({ &inp1, &inp2}); return self; },
+R"(This method calculates the set union of the active bits in each input SDR.
+
+The output is stored in this SDR.  This method discards the SDRs current value!
+
+Example Usage:
+    A = SDR( 10 )
+    B = SDR( 10 )
+    U = SDR( 10 )
+    A.sparse = [0, 1, 2, 3]
+    B.sparse =       [2, 3, 4, 5]
+    U.union( A, B )
+    U.sparse -> [0, 1, 2, 3, 4, 5]
+)");
+        py_SDR.def("union", [](SDR *self, vector<const SDR*> inputs)
+            { self->set_union(inputs); return self; });
 
         py_SDR.def("concatenate", [](SDR *self, const SDR& inp1, const SDR& inp2, UInt axis)
             { self->concatenate(inp1, inp2, axis); return self; },

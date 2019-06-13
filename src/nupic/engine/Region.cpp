@@ -41,7 +41,6 @@ Methods related to inputs and outputs are in Region_io.cpp
 #include <nupic/engine/RegionImplFactory.hpp>
 #include <nupic/engine/Spec.hpp>
 #include <nupic/utils/Log.hpp>
-#include <nupic/ntypes/BundleIO.hpp>
 #include <nupic/ntypes/Array.hpp>
 #include <nupic/ntypes/BasicType.hpp>
 
@@ -55,18 +54,24 @@ Region::Region(std::string name, const std::string &nodeType,
                const std::string &nodeParams, Network *network)
     : name_(std::move(name)), type_(nodeType), initialized_(false),
       network_(network), profilingEnabled_(false) {
-  // Set region info before creating the RegionImpl so that the
+  // Set region spec and input/outputs before creating the RegionImpl so that the
   // Impl has access to the region info in its constructor.
   RegionImplFactory &factory = RegionImplFactory::getInstance();
   spec_ = factory.getSpec(nodeType);
+  createInputsAndOutputs_();
   impl_.reset(factory.createRegionImpl(nodeType, nodeParams, this));
 }
 
 Region::Region(Network *net) {
-      network_ = net;
-      initialized_ = false;
-      profilingEnabled_ = false;
-    } // for deserialization of region.
+  network_ = net;
+  initialized_ = false;
+  profilingEnabled_ = false;
+} // for deserialization of region.
+Region::Region() {
+  network_ = nullptr;
+  initialized_ = false;
+  profilingEnabled_ = false;
+} // for deserialization of region.
 
 
 Network *Region::getNetwork() { return network_; }
@@ -302,141 +307,6 @@ void Region::setPhases(std::set<UInt32> &phases) { phases_ = phases; }
 
 std::set<UInt32> &Region::getPhases() { return phases_; }
 
-
-void Region::save(std::ostream &f) const {
-  f << "{\n";
-  f << "name: " << name_ << "\n";
-  f << "nodeType: " << type_ << "\n";
-  f << "phases: [ " << phases_.size() << "\n";
-  for (const auto &phases_phase : phases_) {
-      f << phases_phase << " ";
-  }
-  f << "]\n";
-  f << "outputs: [\n";
-  for(auto out: outputs_) {
-    f << out.first << " " << out.second->getDimensions() << "\n";
-  }
-  f << "]\n";
-  f << "inputs: [\n";
-  for(auto in: inputs_) {
-    f << in.first << " " << in.second->getDimensions() << "\n";
-  }
-  f << "]\n";
-  f << "RegionImpl:\n";
-  // Now serialize the RegionImpl plugin.
-  BundleIO bundle(&f);
-  impl_->serialize(bundle);
-
-  f << "dim: " << getDimensions() << "\n";
-
-  f << "}\n";
-}
-
-void Region::load(std::istream &f) {
-  char bigbuffer[5000];
-  std::string tag;
-  Size count;
-  Dimensions d;
-
-  // Each region is a map -- extract the 5 values in the map
-  f >> tag;
-  NTA_CHECK(tag == "{") << "bad region entry (not a map)";
-
-  // 1. name
-  f >> tag;
-  NTA_CHECK(tag == "name:");
-  f.ignore(1);
-  f.getline(bigbuffer, sizeof(bigbuffer));
-  name_ = bigbuffer;
-
-  // 2. nodeType
-  f >> tag;
-  NTA_CHECK(tag == "nodeType:");
-  f.ignore(1);
-  f.getline(bigbuffer, sizeof(bigbuffer));
-  type_ = bigbuffer;
-
-  // 3. phases
-  f >> tag;
-  NTA_CHECK(tag == "phases:");
-  f >> tag;
-  NTA_CHECK(tag == "[") << "Expecting a sequence of phases.";
-  f >> count;
-  phases_.clear();
-  for (Size i = 0; i < count; i++)
-  {
-    UInt32 val;
-    f >> val;
-    phases_.insert(val);
-  }
-  f >> tag;
-  NTA_CHECK(tag == "]") << "Expected end of sequence of phases.";
-
-  // create inputs and outputs
-  RegionImplFactory &factory = RegionImplFactory::getInstance();
-  spec_ = factory.getSpec(type_);
-  createInputsAndOutputs_();
-
-  // 4. Restore dimensions on outputs
-  {
-    f >> tag;
-    NTA_CHECK(tag == "outputs:");
-    f >> tag;
-    NTA_CHECK(tag == "[") << "Expecting a sequence of outputs.";
-    f >> tag;
-    while(!f.eof() && tag != "]") {
-      f >> d;
-      auto itr = outputs_.find(tag);
-      if (itr != outputs_.end()) {
-        itr->second->setDimensions(d);
-        itr->second->initialize();
-      }
-      f >> tag;
-    }
-    NTA_CHECK(tag == "]") << "Expected end of sequence of outputs.";
-  }
-
-  // 5. Restore dimensions on inputs
-  {
-    f >> tag;
-    NTA_CHECK(tag == "inputs:");
-    f >> tag;
-    NTA_CHECK(tag == "[") << "Expecting a sequence of inputs.";
-    f >> tag;
-    while(!f.eof() && tag != "]") {
-      f >> d;
-      auto itr = inputs_.find(tag);
-      if (itr != inputs_.end()) {
-        itr->second->setDimensions(d);
-      }
-      f >> tag;
-    }
-    NTA_CHECK(tag == "]") << "Expected end of sequence of inputs.";
-  }
-
-  // 6. impl
-  f >> tag;
-  NTA_CHECK(tag == "RegionImpl:") << "Expected beginning of RegionImpl.";
-  f.ignore(1);
-
-  BundleIO bundle(&f);
-  impl_.reset(factory.deserializeRegionImpl(type_, bundle, this));
-
-
-  // region level dimensions
-  f >> tag;
-  NTA_CHECK(tag == "dim:");
-  f >> d;
-  setDimensions(d);
-
-  initialized_ = true;
-
-  f >> tag;
-  NTA_CHECK(tag == "}") << "Expected end of region. Found '" << tag << "'.";
-}
-
-
-
 void Region::enableProfiling() { profilingEnabled_ = true; }
 
 void Region::disableProfiling() { profilingEnabled_ = false; }
@@ -495,7 +365,7 @@ bool Region::operator==(const Region &o) const {
                   compareInput)) {
     return false;
   }
-  // Compare Regions's Output (checking only output buffer names and type.)
+  // Compare Regions's Output
   static auto compareOutput = [](decltype(*outputs_.begin()) a, decltype(*outputs_.begin()) b) {
     if (a.first != b.first ) {
       return false;
@@ -506,12 +376,17 @@ bool Region::operator==(const Region &o) const {
     if (output_a->getData().getType() != output_b->getData().getType() ||
         output_a->getData().getCount() != output_b->getData().getCount())
         return false;
+    // compare output buffer contents.
+    if (output_a->getData() != output_b->getData()) return false;
     return true;
   };
-  if (!std::equal(outputs_.begin(), outputs_.end(), o.outputs_.begin(),
-                  compareOutput)) {
+  if (!std::equal(outputs_.begin(), outputs_.end(), o.outputs_.begin(), compareOutput)) {
     return false;
   }
+
+  if (impl_ && !o.impl_) return false;
+  if (!impl_ && o.impl_) return false;
+  if (impl_ && *impl_.get() != *o.impl_.get()) return false;
 
   return true;
 }
@@ -657,7 +532,7 @@ bool Region::isParameter(const std::string &name) const {
 }
 
 // Some functions used to prevent symbles from being in Region.hpp
-void Region::saveDims(std::map<std::string,Dimensions>& outDims,
+void Region::getDims_(std::map<std::string,Dimensions>& outDims,
                       std::map<std::string,Dimensions>& inDims) const {
   for(auto out: outputs_) {
     Dimensions& dim = out.second->getDimensions();
@@ -668,7 +543,7 @@ void Region::saveDims(std::map<std::string,Dimensions>& outDims,
     inDims[in.first] = dim;
   }
 }
-void Region::loadDims(std::map<std::string,Dimensions>& outDims,
+void Region::loadDims_(std::map<std::string,Dimensions>& outDims,
                      std::map<std::string,Dimensions>& inDims) const {
   for(auto out: outDims) {
       auto itr = outputs_.find(out.first);
@@ -684,17 +559,56 @@ void Region::loadDims(std::map<std::string,Dimensions>& outDims,
   }
 }
 
+void Region::getOutputBuffers_(std::map<std::string, Array>& buffers) const {
+	for (auto iter : outputs_) {
+    buffers[iter.first] = iter.second->getData();
+	}
+}
+
+void Region::restoreOutputBuffers_(const std::map<std::string, Array>& buffers) {
+  RegionImplFactory &factory = RegionImplFactory::getInstance();
+  spec_ = factory.getSpec(type_);
+  createInputsAndOutputs_();
+  for (auto output: buffers) {
+    Array& outputBuffer = getOutput(output.first)->getData();
+    outputBuffer = output.second;
+  }
+}
+
+
 void Region::serializeImpl(ArWrapper& arw) const{
     impl_->cereal_adapter_save(arw);
 }
 void Region::deserializeImpl(ArWrapper& arw) {
     RegionImplFactory &factory = RegionImplFactory::getInstance();
-    spec_ = factory.getSpec(type_);
-    createInputsAndOutputs_();
-
     impl_.reset(factory.deserializeRegionImpl(type_, arw, this));
 }
 
+std::ostream &operator<<(std::ostream &f, const Region &r) {
+  f << "Region: {\n";
+  f << "name: " << r.name_ << "\n";
+  f << "nodeType: " << r.type_ << "\n";
+  f << "phases: [ ";
+  for (const auto &phases_phase : r.phases_) {
+      f << phases_phase << " ";
+  }
+  f << "]\n";
+  f << "outputs: [\n";
+  for(auto out: r.outputs_) {
+    f << out.first << " " << out.second->getDimensions() << "\n";
+  }
+  f << "]\n";
+  f << "inputs: [\n";
+  for(auto in: r.inputs_) {
+    f << in.first << " " << in.second->getDimensions() << "\n";
+  }
+  f << "]\n";
+	// TODO: add region impl...maybe
+  //f << "RegionImpl:\n";
+  // Now serialize the RegionImpl plugin.
 
+  f << "}\n";
+  return f;
+}
 
 } // namespace nupic

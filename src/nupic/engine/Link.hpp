@@ -33,6 +33,7 @@
 #include <nupic/ntypes/Array.hpp>
 #include <nupic/ntypes/Dimensions.hpp>
 #include <nupic/types/Types.hpp>
+#include <nupic/types/Serializable.hpp>
 
 namespace nupic {
 
@@ -45,7 +46,7 @@ class Input;
  *
  * How to use Links:  The big picture.
  *
- * At Specification time.
+ * At Configuration time.
  *
  * An application writer would define a pair of links as in the following
  * example given the declaration of a network and three regions,
@@ -199,7 +200,7 @@ class Input;
 * @nosubgrouping
  *
  */
-class Link
+class Link : public Serializable
 {
 public:
   /**
@@ -276,6 +277,9 @@ public:
    *
    */
   Link();
+
+  friend class Network;
+
 
   /**
    * Initialization Phase 2: connecting inputs/outputs to
@@ -451,7 +455,7 @@ public:
   const std::string toString() const;
 
   /**
-   * Serialize the link.
+   * Display and compare the link.
    *
    * @param f
    *            The output stream being serialized to
@@ -459,24 +463,39 @@ public:
    *            The Link being serialized
    */
   friend std::ostream &operator<<(std::ostream &f, const Link &link);
-
   bool operator==(const Link &o) const;
   bool operator!=(const Link &o) const { return !operator==(o); }
 
   /**
-   * Serialize the link using a stream.
-   *
-   * @param f -- The stream to output to.
+   * Serialize/Deserialize the link.
    */
-  void serialize(std::ostream &f);
-
-  /**
-   * Deserialize the link from binary stream.
-   *
-   * @param f -- the stream to read from
-   *
-   */
-  void deserialize(std::istream &f);
+  CerealAdapter;  // see Serializable.hpp
+  // FOR Cereal Serialization
+  template<class Archive>
+  void save_ar(Archive& ar) const {
+    std::deque<Array> delay = preSerialize();
+    ar(cereal::make_nvp("srcRegionName", srcRegionName_),
+       cereal::make_nvp("srcOutputName", srcOutputName_),
+       cereal::make_nvp("destRegionName", destRegionName_),
+       cereal::make_nvp("destInputName", destInputName_),
+       cereal::make_nvp("destOffset", destOffset_),
+       cereal::make_nvp("is_FanIn", is_FanIn_),
+       cereal::make_nvp("propagationDelay", propagationDelay_),
+       cereal::make_nvp("propagationDelayBuffer", delay));
+  }
+  // FOR Cereal Deserialization
+  template<class Archive>
+  void load_ar(Archive& ar) {
+    ar(cereal::make_nvp("srcRegionName", srcRegionName_),
+       cereal::make_nvp("srcOutputName", srcOutputName_),
+       cereal::make_nvp("destRegionName", destRegionName_),
+       cereal::make_nvp("destInputName", destInputName_),
+       cereal::make_nvp("destOffset", destOffset_),
+       cereal::make_nvp("is_FanIn", is_FanIn_),
+       cereal::make_nvp("propagationDelay", propagationDelay_),
+       cereal::make_nvp("propagationDelayBuffer", propagationDelayBuffer_));
+    initialized_ = false;
+  }
 
 private:
   // common initialization for the two Link constructors.
@@ -488,15 +507,8 @@ private:
                               const std::string &destInputName,
                               const size_t propagationDelay);
 
+  std::deque<Array> preSerialize() const;
 
-
-  // TODO: The strings with src/dest names are redundant with
-  // the src_ and dest_ objects. For unit testing links,
-  // and for deserializing networks, we need to be able to create
-  // a link object without a network. and for deserializing, we
-  // need to be able to instantiate a link before we have instantiated
-  // all the regions. (Maybe this isn't true? Re-evaluate when
-  // more infrastructure is in place).
 
   std::string srcRegionName_;
   std::string destRegionName_;

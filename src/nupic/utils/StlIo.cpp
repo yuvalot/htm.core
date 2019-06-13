@@ -20,36 +20,15 @@
  * ---------------------------------------------------------------------
  */
 
-#ifndef NTA_BUNDLEIO_HPP
-#define NTA_BUNDLEIO_HPP
+/** @file STL IO
+ * This file contains functions to print out and save/load various STL data
+ * structures.
+ */
 
-#include <iostream>
-#include <nupic/os/Path.hpp>
+#include <nupic/utils/StlIo.hpp>
 
 namespace nupic {
-class BundleIO {
-public:
-  BundleIO(std::ostream *openStream) {
-    openOutputStream_ = openStream;
-    openInputStream_ = nullptr;
-  }
-  BundleIO(std::istream *openStream) {
-    openOutputStream_ = nullptr;
-    openInputStream_ = openStream;
-  }
 
-  ~BundleIO() {}
+IOControl io_control;
 
-  // return the stream. Caller should not close it.
-  std::ostream &getOutputStream() const { return *openOutputStream_; }
-
-  std::istream &getInputStream() const { return *openInputStream_; }
-
-private:
-  std::ostream *openOutputStream_;
-  std::istream *openInputStream_;
-};
-
-} // namespace nupic
-
-#endif // NTA_BUNDLEIO_HPP
+} // end namespace nupic

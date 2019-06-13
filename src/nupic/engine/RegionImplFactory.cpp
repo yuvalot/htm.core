@@ -32,7 +32,6 @@
 #include <nupic/engine/Input.hpp>
 #include <nupic/engine/Spec.hpp>
 #include <nupic/engine/YAMLUtils.hpp>
-#include <nupic/ntypes/BundleIO.hpp>
 #include <nupic/ntypes/Value.hpp>
 #include <nupic/os/Env.hpp>
 #include <nupic/os/OS.hpp>
@@ -48,7 +47,6 @@
 
 
 #include <nupic/utils/Log.hpp>
-#include <nupic/utils/StringUtils.hpp>
 
 // from http://stackoverflow.com/a/9096509/1781435
 #define stringify(x) #x
@@ -140,19 +138,6 @@ RegionImpl *RegionImplFactory::createRegionImpl(const std::string nodeType,
   return impl;
 }
 
-RegionImpl *RegionImplFactory::deserializeRegionImpl(const std::string nodeType,
-                                                     BundleIO &bundle,
-                                                     Region *region) {
-  //  TODO:cereal Remove when Cereal is complete.
-  RegionImpl *impl = nullptr;
-
-  if (regionTypeMap.find(nodeType) != regionTypeMap.end()) {
-    impl = regionTypeMap[nodeType]->deserializeRegionImpl(bundle, region);
-  } else {
-    NTA_THROW << "Unsupported node type '" << nodeType << "'";
-  }
-  return impl;
-}
 RegionImpl *RegionImplFactory::deserializeRegionImpl(const std::string nodeType,
                                                      ArWrapper &wrapper,
                                                      Region *region) {

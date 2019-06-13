@@ -48,7 +48,6 @@ namespace nupic {
 class ScalarSensor : public RegionImpl, Serializable {
 public:
   ScalarSensor(const ValueMap &params, Region *region);
-  ScalarSensor(BundleIO &bundle, Region *region);  // TODO:cereal Remove
   ScalarSensor(ArWrapper& wrapper, Region *region);
 
   virtual ~ScalarSensor() override;
@@ -60,15 +59,11 @@ public:
   virtual void setParameterReal64(const std::string &name, Int64 index, Real64 value) override;
   virtual void initialize() override;
 
-  virtual void serialize(BundleIO &bundle) override;
-  virtual void deserialize(BundleIO &bundle) override;
-
   void compute() override;
   virtual std::string executeCommand(const std::vector<std::string> &args,
                                      Int64 index) override;
 
-  virtual size_t
-  getNodeOutputElementCount(const std::string &outputName) const override;
+  virtual Dimensions askImplForOutputDimensions(const std::string &name) override;
 
   CerealAdapter;  // see Serializable.hpp
   // FOR Cereal Serialization
@@ -83,8 +78,8 @@ public:
        cereal::make_nvp("sparsity", params_.sparsity),
        cereal::make_nvp("size", params_.size),
        cereal::make_nvp("radius", params_.radius),
-       cereal::make_nvp("resolution", params_.resolution));
-    // TODO:cereal   Also serialize the outputs
+       cereal::make_nvp("resolution", params_.resolution),
+       cereal::make_nvp("sensedValue_", sensedValue_));
   }
   // FOR Cereal Deserialization
   // NOTE: the Region Implementation must have been allocated
@@ -102,17 +97,23 @@ public:
        cereal::make_nvp("sparsity", params_.sparsity),
        cereal::make_nvp("size", params_.size),
        cereal::make_nvp("radius", params_.radius),
-       cereal::make_nvp("resolution", params_.resolution));
-    // TODO:cereal   Also serialize the outputs
+       cereal::make_nvp("resolution", params_.resolution),
+       cereal::make_nvp("sensedValue_", sensedValue_));
+    encoder_ = std::make_shared<ScalarEncoder>( params_ );
+    setDimensions(encoder_->dimensions); 
   }
 
 
+  bool operator==(const RegionImpl &other) const override;
+  inline bool operator!=(const ScalarSensor &other) const {
+    return !operator==(other);
+  }
+
 private:
   Real64 sensedValue_;
-  encoders::ScalarEncoderParameters params_;
+  ScalarEncoderParameters params_;
 
-  encoders::ScalarEncoder *encoder_;
-  Output *encodedOutput_;
+  std::shared_ptr<ScalarEncoder> encoder_;
 };
 } // namespace nupic
 

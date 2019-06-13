@@ -121,14 +121,6 @@ set(engine_files
     nupic/engine/Watcher.cpp
     nupic/engine/Watcher.hpp
 )
-  
-set(math_files
-    nupic/math/Math.hpp
-    nupic/math/StlIo.cpp
-    nupic/math/StlIo.hpp
-    nupic/math/Topology.cpp
-    nupic/math/Topology.hpp
-)
 
 
 set(ntypes_files
@@ -137,7 +129,6 @@ set(ntypes_files
     nupic/ntypes/ArrayBase.hpp
     nupic/ntypes/BasicType.cpp
     nupic/ntypes/BasicType.hpp
-    nupic/ntypes/BundleIO.hpp
     nupic/ntypes/Collection.hpp
     nupic/ntypes/Dimensions.hpp
     nupic/ntypes/Scalar.cpp
@@ -199,13 +190,15 @@ set(utils_files
     nupic/utils/Random.cpp
     nupic/utils/Random.hpp
     nupic/utils/SlidingWindow.hpp
-    nupic/utils/StringUtils.cpp
-    nupic/utils/StringUtils.hpp
     nupic/utils/VectorHelpers.hpp
     nupic/utils/SdrMetrics.cpp
     nupic/utils/SdrMetrics.hpp
     nupic/utils/MurmurHash3.hpp
     nupic/utils/MurmurHash3.cpp
+    nupic/utils/StlIo.cpp
+    nupic/utils/StlIo.hpp
+    nupic/utils/Topology.cpp
+    nupic/utils/Topology.hpp
 )
 
 set(examples_files
@@ -219,7 +212,6 @@ set(examples_files
 source_group("algorithms" FILES ${algorithm_files})
 source_group("encoders" FILES ${encoders_files})
 source_group("engine" FILES ${engine_files})
-source_group("math" FILES ${math_files})
 source_group("ntypes" FILES ${ntypes_files})
 source_group("os" FILES ${os_files})
 source_group("regions" FILES ${regions_files})
@@ -242,7 +234,6 @@ add_library(${src_objlib} OBJECT
     ${algorithm_files} 
     ${encoders_files} 
     ${engine_files} 
-    ${math_files} 
     ${ntypes_files} 
     ${os_files} 
     ${regions_files} 

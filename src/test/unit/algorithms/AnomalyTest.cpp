@@ -31,9 +31,7 @@
 
 namespace testing {
 
-using namespace nupic::algorithms::anomaly;
 using namespace nupic;
-using namespace nupic::sdr;
 
 TEST(ComputeRawAnomalyScore, NoActiveOrPredicted) {
   SDR active({10});

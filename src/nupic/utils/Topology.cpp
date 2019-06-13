@@ -23,18 +23,14 @@
  * Topology helpers
  */
 
-#include <nupic/math/Topology.hpp>
+#include <nupic/utils/Topology.hpp>
 #include <nupic/utils/Log.hpp>
-#include <algorithm>
+#include <algorithm> // sort
 
 using std::vector;
 using namespace nupic;
-using namespace nupic::math::topology;
-using nupic::sdr::SDR;
 
 namespace nupic {
-namespace math {
-namespace topology {
 
 
 Topology_t  DefaultTopology(
@@ -87,7 +83,8 @@ Topology_t  DefaultTopology(
     }
 
     const UInt numPotential = (UInt)round(columnInputs.size() * potentialPct);
-    const auto selectedInputs = rng.sample<UInt>(columnInputs, numPotential);
+    auto selectedInputs = rng.sample<UInt>(columnInputs, numPotential);
+    std::sort( selectedInputs.begin(), selectedInputs.end() );
     SDR potentialPool( potentialPoolDimensions );
     potentialPool.setSparse( selectedInputs );
     return potentialPool;
@@ -136,8 +133,6 @@ UInt indexFromCoordinates(const vector<UInt> &coordinates,
   return index;
 }
 
-} // end namespace topology
-} // namespace math
 } // end namespace nupic
 
 

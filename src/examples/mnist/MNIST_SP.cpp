@@ -39,16 +39,12 @@ namespace examples {
 using namespace std;
 using namespace nupic;
 
-using nupic::algorithms::spatial_pooler::SpatialPooler;
-using nupic::algorithms::sdr_classifier::Classifier;
-using nupic::algorithms::sdr_classifier::argmax;
-
 class MNIST {
 
   private:
     SpatialPooler sp;
-    sdr::SDR input;
-    sdr::SDR columns;
+    SDR input;
+    SDR columns;
     Classifier clsr;
     mnist::MNIST_dataset<std::vector, std::vector<uint8_t>, uint8_t> dataset;
 
@@ -98,8 +94,8 @@ void train() {
          << " cycles ..." << endl;
   size_t i = 0;
 
-  sdr::Metrics inputStats(input,    1402);
-  sdr::Metrics columnStats(columns, 1402);
+  Metrics inputStats(input,    1402);
+  Metrics columnStats(columns, 1402);
 
   for(auto epoch = 0u; epoch < train_dataset_iterations; epoch++) {
     NTA_INFO << "epoch " << epoch;

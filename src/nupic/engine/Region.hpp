@@ -39,7 +39,6 @@
 // objects are returned by value.
 #include <nupic/engine/Spec.hpp>
 #include <nupic/ntypes/Dimensions.hpp>
-#include <nupic/ntypes/BundleIO.hpp>
 #include <nupic/os/Timer.hpp>
 #include <nupic/types/Serializable.hpp>
 #include <nupic/types/Types.hpp>
@@ -392,7 +391,8 @@ public:
   Region(std::string name, const std::string &type,
          const std::string &nodeParams, Network *network = nullptr);
 
-  Region(Network *network = nullptr); // An empty region for deserialization.
+  Region(Network *network); // An empty region for deserialization.
+  Region(); // A default constructor for region for deserialization.
 
   virtual ~Region();
 
@@ -452,22 +452,27 @@ public:
 
 
   // These must be implemented for serialization.
-  void save(std::ostream &stream) const override;
-  void load(std::istream &stream) override;
-
-    CerealAdapter;  // see Serializable.hpp
+  CerealAdapter;  // see Serializable.hpp
   // FOR Cereal Serialization
   template<class Archive>
   void save_ar(Archive& ar) const {
     ar(cereal::make_nvp("name", name_),
        cereal::make_nvp("nodeType", type_),
+       cereal::make_nvp("initialized", initialized_),
        cereal::make_nvp("phases", phases_));
+    ar(cereal::make_nvp("dim", getDimensions()));
 
     std::map<std::string, Dimensions> outDims;
     std::map<std::string, Dimensions> inDims;
-    saveDims(outDims, inDims);
-    ar(cereal::make_nvp("outputs", outDims));
-    ar(cereal::make_nvp("inputs",  inDims));
+    getDims_(outDims, inDims);
+    ar(cereal::make_nvp("output_dims", outDims));
+    ar(cereal::make_nvp("input_dims",  inDims));
+		
+		// save the output buffers
+    std::map<std::string, Array> buffers;
+    getOutputBuffers_(buffers);
+	  ar(cereal::make_nvp("outputs", buffers));
+
     // Now serialize the RegionImpl plugin.
     ArWrapper arw(&ar);
     serializeImpl(arw);
@@ -475,36 +480,53 @@ public:
 
 
   // FOR Cereal Deserialization
+  // Note: custom region implementations must be registered
+  //       before deserializing a region.
   template<class Archive>
   void load_ar(Archive& ar) {
-    initialized_ = false;
-    ar(cereal::make_nvp("name", name_),
-       cereal::make_nvp("nodeType", type_),
-       cereal::make_nvp("phases", phases_));
+    Dimensions dim;
+    bool init;
+    ar(cereal::make_nvp("name", name_));
+    ar(cereal::make_nvp("nodeType", type_));
+    ar(cereal::make_nvp("initialized", init));
+    ar(cereal::make_nvp("phases", phases_));
+    ar(cereal::make_nvp("dim", dim));
 
     std::map<std::string, Dimensions> outDims;
     std::map<std::string, Dimensions> inDims;
-    ar(cereal::make_nvp("outputs", outDims));
-    ar(cereal::make_nvp("inputs",  inDims));
+    ar(cereal::make_nvp("output_dims", outDims));
+    ar(cereal::make_nvp("input_dims",  inDims));
+
+    // deserialize the output buffers for this region.
+    std::map<std::string, Array> buffers;
+    ar(cereal::make_nvp("outputs", buffers));
+    restoreOutputBuffers_(buffers);
+    loadDims_(outDims, inDims);
 
     // deserialize the RegionImpl plugin and its algorithm
     ArWrapper arw(&ar);
     deserializeImpl(arw);
 
-    loadDims(outDims, inDims);
+    // set the region dimensions.
+    initialized_ = false; // setDimensions requires initialization off.
+    setDimensions(dim);
+    initialized_ = init;
   }
 
-  friend class Network;
+  friend class Network;  // so Network can set Network* network_; during addRegion( ).
+  friend std::ostream &operator<<(std::ostream &f, const Region &r);
+
 
 private:
-  Region(Region &){}  // copy not allowed
+  //Region(Region &){}  // copy not allowed
 
-  // common method used by both constructors
-  // Can be called after nodespec_ has been set.
+  // local functions
   void createInputsAndOutputs_();
-  void saveDims(std::map<std::string,Dimensions>& outDims,
+  void getOutputBuffers_(std::map<std::string, Array>& buffers) const;
+  void restoreOutputBuffers_(const std::map<std::string, Array>& buffers);
+  void getDims_(std::map<std::string,Dimensions>& outDims,
                std::map<std::string,Dimensions>& inDims) const;
-  void loadDims(std::map<std::string,Dimensions>& outDims,
+  void loadDims_(std::map<std::string,Dimensions>& outDims,
                std::map<std::string,Dimensions>& inDims) const;
   void serializeImpl(ArWrapper& ar) const;
   void deserializeImpl(ArWrapper& ar);

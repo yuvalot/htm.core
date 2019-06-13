@@ -43,9 +43,6 @@ namespace nupic_ext
 {
 namespace py = pybind11;
 using namespace nupic;
-using namespace nupic::algorithms::spatial_pooler;
-using namespace sdr;
-
 
     void init_Spatial_Pooler(py::module& m)
     {
@@ -58,7 +55,7 @@ using namespace sdr;
             , Real
             , bool
             , Real
-            , UInt
+            , Int
             , UInt
             , Real
             , Real
@@ -69,13 +66,15 @@ using namespace sdr;
             , Int
             , UInt
             , bool>()
+            , py::call_guard<py::scoped_ostream_redirect,
+                             py::scoped_estream_redirect>()
             , py::arg("inputDimensions") = vector<UInt>({ 32, 32 })
             , py::arg("columnDimensions") = vector<UInt>({ 64, 64 })
             , py::arg("potentialRadius") = 16
             , py::arg("potentialPct") = 0.5
             , py::arg("globalInhibition") = false
-            , py::arg("localAreaDensity") = -1.0
-            , py::arg("numActiveColumnsPerInhArea") = 10
+            , py::arg("localAreaDensity") = 0.02f
+            , py::arg("numActiveColumnsPerInhArea") = -1
             , py::arg("stimulusThreshold") = 0
             , py::arg("synPermInactiveDec") = 0.01
             , py::arg("synPermActiveInc") = 0.1
@@ -83,12 +82,14 @@ using namespace sdr;
             , py::arg("minPctOverlapDutyCycle") = 0.001
             , py::arg("dutyCyclePeriod") = 1000
             , py::arg("boostStrength") = 0.0
-            , py::arg("seed") = -1
+            , py::arg("seed") = 1
             , py::arg("spVerbosity") = 0
             , py::arg("wrapAround") = true
         );
 
         py_SpatialPooler.def("initialize", &SpatialPooler::initialize
+            , py::call_guard<py::scoped_ostream_redirect,
+                             py::scoped_estream_redirect>()
             , py::arg("inputDimensions") = vector<UInt>({ 32, 32 })
             , py::arg("columnDimensions") = vector<UInt>({ 64, 64 })
             , py::arg("potentialRadius") = 16
@@ -173,7 +174,7 @@ using namespace sdr;
         });
 
         // compute
-        py_SpatialPooler.def("compute", [](SpatialPooler& self, sdr::SDR& input, bool learn, sdr::SDR& output)
+        py_SpatialPooler.def("compute", [](SpatialPooler& self, SDR& input, bool learn, SDR& output)
             { self.compute( input, learn, output ); },
 	    "SpatialPooler compute method",
 	    py::arg("input"),
@@ -182,87 +183,87 @@ using namespace sdr;
 	    ); 
 
         // setBoostFactors
-        py_SpatialPooler.def("setBoostFactors", [](SpatialPooler& self, py::array_t<Real>& x)
+        py_SpatialPooler.def("setBoostFactors", [](SpatialPooler& self, py::array& x)
         {
-            self.setBoostFactors(get_it(x));
+            self.setBoostFactors(get_it<Real>(x));
         });
 
         // getBoostFactors
-        py_SpatialPooler.def("getBoostFactors", [](const SpatialPooler& self, py::array_t<Real>& x)
+        py_SpatialPooler.def("getBoostFactors", [](const SpatialPooler& self, py::array& x)
         {
-            self.getBoostFactors(get_it(x));
+            self.getBoostFactors(get_it<Real>(x));
         });
 
         // setOverlapDutyCycles
-        py_SpatialPooler.def("setOverlapDutyCycles", [](SpatialPooler& self, py::array_t<Real>& x)
+        py_SpatialPooler.def("setOverlapDutyCycles", [](SpatialPooler& self, py::array& x)
         {
-            self.setOverlapDutyCycles(get_it(x));
+            self.setOverlapDutyCycles(get_it<Real>(x));
         });
 
         // getOverlapDutyCycles
-        py_SpatialPooler.def("getOverlapDutyCycles", [](const SpatialPooler& self, py::array_t<Real>& x)
+        py_SpatialPooler.def("getOverlapDutyCycles", [](const SpatialPooler& self, py::array& x)
         {
-            self.getOverlapDutyCycles(get_it(x));
+            self.getOverlapDutyCycles(get_it<Real>(x));
         });
 
         // setActiveDutyCycles
-        py_SpatialPooler.def("setActiveDutyCycles", [](SpatialPooler& self, py::array_t<Real>& x)
+        py_SpatialPooler.def("setActiveDutyCycles", [](SpatialPooler& self, py::array& x)
         {
-            self.setActiveDutyCycles(get_it(x));
+            self.setActiveDutyCycles(get_it<Real>(x));
         });
 
         // getActiveDutyCycles
-        py_SpatialPooler.def("getActiveDutyCycles", [](const SpatialPooler& self, py::array_t<Real>& x)
+        py_SpatialPooler.def("getActiveDutyCycles", [](const SpatialPooler& self, py::array& x)
         {
-            self.getActiveDutyCycles(get_it(x));
+            self.getActiveDutyCycles(get_it<Real>(x));
         });
 
         // setMinOverlapDutyCycles
-        py_SpatialPooler.def("setMinOverlapDutyCycles", [](SpatialPooler& self, py::array_t<Real>& x)
+        py_SpatialPooler.def("setMinOverlapDutyCycles", [](SpatialPooler& self, py::array& x)
         {
-            self.setMinOverlapDutyCycles(get_it(x));
+            self.setMinOverlapDutyCycles(get_it<Real>(x));
         });
 
         // getMinOverlapDutyCycles
-        py_SpatialPooler.def("getMinOverlapDutyCycles", [](const SpatialPooler& self, py::array_t<Real>& x)
+        py_SpatialPooler.def("getMinOverlapDutyCycles", [](const SpatialPooler& self, py::array& x)
         {
-            self.getMinOverlapDutyCycles(get_it(x));
+            self.getMinOverlapDutyCycles(get_it<Real>(x));
         });
 
         // setPotential
-        py_SpatialPooler.def("setPotential", [](SpatialPooler& self, UInt column, py::array_t<UInt>& x)
+        py_SpatialPooler.def("setPotential", [](SpatialPooler& self, UInt column, py::array& x)
         {
-            self.setPotential(column, get_it(x));
+            self.setPotential(column, get_it<UInt>(x));
         });
 
         // getPotential
-        py_SpatialPooler.def("getPotential", [](const SpatialPooler& self, UInt column, py::array_t<UInt>& x)
+        py_SpatialPooler.def("getPotential", [](const SpatialPooler& self, UInt column, py::array& x)
         {
-            self.getPotential(column, get_it(x));
+            self.getPotential(column, get_it<UInt>(x));
         });
 
         // setPermanence
-        py_SpatialPooler.def("setPermanence", [](SpatialPooler& self, UInt column, py::array_t<Real>& x)
+        py_SpatialPooler.def("setPermanence", [](SpatialPooler& self, UInt column, py::array& x)
         {
-            self.setPermanence(column, get_it(x));
+            self.setPermanence(column, get_it<Real>(x));
         });
 
         // getPermanence
-        py_SpatialPooler.def("getPermanence", [](const SpatialPooler& self, UInt column, py::array_t<Real>& x)
+        py_SpatialPooler.def("getPermanence", [](const SpatialPooler& self, UInt column, py::array& x)
         {
-            self.getPermanence(column, get_it(x));
+            self.getPermanence(column, get_it<Real>(x));
         });
 
         // getConnectedSynapses
-        py_SpatialPooler.def("getConnectedSynapses", [](const SpatialPooler& self, UInt column, py::array_t<UInt>& x)
+        py_SpatialPooler.def("getConnectedSynapses", [](const SpatialPooler& self, UInt column, py::array& x)
         {
-            self.getConnectedSynapses(column, get_it(x));
+            self.getConnectedSynapses(column, get_it<UInt>(x));
         });
 
         // getConnectedCounts
-        py_SpatialPooler.def("getConnectedCounts", [](const SpatialPooler& self, py::array_t<UInt>& x)
+        py_SpatialPooler.def("getConnectedCounts", [](const SpatialPooler& self, py::array& x)
         {
-            self.getConnectedCounts(get_it(x));
+            self.getConnectedCounts(get_it<UInt>(x));
         });
 
         // getOverlaps
@@ -285,9 +286,9 @@ using namespace sdr;
         ////////////////////
         // inhibitColumns
 
-        auto inhibitColumns_func = [](SpatialPooler& self, py::array_t<Real>& overlaps)
+        auto inhibitColumns_func = [](SpatialPooler& self, py::array& overlaps)
         {
-            std::vector<nupic::Real> overlapsVector(get_it(overlaps), get_end(overlaps));
+            std::vector<nupic::Real> overlapsVector(get_it<Real>(overlaps), get_end<Real>(overlaps));
 
             std::vector<nupic::UInt> activeColumnsVector;
 
@@ -303,6 +304,13 @@ using namespace sdr;
         //////////////////////
         // getIterationLearnNum
         py_SpatialPooler.def("getIterationLearnNum", &SpatialPooler::getIterationLearnNum);
+
+
+        py_SpatialPooler.def("__str__",
+            [](SpatialPooler &self) {
+                std::stringstream buf;
+                buf << self;
+                return buf.str(); });
 
 
         // pickle

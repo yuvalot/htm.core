@@ -131,9 +131,9 @@ class TestCommand(BaseTestCommand):
     if errno != 0:
       sys.exit(errno)
     
-    # python tests (in /py/src/nupic/tests/)
+    # python tests (in /py/tests/)
     try:
-      os.chdir(os.path.join(REPO_DIR, "py", "src", "nupic", "tests"))
+      os.chdir(os.path.join(REPO_DIR, "py", "tests"))
       errno = pytest.main(self.pytest_args)
     finally:
       os.chdir(cwd)
@@ -204,10 +204,6 @@ def generateExtensions():
     PY_VER = "-DBINDING_BUILD=Python2"
 
   print("Python version: {}\n".format(sys.version))
-  #detect Anaconda python interpreter
-  is_conda = os.path.exists(os.path.join(sys.prefix, 'conda-meta'))
-  if is_conda:
-    raise Exception("Anaconda python not supported!\n")
 
   scriptsDir = os.path.join(REPO_DIR, "build", "scripts")
   try:
@@ -231,9 +227,9 @@ if __name__ == "__main__":
   # Run CMake if extension files are missing.
   getExtensionFiles(platform)
 
-  # Copy the python code into place. (from /py/src/)
+  # Copy the python code into place. (from /py/nupic/)
   distutils.dir_util.copy_tree(
-            os.path.join(REPO_DIR, "py", "src"), os.path.join(DISTR_DIR, "src"))
+            os.path.join(REPO_DIR, "py", "nupic"), os.path.join(DISTR_DIR, "src", "nupic"))
   """
   set the default directory to the distr, and package it.
   """
@@ -258,6 +254,7 @@ if __name__ == "__main__":
     install_requires=findRequirements(platform),
     package_data={
         "nupic.bindings": ["*.so", "*.pyd"],
+        "nupic.examples": ["*.csv"],
     },
     extras_require = {},
     zip_safe=False,

@@ -60,7 +60,6 @@ class TestNode : public RegionImpl, Serializable {
 public:
   typedef void (*computeCallbackFunc)(const std::string &);
   TestNode(const ValueMap &params, Region *region);
-  TestNode(BundleIO &bundle, Region *region);  // TODO:cereal Remove
   TestNode(ArWrapper& wrapper, Region *region);
   virtual ~TestNode();
 
@@ -79,9 +78,6 @@ public:
 
   void initialize() override;
 
-  void serialize(BundleIO &bundle) override;
-  void deserialize(BundleIO &bundle) override;
-
   CerealAdapter;  // see Serializable.hpp
   // FOR Cereal Serialization
   template<class Archive>
@@ -94,6 +90,7 @@ public:
        CEREAL_NVP(real32Param_),
        CEREAL_NVP(real64Param_),
        CEREAL_NVP(boolParam_),
+       CEREAL_NVP(stringParam_),
        CEREAL_NVP(outputElementCount_),
        CEREAL_NVP(delta_),
        CEREAL_NVP(iter_));
@@ -104,18 +101,8 @@ public:
        CEREAL_NVP(boolArrayParam_),
        CEREAL_NVP(unclonedParam_),
        CEREAL_NVP(shouldCloneParam_),
+       CEREAL_NVP(possiblyUnclonedParam_),
        CEREAL_NVP(unclonedInt64ArrayParam_));
-
-    // save the output buffers
-    // The output buffers are saved as part of the Region Implementation.
-    cereal::size_type numBuffers = 0;
-    std::map<std::string, Output *> outputs = region_->getOutputs();
-    numBuffers = outputs.size();
-    ar(cereal::make_nvp("outputs", cereal::make_size_tag(numBuffers)));
-    for (auto iter : outputs) {
-      const Array &outputBuffer = iter.second->getData();
-      ar(cereal::make_map_item(iter.first, outputBuffer));
-    }
   }
   // FOR Cereal Deserialization
   // NOTE: the Region Implementation must have been allocated
@@ -132,6 +119,7 @@ public:
        CEREAL_NVP(real32Param_),
        CEREAL_NVP(real64Param_),
        CEREAL_NVP(boolParam_),
+       CEREAL_NVP(stringParam_),
        CEREAL_NVP(outputElementCount_),
        CEREAL_NVP(delta_),
        CEREAL_NVP(iter_));
@@ -142,21 +130,13 @@ public:
        CEREAL_NVP(boolArrayParam_),
        CEREAL_NVP(unclonedParam_),
        CEREAL_NVP(shouldCloneParam_),
+       CEREAL_NVP(possiblyUnclonedParam_),
        CEREAL_NVP(unclonedInt64ArrayParam_));
+  }
 
-    // restore the output buffers
-    // The output buffers are saved as part of the Region Implementation.
-    cereal::size_type numBuffers;
-    ar(cereal::make_nvp("outputs", cereal::make_size_tag(numBuffers)));
-    for (cereal::size_type i = 0; i < numBuffers; i++) {
-      std::string name;
-      Array output;
-      ar(cereal::make_map_item(name, output));
-      Array& outputBuffer = getOutput(name)->getData();
-      outputBuffer = output;
-    }
-    // Note: the input buffers will be populated from a
-    //       the output buffers via its connected link.
+  bool operator==(const RegionImpl &other) const override;
+  inline bool operator!=(const TestNode &other) const {
+    return !operator==(other);
   }
 
 

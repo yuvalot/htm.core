@@ -51,9 +51,11 @@ VectorFileEffector::VectorFileEffector(const ValueMap &params, Region* region)
     filename_ = "";
 }
 
-VectorFileEffector::VectorFileEffector(BundleIO &bundle, Region* region)
+VectorFileEffector::VectorFileEffector(ArWrapper& wrapper, Region* region)
     : RegionImpl(region), dataIn_(NTA_BasicType_Real32), filename_(""),
-      outFile_(nullptr) {}
+      outFile_(nullptr) {
+  cereal_adapter_load(wrapper);
+}
 
 
 VectorFileEffector::~VectorFileEffector() { closeFile(); }
@@ -71,8 +73,8 @@ void VectorFileEffector::initialize() {
 }
 
 void VectorFileEffector::compute() {
-  NTA_DEBUG << *region_->getInput("dataIn") << "\n";
-
+  NTA_DEBUG << "VectorFileEffector compute() input: " << *region_->getInput("dataIn") << "\n";
+  dataIn_ = region_->getInput("dataIn")->getData();
   // It's not necessarily an error to have no inputs. In this case we just
   // return
   if (dataIn_.getCount() == 0)
@@ -96,8 +98,10 @@ void VectorFileEffector::compute() {
   NTA_CHECK(inputVec != nullptr);
   std::ofstream &outFile = *outFile_;
   for (Size offset = 0; offset < dataIn_.getCount(); ++offset) {
-    // TBD -- could be very inefficient to do one at a time
-    outFile << inputVec[offset] << " ";
+    if (offset == 0)
+      outFile << inputVec[offset];
+    else
+      outFile << "," << inputVec[offset];
   }
   outFile << "\n";
 }
@@ -231,9 +235,12 @@ VectorFileEffector::getNodeOutputElementCount(const std::string &outputName) con
 }
 
 
-void VectorFileEffector::serialize(BundleIO &bundle) { return; }
+bool VectorFileEffector::operator==(const RegionImpl &o) const {
+  if (o.getType() != "VectorFileEffector") return false;
+  VectorFileEffector& other = (VectorFileEffector&)o;
+  if (filename_ != other.filename_) return false;
 
-void VectorFileEffector::deserialize(BundleIO &bundle) { return; }
-
+  return true;
+}
 
 } // namespace nupic

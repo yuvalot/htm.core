@@ -46,13 +46,10 @@
 #include <nupic/algorithms/TemporalMemory.hpp>
 
 #include <nupic/utils/GroupBy.hpp>
-#include <nupic/math/Math.hpp> // nupic::Epsilon
 #include <nupic/algorithms/Anomaly.hpp>
 
 using namespace std;
 using namespace nupic;
-using namespace nupic::sdr;
-using namespace nupic::algorithms::temporal_memory;
 
 
 static const UInt TM_VERSION = 2;
@@ -423,8 +420,6 @@ void TemporalMemory::activateCells(const SDR &activeColumns, const bool learn) {
       NTA_CHECK(static_cast<size_t>(activeColumns.dimensions[i]) == static_cast<size_t>(columnDimensions_[i])) << "Dimensions must be the same.";
     }
     auto &sparse = activeColumns.getSparse();
-    std::sort(sparse.begin(), sparse.end()); //TODO remove sorted requirement? iterGroupBy depends on it
-
 
   vector<bool> prevActiveCellsDense(numberOfCells() + extra_, false);
   for (CellIdx cell : activeCells_) {
@@ -565,7 +560,7 @@ void TemporalMemory::compute(const SDR &activeColumns,
 
   // Update Anomaly Metric.  The anomaly is the percent of active columns that
   // were not predicted.
-  anomaly_ = nupic::algorithms::anomaly::computeRawAnomalyScore(
+  anomaly_ = computeRawAnomalyScore(
                 activeColumns,
                 cellsToColumns( getPredictiveCells() ));
   // TODO: Update mean & standard deviation of anomaly here.
@@ -771,210 +766,6 @@ SynapseIdx TemporalMemory::getMaxSynapsesPerSegment() const {
 UInt TemporalMemory::version() const { return TM_VERSION; }
 
 
-template <typename FloatType>
-static void saveFloat_(ostream &outStream, FloatType v) {
-  outStream << std::setprecision(std::numeric_limits<FloatType>::max_digits10)
-            << v << " ";
-}
-
-void TemporalMemory::save(ostream &outStream) const {
-  // Write a starting marker and version.
-  outStream << "TemporalMemory" << endl;
-  outStream << TM_VERSION << endl;
-
-  outStream << numColumns_ << " " << cellsPerColumn_ << " "
-            << activationThreshold_ << " ";
-
-  saveFloat_(outStream, initialPermanence_);
-  saveFloat_(outStream, connectedPermanence_);
-
-  outStream << minThreshold_ << " " << maxNewSynapseCount_ << " "
-            << checkInputs_ << " ";
-
-  saveFloat_(outStream, permanenceIncrement_);
-  saveFloat_(outStream, permanenceDecrement_);
-  saveFloat_(outStream, predictedSegmentDecrement_);
-  saveFloat_(outStream, anomaly_);
-
-  outStream << extra_ << " ";
-  outStream << maxSegmentsPerCell_ << " " << maxSynapsesPerSegment_ << " "
-            << iteration_ << " ";
-
-  outStream << endl;
-
-  connections.save(outStream);
-  outStream << endl;
-
-  outStream << rng_ << endl;
-
-  outStream << columnDimensions_.size() << " ";
-  for (auto &elem : columnDimensions_) {
-    outStream << elem << " ";
-  }
-  outStream << endl;
-
-  outStream << activeCells_.size() << " ";
-  for (CellIdx cell : activeCells_) {
-    outStream << cell << " ";
-  }
-  outStream << endl;
-
-  outStream << winnerCells_.size() << " ";
-  for (CellIdx cell : winnerCells_) {
-    outStream << cell << " ";
-  }
-  outStream << endl;
-
-  outStream << segmentsValid_ << " ";
-  outStream << activeSegments_.size() << " ";
-  for (Segment segment : activeSegments_) {
-    const CellIdx cell = connections.cellForSegment(segment);
-    const vector<Segment> &segments = connections.segmentsForCell(cell);
-
-    SegmentIdx idx = (SegmentIdx)std::distance(
-        segments.begin(), std::find(segments.begin(), segments.end(), segment));
-
-    outStream << idx << " ";
-    outStream << cell << " ";
-    outStream << numActiveConnectedSynapsesForSegment_[segment] << " ";
-  }
-  outStream << endl;
-
-  outStream << matchingSegments_.size() << " ";
-  for (Segment segment : matchingSegments_) {
-    const CellIdx cell = connections.cellForSegment(segment);
-    const vector<Segment> &segments = connections.segmentsForCell(cell);
-
-    SegmentIdx idx = (SegmentIdx)std::distance(
-        segments.begin(), std::find(segments.begin(), segments.end(), segment));
-
-    outStream << idx << " ";
-    outStream << cell << " ";
-    outStream << numActivePotentialSynapsesForSegment_[segment] << " ";
-  }
-  outStream << endl;
-
-  outStream << "~TemporalMemory" << endl;
-}
-
-
-
-void TemporalMemory::load(istream &inStream) {
-  // Check the marker
-  string marker;
-  inStream >> marker;
-  NTA_CHECK(marker == "TemporalMemory");
-
-  // Check the saved version.
-  UInt version;
-  inStream >> version;
-  NTA_CHECK(version <= TM_VERSION);
-
-  // Retrieve simple variables
-  inStream >> numColumns_ >> cellsPerColumn_ >> activationThreshold_ >>
-      initialPermanence_ >> connectedPermanence_ >> minThreshold_ >>
-      maxNewSynapseCount_ >> checkInputs_ >> permanenceIncrement_ >>
-      permanenceDecrement_ >> predictedSegmentDecrement_ >> anomaly_ >> extra_ >>
-      maxSegmentsPerCell_ >> maxSynapsesPerSegment_ >> iteration_;
-
-  connections.load(inStream);
-
-  numActiveConnectedSynapsesForSegment_.assign(
-      connections.segmentFlatListLength(), 0);
-  numActivePotentialSynapsesForSegment_.assign(
-      connections.segmentFlatListLength(), 0);
-
-  inStream >> rng_;
-
-  // Retrieve vectors.
-  UInt numColumnDimensions;
-  inStream >> numColumnDimensions;
-  columnDimensions_.resize(numColumnDimensions);
-  for (UInt i = 0; i < numColumnDimensions; i++) {
-    inStream >> columnDimensions_[i];
-  }
-
-  UInt numActiveCells;
-  inStream >> numActiveCells;
-  for (UInt i = 0; i < numActiveCells; i++) {
-    CellIdx cell;
-    inStream >> cell;
-    activeCells_.push_back(cell);
-  }
-
-  if (version < 2) {
-    UInt numPredictiveCells;
-    inStream >> numPredictiveCells;
-    for (UInt i = 0; i < numPredictiveCells; i++) {
-      CellIdx cell;
-      inStream >> cell; // Ignore
-    }
-  }
-
-  UInt numWinnerCells;
-  inStream >> numWinnerCells;
-  for (UInt i = 0; i < numWinnerCells; i++) {
-    CellIdx cell;
-    inStream >> cell;
-    winnerCells_.push_back(cell);
-  }
-
-  inStream >> segmentsValid_;
-  UInt numActiveSegments;
-  inStream >> numActiveSegments;
-  activeSegments_.resize(numActiveSegments);
-  for (UInt i = 0; i < numActiveSegments; i++) {
-    SegmentIdx idx;
-    inStream >> idx;
-
-    CellIdx cellIdx;
-    inStream >> cellIdx;
-
-    Segment segment = connections.getSegment(cellIdx, idx);
-    activeSegments_[i] = segment;
-
-    if (version < 2) {
-      numActiveConnectedSynapsesForSegment_[segment] = 0; // Unknown
-    } else {
-      inStream >> numActiveConnectedSynapsesForSegment_[segment];
-    }
-  }
-
-  UInt numMatchingSegments;
-  inStream >> numMatchingSegments;
-  matchingSegments_.resize(numMatchingSegments);
-  for (UInt i = 0; i < numMatchingSegments; i++) {
-    SegmentIdx idx;
-    inStream >> idx;
-
-    CellIdx cellIdx;
-    inStream >> cellIdx;
-
-    Segment segment = connections.getSegment(cellIdx, idx);
-    matchingSegments_[i] = segment;
-
-    if (version < 2) {
-      numActivePotentialSynapsesForSegment_[segment] = 0; // Unknown
-    } else {
-      inStream >> numActivePotentialSynapsesForSegment_[segment];
-    }
-  }
-
-  if (version < 2) {
-    UInt numMatchingCells;
-    inStream >> numMatchingCells;
-    for (UInt i = 0; i < numMatchingCells; i++) {
-      CellIdx cell;
-      inStream >> cell; // Ignore
-    }
-  }
-
-  lastUsedIterationForSegment_.resize(connections.segmentFlatListLength());
-
-  inStream >> marker;
-  NTA_CHECK(marker == "~TemporalMemory");
-}
-
 static set<pair<CellIdx, SynapseIdx>>
 getComparableSegmentSet(const Connections &connections,
                         const vector<Segment> &segments) {
@@ -1025,11 +816,20 @@ bool TemporalMemory::operator==(const TemporalMemory &other) const {
 // Debugging helpers
 //----------------------------------------------------------------------
 
+
+namespace nupic {
+std::ostream& operator<< (std::ostream& stream, const TemporalMemory& self)
+{
+  stream << "Temporal Memory " << self.connections;
+  return stream;
+}
+}
+
+
 // Print the main TM creation parameters
-void TemporalMemory::printParameters() {
-  std::cout << "------------CPP TemporalMemory Parameters ------------------\n";
-  std::cout
-      << "version                   = " << TM_VERSION << std::endl
+void TemporalMemory::printParameters(std::ostream& out) const {
+  out << "Temporal Memory Parameters\n";
+  out << "version                   = " << TM_VERSION << std::endl
       << "numColumns                = " << numberOfColumns() << std::endl
       << "cellsPerColumn            = " << getCellsPerColumn() << std::endl
       << "activationThreshold       = " << getActivationThreshold() << std::endl
