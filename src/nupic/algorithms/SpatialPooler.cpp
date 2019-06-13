@@ -31,7 +31,6 @@
 
 #include <nupic/algorithms/SpatialPooler.hpp>
 #include <nupic/utils/Topology.hpp>
-#include <nupic/utils/VectorHelpers.hpp>
 
 using namespace std;
 using namespace nupic;

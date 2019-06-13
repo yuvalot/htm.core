@@ -60,7 +60,7 @@ bool almost_eq(Real a, Real b) {
   return (diff > -1e-5 && diff < 1e-5);
 }
 
-bool check_vector_eq(UInt arr[], vector<UInt> vec) {  //TODO replace with ArrayBase, VectorHelpers or teplates
+bool check_vector_eq(UInt arr[], vector<UInt> vec) {  //TODO replace with ArrayBase, or teplates
   for (UInt i = 0; i < vec.size(); i++) {
     if (arr[i] != vec[i]) {
       return false;
