@@ -549,7 +549,8 @@ void SpatialPooler::initMapPotential_(UInt column, bool wrapAround, SDR& potenti
   }
 
   const UInt numPotential = (UInt)round(columnInputs.size() * potentialPct_);
-  const auto selectedInputs = rng_.sample<UInt>(columnInputs, numPotential);
+  auto selectedInputs = rng_.sample<UInt>(columnInputs, numPotential);
+  std::sort(selectedInputs.begin(), selectedInputs.end()); 
   potential.setSparse(selectedInputs);
 }
 
