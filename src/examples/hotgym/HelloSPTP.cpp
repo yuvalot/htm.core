@@ -172,13 +172,13 @@ Real64 BenchmarkHotgym::run(UInt EPOCHS, bool useSPlocal, bool useSPglobal, bool
 
       SDR goldSP({COLS});
       const SDR_sparse_t deterministicSP{
-        72, 75, 284, 303, 305, 317, 329, 525, 1095, 2027
+        72, 75, 266, 284, 303, 305, 317, 329, 525, 1095, 1153, 2027
       };
       goldSP.setSparse(deterministicSP);
 
       SDR goldSPlocal({COLS});
       const SDR_sparse_t deterministicSPlocal{
-        6, 12, 26, 57, 63, 72, 75, 76, 77, 80, 82, 103, 105, 124, 135, 154, 171, 174, 175, 185, 192, 193, 195, 198, 263, 284, 296, 302, 303, 305, 313, 317, 319, 320, 356, 363, 364, 401, 403, 404, 410, 413, 425, 426, 428, 449, 491, 496, 511, 515, 516, 518, 520, 525, 529, 536, 550, 556, 574, 583, 592, 597, 598, 603, 609, 622, 626, 636, 645, 652, 704, 706, 722, 726, 727, 728, 729, 747, 751, 766, 779, 808, 833, 837, 838, 840, 848, 850, 853, 860, 908, 912, 918, 919, 923, 927, 929, 930, 931, 932, 970, 989, 1006, 1038, 1066, 1082, 1085, 1087, 1092, 1094, 1095, 1113, 1115, 1125, 1128, 1174, 1179, 1180, 1182, 1185, 1205, 1206, 1232, 1236, 1238, 1239, 1240, 1245, 1271, 1292, 1295, 1300, 1303, 1307, 1311, 1319, 1320, 1322, 1382, 1401, 1412, 1415, 1421, 1426, 1431, 1434, 1438, 1470, 1474, 1492, 1501, 1511, 1521, 1524, 1525, 1530, 1532, 1537, 1540, 1600, 1617, 1620, 1622, 1632, 1638, 1641, 1667, 1672, 1680, 1684, 1686, 1690, 1699, 1702, 1742, 1744, 1745, 1746, 1765, 1770, 1774, 1801, 1807, 1808, 1816, 1830, 1834, 1849, 1861, 1867, 1871, 1882, 1902, 1907, 1943, 1945, 1955, 1956, 1966, 1968, 1969, 1971, 1986, 2018, 2025, 2027
+        6, 26, 56, 72, 75, 77, 80, 82, 99, 105, 120, 124, 135, 145, 154, 171, 174, 175, 185, 192, 193, 195, 198, 263, 266, 284, 296, 302, 303, 305, 309, 312, 317, 320, 329, 356, 363, 401, 403, 413, 443, 444, 449, 491, 493, 496, 499, 509, 511, 518, 525, 526, 529, 550, 556, 583, 592, 597, 598, 603, 608, 609, 622, 626, 645, 651, 652, 695, 704, 722, 726, 727, 729, 745, 747, 751, 779, 808, 818, 833, 837, 840, 848, 850, 853, 861, 892, 908, 912, 918, 919, 920, 923, 925, 930, 931, 970, 989, 1006, 1038, 1066, 1082, 1084, 1085, 1087, 1092, 1095, 1113, 1115, 1125, 1128, 1153, 1158, 1174, 1179, 1180, 1182, 1185, 1205, 1211, 1232, 1236, 1237, 1238, 1239, 1240, 1245, 1251, 1271, 1292, 1295, 1300, 1303, 1308, 1311, 1319, 1320, 1322, 1401, 1412, 1415, 1426, 1429, 1434, 1438, 1458, 1468, 1474, 1492, 1511, 1520, 1524, 1525, 1530, 1532, 1537, 1540, 1550, 1559, 1600, 1606, 1609, 1620, 1632, 1638, 1639, 1641, 1667, 1672, 1680, 1723, 1730, 1742, 1743, 1744, 1745, 1765, 1770, 1774, 1785, 1802, 1807, 1808, 1816, 1830, 1834, 1863, 1867, 1871, 1882, 1895, 1902, 1905, 1907, 1943, 1952, 1955, 1956, 1966, 1968, 1969, 1971, 1977, 2004, 2018, 2027, 2030
       };
       goldSPlocal.setSparse(deterministicSPlocal);
 
@@ -188,7 +188,7 @@ Real64 BenchmarkHotgym::run(UInt EPOCHS, bool useSPlocal, bool useSPglobal, bool
       };
       goldTM.setSparse(deterministicTM);
 
-      const float goldAn = 0.8f;
+      const float goldAn = 0.916667f;
 
       if(EPOCHS == 5000) { //these hand-written values are only valid for EPOCHS = 5000 (default), but not for debug and custom runs. 
         NTA_CHECK(input == goldEnc) << "Deterministic output of Encoder failed!\n" << input << "should be:\n" << goldEnc;
@@ -197,7 +197,7 @@ Real64 BenchmarkHotgym::run(UInt EPOCHS, bool useSPlocal, bool useSPglobal, bool
         NTA_CHECK(outTM == goldTM) << "Deterministic output of TM failed!\n" << outTM << "should be:\n" << goldTM; 
         NTA_CHECK(static_cast<UInt>(an *10000.0f) == static_cast<UInt>(goldAn *10000.0f)) //compare to 4 decimal places
 		               << "Deterministic output of Anomaly failed! " << an << "should be: " << goldAn;
-	      NTA_CHECK(avgAnom10.getCurrentAvg() <= 0.82f) << "Deterministic average anom score failed:" << avgAnom10.getCurrentAvg();
+	      NTA_CHECK(avgAnom10.getCurrentAvg() <= 0.844586f) << "Deterministic average anom score failed:" << avgAnom10.getCurrentAvg();
       }
 
       // check runtime speed

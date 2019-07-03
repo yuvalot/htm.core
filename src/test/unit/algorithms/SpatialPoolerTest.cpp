@@ -2079,14 +2079,16 @@ TEST(SpatialPoolerTest, testConstructorVsInitialize) {
 TEST(SpatialPoolerTest, ExactOutput) { 
   // Silver is an SDR that is loaded by direct initalization from a vector.
   SDR silver_sdr({ 200 });
-  SDR_sparse_t data = {23, 71, 113, 118, 129, 172, 178, 182, 185, 190};
+  SDR_sparse_t data = {
+    23, 25, 35, 94, 107, 111, 113, 149, 170, 172
+  };
   silver_sdr.setSparse(data);
 
 
   // Gold tests initalizing an SDR from a manually created string in JSON format.
 	// hint: you can generate this string using
 	//       silver_sdr.save(std::cout, JSON);
-  string gold = "{\"dimensions\": [200],\"sparse\": [23,71,113,118,129,172,178,182,185,190]}";
+  string gold = "{\"dimensions\": [200],\"sparse\": [23, 25, 35, 94, 107, 111, 113, 149, 170, 172]}";
   std::stringstream gold_stream( gold );
   SDR gold_sdr;
   gold_sdr.load( gold_stream, JSON );
