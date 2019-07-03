@@ -1,8 +1,6 @@
 /* ---------------------------------------------------------------------
- * Numenta Platform for Intelligent Computing (NuPIC)
- * Copyright (C) 2014-2016, Numenta, Inc.  Unless you have an agreement
- * with Numenta, Inc., for a separate license for this software code, the
- * following terms and conditions apply:
+ * HTM Community Edition of NuPIC
+ * Copyright (C) 2014-2016, Numenta, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero Public License version 3 as
@@ -15,10 +13,7 @@
  *
  * You should have received a copy of the GNU Affero Public License
  * along with this program.  If not, see http://www.gnu.org/licenses.
- *
- * http://numenta.org/licenses/
- * ---------------------------------------------------------------------
- */
+ * --------------------------------------------------------------------- */
 
 /** @file
  * Implementation of unit tests for Connections
@@ -27,19 +22,13 @@
 #include "gtest/gtest.h"
 #include <fstream>
 #include <iostream>
-#include <nupic/algorithms/Connections.hpp>
-#include <nupic/math/Math.hpp> // nupic::Epsilon
-
+#include <htm/algorithms/Connections.hpp>
 
 namespace testing {
     
 using namespace std;
-using namespace nupic;
-using namespace nupic::algorithms::connections;
-using nupic::sdr::SDR;
-using nupic::sdr::SDR_dense_t;
+using namespace htm;
 
-// EPSILON used for testing, Connections uses nupic::Epsilon internally
 #define EPSILON 0.0000001
 
 
@@ -491,143 +480,6 @@ TEST(ConnectionsTest, testRaisePermanencesToThresholdOutOfBounds) {
     << "raisePermanence fails when lower number of available synapses than requested by threshold";
 }
 
-TEST(ConnectionsTest, testSynapseCompetition) {
-
-  struct testCase {
-    UInt nsyn; // Total number of potential synapses on segment
-    UInt ncon; // Number of connected synapses, before calling synapseCompetition
-    UInt min;  // Bounds of synapseCompetition
-    UInt max;  // Bounds of synapseCompetition
-    // The target number of synapses can't be met, just make sure it does not crash.
-    bool dont_check = false;
-  };
-
-  testCase emptySegment;
-  emptySegment.nsyn = 0;
-  emptySegment.ncon = 0;
-  emptySegment.min  = 3;
-  emptySegment.max  = 100;
-  emptySegment.dont_check = true;
-
-  testCase fullSegment;
-  fullSegment.nsyn = 100;
-  fullSegment.ncon = 100;
-  fullSegment.min  = 3;
-  fullSegment.max  = 100;
-
-  testCase disconnect1;
-  disconnect1.nsyn = 100;
-  disconnect1.ncon = 100;
-  disconnect1.min  = 3;
-  disconnect1.max  = 99;
-
-  testCase minimum;
-  minimum.nsyn = 100;
-  minimum.ncon = 5;
-  minimum.min  = 10;
-  minimum.max  = 30;
-
-  testCase maximum;
-  maximum.nsyn = 100;
-  maximum.ncon = 77;
-  maximum.min  = 10;
-  maximum.max  = 30;
-
-  testCase no_change1;
-  no_change1.nsyn = 100;
-  no_change1.ncon = 10;
-  no_change1.min  = 10;
-  no_change1.max  = 30;
-
-  testCase no_change2;
-  no_change2.nsyn = 100;
-  no_change2.ncon = 20;
-  no_change2.min  = 10;
-  no_change2.max  = 30;
-
-  testCase no_change3;
-  no_change3.nsyn = 100;
-  no_change3.ncon = 30;
-  no_change3.min  = 10;
-  no_change3.max  = 30;
-
-  testCase exact1;
-  exact1.nsyn = 100;
-  exact1.ncon = 33;
-  exact1.min  = 33;
-  exact1.max  = 33;
-
-  testCase exact2;
-  exact2.nsyn = 100;
-  exact2.ncon = 0;
-  exact2.min  = 33;
-  exact2.max  = 33;
-
-  testCase exact3;
-  exact3.nsyn = 100;
-  exact3.ncon = 88;
-  exact3.min  = 33;
-  exact3.max  = 33;
-
-  testCase corner1;
-  corner1.nsyn = 100;
-  corner1.ncon = 30;
-  corner1.min  = 200;
-  corner1.max  = 300;
-  corner1.dont_check = true;
-
-  testCase corner2;
-  corner2.nsyn = 100;
-  corner2.ncon = 30;
-  corner2.min  = 0;
-  corner2.max  = 0;
-
-  Connections con(1u, 0.5f);
-  Random rnd( 42u );
-  CellIdx presyn = 0u;
-  for(const testCase &test : {
-          emptySegment, fullSegment, disconnect1, minimum, maximum, no_change1,
-          no_change2, no_change3, exact1, exact2, exact3, corner1, corner2, })
-  {
-    const auto segment = con.createSegment( 0 );
-    UInt ncon_done = 0;
-    for(UInt i = test.nsyn; i > 0 ; --i) {
-      if( rnd.getReal64() <= Real64(test.ncon - ncon_done) / i ) {
-        ncon_done++;
-        con.createSynapse( segment, presyn++, rnd.getReal64() * 0.5f + 0.5f );
-      }
-      else {
-        con.createSynapse( segment, presyn++, rnd.getReal64() * 0.5f );
-      }
-    }
-    // Check test setup is good.
-    const auto &segData = con.dataForSegment( segment );
-    ASSERT_EQ( test.nsyn, segData.synapses.size() );
-    ASSERT_EQ( test.ncon, segData.numConnected );
-
-    con.synapseCompetition( segment, test.min, test.max );
-
-    // Check synapse data "numConnected" is accurate.
-    int real_ncon = 0;
-    for( const auto syn : segData.synapses ) {
-      const auto &synData = con.dataForSynapse( syn );
-      if( synData.permanence >= 0.5f - nupic::Epsilon ) {
-        real_ncon++;
-      }
-    }
-    EXPECT_EQ( segData.numConnected, real_ncon );
-
-    // Check results of synapse competition.
-    if( not test.dont_check ) {
-      EXPECT_GE( segData.numConnected, test.min );
-      EXPECT_LE( segData.numConnected, test.max );
-      if( test.ncon >= test.min and test.ncon <= test.max ) {
-        EXPECT_EQ( segData.numConnected, test.ncon );
-      }
-    }
-  }
-}
-
 TEST(ConnectionsTest, testBumpSegment) {
   UInt numInputs = 8;
   UInt numSegments = 5;
@@ -809,8 +661,8 @@ TEST(ConnectionsTest, testSaveLoad) {
 
   {
     stringstream ss;
-    c1.saveToStream_ar(ss);
-    c2.loadFromStream_ar(ss);
+    c1.save(ss);
+    c2.load(ss);
   }
 
   ASSERT_EQ(c1, c2);

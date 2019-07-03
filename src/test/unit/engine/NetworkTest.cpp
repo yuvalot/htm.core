@@ -1,8 +1,6 @@
 /* ---------------------------------------------------------------------
- * Numenta Platform for Intelligent Computing (NuPIC)
- * Copyright (C) 2013, Numenta, Inc.  Unless you have an agreement
- * with Numenta, Inc., for a separate license for this software code, the
- * following terms and conditions apply:
+ * HTM Community Edition of NuPIC
+ * Copyright (C) 2013, Numenta, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero Public License version 3 as
@@ -15,10 +13,7 @@
  *
  * You should have received a copy of the GNU Affero Public License
  * along with this program.  If not, see http://www.gnu.org/licenses.
- *
- * http://numenta.org/licenses/
- * ---------------------------------------------------------------------
- */
+ * --------------------------------------------------------------------- */
 
 /** @file
  * Implementation of Network test
@@ -26,15 +21,15 @@
 
 #include "gtest/gtest.h"
 
-#include <nupic/engine/Network.hpp>
-#include <nupic/engine/NuPIC.hpp>
-#include <nupic/engine/Region.hpp>
-#include <nupic/ntypes/Dimensions.hpp>
-#include <nupic/utils/Log.hpp>
+#include <htm/engine/Network.hpp>
+#include <htm/engine/NuPIC.hpp>
+#include <htm/engine/Region.hpp>
+#include <htm/ntypes/Dimensions.hpp>
+#include <htm/utils/Log.hpp>
 
 namespace testing {
     
-using namespace nupic;
+using namespace htm;
 
 static bool verbose = false;
 #define VERBOSE if(verbose) std::cerr << "[          ]"
@@ -527,11 +522,7 @@ TEST(NetworkTest, testEqualsOperator) {
   auto l1 = n1.addRegion("level1", "TestNode", "");
   ASSERT_TRUE(n1 != n2);
   auto l2 = n2.addRegion("level1", "TestNode", "");
-  ASSERT_TRUE(n1 == n2);   // NOTE: This only checks if the structure is the same
-                           // It does not know anything about internal state
-                           // or data content.
-                           // But maybe this is good enough; I don't know.
-
+  ASSERT_TRUE(n1 == n2);   
   l1->setDimensions(d);
   ASSERT_TRUE(n1 != n2);
   l2->setDimensions(d);
