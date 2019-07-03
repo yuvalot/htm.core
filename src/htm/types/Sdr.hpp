@@ -471,9 +471,15 @@ public:
      * @param rng The random number generator to draw from.  If not given, this
      * makes one using the magic seed 0.
      */
-    void addNoise(Real fractionNoise);
+    void addNoise(Real fractionNoise); //TODO the name is confusing, rename to shuffle ?
 
     void addNoise(Real fractionNoise, Random &rng);
+
+    /**
+     * actual add noise :)
+     * TODO doc
+     */
+    void addNoise2(const Real probability, Random& rng);
 
     /**
      * Modify the SDR by setting a fraction of the bits to zero.

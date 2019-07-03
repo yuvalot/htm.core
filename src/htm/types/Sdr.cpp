@@ -308,6 +308,22 @@ namespace htm {
     }
 
 
+    void SparseDistributedRepresentation::addNoise2(const Real probability, Random& rng) {
+      NTA_ASSERT( probability >= 0.0f and probability <= 1.0f );
+      const ElemSparse numFlip = static_cast<ElemSparse>(size * probability);
+      if (numFlip == 0) return; 
+
+      // instead of applying probability `p` `n` (=size) times to each bit, 
+      // flip `p*n` random bits.
+      getDense(); //create dense_ array
+      for (ElemSparse i=0; i < numFlip; i++) {
+        const ElemSparse toggle = static_cast<ElemSparse>(rng.getUInt32(size));
+        dense_[toggle] ^= true; //XOR, flip
+      }
+      setDenseInplace();
+    }
+
+
     void SparseDistributedRepresentation::addNoise(Real fractionNoise) {
         Random rng( 0 );
         addNoise( fractionNoise, rng );
