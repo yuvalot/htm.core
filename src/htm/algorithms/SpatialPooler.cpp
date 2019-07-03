@@ -468,9 +468,16 @@ void SpatialPooler::initialize(
 }
 
 
-void SpatialPooler::compute(const SDR &input, const bool learn, SDR &active) {
+void SpatialPooler::compute(SDR &input, const bool learn, SDR &active) { //TODO make input const again
   input.reshape(  inputDimensions_ );
   active.reshape( columnDimensions_ );
+
+  //dropout, apply noise to input
+  input.addNoise2(0.01f, rng_); //TODO apply at synapse level in Conn?
+  //TODO fix for probability << input.size
+  //TODO apply killCells to active output? 
+  //TODO apply dropout to segments? (so all are: synapse, segment, cell/column)
+
   updateBookeepingVars_(learn);
   calculateOverlap_(input, overlaps_);
   calculateOverlapPct_(overlaps_, overlapsPct_);
@@ -495,6 +502,9 @@ void SpatialPooler::compute(const SDR &input, const bool learn, SDR &active) {
       updateMinDutyCycles_();
     }
   }
+
+  //dropout output
+  active.addNoise2(0.001f, rng_);
 }
 
 
