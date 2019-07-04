@@ -471,14 +471,21 @@ void SpatialPooler::initialize(
 void SpatialPooler::compute(const SDR &input, const bool learn, SDR &active) {
   input.reshape(  inputDimensions_ );
   active.reshape( columnDimensions_ );
+  
   updateBookeepingVars_(learn);
   calculateOverlap_(input, overlaps_);
   calculateOverlapPct_(overlaps_, overlapsPct_);
-
-  boostOverlaps_(overlaps_, boostedOverlaps_);
-
+  
   auto &activeVector = active.getSparse();
+
+  //boosting
+  boostOverlaps_(overlaps_, boostedOverlaps_);
+  //update inhibition radius if it's time, only changes in local inh
+  if(!globalInhibition_ and isUpdateRound_()) {
+    updateInhibitionRadius_();
+  }
   inhibitColumns_(boostedOverlaps_, activeVector);
+
   // Notify the active SDR that its internal data vector has changed.  Always
   // call SDR's setter methods even if when modifying the SDR's own data
   // inplace.
@@ -491,7 +498,6 @@ void SpatialPooler::compute(const SDR &input, const bool learn, SDR &active) {
     bumpUpWeakColumns_();
     updateBoostFactors_();
     if (isUpdateRound_()) {
-      updateInhibitionRadius_();
       updateMinDutyCycles_();
     }
   }
@@ -583,7 +589,7 @@ vector<Real> SpatialPooler::initPermanence_(const vector<UInt> &potential, //TOD
 
 
 void SpatialPooler::updateInhibitionRadius_() {
-  if (globalInhibition_) {
+  if (globalInhibition_) { //always const for global inh
     inhibitionRadius_ =
         *max_element(columnDimensions_.cbegin(), columnDimensions_.cend());
     return;
@@ -772,16 +778,15 @@ void applyBoosting_(const UInt i,
 
 
 void SpatialPooler::updateBoostFactorsGlobal_() {
-  Real targetDensity;
+  Real targetDensity = localAreaDensity_;
   if (numActiveColumnsPerInhArea_ > 0) {
     UInt inhibitionArea =
-        (UInt)(pow((Real)(2 * inhibitionRadius_ + 1), (Real)columnDimensions_.size()));
+        (UInt)(pow((Real)(2 * inhibitionRadius_ + 1), (Real)columnDimensions_.size())); //FIXME this is broken 
+    // for nD. SP{2000, 1, 1} has ^3 bigger area -> smaller target density
     inhibitionArea = min(inhibitionArea, numColumns_);
     NTA_ASSERT(inhibitionArea > 0);
     targetDensity = ((Real)numActiveColumnsPerInhArea_) / inhibitionArea;
     targetDensity = min(targetDensity, (Real)MAX_LOCALAREADENSITY);
-  } else {
-    targetDensity = localAreaDensity_;
   }
   
   for (UInt i = 0; i < numColumns_; ++i) { 
@@ -853,9 +858,7 @@ void SpatialPooler::inhibitColumns_(const vector<Real> &overlaps,
     density = min(density, (Real)MAX_LOCALAREADENSITY);
   }
 
-  if (globalInhibition_ ||
-      inhibitionRadius_ >
-          *max_element(columnDimensions_.begin(), columnDimensions_.end())) {
+  if (globalInhibition_) {
     inhibitColumnsGlobal_(overlaps, density, activeColumns);
   } else {
     inhibitColumnsLocal_(overlaps, density, activeColumns);
@@ -903,16 +906,26 @@ void SpatialPooler::inhibitColumnsGlobal_(const vector<Real> &overlaps,
   while( !activeColumns.empty() &&
          overlaps[activeColumns.back()] < stimulusThreshold_)
       activeColumns.pop_back();
+
+  //FIXME not numDesired
 }
 
 
 void SpatialPooler::inhibitColumnsLocal_(const vector<Real> &overlaps,
-                                         Real density,
+                                         const Real density,
                                          vector<UInt> &activeColumns) const {
+
+  //optimization hack: call faster global inh if radius stretches over the whole input field,
+  //but this should not occur too ofthen because we want to do local inh
+  if(inhibitionRadius_ > *max_element(columnDimensions_.begin(), columnDimensions_.end())) {
+    inhibitColumnsGlobal_(overlaps, density, activeColumns);
+  //slow path normal local inhibition
+  } else {
+
   activeColumns.clear();
 
   // Tie-breaking: when overlaps are equal, columns that have already been
-  // selected are treated as "bigger".
+  // selected are treated as "bigger". //TODO move this idea to the sort/comparison logic
   vector<bool> activeColumnsDense(numColumns_, false);
 
   for (UInt column = 0; column < numColumns_; column++) {
@@ -955,6 +968,7 @@ void SpatialPooler::inhibitColumnsLocal_(const vector<Real> &overlaps,
         activeColumns.push_back(column);
         activeColumnsDense[column] = true;
       }
+  }
   }
 }
 
