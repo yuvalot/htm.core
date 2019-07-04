@@ -239,7 +239,10 @@ void setup(SpatialPooler& sp, UInt numIn, UInt numCols, Real sparsity = 0.5f) {
 TEST(SpatialPoolerTest, testUpdateInhibitionRadius) {
   SpatialPooler sp;
   vector<UInt> colDim, inputDim;
-  colDim.push_back(57);
+
+  //test for global inhibition, this is trivial
+  {
+  colDim.push_back(57); //max SP dimension
   colDim.push_back(31);
   colDim.push_back(2);
   inputDim.push_back(1);
@@ -248,9 +251,13 @@ TEST(SpatialPoolerTest, testUpdateInhibitionRadius) {
 
   EXPECT_NO_THROW(sp.initialize(inputDim, colDim));
   sp.setGlobalInhibition(true);
-  ASSERT_EQ(sp.getInhibitionRadius(), 57u);
+  ASSERT_TRUE(sp.getInhibitionRadius() == 57) << "In global inh radius must match max dimension";
+  }
 
-  //test 2 - local inhibition radius
+  //tests for local inhibition
+  UInt numInputs = 3;
+  UInt numCols = 12;
+  {
   colDim.clear();
   inputDim.clear();
   // avgColumnsPerInput = 4
@@ -266,12 +273,12 @@ TEST(SpatialPoolerTest, testUpdateInhibitionRadius) {
     Real permArr[] = {1, 1, 1};
     sp.setPermanence(i, permArr);
   }
-  UInt trueInhibitionRadius = 6;
   // ((3 * 4) - 1)/2 => round up
   sp.updateInhibitionRadius_();
-  ASSERT_EQ(trueInhibitionRadius, sp.getInhibitionRadius());
+  ASSERT_EQ(6u,  sp.getInhibitionRadius());
+  }
 
-  //test 3
+  {
   colDim.clear();
   inputDim.clear();
   // avgColumnsPerInput = 1.2
@@ -289,12 +296,11 @@ TEST(SpatialPoolerTest, testUpdateInhibitionRadius) {
     }
     sp.setPermanence(i, permArr);
   }
-  trueInhibitionRadius = 1;
   sp.updateInhibitionRadius_();
-  ASSERT_EQ(trueInhibitionRadius, sp.getInhibitionRadius());
+  ASSERT_EQ(1u, sp.getInhibitionRadius());
+  }
 
-
-  //test 4
+  {
   colDim.clear();
   inputDim.clear();
   // avgColumnsPerInput = 2.4
@@ -309,10 +315,10 @@ TEST(SpatialPoolerTest, testUpdateInhibitionRadius) {
     Real permArr[] = {1, 1, 0, 0, 0};
     sp.setPermanence(i, permArr);
   }
-  trueInhibitionRadius = 2;
   // ((2.4 * 2) - 1)/2 => round up
   sp.updateInhibitionRadius_();
-  ASSERT_EQ(trueInhibitionRadius, sp.getInhibitionRadius());
+  ASSERT_EQ(2u, sp.getInhibitionRadius());
+  }
 }
 
 TEST(SpatialPoolerTest, testUpdateMinDutyCycles) {
