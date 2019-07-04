@@ -56,13 +56,13 @@ class MNIST {
 
 void setup() {
 
-  input.initialize({28 * 28});
-  columns.initialize({10 * 1000});
+  input.initialize({28, 28, 1});
+  columns.initialize({28, 28, 8});
   sp.initialize(
     /* inputDimensions */             input.dimensions,
     /* columnDimensions */            columns.dimensions,
-    /* potentialRadius */             999999u, // No topology, all to all connections.
-    /* potentialPct */                0.65f,
+    /* potentialRadius */             7u, // No topology, all to all connections.
+    /* potentialPct */                0.1f,
     /* globalInhibition */            true,
     /* localAreaDensity */            0.05f,  // % active bits
     /* numActiveColumnsPerInhArea */  -1,
