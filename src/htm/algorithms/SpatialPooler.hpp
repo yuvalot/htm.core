@@ -329,7 +329,6 @@ public:
 
     // initialize ephemeral members
     overlaps_.resize(numColumns_);
-    overlapsPct_.resize(numColumns_);
     boostedOverlaps_.resize(numColumns_);
   }
 
@@ -904,7 +903,6 @@ public:
      input bits which are turned on.
   */
   void calculateOverlap_(const SDR &input, vector<SynapseIdx> &overlap);
-  void calculateOverlapPct_(const vector<SynapseIdx> &overlaps, vector<Real> &overlapPct) const;
 
   /**
       Performs inhibition. This method calculates the necessary values needed to
@@ -1233,7 +1231,6 @@ protected:
   Connections connections_;
 
   vector<SynapseIdx> overlaps_;
-  vector<Real> overlapsPct_;
   vector<Real> boostedOverlaps_;
   vector<Real> tieBreaker_;
 
