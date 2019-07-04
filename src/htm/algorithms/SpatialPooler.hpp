@@ -1133,8 +1133,10 @@ public:
                       |
                 targetDensity
       @endverbatim
+
+      @param active  SDR with active columns from compute(), after inhibition & learning
     */
-  void updateBoostFactors_();
+  void updateBoostFactors_(const SDR& active);
 
   /**
   Update boost factors when local inhibition is enabled. In this case,

@@ -498,19 +498,8 @@ void SpatialPooler::compute(const SDR &input, const bool learn, SDR &active) {
   if (learn) {
     adaptSynapses_(input, active);
     //boosting
-
-    //update active duty cycles //TODO move where needed
-    /**
-Updates the duty cycles for each column. The ACTIVITY duty cycles is 
-a moving average of the frequency of activation for each column.
-
-@param active  A SDR of active columns which survived inhibition
-*/
-    const UInt period = std::min(dutyCyclePeriod_, iterationNum_);
-    updateDutyCyclesHelper_(activeDutyCycles_, active, period);
-
 //    bumpUpWeakColumns_();
-    updateBoostFactors_();
+    updateBoostFactors_(active);
   }
 }
 
@@ -774,8 +763,19 @@ void SpatialPooler::updateDutyCyclesHelper_(vector<Real> &dutyCycles,
 }
 
 
-void SpatialPooler::updateBoostFactors_() {
+void SpatialPooler::updateBoostFactors_(const SDR& active) {
   if(boostStrength_ < htm::Epsilon) return; //skip for disabled boosting
+
+  /**
+    Updates the duty cycles for each column. The ACTIVITY duty cycles is
+    a moving average of the frequency of activation for each column.
+
+    @param active  A SDR of active columns which survived inhibition
+    @param period 
+  */
+  const UInt period = std::min(dutyCyclePeriod_, iterationNum_);
+  updateDutyCyclesHelper_(activeDutyCycles_, active, period);
+
   if (globalInhibition_) {
     updateBoostFactorsGlobal_();
   } else {
