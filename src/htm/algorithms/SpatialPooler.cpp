@@ -479,6 +479,7 @@ void SpatialPooler::compute(const SDR &input, const bool learn, SDR &active) {
   auto &activeVector = active.getSparse();
 
   //boosting
+  boostStrength_ = 0.0;
   boostOverlaps_(overlaps_, boostedOverlaps_);
 
   //inhibition
@@ -497,12 +498,12 @@ void SpatialPooler::compute(const SDR &input, const bool learn, SDR &active) {
   if (learn) {
     adaptSynapses_(input, active);
     //boosting
-    updateDutyCycles_(overlaps_, active);
-    bumpUpWeakColumns_();
-    updateBoostFactors_();
-    if (isUpdateRound_()) {
-      updateMinDutyCycles_();
-    }
+//    updateDutyCycles_(overlaps_, active);
+//    bumpUpWeakColumns_();
+//    updateBoostFactors_();
+//    if (isUpdateRound_()) {
+//      updateMinDutyCycles_();
+//    }
   }
 }
 
