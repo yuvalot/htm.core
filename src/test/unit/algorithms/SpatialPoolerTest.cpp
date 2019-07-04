@@ -1013,7 +1013,7 @@ TEST(SpatialPoolerTest, testUpdateBoostFactors) {
   sp.updateBoostFactors_();
   sp.getBoostFactors(resultBoostFactors4.data());
 
-  ASSERT_TRUE(check_vector_eq(trueBoostFactors3, resultBoostFactors3));
+  ASSERT_TRUE(check_vector_eq(trueBoostFactors4, resultBoostFactors4));
 }
 
 TEST(SpatialPoolerTest, testUpdateBookeepingVars) {
