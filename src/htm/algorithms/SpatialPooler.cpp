@@ -479,7 +479,7 @@ void SpatialPooler::compute(const SDR &input, const bool learn, SDR &active) {
   auto &activeVector = active.getSparse();
 
   //boosting
-  boostStrength_ = 0.0;
+//  boostStrength_ = 0.0;
   boostOverlaps_(overlaps_, boostedOverlaps_);
 
   //inhibition
@@ -498,12 +498,19 @@ void SpatialPooler::compute(const SDR &input, const bool learn, SDR &active) {
   if (learn) {
     adaptSynapses_(input, active);
     //boosting
-//    updateDutyCycles_(overlaps_, active);
+
+    //update active duty cycles //TODO move where needed
+    /**
+Updates the duty cycles for each column. The ACTIVITY duty cycles is 
+a moving average of the frequency of activation for each column.
+
+@param active  A SDR of active columns which survived inhibition
+*/
+    const UInt period = std::min(dutyCyclePeriod_, iterationNum_);
+    updateDutyCyclesHelper_(activeDutyCycles_, active, period);
+
 //    bumpUpWeakColumns_();
-//    updateBoostFactors_();
-//    if (isUpdateRound_()) {
-//      updateMinDutyCycles_();
-//    }
+    updateBoostFactors_();
   }
 }
 
@@ -652,26 +659,6 @@ void SpatialPooler::updateMinDutyCyclesLocal_() {
 }
 
 
-void SpatialPooler::updateDutyCycles_(const vector<SynapseIdx> &overlaps,
-                                      SDR &active) {
-
-  // Turn the overlaps array into an SDR. Convert directly to flat-sparse to
-  // avoid copies and  type convertions.
-  SDR newOverlap({ numColumns_ });
-  auto &overlapsSparseVec = newOverlap.getSparse();
-  for (UInt i = 0; i < numColumns_; i++) {
-    if( overlaps[i] != 0 )
-      overlapsSparseVec.push_back( i );
-  }
-  newOverlap.setSparse( overlapsSparseVec );
-
-  const UInt period = std::min(dutyCyclePeriod_, iterationNum_);
-
-  updateDutyCyclesHelper_(overlapDutyCycles_, newOverlap, period);
-  updateDutyCyclesHelper_(activeDutyCycles_, active, period);
-}
-
-
 Real SpatialPooler::avgColumnsPerInput_() const {
   const size_t numDim = max(columnDimensions_.size(), inputDimensions_.size());
   Real columnsPerInput = 0.0f;
@@ -730,11 +717,38 @@ void SpatialPooler::adaptSynapses_(const SDR &input,
 
 void SpatialPooler::bumpUpWeakColumns_() {
   for (UInt i = 0; i < numColumns_; i++) {
+    // skip columns (segments) that are already performing OK
     if (overlapDutyCycles_[i] >= minOverlapDutyCycles_[i]) {
       continue;
     }
+    //bump the weak
     connections_.bumpSegment( i, synPermBelowStimulusInc_ );
   }
+
+  //do updates:
+
+  // update overlap duty cycles (each round)
+  updateDutyCyclesOverlaps_(overlaps_);
+
+  //update minOverlapDutyCycles_ (on update round only) 
+  if (isUpdateRound_()) {
+    updateMinDutyCycles_();
+  }
+}
+
+
+void SpatialPooler::updateDutyCyclesOverlaps_(const vector<SynapseIdx>& overlaps) {
+  SDR newOverlap({ numColumns_ });
+  auto &overlapsSparseVec = newOverlap.getSparse();
+
+  for (UInt i = 0; i < numColumns_; i++) {
+    if( overlaps[i] > Epsilon )
+      overlapsSparseVec.push_back( i );
+    }
+  newOverlap.setSparse( overlapsSparseVec );
+
+  const UInt period = std::min(dutyCyclePeriod_, iterationNum_);
+  updateDutyCyclesHelper_(overlapDutyCycles_, newOverlap, period);
 }
 
 

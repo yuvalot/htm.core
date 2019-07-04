@@ -267,7 +267,7 @@ TEST(SpatialPoolerTest, testUpdateInhibitionRadius) {
   UInt trueInhibitionRadius = 6;
   // ((3 * 4) - 1)/2 => round up
   sp.updateInhibitionRadius_();
-  ASSERT_TRUE(trueInhibitionRadius == sp.getInhibitionRadius());
+  ASSERT_EQ(trueInhibitionRadius,  sp.getInhibitionRadius());
 
   colDim.clear();
   inputDim.clear();
@@ -290,7 +290,7 @@ TEST(SpatialPoolerTest, testUpdateInhibitionRadius) {
   }
   trueInhibitionRadius = 1;
   sp.updateInhibitionRadius_();
-  ASSERT_TRUE(trueInhibitionRadius == sp.getInhibitionRadius());
+  ASSERT_EQ(trueInhibitionRadius, sp.getInhibitionRadius());
 
   colDim.clear();
   inputDim.clear();
@@ -311,7 +311,7 @@ TEST(SpatialPoolerTest, testUpdateInhibitionRadius) {
   trueInhibitionRadius = 2;
   // ((2.4 * 2) - 1)/2 => round up
   sp.updateInhibitionRadius_();
-  ASSERT_TRUE(trueInhibitionRadius == sp.getInhibitionRadius());
+  ASSERT_EQ(trueInhibitionRadius, sp.getInhibitionRadius());
 }
 
 TEST(SpatialPoolerTest, testUpdateMinDutyCycles) {
@@ -511,16 +511,14 @@ TEST(SpatialPoolerTest, testUpdateDutyCycles) {
   UInt numColumns = 5;
   setup(sp, numInputs, numColumns);
   vector<SynapseIdx> overlaps;
-  SDR active({numColumns});
 
   Real initOverlapArr1[] = {1, 1, 1, 1, 1};
   sp.setOverlapDutyCycles(initOverlapArr1);
   UInt overlapNewVal1[] = {1, 5, 7, 0, 0};
   overlaps.assign(overlapNewVal1, overlapNewVal1 + numColumns);
-  active.setDense(vector<Byte>({0, 0, 0, 0, 0}));
 
   sp.setIterationNum(2);
-  sp.updateDutyCycles_(overlaps, active);
+  sp.updateDutyCyclesOverlaps_(overlaps);
 
   Real resultOverlapArr1[5];
   sp.getOverlapDutyCycles(resultOverlapArr1);
@@ -531,7 +529,7 @@ TEST(SpatialPoolerTest, testUpdateDutyCycles) {
   sp.setOverlapDutyCycles(initOverlapArr1);
   sp.setIterationNum(2000);
   sp.setUpdatePeriod(1000);
-  sp.updateDutyCycles_(overlaps, active);
+  sp.updateDutyCyclesOverlaps_(overlaps);
 
   Real resultOverlapArr2[5];
   sp.getOverlapDutyCycles(resultOverlapArr2);

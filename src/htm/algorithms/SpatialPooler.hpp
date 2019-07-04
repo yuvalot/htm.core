@@ -1092,21 +1092,18 @@ public:
                                       const SDR &newValues, 
                                       const UInt period);
 
+
   /**
-  Updates the duty cycles for each column. The OVERLAP duty cycle is a moving
-  average of the number of inputs which overlapped with the each column. The
-  ACTIVITY duty cycles is a moving average of the frequency of activation for
-  each column.
+    Updates the duty cycles for each column. The OVERLAP duty cycle is a moving
+    average of the number of inputs which overlapped with the each column.
 
-  @param overlaps       an int vector containing the overlap score for each
-  column. The overlap score for a column is defined as the number of synapses in
-  a "connected state" (connected synapses) that are connected to input bits
-  which are turned on.
-
-  @param activeArray  An int array containing the indices of the active columns,
-                  the sprase set of columns which survived inhibition
+    @param overlaps_       an int vector containing the overlap score for each
+    column. The overlap score for a column is defined as the number of synapses in
+    a "connected state" (connected synapses) that are connected to input bits
+    which are turned on.
   */
-  void updateDutyCycles_(const vector<SynapseIdx> &overlaps, SDR &active);
+  void updateDutyCyclesOverlaps_(const vector<SynapseIdx>& overlaps);
+
 
   /**
     Update the boost factors for all columns. The boost factors are used to
