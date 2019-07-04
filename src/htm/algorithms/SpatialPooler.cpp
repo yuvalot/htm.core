@@ -459,7 +459,7 @@ void SpatialPooler::initialize(
     connections_.raisePermanencesToThreshold( (Segment)i, stimulusThreshold_ );
   }
 
-  updateInhibitionRadius_();
+  inhibitionRadius_ = updateInhibitionRadius_();
 
   if (spVerbosity_ > 0) {
     printParameters();
@@ -480,9 +480,11 @@ void SpatialPooler::compute(const SDR &input, const bool learn, SDR &active) {
 
   //boosting
   boostOverlaps_(overlaps_, boostedOverlaps_);
+
+  //inhibition
   //update inhibition radius if it's time, only changes in local inh
   if(!globalInhibition_ and isUpdateRound_()) {
-    updateInhibitionRadius_();
+    inhibitionRadius_ = updateInhibitionRadius_();
   }
   inhibitColumns_(boostedOverlaps_, activeVector);
 
@@ -494,6 +496,7 @@ void SpatialPooler::compute(const SDR &input, const bool learn, SDR &active) {
 
   if (learn) {
     adaptSynapses_(input, active);
+    //boosting
     updateDutyCycles_(overlaps_, active);
     bumpUpWeakColumns_();
     updateBoostFactors_();
@@ -588,11 +591,9 @@ vector<Real> SpatialPooler::initPermanence_(const vector<UInt> &potential, //TOD
 }
 
 
-void SpatialPooler::updateInhibitionRadius_() {
+UInt SpatialPooler::updateInhibitionRadius_() const {
   if (globalInhibition_) { //always const for global inh
-    inhibitionRadius_ =
-        *max_element(columnDimensions_.cbegin(), columnDimensions_.cend());
-    return;
+    return *max_element(columnDimensions_.cbegin(), columnDimensions_.cend());
   }
 
   Real connectedSpan = 0.0f;
@@ -604,7 +605,8 @@ void SpatialPooler::updateInhibitionRadius_() {
   const Real diameter = connectedSpan * columnsPerInput;
   Real radius = (diameter - 1) / 2.0f;
   radius = max((Real)1.0, radius);
-  inhibitionRadius_ = UInt(round(radius));
+
+  return UInt(round(radius));
 }
 
 

@@ -1010,10 +1010,12 @@ public:
       determine this quantity by first figuring out how many *inputs* a column
      is connected to, and then multiplying it by the total number of columns
      that exist for each input. For multiple dimension the aforementioned
-      calculations are averaged over all dimensions of inputs and columns. This
-      value is meaningless if global inhibition is enabled.
+      calculations are averaged over all dimensions of inputs and columns. 
+      This value is meaningless if global inhibition is enabled.
+
+      @return update value for `inhibitionRadius_`
   */
-  void updateInhibitionRadius_();
+  UInt updateInhibitionRadius_() const;
 
   /**
       REturns the average number of columns per input, taking into account the
