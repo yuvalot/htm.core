@@ -752,6 +752,7 @@ void SpatialPooler::updateDutyCyclesHelper_(vector<Real> &dutyCycles,
 
 
 void SpatialPooler::updateBoostFactors_() {
+  if(boostStrength_ < htm::Epsilon) return; //skip for disabled boosting
   if (globalInhibition_) {
     updateBoostFactorsGlobal_();
   } else {
@@ -765,7 +766,6 @@ void applyBoosting_(const UInt i,
 		    const vector<Real>& actualDensity,
 		    const Real boost,
 	            vector<Real>& output) {
-  if(boost < htm::Epsilon) return; //skip for disabled boosting
   //output[i] = exp((targetDensity - actualDensity[i]) * boost); //exponential boosting, default for Numenta
   output[i] = log(actualDensity[i]) / log(targetDensity);
 }
