@@ -350,7 +350,7 @@ else()
         set(optimization_flags_cc ${optimization_flags_cc} -pipe -O3)
         set(optimization_flags_lt ${optimization_flags_lt} -O3)
         if(NOT ${CMAKE_SYSTEM_PROCESSOR} STREQUAL "armv7l")
-                set(optimization_flags_cc ${optimization_flags_cc} -mtune=generic)
+                set(optimization_flags_cc ${optimization_flags_cc} -march=native)
         endif()
         if(${CMAKE_CXX_COMPILER_ID} STREQUAL "GNU" AND NOT MINGW)
                 # NOTE -flto must go together in both cc and ld flags; also, it's presently incompatible
