@@ -867,11 +867,10 @@ void SpatialPooler::inhibitColumnsGlobal_(const vector<Real> &overlaps,
                             << "for desired density (" << density << ").";
   // Sort the columns by the amount of overlap.  First make a list of all of the
   // column indexes.
-  activeColumns.reserve(numColumns_);
+  activeColumns.resize(numColumns_);
+  std::iota(activeColumns.begin(), activeColumns.end(), 0); //0,1,2,..,numColumns_-1
 
   int same_overlap = 0;
-  for(UInt i = 0; i < numColumns_; i++)
-    activeColumns.push_back(i);
   // Compare the column indexes by their overlap.
   auto compare = [&overlaps_, &same_overlap](const UInt &a, const UInt &b) -> bool
     {
