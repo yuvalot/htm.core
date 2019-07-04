@@ -942,7 +942,8 @@ public:
      @param activeColumns
      an int array containing the indices of the active columns.
   */
-  void inhibitColumnsGlobal_(const vector<Real> &overlaps, Real density,
+  void inhibitColumnsGlobal_(const vector<Real> &overlaps, 
+		             const Real density,
                              vector<UInt> &activeColumns) const;
 
   /**
@@ -971,7 +972,8 @@ public:
      @param activeColumns
      an int array containing the indices of the active columns.
   */
-  void inhibitColumnsLocal_(const vector<Real> &overlaps, Real density,
+  void inhibitColumnsLocal_(const vector<Real> &overlaps, 
+		            const Real density,
                             vector<UInt> &activeColumns) const;
 
   /**
