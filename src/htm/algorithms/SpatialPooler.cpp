@@ -766,7 +766,8 @@ void applyBoosting_(const UInt i,
 		    const Real boost,
 	            vector<Real>& output) {
   if(boost < htm::Epsilon) return; //skip for disabled boosting
-  output[i] = exp((targetDensity - actualDensity[i]) * boost); //TODO doc this code
+  //output[i] = exp((targetDensity - actualDensity[i]) * boost); //exponential boosting, default for Numenta
+  output[i] = log(actualDensity[i]) / log(targetDensity);
 }
 
 
