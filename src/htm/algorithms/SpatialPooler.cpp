@@ -477,7 +477,7 @@ void SpatialPooler::compute(const SDR &input, const bool learn, SDR &active) {
 
   //inhibition
   //update inhibition radius if it's time, only changes in local inh
-  if(!globalInhibition_ and isUpdateRound_()) {
+  if(!globalInhibition_ and isUpdateRound_() and learn) {
     inhibitionRadius_ = updateInhibitionRadius_();
   }
   inhibitColumns_(boostedOverlaps_, activeVector);
