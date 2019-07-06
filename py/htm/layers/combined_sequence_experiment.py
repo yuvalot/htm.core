@@ -114,7 +114,7 @@ class L4TMExperiment(L4L2Experiment):
     self.L2Regions = []
     self.TMRegions = []
 
-    for i in xrange(self.numColumns):
+    for i in range(self.numColumns):
       self.sensorInputs.append(
         self.network.regions["sensorInput_" + str(i)].getSelf()
       )
@@ -139,7 +139,7 @@ class L4TMExperiment(L4L2Experiment):
     self.objectL2Representations = {}
     self.objectL2RepresentationsMatrices = [
       SparseMatrix(0, self.config["L2Params"]["cellCount"])
-      for _ in xrange(self.numColumns)]
+      for _ in range(self.numColumns)]
     self.objectNameToIndex = {}
     self.statistics = []
 
@@ -311,7 +311,7 @@ class L4TMExperiment(L4L2Experiment):
     TMNextPredicted = self.getTMNextPredictedCells()
     TMRepresentation = self.getTMRepresentations()
 
-    for i in xrange(self.numColumns):
+    for i in range(self.numColumns):
       statistics["L4 Representation C" + str(i)].append(
         len(L4Representations[i])
       )

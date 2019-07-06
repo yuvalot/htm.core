@@ -109,7 +109,7 @@ class CombinedSequenceExperiment(L4L2Experiment):
     self.L2Regions = []
     self.L4Regions = []
 
-    for i in xrange(self.numColumns):
+    for i in range(self.numColumns):
       self.sensorInputs.append(
         self.network.regions["sensorInput_" + str(i)].getSelf()
       )
@@ -130,7 +130,7 @@ class CombinedSequenceExperiment(L4L2Experiment):
     self.objectL2Representations = {}
     self.objectL2RepresentationsMatrices = [
       SparseMatrix(0, self.config["L2Params"]["cellCount"])
-      for _ in xrange(self.numColumns)]
+      for _ in range(self.numColumns)]
     self.objectNameToIndex = {}
     self.statistics = []
 
@@ -181,7 +181,7 @@ class CombinedSequenceExperiment(L4L2Experiment):
 
       # Keep running total of how often the number of predictedActive cells are
       # in the range.
-      for key in stats.iterkeys():
+      for key in stats.keys():
         if prefix in key:
           for numCells in stats[key]:
             numStats += 1.0
@@ -209,7 +209,7 @@ class CombinedSequenceExperiment(L4L2Experiment):
     L4PredictedActiveCells = self.getL4PredictedActiveCells()
     L2Representation = self.getL2Representations()
 
-    for i in xrange(self.numColumns):
+    for i in range(self.numColumns):
       statistics["L4 Representation C" + str(i)].append(
         len(L4Representations[i])
       )

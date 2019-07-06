@@ -56,7 +56,7 @@ import os
 import random
 import collections
 import inspect
-import cPickle
+import pickle
 import matplotlib.pyplot as plt
 from tabulate import tabulate
 
@@ -232,7 +232,7 @@ class L2456Model(object):
     """
     self._setLearningMode()
 
-    for objectName, sensationList in objects.iteritems():
+    for objectName, sensationList in objects.items():
 
       # ignore empty sensation lists
       if len(sensationList) == 0:
@@ -243,9 +243,9 @@ class L2456Model(object):
 
       for sensations in sensationList:
         # learn each pattern multiple times
-        for _ in xrange(self.numLearningPoints):
+        for _ in range(self.numLearningPoints):
 
-          for col in xrange(self.numColumns):
+          for col in range(self.numColumns):
             location, coarseFeature, fineFeature = sensations[col]
             self.locationInputs[col].addDataToQueue(list(location), 0, 0)
             self.coarseSensors[col].addDataToQueue(list(coarseFeature), 0, 0)
@@ -321,7 +321,7 @@ class L2456Model(object):
     for sensations in sensationList:
 
       # feed all columns with sensations
-      for col in xrange(self.numColumns):
+      for col in range(self.numColumns):
         location, coarseFeature, fineFeature = sensations[col]
         self.locationInputs[col].addDataToQueue(list(location), 0, 0)
         self.coarseSensors[col].addDataToQueue(list(coarseFeature), 0, 0)
@@ -363,7 +363,7 @@ class L2456Model(object):
          os.path.splitext(os.path.basename(filename))[0]:
         self.callLog.append([inspect.getframeinfo(frame)[2], values])
 
-    for col in xrange(self.numColumns):
+    for col in range(self.numColumns):
       self.locationInputs[col].addResetToQueue(sequenceId)
       self.coarseSensors[col].addResetToQueue(sequenceId)
       self.sensors[col].addResetToQueue(sequenceId)
@@ -424,9 +424,9 @@ class L2456Model(object):
              If set to True, the profiling will be reset.
 
     """
-    print "Profiling information for {}".format(type(self).__name__)
+    print("Profiling information for {}".format(type(self).__name__))
     totalTime = 0.000001
-    for region in self.network.regions.values():
+    for region in list(self.network.regions.values()):
       timer = region.getComputeTimer()
       totalTime += timer.getElapsed()
 
@@ -454,13 +454,13 @@ class L2456Model(object):
 
     profileInfo.append(
       ["Total time", "", totalTime, "100.0", totalTime / count])
-    print tabulate(profileInfo, headers=["Region", "Count",
+    print(tabulate(profileInfo, headers=["Region", "Count",
                                          "Elapsed", "Pct of total",
                                          "Secs/iteration"],
-                   tablefmt="grid", floatfmt="6.3f")
-    print
-    print "Total time in L2 =", L2Time
-    print "Total time in L4 =", L4Time
+                   tablefmt="grid", floatfmt="6.3f"))
+    print()
+    print("Total time in L2 =", L2Time)
+    print("Total time in L4 =", L4Time)
 
     if reset:
       self.resetProfile()
@@ -619,7 +619,7 @@ class L2456Model(object):
     self.L5Columns = []
     self.L6Columns = []
 
-    for i in xrange(self.numColumns):
+    for i in range(self.numColumns):
       self.sensors.append(
         self.network.regions["sensorInput_" + str(i)].getSelf()
       )
@@ -694,7 +694,7 @@ class L2456Model(object):
     L6Representations = self.getL6Representations()
     L6PredictedCells = self.getL6PredictedCells()
 
-    for i in xrange(self.numColumns):
+    for i in range(self.numColumns):
       statistics["L4 Representation C" + str(i)].append(
         len(L4Representations[i])
       )

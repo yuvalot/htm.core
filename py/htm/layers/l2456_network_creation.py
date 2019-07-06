@@ -118,7 +118,7 @@ import json
 
 def enableProfiling(network):
   """Enable profiling for all regions in the network."""
-  for region in network.regions.values():
+  for region in list(network.regions.values()):
     region.enableProfiling()
 
 
@@ -249,7 +249,7 @@ def createL2456Columns(network, networkConfig):
 
   # Create each column
   numCorticalColumns = networkConfig["numCorticalColumns"]
-  for i in xrange(numCorticalColumns):
+  for i in range(numCorticalColumns):
     networkConfigCopy = copy.deepcopy(networkConfig)
     randomSeedBase = networkConfigCopy["randomSeedBase"]
     networkConfigCopy["L2Params"]["seed"] = randomSeedBase + i

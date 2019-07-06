@@ -100,7 +100,7 @@ import numpy
 
 def enableProfiling(network):
   """Enable profiling for all regions in the network."""
-  for region in network.regions.values():
+  for region in list(network.regions.values()):
     region.enableProfiling()
 
 
@@ -328,7 +328,7 @@ def createMultipleL4L2Columns(network, networkConfig):
 
   # Create each column
   numCorticalColumns = networkConfig["numCorticalColumns"]
-  for i in xrange(numCorticalColumns):
+  for i in range(numCorticalColumns):
     networkConfigCopy = copy.deepcopy(networkConfig)
     layerConfig = networkConfigCopy["L2Params"]
     layerConfig["seed"] = layerConfig.get("seed", 42) + i
@@ -402,9 +402,9 @@ def createMultipleL4L2ColumnsWithTopology(network, networkConfig):
   """
   numCorticalColumns = networkConfig["numCorticalColumns"]
   output_lateral_connections = [[] for i in
-      xrange(numCorticalColumns)]
+      range(numCorticalColumns)]
   input_lateral_connections = [[] for i in
-      xrange(numCorticalColumns)]
+      range(numCorticalColumns)]
 
 
   # If no column positions are provided, create a grid by default.
@@ -436,7 +436,7 @@ def createMultipleL4L2ColumnsWithTopology(network, networkConfig):
           input_lateral_connections[j].append(i)
 
   # Create each column
-  for i in xrange(numCorticalColumns):
+  for i in range(numCorticalColumns):
     networkConfigCopy = copy.deepcopy(networkConfig)
     layerConfig = networkConfigCopy["L2Params"]
     layerConfig["seed"] = layerConfig.get("seed", 42) + i
