@@ -871,7 +871,7 @@ void SpatialPooler::inhibitColumnsGlobal_(const vector<Real> &overlaps,
   NTA_ASSERT(density > 0.0f && density <= 1.0f);
 
   activeColumns.clear();
-  const UInt numDesired = static_cast<UInt>(std::min(density*2.0f* (Real)activeColumns.size(), Real(numColumns_)));
+  const UInt numDesired = static_cast<UInt>(density * numColumns_);
   NTA_CHECK(numDesired > 0) << "Not enough columns (" << numColumns_ << ") "
                             << "for desired density (" << density << ").";
   // Sort the columns by the amount of overlap.  First make a list of all of the
@@ -882,13 +882,13 @@ void SpatialPooler::inhibitColumnsGlobal_(const vector<Real> &overlaps,
   for(UInt i = 0; i < numColumns_; i++)
     activeColumns.push_back(i);
   // Compare the column indexes by their overlap.
-  auto compare = [&overlaps_, &same_overlap](const UInt &a, const UInt &b) -> bool
+  auto compare = [&overlaps, &same_overlap](const UInt &a, const UInt &b) -> bool
     {
-      if (overlaps_[a] == overlaps_[b]) {
+      if (overlaps[a] == overlaps[b]) {
 	same_overlap++;
         return  a > b; //but we also need this for deterministic results
       } else {
-        return overlaps_[a] > overlaps_[b]; //this is the main "sort columns by overlaps"
+        return overlaps[a] > overlaps[b]; //this is the main "sort columns by overlaps"
       }
     };
 
@@ -896,7 +896,6 @@ void SpatialPooler::inhibitColumnsGlobal_(const vector<Real> &overlaps,
   // faster than a regular sort because it stops after it partitions the
   // elements about the Nth element, with all elements on their correct side of
   // the Nth element.
-/* //TODO remove from this PR 
     std::nth_element(
     activeColumns.begin(),
     activeColumns.begin() + numDesired,
@@ -904,23 +903,13 @@ void SpatialPooler::inhibitColumnsGlobal_(const vector<Real> &overlaps,
     compare);
   // Remove the columns which lost the competition.
   activeColumns.resize(numDesired);
-  */
   // Finish sorting the winner columns by their overlap.
   std::sort(activeColumns.begin(), activeColumns.end(), compare);
   // Remove sub-threshold winners
   while( !activeColumns.empty() &&
          overlaps[activeColumns.back()] < stimulusThreshold_)
       activeColumns.pop_back();
-
-  activeColumns.resize(std::min(numDesired, (UInt)activeColumns.size()));
-
   //FIXME not numDesired 
-  if(iterationNum_ > 1000) { //need time for learning
-    if(activeColumns.size() != numDesired) {
-      missed++;
-      cout << "missed " << missed << " by " << (numDesired - activeColumns.size()) << " of " << numDesired << " same "<< same_overlap << "\n";
-    }
-  }
 }
 
 
