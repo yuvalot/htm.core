@@ -751,22 +751,24 @@ void SpatialPooler::updateBoostFactors_() {
 }
 
 
-void applyBoosting_(const UInt i,
+void applyBoosting_(const UInt numColumns,
 		    const Real targetDensity, 
 		    const vector<Real>& actualDensity,
 		    const Real boost,
 	            vector<Real>& output) {
-  //output[i] = exp((targetDensity - actualDensity[i]) * boost); //exponential boosting, default for Numenta
-  output[i] = log(actualDensity[i]) / log(targetDensity);
+
+  const Real LOG_TARGET_SPARSITY = log2(targetDensity);
+  for(UInt i=0; i< numColumns; i++) {
+    //output[i] = exp((targetDensity - actualDensity[i]) * boost); //exponential boosting, default for Numenta
+    output[i] = log2(actualDensity[i]) / LOG_TARGET_SPARSITY;
+  }
 }
 
 
 void SpatialPooler::updateBoostFactorsGlobal_() {
   const Real targetDensity = localAreaDensity_;
   
-  for (UInt i = 0; i < numColumns_; ++i) { 
-    applyBoosting_(i, targetDensity, activeDutyCycles_, boostStrength_, boostFactors_);
-  }
+  applyBoosting_(numColumns_, targetDensity, activeDutyCycles_, boostStrength_, boostFactors_);
 }
 
 
@@ -788,7 +790,7 @@ void SpatialPooler::updateBoostFactorsLocal_() {
     }
 
     const Real targetDensity = localActivityDensity / numNeighbors;
-    applyBoosting_(i, targetDensity, activeDutyCycles_, boostStrength_, boostFactors_);
+    //FIXMEapplyBoosting_(i, targetDensity, activeDutyCycles_, boostStrength_, boostFactors_);
   }
 }
 
