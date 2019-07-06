@@ -472,8 +472,8 @@ void SpatialPooler::compute(const SDR &input, const bool learn, SDR &active) {
   auto &activeVector = active.getSparse();
 
   //boosting
-//  boostStrength_ = 0.0;
-  boostOverlaps_(overlaps_, boostedOverlaps_);
+  //must be done before inhibition
+  boostOverlaps_(overlaps_, boostedOverlaps_); //TODO consider removal, @1
 
   //inhibition
   //update inhibition radius if it's time, only changes in local inh
@@ -491,8 +491,8 @@ void SpatialPooler::compute(const SDR &input, const bool learn, SDR &active) {
   if (learn) {
     adaptSynapses_(input, active);
     //boosting
-//    bumpUpWeakColumns_();
-    updateBoostFactors_(active);
+    bumpUpWeakColumns_(); //TODO suggest removal, low impact, long time
+    updateBoostFactors_(active); //helper for @1, computed after inh
   }
 }
 
