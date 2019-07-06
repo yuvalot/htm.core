@@ -407,7 +407,7 @@ void Connections::computeActivity(
 
   // Iterate through all connected synapses.
   for (const auto& cell : activePresynapticCells) {
-    if (connectedSegmentsForPresynapticCell_.count(cell)) {
+    if (connectedSegmentsForPresynapticCell_.count(cell) > 0) { //there are connected segments
       for(const auto& segment : connectedSegmentsForPresynapticCell_.at(cell)) {
         ++numActiveConnectedSynapsesForSegment[segment];
       }

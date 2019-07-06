@@ -67,23 +67,23 @@ class MNIST {
 
   public:
     UInt verbosity = 1;
-    const UInt train_dataset_iterations = 2u; //epochs somewhat help, at linear time
+    const UInt train_dataset_iterations = 1u; //epochs somewhat help, at linear time
 
 
 void setup() {
 
-  input.initialize({28, 28,1}); 
+  input.initialize({28, 28, 1}); 
   columns.initialize({28, 28, 8}); //1D vs 2D no big difference, 2D seems more natural for the problem. Speed-----, Results+++++++++; #columns HIGHEST impact. 
   sp.initialize(
     /* inputDimensions */             input.dimensions,
     /* columnDimensions */            columns.dimensions,
-    /* potentialRadius */             7u, // with 2D, 7 results in 15x15 area, which is cca 25% for the input area. Slightly improves than 99999 aka "no topology, all to all connections"
+    /* potentialRadius */             7, // with 2D, 7 results in 15x15 area, which is cca 25% for the input area. Slightly improves than 99999 aka "no topology, all to all connections"
     /* potentialPct */                0.1f, //we have only 10 classes, and << #columns. So we want to force each col to specialize. Cca 0.3 w "7" above, or very small (0.1) for "no topology". Cannot be too small due to internal checks. Speed++
     /* globalInhibition */            true, //Speed+++++++; SDR quality-- (global does have active nearby cols, which we want to avoid (local)); Results+-0
-    /* localAreaDensity */            0.05f,  // % active bits
+    /* localAreaDensity */            0.1f,  // % active bits
     /* numActiveColumnsPerInhArea */  -1,
     /* stimulusThreshold */           6u,
-    /* synPermInactiveDec */          0.05f, //FIXME inactive decay permanence plays NO role, investigate! (slightly better w/o it)
+    /* synPermInactiveDec */          0.002f, //FIXME inactive decay permanence plays NO role, investigate! (slightly better w/o it)
     /* synPermActiveInc */            0.14f, //takes upto 5x steps to get dis/connected
     /* synPermConnected */            0.5f, //no difference, let's leave at 0.5 in the middle
     /* minPctOverlapDutyCycles */     0.2f, //speed of re-learning?
