@@ -861,6 +861,7 @@ void SpatialPooler::inhibitColumns_(const vector<Real> &overlaps,
   }
 }
 
+static int missed = 0;
 
 void SpatialPooler::inhibitColumnsGlobal_(const vector<Real> &overlaps,
                                           Real density,
@@ -879,12 +880,24 @@ void SpatialPooler::inhibitColumnsGlobal_(const vector<Real> &overlaps,
                             << "for desired density (" << density << ").";
   // Sort the columns by the amount of overlap.  First make a list of all of the
   // column indexes.
+  int zero = 0;
+  int same = 0;
+  int sub  = 0;  
   activeColumns.reserve(numColumns_);
-  for(UInt i = 0; i < numColumns_; i++)
+  for(UInt i = 0; i < numColumns_; i++) {
     activeColumns.push_back(i);
+    //some statistics
+    if(overlaps[i] < Epsilon) {zero++; continue;}
+    if(overlaps[i] < stimulusThreshold_) sub++;
+    if(i==numColumns_-2) break;
+    if(fabs(overlaps[i]-overlaps[i+1]) < Epsilon) same++;
+
+  }
   // Compare the column indexes by their overlap.
-  auto compare = [&overlaps_](const UInt &a, const UInt &b) -> bool
-    {return (overlaps_[a] == overlaps_[b]) ? a > b : overlaps_[a] > overlaps_[b];};
+  auto compare = [&overlaps, &same](const UInt a, const UInt b) -> bool {
+	  if(overlaps[a] == overlaps[b]) return a > b;
+	  else return overlaps[a] > overlaps[b];
+  };
   // Do a partial sort to divide the winners from the losers.  This sort is
   // faster than a regular sort because it stops after it partitions the
   // elements about the Nth element, with all elements on their correct side of
@@ -895,13 +908,36 @@ void SpatialPooler::inhibitColumnsGlobal_(const vector<Real> &overlaps,
     activeColumns.end(),
     compare);
   // Remove the columns which lost the competition.
-  activeColumns.resize(numDesired);
+//!  activeColumns.resize(numDesired);
   // Finish sorting the winner columns by their overlap.
   std::sort(activeColumns.begin(), activeColumns.end(), compare);
   // Remove sub-threshold winners
   while( !activeColumns.empty() &&
-         overlaps[activeColumns.back()] < stimulusThreshold_)
+         overlaps[activeColumns.back()] < stimulusThreshold_) {
       activeColumns.pop_back();
+  }
+
+      //FIXME not numDesired
+     if(iterationNum_ < 1000) return; //need time for learning
+     if(activeColumns.size() != numDesired) {
+       missed++;
+       int missing = max(0, (int)numDesired - (int)activeColumns.size());
+       int ok = numColumns_ - sub - zero;
+       if(ok > (int)numDesired and missing > 0) 
+	       cout << "missed\t" << missed << "-times; by " << missing << "\tof " << numDesired
+            << " ;\tsame % " << (Real)same/numColumns_*100 << "; \tzero % " << ((Real)zero/numColumns_)*100 
+	    << "\tsub threshold % " << (Real)sub/numColumns_*100 << "\n";
+
+       int same2=0;
+       for(size_t i = 0; i < activeColumns.size()-2; i++) {
+         if(activeColumns[i] == activeColumns[i+1]) same2++;
+       }
+       cout << "have same " << same2 << endl; //FIXME there are no same!
+
+     }
+     //FIXME same values ok?
+     //FIXME sparse overlaps from conn
+     //FIXME conn perm inc/dec multiplied by *err (sigmoid)?
 }
 
 
