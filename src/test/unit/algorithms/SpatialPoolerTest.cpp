@@ -978,11 +978,24 @@ TEST(SpatialPoolerTest, testUpdateBoostFactors) {
   sp.getBoostFactors(resultBoostFactors1.data());
   ASSERT_TRUE(check_vector_eq(trueBoostFactors1, resultBoostFactors1));
 
+  Real32 initActiveDutyCycles2[] = {0.1f, 0.3f, 0.02f, 0.04f, 0.7f, 0.12f};
+  Real32 initBoostFactors2[] = {0, 0, 0, 0, 0, 0};
+  vector<Real32> trueBoostFactors2 = {3.10599f, 0.42035f,    6.91251f,
+                                      5.65949f, 0.00769898f, 2.54297f};
+  vector<Real32> resultBoostFactors2(6, 0);
+  sp.setGlobalInhibition(false);
+  sp.setBoostStrength(10);
+  sp.setBoostFactors(initBoostFactors2);
+  sp.setActiveDutyCycles(initActiveDutyCycles2);
+  sp.updateBoostFactors_();
+  sp.getBoostFactors(resultBoostFactors2.data());
+
+  ASSERT_TRUE(check_vector_eq(trueBoostFactors2, resultBoostFactors2));
 
   Real32 initActiveDutyCycles3[] = {0.1f, 0.3f, 0.02f, 0.04f, 0.7f, 0.12f};
   Real initBoostFactors3[] = {0, 0, 0, 0, 0, 0};
-  vector<Real32> trueBoostFactors3 = {1.49044f, 0.779321f, 2.53222f,
-	                              2.08355f, 0.230873f, 1.37243f};
+  vector<Real32> trueBoostFactors3 = {1.25441f, 0.840857f, 1.47207f,
+                                      1.41435f, 0.377822f, 1.20523f};
   vector<Real32> resultBoostFactors3(6, 0);
   sp.setWrapAround(true);
   sp.setGlobalInhibition(false);
@@ -996,11 +1009,10 @@ TEST(SpatialPoolerTest, testUpdateBoostFactors) {
 
   ASSERT_TRUE(check_vector_eq(trueBoostFactors3, resultBoostFactors3));
 
-
   Real32 initActiveDutyCycles4[] = {0.1f, 0.3f, 0.02f, 0.04f, 0.7f, 0.12f};
   Real32 initBoostFactors4[] = {0, 0, 0, 0, 0, 0};
-  vector<Real32> trueBoostFactors4 = {1.2851f, 0.67195f, 2.18334f,
-	                              1.79649f, 0.199064f, 1.18334f};
+  vector<Real32> trueBoostFactors4 = {1.94773f, 0.263597f,   4.33476f,
+                                      3.549f,   0.00482795f, 1.59467f};
   vector<Real32> resultBoostFactors4(6, 0);
   sp.setGlobalInhibition(true);
   sp.setBoostStrength(10);
