@@ -965,6 +965,8 @@ TEST(SpatialPoolerTest, testUpdateDutyCyclesHelper) {
 TEST(SpatialPoolerTest, testUpdateBoostFactors) {
   SpatialPooler sp;
   setup(sp, 5, 6);
+  SDR dummy({6});
+  dummy.setDense(SDR_dense_t{1,1,1,1,1,1}); //"full" SDR
 
   Real32 initActiveDutyCycles1[] = {0.1f, 0.1f, 0.1f, 0.1f, 0.1f, 0.1f};
   Real32 initBoostFactors1[] = {0, 0, 0, 0, 0, 0};
@@ -974,7 +976,7 @@ TEST(SpatialPoolerTest, testUpdateBoostFactors) {
   sp.setBoostStrength(10);
   sp.setBoostFactors(initBoostFactors1);
   sp.setActiveDutyCycles(initActiveDutyCycles1);
-  sp.updateBoostFactors_();
+  sp.updateBoostFactors_(dummy);
   sp.getBoostFactors(resultBoostFactors1.data());
   ASSERT_TRUE(check_vector_eq(trueBoostFactors1, resultBoostFactors1));
 
@@ -987,7 +989,7 @@ TEST(SpatialPoolerTest, testUpdateBoostFactors) {
   sp.setBoostStrength(10);
   sp.setBoostFactors(initBoostFactors2);
   sp.setActiveDutyCycles(initActiveDutyCycles2);
-  sp.updateBoostFactors_();
+  sp.updateBoostFactors_(dummy);
   sp.getBoostFactors(resultBoostFactors2.data());
 
   ASSERT_TRUE(check_vector_eq(trueBoostFactors2, resultBoostFactors2));
@@ -1004,7 +1006,7 @@ TEST(SpatialPoolerTest, testUpdateBoostFactors) {
   sp.setNumActiveColumnsPerInhArea(1);
   sp.setBoostFactors(initBoostFactors3);
   sp.setActiveDutyCycles(initActiveDutyCycles3);
-  sp.updateBoostFactors_();
+  sp.updateBoostFactors_(dummy);
   sp.getBoostFactors(resultBoostFactors3.data());
 
   ASSERT_TRUE(check_vector_eq(trueBoostFactors3, resultBoostFactors3));
@@ -1020,7 +1022,7 @@ TEST(SpatialPoolerTest, testUpdateBoostFactors) {
   sp.setInhibitionRadius(3);
   sp.setBoostFactors(initBoostFactors4);
   sp.setActiveDutyCycles(initActiveDutyCycles4);
-  sp.updateBoostFactors_();
+  sp.updateBoostFactors_(dummy);
   sp.getBoostFactors(resultBoostFactors4.data());
 
   ASSERT_TRUE(check_vector_eq(trueBoostFactors4, resultBoostFactors4));
