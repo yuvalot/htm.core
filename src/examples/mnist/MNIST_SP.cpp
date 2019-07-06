@@ -90,7 +90,7 @@ void setup() {
     /* synPermConnected */            0.5f, //no difference, let's leave at 0.5 in the middle
     /* minPctOverlapDutyCycles */     0.2f, //speed of re-learning?
     /* dutyCyclePeriod */             1402,
-    /* boostStrength */               0.0f, // Boosting does help, but entropy is high, on MNIST it does not matter, for learning with TM prefer boosting off (=0.0), or "neutral"=1.0
+    /* boostStrength */               7.0f, // Boosting does help, but entropy is high, on MNIST it does not matter, for learning with TM prefer boosting off (=0.0), or "neutral"=1.0
     /* seed */                        4u,
     /* spVerbosity */                 1u,
     /* wrapAround */                  true); // does not matter (helps slightly)
