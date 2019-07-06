@@ -75,8 +75,8 @@ class MNIST {
 
 void setup() {
 
-  input.initialize({28, 28,1}); 
-  columns.initialize({28, 28, 16}); //1D vs 2D no big difference, 2D seems more natural for the problem. Speed-----, Results+++++++++; #columns HIGHEST impact. 
+  input.initialize({28, 28, 1}); 
+  columns.initialize({28, 28, 8}); //1D vs 2D no big difference, 2D seems more natural for the problem. Speed-----, Results+++++++++; #columns HIGHEST impact. 
   sp.initialize(
     /* inputDimensions */             input.dimensions,
     /* columnDimensions */            columns.dimensions,

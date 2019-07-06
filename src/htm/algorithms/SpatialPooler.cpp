@@ -756,8 +756,14 @@ void applyBoosting_(const UInt i,
 		    const vector<Real>& actualDensity,
 		    const Real boost,
 	            vector<Real>& output) {
-  //output[i] = exp((targetDensity - actualDensity[i]) * boost); //exponential boosting, default for Numenta
-  output[i] = log(actualDensity[i]) / log(targetDensity);
+
+  if(boost == SpatialPooler::BOOSTING_DISABLED) { //boosting disabled, skip
+    return;
+  } else if(boost == SpatialPooler::BOOSTING_LOG) {
+    output[i] = log2(actualDensity[i]) / log2(targetDensity);
+  } else { //exponential boost
+    output[i] = exp((targetDensity - actualDensity[i]) * boost);
+  } 
 }
 
 
