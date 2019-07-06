@@ -742,8 +742,8 @@ void SpatialPooler::updateDutyCyclesHelper_(vector<Real> &dutyCycles,
 
 
 void SpatialPooler::updateBoostFactors_() {
-  if(boostStrength_ < htm::Epsilon) return; //skip for disabled boosting
-  if (globalInhibition_) {
+  if(boostStrength_ == SpatialPooler::BOOSTING_DISABLED) return;
+  else if (globalInhibition_) {
     updateBoostFactorsGlobal_();
   } else {
     updateBoostFactorsLocal_();
@@ -757,13 +757,11 @@ void applyBoosting_(const UInt i,
 		    const Real boost,
 	            vector<Real>& output) {
 
-  if(boost == SpatialPooler::BOOSTING_DISABLED) { //boosting disabled, skip
-    return;
-  } else if(boost == SpatialPooler::BOOSTING_LOG) {
+  if(boost == SpatialPooler::BOOSTING_LOG) { //logarithmic boosting
     output[i] = log2(actualDensity[i]) / log2(targetDensity);
-  } else { //exponential boost
+  } else if(boost > 0) { //exponential boost
     output[i] = exp((targetDensity - actualDensity[i]) * boost);
-  } 
+  } //else: BOOSTING_DISABLED
 }
 
 
