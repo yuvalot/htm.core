@@ -185,7 +185,7 @@ public:
         boost. Shorter values make it potentially more unstable and
         likely to oscillate.
 
-  @param boostStrength A number greater or equal than 1.0 or exactly 0.0, used to
+  @param boostStrength A number greater or equal than 0, used to
         control boosting strength. 
 	No boosting is applied if it is set to 0.0, (runs faster due to skipped code).
         The strength of boosting increases as a function of boostStrength.
@@ -288,7 +288,6 @@ public:
     ar(CEREAL_NVP(overlapDutyCycles_));
     ar(CEREAL_NVP(activeDutyCycles_));
     ar(CEREAL_NVP(minOverlapDutyCycles_));
-    ar(CEREAL_NVP(tieBreaker_));
     ar(CEREAL_NVP(connections_));
     ar(CEREAL_NVP(rng_));
   }
@@ -323,7 +322,6 @@ public:
     ar(CEREAL_NVP(overlapDutyCycles_));
     ar(CEREAL_NVP(activeDutyCycles_));
     ar(CEREAL_NVP(minOverlapDutyCycles_));
-    ar(CEREAL_NVP(tieBreaker_));
     ar(CEREAL_NVP(connections_));
     ar(CEREAL_NVP(rng_));
 
@@ -1234,7 +1232,6 @@ protected:
 
   vector<SynapseIdx> overlaps_;
   vector<Real> boostedOverlaps_;
-  vector<Real> tieBreaker_;
 
 
   UInt version_;
