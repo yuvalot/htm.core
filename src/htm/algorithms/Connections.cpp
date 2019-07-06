@@ -396,7 +396,6 @@ void Connections::computeActivity(
     const vector<CellIdx> &activePresynapticCells)
 {
   NTA_ASSERT(numActiveConnectedSynapsesForSegment.size() == segments_.size()) << "The output vector size must match "<< segments_.size();
-  NTA_ASSERT(activePresynapticCells.size() < segments_.size()) << "Input is larger than our number of segments!";
 
   if( timeseries_ ) {
     // Before each cycle of computation move the currentUpdates to the previous
@@ -406,9 +405,9 @@ void Connections::computeActivity(
   }
 
   // Iterate through all connected synapses.
-  for (const auto& cell : activePresynapticCells) {
+  for (const auto cell : activePresynapticCells) {
     if (connectedSegmentsForPresynapticCell_.count(cell)) {
-      for(const auto& segment : connectedSegmentsForPresynapticCell_.at(cell)) {
+      for(const auto segment : connectedSegmentsForPresynapticCell_.at(cell)) {
         ++numActiveConnectedSynapsesForSegment[segment];
       }
     }
