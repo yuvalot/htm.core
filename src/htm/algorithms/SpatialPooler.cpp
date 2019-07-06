@@ -363,7 +363,7 @@ void SpatialPooler::getConnectedSynapses(UInt column,
 void SpatialPooler::getConnectedCounts(UInt connectedCounts[]) const {
   for(UInt seg = 0; seg < numColumns_; seg++) {
     const auto &segment = connections_.dataForSegment( seg );
-    connectedCounts[ seg ] = segment.numConnected;
+    connectedCounts[ seg ] = segment.numConnected; //TODO numConnected only used here, rm from SegmentData and compute for each segment.synapses?
   }
 }
 
@@ -398,7 +398,7 @@ void SpatialPooler::initialize(
   NTA_CHECK(numColumns_ > 0);
   NTA_CHECK(numInputs_ > 0);
 
-  // 1D input produces 1D output; 2D => 2D, etc.
+  // 1D input produces 1D output; 2D => 2D, etc. //TODO allow nD -> mD conversion
   NTA_CHECK(inputDimensions_.size() == columnDimensions_.size()); 
 
   NTA_CHECK((numActiveColumnsPerInhArea > 0 && localAreaDensity < 0) ||
@@ -429,17 +429,11 @@ void SpatialPooler::initialize(
   iterationNum_ = 0u;
   iterationLearnNum_ = 0u;
 
-  tieBreaker_.resize(numColumns_);
-  for (Size i = 0; i < numColumns_; i++) {
-    tieBreaker_[i] = (Real)(0.01 * rng_.getReal64());
-  }
-
-  overlapDutyCycles_.assign(numColumns_, 0);
+  overlapDutyCycles_.assign(numColumns_, 0); //TODO make all these sparse or rm to reduce footprint
   activeDutyCycles_.assign(numColumns_, 0);
   minOverlapDutyCycles_.assign(numColumns_, 0.0);
   boostFactors_.assign(numColumns_, 1.0); //1 is neutral value for boosting
   overlaps_.resize(numColumns_);
-  overlapsPct_.resize(numColumns_);
   boostedOverlaps_.resize(numColumns_);
 
   inhibitionRadius_ = 0;
@@ -473,7 +467,6 @@ void SpatialPooler::compute(const SDR &input, const bool learn, SDR &active) {
   active.reshape( columnDimensions_ );
   updateBookeepingVars_(learn);
   calculateOverlap_(input, overlaps_);
-  calculateOverlapPct_(overlaps_, overlapsPct_);
 
   boostOverlaps_(overlaps_, boostedOverlaps_);
 
@@ -500,10 +493,9 @@ void SpatialPooler::compute(const SDR &input, const bool learn, SDR &active) {
 
 void SpatialPooler::boostOverlaps_(const vector<SynapseIdx> &overlaps, //TODO use Eigen sparse vector here
                                    vector<Real> &boosted) const {
-  if(boostStrength_ < htm::Epsilon) {
-    const auto begin = static_cast<const SynapseIdx*>(overlaps.data());
-    boosted.assign(begin, begin + overlaps.size());
-    return; //boost ~ 0.0, we can skip these computations. 
+  if(boostStrength_ < htm::Epsilon) { //boost ~ 0.0, we can skip these computations, just copy the data
+    boosted.assign(overlaps.begin(), overlaps.end());
+    return;
   }
   for (UInt i = 0; i < numColumns_; i++) {
     boosted[i] = overlaps[i] * boostFactors_[i];
@@ -827,20 +819,6 @@ void SpatialPooler::calculateOverlap_(const SDR &input,
 }
 
 
-void SpatialPooler::calculateOverlapPct_(const vector<SynapseIdx> &overlaps,
-                                         vector<Real> &overlapPct) const {
-  overlapPct.assign(numColumns_, 0);
-  vector<UInt> connectedCounts( numColumns_ );
-  getConnectedCounts( connectedCounts.data() );
-
-  for (UInt i = 0; i < numColumns_; i++) {
-    if (connectedCounts[i] != 0) {
-      overlapPct[i] = ((Real)overlaps[i]) / connectedCounts[i];
-    }
-  }
-}
-
-
 void SpatialPooler::inhibitColumns_(const vector<Real> &overlaps,
                                     vector<CellIdx> &activeColumns) const {
   Real density = localAreaDensity_;
@@ -868,11 +846,6 @@ void SpatialPooler::inhibitColumnsGlobal_(const vector<Real> &overlaps,
                                           vector<UInt> &activeColumns) const {
   NTA_ASSERT(!overlaps.empty());
   NTA_ASSERT(density > 0.0f && density <= 1.0f);
-
-  // Add a tiebreaker to the overlaps so that the output is deterministic.
-  vector<Real> overlaps_(overlaps.begin(), overlaps.end());
-  for(UInt i = 0; i < numColumns_; i++)
-    overlaps_[i] += tieBreaker_[i];
 
   activeColumns.clear();
   const UInt numDesired = (UInt)(density * numColumns_);
@@ -1093,7 +1066,6 @@ bool SpatialPooler::operator==(const SpatialPooler& o) const{
   if (overlapDutyCycles_    != o.overlapDutyCycles_) return false;
   if (activeDutyCycles_     != o.activeDutyCycles_) return false;
   if (minOverlapDutyCycles_ != o.minOverlapDutyCycles_) return false;
-  if (tieBreaker_           != o.tieBreaker_) return false;
 
   // compare connections
   if (connections_ != o.connections_) return false;
