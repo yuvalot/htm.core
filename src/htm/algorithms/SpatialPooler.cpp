@@ -472,9 +472,14 @@ void SpatialPooler::compute(const SDR &input, const bool learn, SDR &active) {
   auto &activeVector = active.getSparse();
 
   //boosting
+//  boostStrength_ = 0.0;
   boostOverlaps_(overlaps_, boostedOverlaps_);
 
   //inhibition
+  //update inhibition radius if it's time, only changes in local inh
+  if(!globalInhibition_ and isUpdateRound_()) {
+    inhibitionRadius_ = updateInhibitionRadius_();
+  }
   inhibitColumns_(boostedOverlaps_, activeVector);
 
   // Notify the active SDR that its internal data vector has changed.  Always
@@ -840,13 +845,6 @@ void SpatialPooler::calculateOverlap_(const SDR &input,
 
 void SpatialPooler::inhibitColumns_(const vector<Real> &overlaps,
                                     vector<CellIdx> &activeColumns) const {
-
-  //update inhibition radius if it's time, only changes in local inh
-  if(!globalInhibition_ and isUpdateRound_()) {
-    inhibitionRadius_ = updateInhibitionRadius_();
-  }
-
-  //compute density (desired output SDR sparsity)
   Real density = localAreaDensity_;
   if (numActiveColumnsPerInhArea_ > 0) {
     UInt inhibitionArea =
