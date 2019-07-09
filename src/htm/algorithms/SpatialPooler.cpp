@@ -861,8 +861,6 @@ void SpatialPooler::inhibitColumns_(const vector<Real> &overlaps,
   }
 }
 
-static int missed = 0;
-
 
 void SpatialPooler::inhibitColumnsGlobal_(const vector<Real> &overlaps,
                                           const Real density,
