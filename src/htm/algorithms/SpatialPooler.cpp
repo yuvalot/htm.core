@@ -963,8 +963,8 @@ void SpatialPooler::inhibitColumnsLocal_(const vector<Real> &overlaps,
 	}
       }
 
-      const UInt numActive = (UInt)(0.5f + (density * (numNeighbors + 1)));
-      if (numBigger < numActive) {
+      const UInt numDesired = static_cast<UInt>(round(density * (numNeighbors + 1)));
+      if (numBigger < numDesired) {
         activeColumns.push_back(column);
         activeColumnsDense[column] = true;
       }
