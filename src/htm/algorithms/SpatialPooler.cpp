@@ -756,12 +756,12 @@ void applyBoosting_(const UInt i,
 		    const vector<Real>& actualDensity,
 		    const Real boost,
 	            vector<Real>& output) {
-
-  if(boost == SpatialPooler::BOOSTING_LOG) { //logarithmic boosting
+  if(boost == SpatialPooler::BOOSTING_DISABLED) output[i] = actualDensity[i]; //no change
+  else if(boost == SpatialPooler::BOOSTING_LOG) { //logarithmic boosting
     output[i] = log2(actualDensity[i]) / log2(targetDensity);
-  } else if(boost > 0) { //exponential boost
+  } else if(boost >= SpatialPooler::BOOSTING_EXP) { //exponential boost
     output[i] = exp((targetDensity - actualDensity[i]) * boost);
-  } //else: BOOSTING_DISABLED
+  } else NTA_THROW << "Invalid boost mode! " << boost; 
 }
 
 
@@ -780,12 +780,12 @@ void SpatialPooler::updateBoostFactorsLocal_() {
     Real localActivityDensity = 0.0f;
 
     if (wrapAround_) {
-      for(auto neighbor: WrappingNeighborhood(i, inhibitionRadius_, columnDimensions_)) {
+      for(const auto neighbor: WrappingNeighborhood(i, inhibitionRadius_, columnDimensions_)) {
         localActivityDensity += activeDutyCycles_[neighbor];
         numNeighbors += 1;
       }
     } else {
-      for(auto neighbor: Neighborhood(i, inhibitionRadius_, columnDimensions_)) {
+      for(const auto neighbor: Neighborhood(i, inhibitionRadius_, columnDimensions_)) {
         localActivityDensity += activeDutyCycles_[neighbor];
         numNeighbors += 1;
       }

@@ -130,7 +130,7 @@ typedef std::size_t Size;
  *     numeric_limits<float>::epsilon()  == 1.19209e-7
  *     numeric_limits<double>::epsilon() == 2.22045e-16
  */
-static const htm::Real32 Epsilon = htm::Real(1e-6);
+static const constexpr htm::Real32 Epsilon = htm::Real(1e-6);
 
 /**
  * Represents a signed integer.
