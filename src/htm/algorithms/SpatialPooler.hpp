@@ -212,17 +212,22 @@ public:
 
    */
   virtual void
-  initialize(const vector<UInt>& inputDimensions, 
-	     const vector<UInt>& columnDimensions,
+  initialize(const vector<UInt> inputDimensions, 
+	     const vector<UInt> columnDimensions,
              UInt potentialRadius = 16u, 
 	     Real potentialPct = 0.5f,
              bool globalInhibition = true, 
 	     Real localAreaDensity = 0.05f,
-             UInt stimulusThreshold = 0u,
-             Real synPermInactiveDec = 0.01f, Real synPermActiveInc = 0.1f,
-             Real synPermConnected = 0.1f, Real minPctOverlapDutyCycles = 0.001f,
-             UInt dutyCyclePeriod = 1000u, Real boostStrength = 0.0f,
-             Int seed = 1, UInt spVerbosity = 0u, bool wrapAround = true);
+	     UInt stimulusThreshold = 0u,
+             Real synPermInactiveDec = 0.008f, 
+	     Real synPermActiveInc = 0.05f,
+             Real synPermConnected = 0.1f, 
+	     Real minPctOverlapDutyCycles = 0.001f,
+             UInt dutyCyclePeriod = 1000u, 
+	     Real boostStrength = BOOSTING_DISABLED,
+             Int seed = 1, 
+	     UInt spVerbosity = 0u, 
+	     bool wrapAround = true);
 
 
   /**
