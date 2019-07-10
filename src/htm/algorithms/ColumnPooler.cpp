@@ -116,7 +116,6 @@ private:
   // Proximal Dendrite Data:
   // TODO: Move distalConnections here, expose public references to all of this junk!
   vector<UInt16> rawOverlaps_;
-  vector<UInt16> potentialOverlaps_;
   vector<Real>   cellOverlaps_;
   vector<UInt>   proximalMaxSegment_;
   ActivationFrequency *AF_;   // This is used by boosting.
@@ -261,7 +260,6 @@ public:
     }
     // Setup Proximal data structures.
     rawOverlaps_.resize( proximalConnections.numSegments() );
-    potentialOverlaps_.resize( proximalConnections.numSegments() );
     cellOverlaps_.resize( cells.size );
     proximalMaxSegment_.resize( cells.size );
     tieBreaker_.resize( proximalConnections.numSegments() );
@@ -352,8 +350,6 @@ public:
   {
     // Proximal Feed Forward Excitement
     fill( rawOverlaps_.begin(), rawOverlaps_.end(), 0.0f );
-    fill( potentialOverlaps_.begin(), potentialOverlaps_.end(), 0.0f );
-    // proximalConnections.computeActivity(rawOverlaps_, potentialOverlaps_, feedForwardInputs.getSparse());
     proximalConnections.computeActivity(rawOverlaps_, feedForwardInputs.getSparse());
 
     // Setup for Boosting
@@ -366,9 +362,7 @@ public:
       UInt maxSegment    = -1;
       // TODO: THIS FOR LOOP SHOULD USE INDEX MATH!
       for(const auto &segment : proximalConnections.segmentsForCell( cell ) ) {
-        const auto raw = rawOverlaps_[segment];
-
-        Real overlap = (Real) raw; // Typecast to floating point.
+        Real overlap = (Real) rawOverlaps_[segment];
 
         // Proximal Tie Breaker
         // NOTE: Apply tiebreakers before boosting, so that boosting is applied
@@ -376,14 +370,6 @@ public:
         //   hurt the entropy of the result by biasing some mini-columns to
         //   activte more often than others.
         overlap += tieBreaker_[segment];
-
-        // Normalize Proximal Excitement by the number of connected synapses.
-        const auto nConSyns = proximalConnections.dataForSegment( segment ).numConnected;
-        if( nConSyns == 0 )
-          // overlap = 1.0f;
-          overlap = 0.0f;
-        else
-          overlap /= nConSyns;
 
         // Logarithmic Boosting Function
         overlap *= log2( af[segment] ) * denominator;
@@ -709,8 +695,8 @@ public:
             const SDR&    distalInputActive,
             const SDR&    distalInputWinner,
             SDR_sparse_t &active,
-            SDR_sparse_t &winner) {
-
+            SDR_sparse_t &winner)
+  {
     // Inhibition areas are contiguous blocks of cells, find the size of it.
     const auto areaSize = areaEnd - areaStart;
     // Compare the cell indexes by their feed-forward / proximal overlap.

@@ -15,10 +15,10 @@ import cv2
 import matplotlib.pyplot as plt
 import matplotlib as mpl
 
-from nupic.bindings.sdr import SDR, Metrics
-from nupic.bindings.encoders import CoordinateEncoder, CoordinateEncoderParameters
-from nupic.bindings.encoders import ScalarEncoder, ScalarEncoderParameters
-from nupic.bindings.algorithms import ColumnPooler, NoTopology
+from htm import SDR, Metrics
+from htm.bindings.encoders import CoordinateEncoder, CoordinateEncoderParameters
+from htm.bindings.encoders import ScalarEncoder, ScalarEncoderParameters
+from htm.bindings.algorithms import ColumnPooler, NoTopology
 
 
 class Environment(object):
