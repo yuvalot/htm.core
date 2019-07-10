@@ -93,7 +93,7 @@ from nupic.bindings.math import SparseMatrix
 
 from htmresearch.support.logging_decorator import LoggingDecorator
 from htmresearch.support.register_regions import registerAllResearchRegions
-from htmresearch.frameworks.layers.laminar_network import createNetwork
+from htm.layers.laminar_network import createNetwork
 
 
 

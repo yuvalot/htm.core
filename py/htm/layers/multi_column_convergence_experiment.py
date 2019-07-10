@@ -30,8 +30,8 @@ import random
 import time
 import numpy
 
-from htmresearch.frameworks.layers.l2_l4_inference import L4L2Experiment
-from htmresearch.frameworks.layers.object_machine_factory import (
+from htm.layers.l2_l4_inference import L4L2Experiment
+from htm.layers.object_machine_factory import (
   createObjectMachine
 )
 

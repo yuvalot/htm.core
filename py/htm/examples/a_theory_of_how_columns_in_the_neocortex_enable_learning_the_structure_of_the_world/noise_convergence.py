@@ -34,7 +34,7 @@ import numpy
 
 mpl.rcParams['pdf.fonttype'] = 42
 
-from htmresearch.frameworks.layers.multi_column_convergence_experiment import (
+from htm.layers.multi_column_convergence_experiment import (
   runExperiment, runExperimentPool
 )
 

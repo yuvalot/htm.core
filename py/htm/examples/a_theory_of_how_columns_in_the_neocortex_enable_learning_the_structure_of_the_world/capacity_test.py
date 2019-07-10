@@ -39,8 +39,8 @@ import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
 import numpy as np
 import pandas as pd
-from htmresearch.frameworks.layers.l2_l4_inference import L4L2Experiment
-from htmresearch.frameworks.layers.object_machine_factory import (
+from htm.layers.l2_l4_inference import L4L2Experiment
+from htm.layers.object_machine_factory import (
   createObjectMachine
 )
 
@@ -80,7 +80,7 @@ def getL4Params():
 
 def getL2Params():
   """
-  Returns a good default set of parameters to use in the L4 region.
+  Returns a good default set of parameters to use in the L2 region.
   """
   return {
     "inputWidth": 2048 * 8,

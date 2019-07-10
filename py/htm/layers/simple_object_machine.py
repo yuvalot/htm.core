@@ -22,7 +22,7 @@
 import random
 import numpy
 
-from htmresearch.frameworks.layers.object_machine_base import ObjectMachineBase
+from htm.layers.object_machine_base import ObjectMachineBase
 
 
 

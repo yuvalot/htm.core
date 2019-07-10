@@ -31,20 +31,14 @@ Either type can be created as a single column or with multiple columns. Each
 type has its own creation file (imported here) - see that file for detailed
 descriptions.
 """
-from nupic.engine import Network
-from htmresearch.frameworks.layers.l2_l4_network_creation import (
+from htm.engine import Network
+from htm.layers.l2_l4_network_creation import (
   createL4L2Column, createMultipleL4L2Columns,
   createMultipleL4L2ColumnsWithTopology)
-from htmresearch.frameworks.layers.l2456_network_creation import (
-  createL2456Columns
-)
-from htmresearch.frameworks.layers.combined_sequence_network_creation import (
+from htm.layers.combined_sequence_network_creation import (
   createL4L2TMColumn
 )
-from htmresearch.frameworks.layers.combined_sequence_network_creation2 import (
-  createCombinedSequenceColumn
-)
-from htmresearch.support.register_regions import registerAllResearchRegions
+from htm.register_regions import registerAllResearchRegions
 
 
 def createNetwork(networkConfig):
@@ -65,12 +59,8 @@ def createNetwork(networkConfig):
     return createMultipleL4L2Columns(network, networkConfig)
   elif networkConfig["networkType"] == "MultipleL4L2ColumnsWithTopology":
     return createMultipleL4L2ColumnsWithTopology(network, networkConfig)
-  elif networkConfig["networkType"] == "L2456Columns":
-    return createL2456Columns(network, networkConfig)
   elif networkConfig["networkType"] == "L4L2TMColumn":
     return createL4L2TMColumn(network, networkConfig, "_0")
-  elif networkConfig["networkType"] == "CombinedSequenceColumn":
-    return createCombinedSequenceColumn(network, networkConfig, "_0")
 
 
 

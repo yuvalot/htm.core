@@ -23,13 +23,13 @@
 Factory for creating object machines.
 """
 
-from htmresearch.frameworks.layers.simple_object_machine import (
+from htm.layers.simple_object_machine import (
   SimpleObjectMachine
 )
-from htmresearch.frameworks.layers.continuous_location_object_machine import (
+from htm.layers.continuous_location_object_machine import (
   ContinuousLocationObjectMachine
 )
-from htmresearch.frameworks.layers.sequence_object_machine import (
+from htm.layers.sequence_object_machine import (
   SequenceObjectMachine
 )
 
