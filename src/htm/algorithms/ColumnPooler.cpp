@@ -42,11 +42,10 @@
 #include <htm/algorithms/TemporalMemory.hpp>
 #include <htm/utils/Topology.hpp>
 
-namespace nupic {
+namespace htm {
 
 using namespace std;
 using namespace htm;
-
 
 typedef function<Permanence(Random&, const SDR&, const SDR&)> InitialPermanence_t;
 
@@ -537,7 +536,7 @@ public:
     // Check if we're going to surpass the maximum number of synapses. //TODO delegate this to createSynapse(segment)
     const int overrun = (distalConnections.numSynapses(segment) + nActual - maxSynapsesPerSegment);
     if (overrun > 0) {
-      distalConnections.destroyMinPermanenceSynapses(segment, overrun, distalInputWinnerPrevious);
+      distalConnections.destroyMinPermanenceSynapses(segment, overrun, distalInputWinnerPrevious.getSparse());
     }
 
     // Recalculate in case we weren't able to destroy as many synapses as needed.
@@ -893,6 +892,4 @@ public:
   }
 };
 
-} // End namespace column_pooler
-} // End namespace algorithmn
-} // End namespace nupic
+} // End namespace htm

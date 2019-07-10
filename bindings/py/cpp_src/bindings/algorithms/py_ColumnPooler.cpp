@@ -27,15 +27,14 @@
 #include <pybind11/stl.h>
 #include <pybind11/functional.h>
 
-#include <nupic/algorithms/ColumnPooler.cpp>
+#include <htm/algorithms/ColumnPooler.cpp>
 
 #include "bindings/engine/py_utils.hpp"
 
 namespace py = pybind11;
-using namespace nupic;
-using namespace nupic::algorithms::column_pooler;
+using namespace htm;
 
-namespace nupic_ext
+namespace htm_ext
 {
   void init_Column_Pooler(py::module& m)
   {

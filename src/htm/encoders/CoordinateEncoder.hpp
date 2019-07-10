@@ -30,7 +30,7 @@
 #include <htm/types/Serializable.hpp>
 #include <htm/encoders/RandomDistributedScalarEncoder.hpp>
 
-namespace nupic {
+namespace htm {
 
 /*
  * TODO: DOCUMENTATION

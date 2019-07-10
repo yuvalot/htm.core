@@ -29,34 +29,26 @@
 #include <fstream>      // std::ofstream
 #include <vector>
 
-#include <nupic/algorithms/SpatialPooler.hpp>
-#include <nupic/algorithms/ColumnPooler.cpp>
-#include <nupic/algorithms/SDRClassifier.hpp>
-#include <nupic/utils/SdrMetrics.hpp>
+#include <htm/algorithms/SpatialPooler.hpp>
+#include <htm/algorithms/ColumnPooler.cpp>
+#include <htm/algorithms/SDRClassifier.hpp>
+#include <htm/utils/SdrMetrics.hpp>
 
 #include <mnist/mnist_reader.hpp> // MNIST data itself + read methods, namespace mnist::
 
 namespace examples {
 
 using namespace std;
-using namespace nupic;
-namespace column_pooler = nupic::algorithms::column_pooler;
-
-using nupic::algorithms::spatial_pooler::SpatialPooler;
-using namespace nupic::algorithms::column_pooler;
-using nupic::algorithms::connections::Permanence;
-using nupic::algorithms::sdr_classifier::Classifier;
-using nupic::algorithms::sdr_classifier::argmax;
-
+using namespace htm;
 
 class MNIST {
 
   private:
     bool spNotCp;
     SpatialPooler sp;
-    column_pooler::ColumnPooler cp;
-    sdr::SDR input;
-    sdr::SDR columns;
+    ColumnPooler cp;
+    SDR input;
+    SDR columns;
     Classifier clsr;
     mnist::MNIST_dataset<std::vector, std::vector<uint8_t>, uint8_t> dataset;
 
@@ -144,8 +136,8 @@ void train()
          << " cycles ..." << endl;
   size_t i = 0;
 
-  sdr::Metrics inputStats(input,    1402);
-  sdr::Metrics columnStats(columns, 1402);
+  Metrics inputStats(input,    1402);
+  Metrics columnStats(columns, 1402);
 
   for(auto epoch = 0u; epoch < train_dataset_iterations; epoch++) {
     NTA_INFO << "epoch " << epoch;

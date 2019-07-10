@@ -23,8 +23,8 @@ import pickle
 import numpy as np
 import unittest
 
-from nupic.bindings.sdr import SDR, Metrics
-from nupic.bindings.encoders import CoordinateEncoder, CoordinateEncoderParameters
+from htm import SDR, Metrics
+from htm.bindings.encoders import CoordinateEncoder, CoordinateEncoderParameters
 
 class CoordinateEncoderTest(unittest.TestCase):
     def testConstructor(self):

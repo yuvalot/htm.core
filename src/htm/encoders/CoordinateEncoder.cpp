@@ -90,7 +90,7 @@ void CoordinateEncoder::initialize( const CoordinateEncoderParameters &parameter
 }
 
 
-void CoordinateEncoder::encode(const vector<Real64> &coordinates, sdr::SDR &output) {
+void CoordinateEncoder::encode(const vector<Real64> &coordinates, SDR &output) {
   NTA_CHECK( coordinates.size() == args_.numDimensions );
   NTA_CHECK( output.size == args_.size );
 

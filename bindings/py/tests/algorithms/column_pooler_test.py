@@ -28,9 +28,9 @@ import math
 import scipy.signal
 import time
 
-from nupic.bindings.sdr import SDR, Metrics
-from nupic.bindings.encoders import RDSE, RDSE_Parameters
-from nupic.bindings.algorithms import ColumnPooler, NoTopology
+from htm import SDR, Metrics
+from htm.encoders.rdse import RDSE, RDSE_Parameters
+from htm.algorithms import ColumnPooler, NoTopology
 
 class columnPoolerTest(unittest.TestCase):
     def testGrids1D(self):
