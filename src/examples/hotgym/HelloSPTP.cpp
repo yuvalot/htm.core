@@ -54,7 +54,7 @@ Real64 BenchmarkHotgym::run(UInt EPOCHS, bool useSPlocal, bool useSPglobal, bool
   // initialize SP, TM, AnomalyLikelihood
   tInit.start();
   RDSE_Parameters encParams;
-  encParams.sparsity = 0.2f; //20% of the encoding are active bits (1's)
+  encParams.sparsity = 0.3f; //30% of the encoding are active bits (1's)
   encParams.size = DIM_INPUT; //the encoder is not optimal, it's to stress-test the SP,TM
 //  encParams.resolution = 0.002f;
   encParams.radius = 0.03f;
@@ -62,7 +62,12 @@ Real64 BenchmarkHotgym::run(UInt EPOCHS, bool useSPlocal, bool useSPglobal, bool
   RandomDistributedScalarEncoder enc( encParams );
   SpatialPooler spGlobal(enc.dimensions, vector<UInt>{COLS}); // Spatial pooler with globalInh
   SpatialPooler  spLocal(enc.dimensions, vector<UInt>{COLS}); // Spatial pooler with local inh
-  spGlobal.setGlobalInhibition(true);
+  //sp global settings
+  spGlobal.setGlobalInhibition(true); //global inh
+  spGlobal.setLocalAreaDensity(0.1f); //desired sparsity 10%
+  spGlobal.setPotentialPct(0.75f); //potential pool 75%
+  spGlobal.setPotentialRadius(4500);
+
   spLocal.setGlobalInhibition(false);
   Random rnd(42); //uses fixed seed for deterministic output checks
 

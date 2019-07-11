@@ -16,12 +16,12 @@ class BenchmarkHotgym {
 public:	
   Real64 run(
     UInt EPOCHS = 5000,
-    bool useSPlocal=true, //can toggle which (long running) components are tested, default all
+    bool useSPlocal=false, //can toggle which (long running) components are tested, default all
     bool useSPglobal=true,
     bool useTM=true,
-    const UInt COLS = 2048, // number of columns in SP, TP
-    const UInt DIM_INPUT = 1000,
-    const UInt CELLS = 8 // cells per column in TP
+    const UInt COLS = 9000, // number of columns in SP, TP
+    const UInt DIM_INPUT = 9000,
+    const UInt CELLS = 16 // cells per column in TP
   );
 
   //timers
