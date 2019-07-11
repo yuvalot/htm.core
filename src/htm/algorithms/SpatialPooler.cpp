@@ -462,7 +462,7 @@ void SpatialPooler::initialize(
 }
 
 
-void SpatialPooler::compute(const SDR &input, const bool learn, SDR &active) {
+void SpatialPooler::compute(const SDR &input, const bool learn, SDR &active) const {
   input.reshape(  inputDimensions_ );
   active.reshape( columnDimensions_ );
   updateBookeepingVars_(learn);
