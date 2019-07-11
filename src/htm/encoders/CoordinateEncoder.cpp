@@ -86,6 +86,7 @@ void CoordinateEncoder::initialize( const CoordinateEncoderParameters &parameter
   // Discard extra coordinates, from the corners of the bounding box.
   index.resize( args_.activeBits );
   // Save the coordinates of the bits we want.
+  sort( index.begin(), index.end() );
   neighborhood_.setSparse( index );
 }
 

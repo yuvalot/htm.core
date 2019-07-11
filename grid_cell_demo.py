@@ -75,9 +75,7 @@ class Environment(object):
 
 default_parameters = {'gc': {
         'fatigueRate': 0.02479904687946749,
-        'maxBurstSparsity': 0.16159121243882169,
-        'maxDepolarizedSparsity': 0.0,
-        'minSparsity': 0.0,
+        'sparsity': 0.16159121243882169,
         'period': 15452,
         'potentialPool': 0.9653887215973943,
         'proximalDecrement': 0.00041767455516643185,
@@ -87,7 +85,18 @@ default_parameters = {'gc': {
         'proximalSynapseThreshold': 0.2665465883854693,
         'stabilityRate': 0.9599504061401867,
         'proximalMinConnections': 0,
-        'proximalMaxConnections': 1,}}
+        'proximalMaxConnections': 1,
+        'distalMaxSegments': 32,
+        'distalMaxSynapsesPerSegment': 64,
+        'distalSegmentThreshold': 18,
+        'distalSegmentMatch': 11,
+        'distalAddSynapses': 27,
+        'distalInitialPermanence': .45,
+        'distalIncrement': .01,
+        'distalDecrement': .01,
+        'distalMispredictDecrement': .001,
+        'distalSynapseThreshold': .5,
+}}
 
 
 def main(parameters=default_parameters, argv=None, verbose=True):
@@ -100,8 +109,6 @@ def main(parameters=default_parameters, argv=None, verbose=True):
   # Hold these parameters constant from swarming.
   parameters['gc'].update({
     'cellsPerInhibitionArea' : 100 if args.debug else 500,
-    'maxDepolarizedSparsity' : parameters['gc']['maxBurstSparsity'],
-    'minSparsity'            : parameters['gc']['maxBurstSparsity'],
   })
 
   # Setup
@@ -133,19 +140,7 @@ def main(parameters=default_parameters, argv=None, verbose=True):
   gcm.inhibitionDimensions        = (1,)
   gcm.potentialPool               = NoTopology( parameters['gc']['potentialPool'] )
   gcm.verbose                     = True
-  gcm.proximalMinConnections      = 0.0
-  gcm.proximalMaxConnections      = 1.0
   gcm.distalInputDimensions       = [hd.size + gcm.cellsPerInhibitionArea]
-  gcm.distalMaxSegments           = 0 # 32
-  gcm.distalMaxSynapsesPerSegment = 0 # 64
-  gcm.distalAddSynapses           = 0 # 27
-  gcm.distalSegmentThreshold      = 0 # 18
-  gcm.distalSegmentMatch          = 0 # 11
-  gcm.distalSynapseThreshold      = 0 # .5
-  gcm.distalInitialPermanence     = 0 # .3
-  gcm.distalIncrement             = 0 # .01
-  gcm.distalDecrement             = 0 # .01
-  gcm.distalMispredictDecrement   = 0 # .001
   gcm = ColumnPooler(gcm)
 
   enc_sdr = enc.encode(env.position)
@@ -154,13 +149,10 @@ def main(parameters=default_parameters, argv=None, verbose=True):
   def compute(learn=True):
     enc.encode( env.position, enc_sdr )
     hd.encode(  env.angle,    hd_act )
-    # DISABLED DISTAL DENDRITES!
-    distalActive = SDR(gcm.parameters.distalInputDimensions) # .concatenate(gcm.activeCells.flatten(), hd_act)
-    distalWinner = SDR(gcm.parameters.distalInputDimensions) # .concatenate(gcm.winnerCells.flatten(), hd_act)
+    distalActive = SDR(gcm.parameters.distalInputDimensions).concatenate(SDR(gcm.activeCells).flatten(), hd_act)
     gcm.compute(
             proximalInputActive   = enc_sdr,
             distalInputActive     = distalActive,
-            distalInputLearning   = distalWinner,
             learn                 = learn)
     anomaly.append( gcm.rawAnomaly )
 

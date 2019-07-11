@@ -319,6 +319,14 @@ public:
     sort( cells.begin(), cells.end() );
     activeCells_.setSparse( cells );
 
+    rawAnomaly_ = 0.0f;
+    for( const auto cell : activeCells_.getSparse() ) {
+      if( activeSegments_[cell] == 0 ) {
+        rawAnomaly_++;
+      }
+    }
+    rawAnomaly_ /= activeCells_.getSum();
+
     if( learn ) {
       learnProximalDendrites( proximalInputActive, activeCells );
       // Don't learn if the distal dendrites are disabled, will crash.
