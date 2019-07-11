@@ -486,33 +486,6 @@ public:
   */
   void setBoostStrength(Real boostStrength);
 
-  /**
-  Returns the iteration number.
-
-  @returns integer number of iteration number.
-  */
-  UInt getIterationNum() const;
-
-  /**
-  Sets the iteration number.
-
-  @param iterationNum integer number of iteration number.
-  */
-  void setIterationNum(UInt iterationNum);
-
-  /**
-  Returns the learning iteration number.
-
-  @returns integer of the learning iteration number.
-  */
-  UInt getIterationLearnNum() const;
-
-  /**
-  Sets the learning iteration number.
-
-  @param iterationLearnNum integer of learning iteration number.
-  */
-  void setIterationLearnNum(UInt iterationLearnNum);
 
   /**
   Returns the verbosity level.
