@@ -33,6 +33,8 @@
 #include <htm/types/Serializable.hpp>
 #include <htm/types/Sdr.hpp>
 
+#include <Eigen/Core> 
+
 namespace htm {
 
 
@@ -42,9 +44,9 @@ using SegmentIdx= UInt16; /** Index of segment in cell. */
 using SynapseIdx= UInt16; /** Index of synapse in segment. */
 using Segment   = UInt32;    /** Index of segment's data. */
 using Synapse   = UInt32;    /** Index of synapse's data. */
-using Permanence= Real32; //TODO experiment with half aka float16
-const Permanence minPermanence = 0.0f;
-const Permanence maxPermanence = 1.0f;
+using Permanence= Eigen::half; //TODO experiment with half aka float16
+const Permanence minPermanence = static_cast<Permanence>(0.0);
+const Permanence maxPermanence = static_cast<Permanence>(1.0);
 
 
  /**
@@ -78,12 +80,12 @@ struct SynapseData: public Serializable {
   CerealAdapter;
   template<class Archive>
   void save_ar(Archive & ar) const {
-    ar(cereal::make_nvp("perm", permanence),
+    ar(cereal::make_nvp("perm", static_cast<Real>(permanence)), //FIXME still fails, had problems serializing Eigen::half, so cast to Real
       cereal::make_nvp("presyn", presynapticCell));
   }
   template<class Archive>
   void load_ar(Archive & ar) {
-    ar( permanence, presynapticCell);
+    ar( static_cast<Permanence>(permanence), presynapticCell);
   }
 
 };
@@ -212,7 +214,7 @@ public:
    * instead of the usual HTM inputs which reliably change every cycle.  See
    * also (Kropff & Treves, 2007. http://dx.doi.org/10.2976/1.2793335).
    */
-  Connections(CellIdx numCells, Permanence connectedThreshold = 0.5f,
+  Connections(CellIdx numCells, Permanence connectedThreshold = static_cast<Permanence>(0.5),
               bool timeseries = false);
 
   virtual ~Connections() {}
@@ -225,7 +227,7 @@ public:
    *                           disconnecting.
    * @param timeseries         See constructor.
    */
-  void initialize(CellIdx numCells, Permanence connectedThreshold = 0.5f,
+  void initialize(CellIdx numCells, Permanence connectedThreshold = static_cast<Permanence>(0.5),
                   bool timeseries = false);
 
   /**
@@ -494,7 +496,7 @@ public:
         }
       }
     }
-    ar(CEREAL_NVP(connectedThreshold_));
+    ar(CEREAL_NVP(static_cast<Real>(connectedThreshold_)));
     ar(CEREAL_NVP(sizes));
     ar(CEREAL_NVP(syndata));
   }
@@ -503,7 +505,7 @@ public:
   void load_ar(Archive & ar) {
     std::deque<size_t> sizes;
     std::deque<SynapseData> syndata;
-    ar(CEREAL_NVP(connectedThreshold_));
+    ar(CEREAL_NVP(static_cast<Permanence>(connectedThreshold_)));
     ar(CEREAL_NVP(sizes));
     ar(CEREAL_NVP(syndata));
 

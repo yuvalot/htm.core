@@ -26,10 +26,14 @@
 
 #include <htm/algorithms/Connections.hpp>
 
+#include <Eigen/Core> //Eigen::half
+
 using std::endl;
 using std::string;
 using std::vector;
 using namespace htm;
+
+using Permanence = Eigen::half;
 
 Connections::Connections(CellIdx numCells, Permanence connectedThreshold, bool timeseries) {
   initialize(numCells, connectedThreshold, timeseries);
@@ -125,7 +129,7 @@ Synapse Connections::createSynapse(Segment segment,
   synapseData.segment         = segment;
   synapseOrdinals_[synapse]   = nextSynapseOrdinal_++;
   // Start in disconnected state.
-  synapseData.permanence           = connectedThreshold_ - 1.0f;
+  synapseData.permanence           = connectedThreshold_ - static_cast<Permanence>(1.0);
   synapseData.presynapticMapIndex_ = 
     (Synapse)potentialSynapsesForPresynapticCell_[presynapticCell].size();
   potentialSynapsesForPresynapticCell_[presynapticCell].push_back(synapse);
@@ -448,8 +452,8 @@ void Connections::adaptSegment(const Segment segment,
   const auto &inputArray = inputs.getDense();
 
   if( timeseries_ ) {
-    previousUpdates_.resize( synapses_.size(), 0.0f );
-    currentUpdates_.resize(  synapses_.size(), 0.0f );
+    previousUpdates_.resize( synapses_.size(), static_cast<Permanence>(0.0) );
+    currentUpdates_.resize(  synapses_.size(), static_cast<Permanence>(0.0) );
 
     for( const auto synapse : synapsesForSegment(segment) ) {
       const SynapseData &synapseData = dataForSynapse(synapse);
@@ -530,8 +534,8 @@ void Connections::raisePermanencesToThreshold(
   // Do a partial sort, it's faster than a full sort.
   std::nth_element(synapses.begin(), minPermSynPtr, synapses.end(), permanencesGreater);
 
-  const Real increment = connectedThreshold_ - synapses_[ *minPermSynPtr ].permanence;
-  if( increment <= 0 ) // If minPermSynPtr is already connected then ...
+  const auto increment = connectedThreshold_ - synapses_[ *minPermSynPtr ].permanence;
+  if( increment <= static_cast<Permanence>(0.0) ) // If minPermSynPtr is already connected then ...
     return;            // Enough synapses are already connected.
 
   // Raise the permance of all synapses in the potential pool uniformly.
