@@ -146,7 +146,7 @@ void SpatialPooler::setNumActiveColumnsPerInhArea(UInt numActiveColumnsPerInhAre
 Real SpatialPooler::getLocalAreaDensity() const { return localAreaDensity_; }
 
 void SpatialPooler::setLocalAreaDensity(Real localAreaDensity) {
-  NTA_CHECK(localAreaDensity > 0.0f && localAreaDensity <= 1.0f);
+  NTA_CHECK(localAreaDensity > static_cast<Permanence>(0.0) && localAreaDensity <= static_cast<Permanence>(1.0));
   localAreaDensity_ = localAreaDensity;
   numActiveColumnsPerInhArea_ = DISABLED; //MUTEX with numActiveColumnsPerInhArea
 }
@@ -444,7 +444,7 @@ void SpatialPooler::initialize(
 
     // Note: initMapPotential_ & initPermanence_ return dense arrays.
     vector<UInt> potential = initMapPotential_((UInt)i, wrapAround_);
-    vector<Real> perm = initPermanence_(potential, initConnectedPct_);
+    vector<Permanence> perm = initPermanence_(potential, initConnectedPct_);
     for(UInt presyn = 0; presyn < numInputs_; presyn++) {
       if( potential[presyn] )
         connections_.createSynapse( (Segment)i, presyn, perm[presyn] );
@@ -493,7 +493,7 @@ void SpatialPooler::compute(const SDR &input, const bool learn, SDR &active) {
 
 void SpatialPooler::boostOverlaps_(const vector<SynapseIdx> &overlaps, //TODO use Eigen sparse vector here
                                    vector<Real> &boosted) const {
-  if(boostStrength_ < htm::Epsilon) { //boost ~ 0.0, we can skip these computations, just copy the data
+  if(boostStrength_ < static_cast<Real>(htm::Epsilon)) { //boost ~ 0.0, we can skip these computations, just copy the data
     boosted.assign(overlaps.begin(), overlaps.end());
     return;
   }
@@ -545,19 +545,19 @@ vector<UInt> SpatialPooler::initMapPotential_(UInt column, bool wrapAround) {
 }
 
 
-Real SpatialPooler::initPermConnected_() {
-  return rng_.realRange(synPermConnected_, maxPermanence);
+Permanence SpatialPooler::initPermConnected_() {
+  return static_cast<Permanence>(rng_.realRange(synPermConnected_, maxPermanence));
 }
 
 
-Real SpatialPooler::initPermNonConnected_() {
-  return rng_.realRange(minPermanence, synPermConnected_);
+Permanence SpatialPooler::initPermNonConnected_() {
+  return static_cast<Permanence>(rng_.realRange(minPermanence, synPermConnected_));
 }
 
 
-vector<Real> SpatialPooler::initPermanence_(const vector<UInt> &potential, //TODO make potential sparse
-                                            Real connectedPct) {
-  vector<Real> perm(numInputs_, 0);
+vector<Permanence> SpatialPooler::initPermanence_(const vector<UInt> &potential, //TODO make potential sparse
+                                                  const Real connectedPct) {
+  vector<Permanence> perm(numInputs_, 0);
   for (UInt i = 0; i < numInputs_; i++) {
     if (potential[i] < 1) {
       continue;
@@ -755,7 +755,7 @@ void SpatialPooler::updateBoostFactors_() {
 void applyBoosting_(const UInt i,
 		    const Real targetDensity, 
 		    const vector<Real>& actualDensity,
-		    const Real boost,
+		    const Permanence boost,
 	            vector<Real>& output) {
   if(boost < htm::Epsilon) return; //skip for disabled boosting
   output[i] = exp((targetDensity - actualDensity[i]) * boost); //TODO doc this code
