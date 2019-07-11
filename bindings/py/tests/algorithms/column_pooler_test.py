@@ -33,47 +33,56 @@ from htm.encoders.rdse import RDSE, RDSE_Parameters
 from htm.algorithms import ColumnPooler, NoTopology
 
 class columnPoolerTest(unittest.TestCase):
-    def testGrids1D(self):
-      env_size = 1000
+  def testGrids1D(self):
+    env_size = 1000
 
-      enc = RDSE_Parameters()
-      enc.size          = 2500
-      enc.activeBits    = 75
-      enc.radius        = 1
-      enc = RDSE(enc)
+    enc = RDSE_Parameters()
+    enc.size          = 2500
+    enc.activeBits    = 75
+    enc.radius        = 1
+    enc = RDSE(enc)
 
-      gcm = ColumnPooler.defaultParameters
-      gcm.stabilityRate               = 1 - 0.05
-      gcm.fatigueRate                 = 0.05 / 3
-      gcm.proximalInputDimensions     = (enc.size,)
-      gcm.inhibitionDimensions        = (1,)
-      gcm.cellsPerInhibitionArea      = 200
-      gcm.proximalSynapseThreshold    = 0.25
-      gcm.sparsity                    = .2
-      gcm.proximalIncrement           = 0.005
-      gcm.proximalDecrement           = 0.0008
-      gcm.proximalSegments            = 1
-      gcm.proximalSegmentThreshold    = 10
-      gcm.period                      = env_size
-      gcm.potentialPool               = NoTopology( 0.95 )
-      gcm.verbose                     = True
-      gcm.distalAddSynapses           = 0
-      gcm.distalInputDimensions       = (1,)
-      gcm = ColumnPooler(gcm)
+    gcm = ColumnPooler.defaultParameters
+    gcm.stabilityRate               = 1 - 0.05
+    gcm.fatigueRate                 = 0.05 / 3
+    gcm.proximalInputDimensions     = (enc.size,)
+    gcm.inhibitionDimensions        = (1,)
+    gcm.cellsPerInhibitionArea      = 400
+    gcm.proximalSynapseThreshold    = 0.25
+    gcm.sparsity                    = .1
+    gcm.proximalIncrement           = 0.005
+    gcm.proximalDecrement           = 0.0008
+    gcm.proximalSegments            = 1
+    gcm.proximalSegmentThreshold    = 10
+    gcm.period                      = env_size
+    gcm.potentialPool               = NoTopology( 0.95 )
+    gcm.verbose                     = True
 
-      gc_metrics = Metrics(gcm.cellDimensions, env_size)
-      gcm.reset()
-      for position in range( env_size ):
-        gc_sdr = SDR( gcm.cellDimensions )
-        gcm.compute( enc.encode(position), True, gc_sdr)
-        gc_metrics.addData( gc_sdr )
-      print("Grid Cell Metrics", str(gc_metrics))
+    gcm.distalInputDimensions       = (0,)
+    gcm.distalMaxSegments           = 100
+    gcm.distalMaxSynapsesPerSegment = 50
+    gcm.distalSegmentThreshold      = 10
+    gcm.distalSegmentMatch          = 6
+    gcm.distalAddSynapses           = 20
+    gcm.distalInitialPermanence     = .5
+    gcm.distalIncrement             = .05
+    gcm.distalDecrement             = .02
+    gcm.distalMispredictDecrement   = .005
+    gcm.distalSynapseThreshold      = .6
+    gcm = ColumnPooler(gcm)
 
-      assert( gc_metrics.activationFrequency.min() > .20 *  .50 )
-      assert( gc_metrics.activationFrequency.max() < .20 * 1.50 )
-      assert( gc_metrics.overlap.min()  > .45 )
-      assert( gc_metrics.overlap.max()  < .95 )
+    gc_metrics = Metrics(gcm.cellDimensions, env_size)
+    gcm.reset()
+    for position in range( env_size ):
+      gcm.compute( enc.encode(position), True )
+      gc_metrics.addData( gcm.activeCells )
+    print("Grid Cell Metrics", str(gc_metrics))
 
-      assert( gc_metrics.overlap.mean() > .70 )
-      assert( gc_metrics.overlap.mean() < .80 )
-      assert( gc_metrics.overlap.std()  < .10 )
+    assert( gc_metrics.activationFrequency.min() > .10 *  .50 )
+    assert( gc_metrics.activationFrequency.max() < .10 * 1.50 )
+    assert( gc_metrics.overlap.min()  > .45 )
+    assert( gc_metrics.overlap.max()  < .95 )
+
+    assert( gc_metrics.overlap.mean() > .70 )
+    assert( gc_metrics.overlap.mean() < .80 )
+    assert( gc_metrics.overlap.std()  < .10 )
