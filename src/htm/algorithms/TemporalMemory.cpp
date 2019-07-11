@@ -97,10 +97,10 @@ void TemporalMemory::initialize(
   NTA_CHECK(columnDimensions.size() > 0) << "Number of column dimensions must be greater than 0";
   NTA_CHECK(cellsPerColumn > 0) << "Number of cells per column must be greater than 0";
 
-  NTA_CHECK(initialPermanence >= 0.0 && initialPermanence <= 1.0);
-  NTA_CHECK(connectedPermanence >= 0.0 && connectedPermanence <= 1.0);
-  NTA_CHECK(permanenceIncrement >= 0.0 && permanenceIncrement <= 1.0);
-  NTA_CHECK(permanenceDecrement >= 0.0 && permanenceDecrement <= 1.0);
+  NTA_CHECK(initialPermanence   >= static_cast<Permanence>(0.0) && initialPermanence   <= static_cast<Permanence>(1.0));
+  NTA_CHECK(connectedPermanence >= static_cast<Permanence>(0.0) && connectedPermanence <= static_cast<Permanence>(1.0));
+  NTA_CHECK(permanenceIncrement >= static_cast<Permanence>(0.0) && permanenceIncrement <= static_cast<Permanence>(1.0));
+  NTA_CHECK(permanenceDecrement >= static_cast<Permanence>(0.0) && permanenceDecrement <= static_cast<Permanence>(1.0));
   NTA_CHECK(minThreshold <= activationThreshold);
 
   // Save member variables
@@ -186,8 +186,8 @@ static void adaptSegment(Connections &connections, Segment segment,
       permanence -= permanenceDecrement;
     }
 
-    permanence = min(permanence, (Permanence)1.0);
-    permanence = max(permanence, (Permanence)0.0);
+    permanence = min(permanence, static_cast<Permanence>(1.0));
+    permanence = max(permanence, static_cast<Permanence>(0.0));
 
     if (permanence < htm::Epsilon) {
       connections.destroySynapse(synapses[i]);
@@ -395,7 +395,7 @@ static void punishPredictedColumn(
     vector<Segment>::const_iterator columnMatchingSegmentsEnd,
     const vector<bool> &prevActiveCellsDense,
     Permanence predictedSegmentDecrement) {
-  if (predictedSegmentDecrement > 0.0) {
+  if (predictedSegmentDecrement > static_cast<Permanence>(0.0)) {
     for (auto matchingSegment = columnMatchingSegmentsBegin;
          matchingSegment != columnMatchingSegmentsEnd; matchingSegment++) {
       adaptSegment(connections, *matchingSegment, prevActiveCellsDense,
