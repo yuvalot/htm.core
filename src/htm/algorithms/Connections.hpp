@@ -35,6 +35,7 @@
 
 namespace htm {
 
+
 //TODO instead of typedefs, use templates for proper type-checking?
 using CellIdx   = htm::ElemSparse; // CellIdx must match with ElemSparse, defined in Sdr.hpp
 using SegmentIdx= UInt16; /** Index of segment in cell. */
@@ -44,6 +45,16 @@ using Synapse   = UInt32;    /** Index of synapse's data. */
 using Permanence= Real32; //TODO experiment with half aka float16
 const Permanence minPermanence = 0.0f;
 const Permanence maxPermanence = 1.0f;
+
+
+ /**
+  * Epsilon is defined for the whole math and algorithms of the Numenta
+  * Platform, independently of the concrete type chosen to handle floating point
+  * numbers.
+  *     numeric_limits<float>::epsilon()  == 1.19209e-7
+  *     numeric_limits<double>::epsilon() == 2.22045e-16
+  */
+  static const Permanence Epsilon = static_cast<Permanence>(1e-6);
 
 
 /**
