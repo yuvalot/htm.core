@@ -70,9 +70,7 @@ public:
   vector<UInt> inhibitionDimensions;
   UInt         cellsPerInhibitionArea;
 
-  Real minSparsity            = 0.02f;
-  Real maxBurstSparsity       = 0.10f; // TODO: Reformulate this as cellsPerMiniColumn * minSparsity
-  Real maxDepolarizedSparsity = 0.05f; // TODO: Reformulate this as maxPredictionsPerMiniColumn * minSparsity
+  Real sparsity = 0.02f;
 
   Topology_t  potentialPool     = NoTopology(1.0f);
   UInt        proximalSegments  = 1u;
@@ -116,7 +114,7 @@ private:
   // Proximal Dendrite Data:
   // TODO: Move distalConnections here, expose public references to all of this junk!
   vector<UInt16> rawOverlaps_;
-  vector<Real>   cellOverlaps_;
+  vector<Real>   proximalOverlaps_;
   vector<UInt>   proximalMaxSegment_;
   ActivationFrequency *AF_;   // This is used by boosting.
   vector<Real> X_act;
@@ -127,34 +125,28 @@ private:
   // TODO: Move distalConnections here, expose public references to all of this junk!
   vector<SynapseIdx> numActiveConnectedSynapsesForSegment_;
   vector<SynapseIdx> numActivePotentialSynapsesForSegment_;
-  SDR predictiveCells_;
+  vector<SegmentIdx> activeSegments_;
   vector<UInt> lastUsedIterationForSegment_;
 
   SDR activeCells_;
-  SDR winnerCells_;
 
-  Real rawAnomaly_;
+  Real rawAnomaly_;     // TODO Unimplemented
   Real meanAnomaly_;    // TODO Unimplemented
   Real varAnomaly_;     // TODO Unimplemented
 
   UInt iterationNum_;
-  UInt iterationLearnNum_;
   Random rng_;
 
 public:
-  const Parameters   &parameters     = args_;
-  const vector<UInt> &cellDimensions = cellDimensions_;
-  const vector<UInt> &dimensions     = cellDimensions;
-  const UInt         &size           = size_;
-
-  const SDR & activeCells     = activeCells_;
-  const SDR & predictiveCells = predictiveCells_;
-  const SDR & winnerCells     = winnerCells_;
+  const Parameters   & parameters     = args_;
+  const vector<UInt> & cellDimensions = cellDimensions_;
+  const vector<UInt> & dimensions     = cellDimensions;
+  const UInt         & size           = size_;
+  const SDR          & activeCells    = activeCells_;
 
   const Real & rawAnomaly = rawAnomaly_;
 
   const UInt &iterationNum      = iterationNum_;
-  const UInt &iterationLearnNum = iterationLearnNum_;
 
   /**
    * The proximal connections have regular structure.  Cells in an inhibition
@@ -176,9 +168,7 @@ public:
     NTA_CHECK( parameters.cellsPerInhibitionArea > 0u );
 
     #define RANGE_0_to_1(P) ( P >= 0.0f && P <= 1.0 )
-    NTA_CHECK( RANGE_0_to_1( parameters.minSparsity ));
-    NTA_CHECK( RANGE_0_to_1( parameters.maxBurstSparsity ));
-    NTA_CHECK( RANGE_0_to_1( parameters.maxDepolarizedSparsity ));
+    NTA_CHECK( RANGE_0_to_1( parameters.sparsity ));
     NTA_CHECK( RANGE_0_to_1( parameters.proximalIncrement ));
     NTA_CHECK( RANGE_0_to_1( parameters.proximalDecrement ));
     NTA_CHECK( RANGE_0_to_1( parameters.proximalSynapseThreshold ));
@@ -193,15 +183,13 @@ public:
     NTA_CHECK( RANGE_0_to_1( parameters.fatigueRate ));
     #undef RANGE_0_to_1
 
-    NTA_CHECK( parameters.minSparsity * parameters.cellsPerInhibitionArea > 0.5f )
-      << "Not enough cellsPerInhibitionArea ("
-      << args_.cellsPerInhibitionArea << ") for desired density (" << args_.minSparsity << ").";
+    NTA_CHECK( parameters.sparsity * parameters.cellsPerInhibitionArea > 0.5f )
+      << "cellsPerInhibitionArea (" << args_.cellsPerInhibitionArea
+      << ") is too small for desired density (" << args_.sparsity << ").";
 
     NTA_CHECK( SDR(parameters.inhibitionDimensions).size > 0 )
         << "Must have at least one inhibition area.";
 
-    NTA_CHECK( parameters.minSparsity <= parameters.maxBurstSparsity );
-    NTA_CHECK( parameters.minSparsity <= parameters.maxDepolarizedSparsity );
     NTA_CHECK( parameters.distalSegmentMatch <= parameters.distalSegmentThreshold );
 
     args_ = parameters;
@@ -211,7 +199,6 @@ public:
     cellDimensions_.push_back( args_.cellsPerInhibitionArea );
     SDR cells( cellDimensions_ );
     activeCells_.initialize( cells.dimensions );
-    winnerCells_.initialize( cells.dimensions );
     size_ = cells.size;
     rng_ = Random(args_.seed);
 
@@ -260,25 +247,24 @@ public:
     }
     // Setup Proximal data structures.
     rawOverlaps_.resize( proximalConnections.numSegments() );
-    cellOverlaps_.resize( cells.size );
+    proximalOverlaps_.resize( cells.size );
     proximalMaxSegment_.resize( cells.size );
     tieBreaker_.resize( proximalConnections.numSegments() );
     for(auto i = 0u; i < tieBreaker_.size(); ++i) {
       tieBreaker_[i] = 0.01f * rng_.getReal64();
     }
     AF_ = new ActivationFrequency( {cells.size, args_.proximalSegments},
-                        args_.period, args_.minSparsity / args_.proximalSegments );
+                        args_.period, args_.sparsity / args_.proximalSegments );
 
     // Setup Distal dendrites.
     distalConnections.initialize(cells.size, args_.distalSynapseThreshold, true);
     lastUsedIterationForSegment_.clear();
-    predictiveCells_.initialize( cellDimensions );
     if( args_.distalInputDimensions == vector<UInt>{0} ) {
       args_.distalInputDimensions = cellDimensions;
     }
+    activeSegments_.resize(cells.size);
 
-    iterationNum_      = 0u;
-    iterationLearnNum_ = 0u;
+    iterationNum_ = 0u;
 
     reset();
 
@@ -296,52 +282,52 @@ public:
     X_inact.assign( proximalConnections.numCells(), 0.0f );
     proximalConnections.reset();
     distalConnections.reset();
-    predictiveCells_.zero();
+    activeSegments_.clear();
     rawAnomaly_ = -1.0f;
     activeCells_.zero();
-    winnerCells_.zero();
     // TODO: Clear misc. internal data.  If it is publicly visible is should be zero'd!
   }
 
 
   void compute( const SDR& proximalInputActive, bool learn ) {
     SDR previousActiveCells(activeCells_);
-    SDR previousWinnerCells(winnerCells_);
-    compute( proximalInputActive, previousActiveCells, previousWinnerCells, learn);
+    compute( proximalInputActive, previousActiveCells, learn);
   }
 
   void compute(
         const SDR& proximalInputActive,
         const SDR& distalInputActive,
-        const SDR& distalInputWinner,
-        const bool learn) {
+        const bool learn)
+  {
     NTA_CHECK( proximalInputActive.dimensions == args_.proximalInputDimensions );
     NTA_CHECK( distalInputActive.dimensions   == args_.distalInputDimensions );
-    NTA_CHECK( distalInputWinner.dimensions   == args_.distalInputDimensions );
-    // Update bookkeeping
     iterationNum_++;
-    if( learn )
-      iterationLearnNum_++;
 
-    // Feed Forward Input / Proximal Dendrites
+    // Compute dendrites
     computeProximalDendrites( proximalInputActive );
+    computeDistalDendrites( distalInputActive );
 
-    computeDistalDendrites( distalInputActive, learn );
-
-    activeCells_.getSparse().clear();
-    winnerCells_.getSparse().clear();
-    // TODO: Parallelize this loop.
+    // Compute cell states
+    auto & cells = activeCells_.getSparse();
+    cells.clear();
     for(UInt offset = 0u; offset < activeCells_.size; offset += args_.cellsPerInhibitionArea) {
-      computeInhibitionArea(
-            offset, offset + args_.cellsPerInhibitionArea, learn,
-            distalInputActive, distalInputWinner,
-            activeCells_.getSparse(), winnerCells_.getSparse());
+        const auto active = computeInhibitionArea(offset, offset + args_.cellsPerInhibitionArea);
+        for( const auto x : active ) {
+          cells.push_back( x );
+        }
     }
-    activeCells_.setSparse( activeCells_.getSparse() );
-    winnerCells_.setSparse( winnerCells_.getSparse() );
+    sort( cells.begin(), cells.end() );
+    activeCells_.setSparse( cells );
 
     if( learn ) {
       learnProximalDendrites( proximalInputActive, activeCells );
+      // Don't learn if the distal dendrites are disabled, will crash.
+      if( args_.distalMaxSegments           > 0u &&
+          args_.distalMaxSynapsesPerSegment > 0u &&
+          args_.distalAddSynapses           > 0u )
+      {
+        learnDistalDendrites( distalInputActive );
+      }
     }
   }
 
@@ -353,7 +339,7 @@ public:
     proximalConnections.computeActivity(rawOverlaps_, feedForwardInputs.getSparse());
 
     // Setup for Boosting
-    const Real denominator = 1.0f / log2( args_.minSparsity / args_.proximalSegments );
+    const Real denominator = 1.0f / log2( args_.sparsity / args_.proximalSegments );
     const auto &af = AF_->activationFrequency;
 
     // Process Each Segment of Each Cell
@@ -375,7 +361,7 @@ public:
         overlap *= log2( af[segment] ) * denominator;
 
         // Exponential Boosting Function
-        // overlap *= exp((args_.minSparsity - af[segment]) * 25.0);
+        // overlap *= exp((args_.sparsity - af[segment]) * 25.0);
 
         // Maximum Segment Overlap Becomes Cell Overlap
         if( overlap > maxOverlap ) {
@@ -388,37 +374,24 @@ public:
       // Apply Stability & Fatigue
       X_act[cell]   += (1.0f - args_.stabilityRate) * (maxOverlap - X_act[cell] - X_inact[cell]);
       X_inact[cell] += args_.fatigueRate * (maxOverlap - X_inact[cell]);
-      cellOverlaps_[cell] = X_act[cell];
-    }
-  }
-
-
-  void applyProximalSegmentThreshold( vector<UInt> &cells, UInt threshold )
-  {
-    for( Int idx = cells.size() - 1; idx >= 0; --idx )
-    {
-      const auto maxSeg  = proximalMaxSegment_[ cells[idx] ];
-      const auto segOvlp = rawOverlaps_[ maxSeg ];
-      if( segOvlp < threshold )
-      {
-        cells[idx] = cells.back();
-        cells.pop_back();
-      }
+      proximalOverlaps_[cell] = X_act[cell];
     }
   }
 
 
   void learnProximalDendrites( const SDR &proximalInputActive,
-                               const SDR &active ) {
+                               const SDR &active )
+  {
     SDR AF_SDR( AF_->dimensions );
     auto &activeSegments = AF_SDR.getSparse();
-    for(const auto &cell : active.getSparse())
+    for( const auto cell : active.getSparse() )
     {
-      const auto &maxSegment = proximalMaxSegment_[cell];
-      proximalConnections.adaptSegment(maxSegment, proximalInputActive,
-                                       args_.proximalIncrement, args_.proximalDecrement);
+      const auto & maxSegment = proximalMaxSegment_[ cell ];
+      proximalConnections.adaptSegment(
+          maxSegment, proximalInputActive,
+          args_.proximalIncrement, args_.proximalDecrement);
 
-      const auto numPotentialSyn = proximalConnections.dataForSegment( maxSegment ).synapses.size();
+      // const auto numPotentialSyn = proximalConnections.dataForSegment( maxSegment ).synapses.size();
       // proximalConnections.synapseCompetition(maxSegment,
       //           (SynapseIdx) (args_.proximalMinConnections * numPotentialSyn),
       //           (SynapseIdx) (args_.proximalMaxConnections * numPotentialSyn));
@@ -430,7 +403,7 @@ public:
   }
 
 
-  void computeDistalDendrites( const SDR& distalInputActive, bool learn )
+  void computeDistalDendrites( const SDR& distalInputActive )
   {
     const size_t length = distalConnections.segmentFlatListLength();
     numActiveConnectedSynapsesForSegment_.assign( length, 0u );
@@ -439,32 +412,14 @@ public:
                                       numActivePotentialSynapsesForSegment_,
                                       distalInputActive.getSparse() );
 
-    // Activate segments, connected synapses.
-    vector<Segment> activeSegments_;
-    for( Segment segment = 0; segment < length; segment++ ) {
-      if( numActiveConnectedSynapsesForSegment_[segment] >= args_.distalSegmentThreshold ) {
-        activeSegments_.push_back(segment);
-      }
-    }
-    std::sort(
-        activeSegments_.begin(), activeSegments_.end(),
-        [&](Segment a, Segment b) { return distalConnections.compareSegments(a, b); });
-
-    // Distal dendrites make predictions.
-    auto &predCellsVec = predictiveCells_.getSparse();
-    predCellsVec.clear();
-    for( auto segment = activeSegments_.cbegin(); segment != activeSegments_.cend(); segment++) {
-      CellIdx cell = distalConnections.cellForSegment(*segment);
-      if( segment == activeSegments_.begin() || cell != predCellsVec.back()) {
-        predCellsVec.push_back(cell);
-      }
-    }
-    predictiveCells_.setSparse( predCellsVec );
-
-    // Update segment bookkeeping.
-    if( learn ) {
-      for( const auto segment : activeSegments_ ) {
-        lastUsedIterationForSegment_[segment] = iterationNum_;
+    // Count the activate segments per cell.
+    activeSegments_.assign( size, 0.0f );
+    for( CellIdx c = 0; c < size; c++) {
+      const auto & segments = distalConnections.segmentsForCell( c );
+      for( Segment s : segments ) {
+        if( numActiveConnectedSynapsesForSegment_[s] >= args_.distalSegmentThreshold ) {
+          activeSegments_[c]++;
+        }
       }
     }
   }
@@ -501,8 +456,8 @@ public:
                     const SynapseIdx nDesiredNewSynapses,
                     const Permanence initialPermanence,
                     const SynapseIdx maxSynapsesPerSegment,
-                    const SDR &distalInputWinnerPrevious) {
-
+                    const SDR &distalInputWinnerPrevious)
+  {
     auto &prevWinnerCells = distalInputWinnerPrevious.getSparse();
     std::sort(prevWinnerCells.begin(), prevWinnerCells.end());
     SDR_sparse_t candidates( prevWinnerCells.begin(), prevWinnerCells.end() ); // copy
@@ -546,8 +501,8 @@ public:
 
 
   void learnDistalSegment( const Segment segment,
-                          const SDR & distalInputActivePrevious,
-                          const SDR & distalInputWinnerPrevious) {
+                           const SDR & distalInputActivePrevious)
+  {
     distalConnections.adaptSegment( segment, distalInputActivePrevious,
                                     args_.distalIncrement, args_.distalDecrement);
 
@@ -557,126 +512,31 @@ public:
       growSynapses( segment, nGrowDesired,
                     args_.distalInitialPermanence,
                     args_.distalMaxSynapsesPerSegment,
-                    distalInputWinnerPrevious);
+                    distalInputActivePrevious);
     }
   }
 
 
-  void learnDistalDendritesPredicted( const SDR_sparse_t &predictedActive,
-                                      const SDR & distalInputActivePrevious,
-                                      const SDR & distalInputWinnerPrevious,
-                                            SDR_sparse_t &winner)
+  void learnDistalDendrites( const SDR & distalInputActivePrevious )
   {
-    for( const auto cell : predictedActive ) {
-      for( const auto segment : distalConnections.segmentsForCell( cell )) {
-        if( numActiveConnectedSynapsesForSegment_[segment] >= args_.distalSegmentThreshold ) {
-          learnDistalSegment( segment, distalInputActivePrevious, distalInputWinnerPrevious );
-        }
-      }
-      winner.push_back( cell ); // All predicted active cells are winner cells.
-    }
-  }
-
-
-  void learnDistalDendritesUnpredicted(
-      const SDR    &distalInputActivePrevious,
-      const SDR    &distalInputWinnerPrevious,
-      SDR_sparse_t &unpredictedActive,
-      UInt          numWinners,
-      SDR_sparse_t &winner)
-  {
-    // Promote some of the unpredicted active cells to winners / learning.
-    NTA_ASSERT( unpredictedActive.size() >= numWinners);
-
-    // First find all matching segments.
-    // MatchData is pair of (numActivePotentialSynapsesForSegment_[segment], segment)
-    typedef pair<SynapseIdx, Segment> MatchData;
-    vector<MatchData> matches;
-    // Find best match for each cell.
-    for( const auto cell : unpredictedActive ) {
-      Segment bestSegment;
-      int     bestMatch   = -1;
-      for( const auto segment : distalConnections.segmentsForCell( cell )) {
-        if( numActivePotentialSynapsesForSegment_[segment] >= args_.distalSegmentMatch ) {
-          if( (int) numActivePotentialSynapsesForSegment_[segment] > bestMatch ) {
-            bestMatch   = (int) numActivePotentialSynapsesForSegment_[segment];
-            bestSegment = segment;
+    const auto & dense = activeCells_.getDense();
+    for( CellIdx cell = 0; cell < size; cell++ ) {
+      if( dense[cell] ) {
+        // Active cells learn.
+        UInt nr_segs_learned = 0;
+        for( const auto segment : distalConnections.segmentsForCell( cell )) {
+          if( numActivePotentialSynapsesForSegment_[segment] >= args_.distalSegmentMatch ) {
+            learnDistalSegment( segment, distalInputActivePrevious );
+            nr_segs_learned++;
           }
         }
-      }
-      if( bestMatch != -1 ) {
-        matches.emplace_back( (SynapseIdx) bestMatch, bestSegment );
-      }
-    }
-
-    if( matches.size() > numWinners ) {
-      // Too many matching segments, use only the best matches.
-      const auto bestMatchingSegmentCompare =
-          [&](const MatchData &A, const MatchData &B) -> bool
-              { return A.first > B.first; };
-      std::nth_element( matches.begin(),
-                        matches.begin() + numWinners,
-                        matches.end(),
-                        bestMatchingSegmentCompare );
-      matches.resize( numWinners );
-    }
-
-    for( const MatchData &match : matches ) {
-      const auto cell = distalConnections.cellForSegment( match.second );
-      winner.push_back( cell );
-      learnDistalSegment( match.second, distalInputActivePrevious, distalInputWinnerPrevious );
-    }
-    // cerr << matches.size() << " / " << numWinners << endl;
-    numWinners -= matches.size();
-
-    if( numWinners > 0u ) {
-      // Initializse new segments on the cells with the fewest distal segments.
-      numWinners = min( numWinners, (UInt) unpredictedActive.size() );
-      const auto least_used = [&](const UInt &A, const UInt &B) -> bool
-          { return distalConnections.numSegments( A ) < distalConnections.numSegments( B ); };
-
-      // TODO: Random tie breaker to this!
-      // TODO: Exclude matching segments!
-      std::nth_element( unpredictedActive.begin(),
-                        unpredictedActive.begin() + numWinners,
-                        unpredictedActive.end(),
-                        least_used);
-
-      for( auto cellIter = unpredictedActive.begin();
-                cellIter != unpredictedActive.begin() + numWinners;
-                ++cellIter )
-      {
-        winner.push_back( *cellIter );
-        auto segment = createDistalSegment( *cellIter );
-        learnDistalSegment( segment, distalInputActivePrevious, distalInputWinnerPrevious );
-      }
-    }
-  }
-
-
-  void learnDistalDendritesMispredicted(
-            const UInt    areaStart,
-            const UInt    areaEnd,
-            SDR_sparse_t &predictedActive,
-            SDR_sparse_t &unpredictedActive,
-            const SDR    &distalInputActivePrevious)
-  {
-    if( args_.distalMispredictDecrement == 0.0f )
-        { return; }
-    std::sort( predictedActive.begin(),   predictedActive.end() );
-    std::sort( unpredictedActive.begin(), unpredictedActive.end() );
-    auto predictedActiveIter   = predictedActive.begin();
-    auto unpredictedActiveIter = unpredictedActive.begin();
-    // TODO: Sentinels!
-    for( auto cell = areaStart; cell < areaEnd; ++cell ) {
-      if( cell == *predictedActiveIter ) {
-        predictedActiveIter++;
-      }
-      else if( cell == *unpredictedActiveIter ) {
-        unpredictedActiveIter++;
+        if( nr_segs_learned == 0 ) {
+          auto segment = createDistalSegment( cell );
+          learnDistalSegment( segment, distalInputActivePrevious );
+        }
       }
       else {
-        // Matching segments, potential synapses.
+        // Inactive cells punish mispredictions.
         for( const auto segment : distalConnections.segmentsForCell( cell )) {
           if( numActivePotentialSynapsesForSegment_[segment] >= args_.distalSegmentMatch ) {
             distalConnections.adaptSegment( segment, distalInputActivePrevious,
@@ -688,111 +548,82 @@ public:
   }
 
 
-  void computeInhibitionArea(
-            const UInt    areaStart,
-            const UInt    areaEnd,
-            const bool    learn,
-            const SDR&    distalInputActive,
-            const SDR&    distalInputWinner,
-            SDR_sparse_t &active,
-            SDR_sparse_t &winner)
+  SDR_sparse_t computeInhibitionArea(
+      const UInt areaStart,
+      const UInt areaEnd)
   {
     // Inhibition areas are contiguous blocks of cells, find the size of it.
     const auto areaSize = areaEnd - areaStart;
-    // Compare the cell indexes by their feed-forward / proximal overlap.
-    auto compare = [&](const UInt &a, const UInt &b) -> bool
-                    { return cellOverlaps_[a] > cellOverlaps_[b]; };
+    const UInt targetActiveCells = round( areaSize * args_.sparsity );
 
-    // Proximal competition, Qualifying round of competition.  This does not
-    // activate cells, but rather disqualifies cells which clearly lost the
-    // competition for feed-forward / proximal input.
-    const UInt maxDesired = round( areaSize *
-                  max( args_.maxDepolarizedSparsity, args_.maxBurstSparsity) );
-    SDR_sparse_t qualifiedCells;  qualifiedCells.reserve( areaSize );
-    for( auto cell = areaStart; cell < areaEnd; ++cell )
-        { qualifiedCells.push_back( cell ); }
-    // Do a partial sort to divide the winners from the losers.  This sort is
-    // faster than a regular sort because it stops after it partitions the
-    // elements about the Nth element, with all elements on their correct side
-    // of the Nth element.
-    std::nth_element( qualifiedCells.begin(),
-                      qualifiedCells.begin() + maxDesired,
-                      qualifiedCells.end(),
-                      compare);
-    // Remove cells which lost the competition.
-    qualifiedCells.resize( maxDesired );
-    // Apply activation threshold to proximal segments.
-    applyProximalSegmentThreshold( qualifiedCells, args_.proximalSegmentThreshold );
-
-    // Sort qualified cells by feed-forward / proximal overlap.  This allows for
-    // running the competition by iterating through the sorted list.
-    std::sort( qualifiedCells.begin(), qualifiedCells.end(), compare );
-
-    // Run the first round of competition, for predicted / deplarized cells.
-    const UInt predictedNumDesired = round( args_.maxDepolarizedSparsity * areaSize );
-    const auto &predictiveCellsDense = predictiveCells_.getDense();
-    // Also split the cells into predicted & unpredicted lists.  Make big lists
-    // of activations, and then selectively remove the loser cells from them.
-    SDR_sparse_t predictedActive;
-    SDR_sparse_t unpredictedActive;
-    for( const auto cell : qualifiedCells ) {
-      if( predictiveCellsDense[cell] ) {
-        if( predictedActive.size() < predictedNumDesired ) {
-          // Activate this predicted / depolarized cell right now.
-          predictedActive.push_back( cell );
-          active.push_back( cell );
+    // Competition for most distal inputs.  In this phase cells need both feed
+    // forward / proximal and predictive / distal support.
+    SDR_sparse_t activeCells;  activeCells.reserve( areaSize );
+    for( auto cell = areaStart; cell < areaEnd; ++cell ) {
+      if( proximalOverlaps_[cell] > args_.proximalSegmentThreshold ) {
+        if( activeSegments_[cell] > 0 ) {
+          activeCells.push_back( cell );
+        }
+      }
+    }
+    if( activeCells.size() > targetActiveCells ) {
+      // Compare the cell indexes by their distal inputs, and use the proximal
+      // input as a tiebreaker.
+      auto compare1 = [&](const UInt &a, const UInt &b) -> bool
+      {
+        const auto distal_a = activeSegments_[a];
+        const auto distal_b = activeSegments_[b];
+        if( distal_a == distal_b ) {
+          return proximalOverlaps_[a] > proximalOverlaps_[b];
         }
         else {
-          // Have reached maximum allowed of predicted active cells.  We can
-          // guarentee that there will be no unpredictedActive cells, so don't
-          // keep looking for them.
-          break;
+          return distal_a > distal_b;
+        }
+      };
+      // Do a partial sort to divide the winners from the losers.  This sort is
+      // faster than a regular sort because it stops after it partitions the
+      // elements about the Nth element, with all elements on their correct side
+      // of the Nth element.
+      std::nth_element( activeCells.begin(),
+                        activeCells.begin() + targetActiveCells,
+                        activeCells.end(),
+                        compare1);
+      // Remove cells which lost the competition.
+      activeCells.resize( targetActiveCells );
+    }
+
+    // If we have not yet reached the target sparsity, then activate cells with
+    // feed forward support but no lateral support.
+    if( activeCells.size() < targetActiveCells ) {
+      const UInt proxCompActivate = targetActiveCells - activeCells.size();
+      // First build a list of all cells which are not yet active.
+      vector<CellIdx> proximalCompetition;
+      activeCells.push_back(-1); // Append a sentinel.
+      auto alreadyActive = activeCells.begin();
+      for( auto cell = areaStart; cell < areaEnd; ++cell ) {
+        if( cell == *alreadyActive ) {
+          alreadyActive++;
+        }
+        else {
+          proximalCompetition.push_back( cell );
         }
       }
-      else {
-        // Maybe activate this cell if the predictive cells miss their quota and
-        // this cell wins the competitions.
-        unpredictedActive.push_back( cell );
+      activeCells.pop_back(); // Remove the sentinel.
+
+      auto compareProximalOverlap = [&](const UInt &a, const UInt &b) -> bool
+          {return proximalOverlaps_[a] > proximalOverlaps_[b]; };
+      std::nth_element( proximalCompetition.begin(),
+                        proximalCompetition.begin() + proxCompActivate,
+                        proximalCompetition.end(),
+                        compareProximalOverlap);
+      proximalCompetition.resize( proxCompActivate );
+
+      for(const auto cell : proximalCompetition) {
+        activeCells.push_back( cell );
       }
     }
 
-    // Run the second round of competition, to meet the quota of active cells.
-    const UInt minActive = round( args_.minSparsity * areaSize );
-    UInt unpredictedNumDesiredActive;
-    UInt unpredictedNumDesiredWinners;
-    if( predictedActive.size() >= minActive ) {
-      // Predictive Regime.  Nothing to do.
-      unpredictedNumDesiredActive  = 0u;
-      unpredictedNumDesiredWinners = 0u;
-      rawAnomaly_ = 0.0f;
-    }
-    else {
-      // Burst Regime.  Determine how many unpredicted cells should activate and
-      // how many should learn / win.
-      const Real percentBurst = (Real) (minActive - predictedActive.size()) / minActive;
-      const UInt slope = round(args_.maxBurstSparsity * areaSize) - minActive;
-      const UInt totalActive = (percentBurst * slope) + minActive;
-      unpredictedNumDesiredActive  = totalActive - predictedActive.size();
-      unpredictedNumDesiredWinners = minActive   - predictedActive.size();
-      rawAnomaly_ = percentBurst;
-    }
-    // Activate unpredicted cells.
-    unpredictedActive.resize( min( unpredictedNumDesiredActive, (UInt) unpredictedActive.size() ));
-    for( const auto cell : unpredictedActive ) {
-      active.push_back( cell );
-    }
-    unpredictedNumDesiredWinners = min( unpredictedNumDesiredWinners, (UInt) unpredictedActive.size() );
-
-    if( learn &&
-            // Don't learn if the distal dendrites are disabled, will crash.
-            args_.distalMaxSegments           > 0u &&
-            args_.distalMaxSynapsesPerSegment > 0u &&
-            args_.distalAddSynapses           > 0u ) {
-      learnDistalDendritesPredicted( predictedActive, distalInputActive, distalInputWinner, winner );
-      learnDistalDendritesUnpredicted( distalInputActive, distalInputWinner,
-                                unpredictedActive, unpredictedNumDesiredWinners, winner );
-      learnDistalDendritesMispredicted( areaSize, areaEnd, predictedActive, unpredictedActive, distalInputActive );
-    }
+    return activeCells;
   }
 
 

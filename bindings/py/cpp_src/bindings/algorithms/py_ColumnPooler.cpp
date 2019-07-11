@@ -43,9 +43,7 @@ namespace htm_ext
     py_Parameters.def_readwrite("distalInputDimensions",        &Parameters::distalInputDimensions);
     py_Parameters.def_readwrite("inhibitionDimensions",         &Parameters::inhibitionDimensions);
     py_Parameters.def_readwrite("cellsPerInhibitionArea",       &Parameters::cellsPerInhibitionArea);
-    py_Parameters.def_readwrite("minSparsity",                  &Parameters::minSparsity);
-    py_Parameters.def_readwrite("maxBurstSparsity",             &Parameters::maxBurstSparsity);
-    py_Parameters.def_readwrite("maxDepolarizedSparsity",       &Parameters::maxDepolarizedSparsity);
+    py_Parameters.def_readwrite("sparsity",                     &Parameters::sparsity);
     py_Parameters.def_readwrite("potentialPool",                &Parameters::potentialPool);
     py_Parameters.def_readwrite("proximalSegments",             &Parameters::proximalSegments);
     py_Parameters.def_readwrite("proximalSegmentThreshold",     &Parameters::proximalSegmentThreshold);
@@ -95,8 +93,6 @@ namespace htm_ext
         { return self.parameters; });
     py_ColumnPooler.def_property_readonly("activeCells", [](const ColumnPooler &self)
         { return &self.activeCells; });
-    py_ColumnPooler.def_property_readonly("winnerCells", [](const ColumnPooler &self)
-        { return &self.winnerCells; });
     py_ColumnPooler.def_property_readonly("rawAnomaly", [](const ColumnPooler &self)
         { return self.rawAnomaly; });
     py_ColumnPooler.def_property_readonly_static("defaultParameters",
@@ -107,15 +103,16 @@ namespace htm_ext
     py_ColumnPooler.def("compute",
         (void (ColumnPooler::*)(const SDR&, const bool))
                 &ColumnPooler::compute,
+            py::call_guard<py::scoped_ostream_redirect, py::scoped_estream_redirect>(),
             py::arg("proximalInputActive"),
             py::arg("learn"));
 
     py_ColumnPooler.def("compute",
-        (void (ColumnPooler::*)(const SDR&, const SDR&, const SDR&, const bool))
+        (void (ColumnPooler::*)(const SDR&, const SDR&, const bool))
                 &ColumnPooler::compute,
+            py::call_guard<py::scoped_ostream_redirect, py::scoped_estream_redirect>(),
             py::arg("proximalInputActive"),
             py::arg("distalInputActive"),
-            py::arg("distalInputLearning"),
             py::arg("learn"));
 
     py_ColumnPooler.def_readwrite("proximalConnections", &ColumnPooler::proximalConnections);
