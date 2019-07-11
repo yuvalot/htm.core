@@ -1649,15 +1649,13 @@ TEST(SpatialPoolerTest, getOverlaps) {
   input.setDense(vector<UInt>{1, 1, 1, 1, 1});
   SDR activeColumns( {3} );
   activeColumns.setDense(vector<UInt>{0, 0, 0});
-  sp.compute(input, true, activeColumns);
-
   //overlaps (not boosted)
-  const auto &overlaps = sp.getOverlaps();
+  auto& overlaps = sp.compute(input, true, activeColumns);
   const vector<SynapseIdx> expectedOverlaps = {0, 3, 5};
   EXPECT_EQ(expectedOverlaps, overlaps);
 
   //boosted overlaps, but boost strength=0.0
-  const auto& boostedOverlaps = sp.getBoostedOverlaps();
+  const auto& boostedOverlaps = sp.getBoostedOverlaps(overlaps);
   const vector<Real> expectedBoostedOverlaps = {0.0f, 3.0f, 5.0f}; //same as orig above (but float)
   EXPECT_EQ(expectedBoostedOverlaps, boostedOverlaps) << "SP with boost strength " << sp.getBoostStrength() << " must not change boosting ";
 
@@ -1667,9 +1665,9 @@ TEST(SpatialPoolerTest, getOverlaps) {
   sp.setBoostStrength(2.0f);
   
   activeColumns.setDense(vector<UInt>{0, 0, 0});
-  sp.compute(input, true, activeColumns);
+  overlaps = sp.compute(input, true, activeColumns);
 
-  const auto& boostedOverlaps2 = sp.getBoostedOverlaps();
+  const auto& boostedOverlaps2 = sp.getBoostedOverlaps(overlaps);
   const vector<Real> expectedBoostedOverlaps2 = {0.0f, 6.0f, 15.0f};
   EXPECT_EQ(expectedBoostedOverlaps2, boostedOverlaps2) << "SP with boost strength " << sp.getBoostStrength() << " must change boosting ";
 }

@@ -748,17 +748,25 @@ public:
 
 
   /**
-  Returns the boosted overlap score for each column.
+   * Apply boosting (see param @ref `boostStrength` in constructor) to the overlap.
+   *
+   * @param overlaps vector returns from @ref `compute()`. Signifies overlap of the SP with
+   * the input, aka. activation.
+   *
+   * @deprecate replaces deprecated `SP.getBoostedOverlaps_()`; now use
+   * `auto over = compute(..); auto boosted = sp.getBoostedOverlaps(over);`
+   *  Also replaces `SP.boostOverlaps_()`
+   *
+   *  @return boosted overlaps for each input.
+   *
    */
-  const vector<Real> &getBoostedOverlaps() const;
+  const vector<Real>& getBoostedOverlaps(const vector<SynapseIdx> overlaps) const;
 
   ///////////////////////////////////////////////////////////
   //
   // Implementation methods. all methods below this line are
   // NOT part of the public API
 
-
-  void boostOverlaps_(const vector<SynapseIdx> &overlaps, vector<Real> &boostedOverlaps) const;
 
   /**
     Maps a column to its respective input index, keeping to the topology of

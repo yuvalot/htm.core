@@ -355,9 +355,6 @@ void SpatialPooler::getConnectedCounts(UInt connectedCounts[]) const {
   }
 }
 
-const vector<Real> &SpatialPooler::getBoostedOverlaps() const {
-  return boostedOverlaps_;
-}
 
 void SpatialPooler::initialize(
     const vector<UInt> inputDimensions, const vector<UInt> columnDimensions,
@@ -417,7 +414,6 @@ void SpatialPooler::initialize(
   activeDutyCycles_.assign(numColumns_, 0);
   minOverlapDutyCycles_.assign(numColumns_, 0.0);
   boostFactors_.assign(numColumns_, 1.0); //1 is neutral value for boosting
-  boostedOverlaps_.resize(numColumns_);
 
   inhibitionRadius_ = 0;
 
@@ -449,16 +445,14 @@ vector<SynapseIdx> SpatialPooler::compute(const SDR &input, const bool learn, SD
   input.reshape(  inputDimensions_ );
   active.reshape( columnDimensions_ );
 
-
   //now calculate overlaps of input and input synapses
   vector<SynapseIdx> overlaps(numColumns_, 0);
   connections_.computeActivity(overlaps, input.getSparse());
 
-
-  boostOverlaps_(overlaps, boostedOverlaps_);
+  const auto& boostedOverlaps = getBoostedOverlaps(overlaps);
 
   auto &activeVector = active.getSparse();
-  inhibitColumns_(boostedOverlaps_, activeVector);
+  inhibitColumns_(boostedOverlaps, activeVector);
   // Notify the active SDR that its internal data vector has changed.  Always
   // call SDR's setter methods even if when modifying the SDR's own data
   // inplace.
@@ -479,15 +473,15 @@ vector<SynapseIdx> SpatialPooler::compute(const SDR &input, const bool learn, SD
 }
 
 
-void SpatialPooler::boostOverlaps_(const vector<SynapseIdx> &overlaps, //TODO use Eigen sparse vector here
-                                   vector<Real> &boosted) const {
+vector<Real> SpatialPooler::getBoostedOverlaps(const vector<SynapseIdx> &overlaps) const { //TODO use Eigen sparse vector here
+  vector<Real> boosted(overlaps.begin(), overlaps.end()); //copy
   if(boostStrength_ < htm::Epsilon) { //boost ~ 0.0, we can skip these computations, just copy the data
-    boosted.assign(overlaps.begin(), overlaps.end());
-    return;
+    return boosted;
   }
   for (UInt i = 0; i < numColumns_; i++) {
-    boosted[i] = overlaps[i] * boostFactors_[i];
+    boosted[i] = overlaps[i] * boostFactors_[i]; //TODO vectorize boosted * factors
   }
+  return boosted;
 }
 
 
