@@ -36,6 +36,9 @@
 #include <mnist/mnist_reader.hpp> // MNIST data itself + read methods, namespace mnist::
 #include <mnist/mnist_utils.hpp>  // mnist::binarize_dataset
 
+#include <execution>
+#include <tbb/parallel_for.h>
+#include <mutex>
 
 using namespace std;
 using namespace htm;
@@ -67,12 +70,12 @@ class MNIST {
 
   public:
     UInt verbosity = 1;
-    const UInt train_dataset_iterations = 2u; //epochs somewhat help, at linear time
+    const UInt train_dataset_iterations = 5u; //epochs somewhat help, at linear time
 
 
 void setup() {
 
-  input.initialize({28, 28,1}); 
+  input.initialize({28, 28, 1}); 
   columns.initialize({28, 28, 8}); //1D vs 2D no big difference, 2D seems more natural for the problem. Speed-----, Results+++++++++; #columns HIGHEST impact. 
   sp.initialize(
     /* inputDimensions */             input.dimensions,
@@ -83,12 +86,12 @@ void setup() {
     /* localAreaDensity */            0.1f,  // % active bits
     /* numActiveColumnsPerInhArea */  -1,
     /* stimulusThreshold */           6u,
-    /* synPermInactiveDec */          0.002f, //FIXME inactive decay permanence plays NO role, investigate! (slightly better w/o it)
+    /* synPermInactiveDec */          0.002f, //very low values better for MNIST
     /* synPermActiveInc */            0.14f, //takes upto 5x steps to get dis/connected
     /* synPermConnected */            0.5f, //no difference, let's leave at 0.5 in the middle
     /* minPctOverlapDutyCycles */     0.2f, //speed of re-learning?
     /* dutyCyclePeriod */             1402,
-    /* boostStrength */               2.0f, // Boosting does help, but entropy is high, on MNIST it does not matter, for learning with TM prefer boosting off (=0.0), or "neutral"=1.0
+    /* boostStrength */               12.0f, // Boosting does help, but entropy is high, on MNIST it does not matter, for learning with TM prefer boosting off (BOOSTING_DISABLED), or "neutral"=1.0
     /* seed */                        4u,
     /* spVerbosity */                 1u,
     /* wrapAround */                  true); // does not matter (helps slightly)
@@ -126,17 +129,41 @@ void train() {
     }
     Random().shuffle( index.begin(), index.end() );
 
-    for(const auto idx : index) { // index = order of label (shuffeled)
+
+
+    //parallel loop with TBB
+    std::mutex m;
+
+    tbb::parallel_for( tbb::blocked_range<size_t>(0, index.size()),
+                       [&](tbb::blocked_range<size_t> r) {
+//    for(size_t i=0; i< index.size(); i++) { // index = order of label (shuffeled)
+      for(auto i = r.begin(); i < r.end(); ++i) {
+
+      const auto idx = index[i];
       // Get the input & label
       const auto image = dataset.training_images.at(idx);
       const UInt label  = dataset.training_labels.at(idx);
 
       // Compute & Train
-      input.setDense( image );
-      sp.compute(input, true, columns);
-      clsr.learn( columns, {label} );
+      SDR Pinput(input.dimensions);
+      Pinput.setDense( image );
+
+      SDR Pcolumns({28,28,8});
+      sp.compute(Pinput, true, Pcolumns); //TODO change to return output?
+      //TODO make compute() const for parallelization? 
+      
+      // sync this
+      m.lock();
+      clsr.learn( Pcolumns, {label} );
+      m.unlock();
+
       if( verbosity && (++i % 1000 == 0) ) cout << "." << flush;
     }
+    }); // !end of lambda
+
+
+
+
     if( verbosity ) cout << endl;
   
   cout << "epoch ended" << endl;
