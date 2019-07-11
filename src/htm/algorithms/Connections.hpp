@@ -400,10 +400,10 @@ public:
    */
   void computeActivity(std::vector<SynapseIdx> &numActiveConnectedSynapsesForSegment,
                        std::vector<SynapseIdx> &numActivePotentialSynapsesForSegment,
-                       const std::vector<CellIdx> &activePresynapticCells);
+                       const std::vector<CellIdx> &activePresynapticCells) const;
 
   void computeActivity(std::vector<SynapseIdx> &numActiveConnectedSynapsesForSegment,
-                       const std::vector<CellIdx> &activePresynapticCells);
+                       const std::vector<CellIdx> &activePresynapticCells) const;
 
   /**
    * The primary method in charge of learning.   Adapts the permanence values of
@@ -644,8 +644,8 @@ private:
   // These three members should be used when working with highly correlated
   // data. The vectors store the permanence changes made by adaptSegment.
   bool timeseries_;
-  std::vector<Permanence> previousUpdates_;
-  std::vector<Permanence> currentUpdates_;
+  mutable std::vector<Permanence> previousUpdates_; //FIXME use lock or async vector (from folly?) 
+  mutable std::vector<Permanence> currentUpdates_;
 
   UInt32 nextEventToken_;
   std::map<UInt32, ConnectionsEventHandler *> eventHandlers_;

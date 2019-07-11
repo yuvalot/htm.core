@@ -393,7 +393,7 @@ void Connections::reset()
 
 void Connections::computeActivity(
     vector<SynapseIdx> &numActiveConnectedSynapsesForSegment,
-    const vector<CellIdx> &activePresynapticCells)
+    const vector<CellIdx> &activePresynapticCells) const
 {
   NTA_ASSERT(numActiveConnectedSynapsesForSegment.size() == segments_.size());
 
@@ -414,10 +414,11 @@ void Connections::computeActivity(
   }
 }
 
+
 void Connections::computeActivity(
     vector<SynapseIdx> &numActiveConnectedSynapsesForSegment,
     vector<SynapseIdx> &numActivePotentialSynapsesForSegment,
-    const vector<CellIdx> &activePresynapticCells) {
+    const vector<CellIdx> &activePresynapticCells) const {
   NTA_ASSERT(numActiveConnectedSynapsesForSegment.size() == segments_.size());
   NTA_ASSERT(numActivePotentialSynapsesForSegment.size() == segments_.size());
 

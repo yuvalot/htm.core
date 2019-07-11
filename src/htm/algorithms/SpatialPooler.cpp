@@ -790,7 +790,7 @@ void SpatialPooler::updateBoostFactorsLocal_() {
 
 
 void SpatialPooler::calculateOverlap_(const SDR &input,
-                                      vector<SynapseIdx> &overlaps) {
+                                      vector<SynapseIdx> &overlaps) const {
   overlaps.assign( numColumns_, 0 );
   connections_.computeActivity(overlaps, input.getSparse());
 }
