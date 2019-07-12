@@ -915,13 +915,6 @@ void SpatialPooler::inhibitColumnsLocal_(const vector<Real> &overlaps,
                                          const Real density,
                                          vector<UInt> &activeColumns) const {
 
-  //optimization hack: call faster global inh if radius stretches over the whole input field,
-  //but this should not occur too ofthen because we want to do local inh
-  if(inhibitionRadius_ > *max_element(columnDimensions_.begin(), columnDimensions_.end())) {
-    inhibitColumnsGlobal_(overlaps, density, activeColumns);
-  //slow path normal local inhibition
-  } else {
-
   activeColumns.clear();
 
   // Tie-breaking: when overlaps are equal, columns that have already been
@@ -963,12 +956,11 @@ void SpatialPooler::inhibitColumnsLocal_(const vector<Real> &overlaps,
 	}
       }
 
-      const UInt numDesired = static_cast<UInt>(round(density * (numNeighbors + 1)));
+      const UInt numDesired = static_cast<UInt>(std::ceil(density * (numNeighbors + 1)));
       if (numBigger < numDesired) {
         activeColumns.push_back(column);
         activeColumnsDense[column] = true;
       }
-  }
   }
 }
 
