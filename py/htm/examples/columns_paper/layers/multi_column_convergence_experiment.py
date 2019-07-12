@@ -59,14 +59,7 @@ def runExperiment(args):
                              Default: 2
   @param networkType (string)The type of network to use.  Options are:
                              "MultipleL4L2Columns",
-                             "MultipleL4L2ColumnsWithTopology" and
-                             "MultipleL4L2ColumnsWithRandomTopology".
                              Default: "MultipleL4L2Columns"
-  @param longDistanceConnections (float) The probability that a column will
-                             connect to a distant column.  Only relevant when
-                             using the random topology network type.
-                             If > 1, will instead be taken as desired number
-                             of long-distance connections per column.
   @param settlingTime (int)  Number of iterations we wait to let columns
                              stabilize. Important for multicolumn experiments
                              with lateral connections.

@@ -24,8 +24,7 @@ experimenting with different laminar structures.
 """
 from htm.bindings.engine_internal import Network
 from htm.examples.columns_paper.layers.l2_l4_network_creation import (
-  createL4L2Column, createMultipleL4L2Columns,
-  createMultipleL4L2ColumnsWithTopology)
+  createL4L2Column, createMultipleL4L2Columns)
 from htm.examples.columns_paper.layers.combined_sequence_network_creation import (
   createL4L2TMColumn
 )
@@ -45,8 +44,6 @@ def createNetwork(networkConfig):
     return createL4L2Column(network, networkConfig, "_0")
   elif networkConfig["networkType"] == "MultipleL4L2Columns":
     return createMultipleL4L2Columns(network, networkConfig)
-  elif networkConfig["networkType"] == "MultipleL4L2ColumnsWithTopology":
-    return createMultipleL4L2ColumnsWithTopology(network, networkConfig)
   elif networkConfig["networkType"] == "L4L2TMColumn":
     return createL4L2TMColumn(network, networkConfig, "_0")
 

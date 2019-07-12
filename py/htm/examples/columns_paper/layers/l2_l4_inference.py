@@ -102,10 +102,7 @@ class L4L2Experiment(object):
   This experiment uses the network API to test out various properties of
   inference and learning using a sensors and an L4-L2 network. For now,
   we directly use the locations on the object.
-
   """
-
-
   def __init__(self,
                name,
                numCorticalColumns=1,
@@ -160,15 +157,8 @@ class L4L2Experiment(object):
              The type of region to use for L4
 
     @param   networkType (string)
-             Which type of L2L4 network to create.  If topology is being used,
-             it should be specified here.  Possible values for this parameter
-             are "MultipleL4L2Columns", "MultipleL4L2ColumnsWithTopology" and
-             "L4L2Column"
-
-    @param  longDistanceConnections (float)
-             The probability that a column will randomly connect to a distant
-             column.  Should be in [0, 1).  Only relevant when using multiple
-             columns with topology.
+             Which type of L2L4 network to create.  Possible values for this parameter
+             are "MultipleL4L2Columns" and "L4L2Column"
 
     @param   L4Overrides (dict)
              Parameters to override in the L4 region
@@ -244,21 +234,6 @@ class L4L2Experiment(object):
       self.config["feedForwardSPParams"] = self.getDefaultFeedForwardSPParams(inputSize)
       if feedForwardSPOverrides:
         self.config["feedForwardSPParams"].update(feedForwardSPOverrides)
-
-    if "Topology" in self.config["networkType"]:
-      self.config["maxConnectionDistance"] = maxConnectionDistance
-
-      # Generate a grid for cortical columns.  Will attempt to generate a full
-      # square grid, and cut out positions starting from the bottom-right if the
-      # number of cortical columns is not a perfect square.
-      if columnPositions is None:
-        columnPositions = []
-        side_length = int(np.ceil(np.sqrt(numCorticalColumns)))
-        for i in range(side_length):
-          for j in range(side_length):
-            columnPositions.append((i, j))
-      self.config["columnPositions"] = columnPositions[:numCorticalColumns]
-      self.config["longDistanceConnections"] = longDistanceConnections
 
     if L2Overrides is not None:
       self.config["L2Params"].update(L2Overrides)
