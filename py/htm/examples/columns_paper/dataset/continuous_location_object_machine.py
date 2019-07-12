@@ -26,7 +26,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from nupic.encoders.coordinate import CoordinateEncoder
-from htmresearch.frameworks.layers.object_machine_base import ObjectMachineBase
+from htm.examples.columns_paper.dataset.object_machine_base import ObjectMachineBase
 
 
 

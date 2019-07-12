@@ -32,7 +32,7 @@ from itertools import combinations
 import numpy as np
 import matplotlib.pyplot as plt
 
-from htm.layers.physical_object_base import PhysicalObject
+from htm.examples.columns_paper.dataset.physical_object_base import PhysicalObject
 
 import plyfile as ply
 

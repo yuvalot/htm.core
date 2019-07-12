@@ -22,7 +22,7 @@
 import random
 import numpy
 
-from htm.layers.object_machine_base import ObjectMachineBase
+from htm.examples.columns_paper.dataset.object_machine_base import ObjectMachineBase
 
 
 class SequenceObjectMachine(ObjectMachineBase):

@@ -24,8 +24,7 @@ from abc import ABCMeta, abstractmethod
 try:
   from mpl_toolkits.mplot3d import Axes3D
 except ImportError:
-  print("Your Matplotlib version is not up to date. " \
-        "Don't use plotting functions")
+  print("Your Matplotlib version is not up to date. Don't use plotting functions")
 import matplotlib.pyplot as plt
 
 
