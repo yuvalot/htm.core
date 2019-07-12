@@ -91,29 +91,7 @@ from tabulate import tabulate
 
 from nupic.bindings.math import SparseMatrix
 
-from htmresearch.support.logging_decorator import LoggingDecorator
-from htmresearch.support.register_regions import registerAllResearchRegions
 from htm.layers.laminar_network import createNetwork
-
-
-
-def rerunExperimentFromLogfile(logFilename):
-  """
-  Create an experiment class according to the sequence of operations in logFile
-  and return resulting experiment instance.
-  """
-  callLog = LoggingDecorator.load(logFilename)
-
-  # Assume first one is call to constructor
-
-  exp = L4L2Experiment(*callLog[0][1]["args"], **callLog[0][1]["kwargs"])
-
-  # Call subsequent methods, using stored parameters
-  for call in callLog[1:]:
-    method = getattr(exp, call[0])
-    method(*call[1]["args"], **call[1]["kwargs"])
-
-  return exp
 
 
 
@@ -128,7 +106,6 @@ class L4L2Experiment(object):
   """
 
 
-  @LoggingDecorator()
   def __init__(self,
                name,
                numCorticalColumns=1,
@@ -232,7 +209,6 @@ class L4L2Experiment(object):
     # Handle logging - this has to be done first
     self.logCalls = logCalls
 
-    registerAllResearchRegions()
     self.name = name
 
     self.numLearningPoints = numLearningPoints
@@ -323,7 +299,6 @@ class L4L2Experiment(object):
     self.resetStatistics()
 
 
-  @LoggingDecorator()
   def learnObjects(self, objects, reset=True):
     """
     Learns all provided objects, and optionally resets the network.
@@ -397,7 +372,6 @@ class L4L2Experiment(object):
         # send reset signal
         self._sendReset()
 
-  @LoggingDecorator()
   def infer(self, sensationList, reset=True, objectName=None):
     """
     Infer on given sensations.
@@ -503,7 +477,6 @@ class L4L2Experiment(object):
     self.network.run(1)
 
 
-  @LoggingDecorator()
   def sendReset(self, *args, **kwargs):
     """
     Public interface to sends a reset signal to the network.  This is logged.
