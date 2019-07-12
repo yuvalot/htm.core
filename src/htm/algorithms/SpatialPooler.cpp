@@ -408,7 +408,7 @@ void SpatialPooler::initialize(
   spVerbosity_ = spVerbosity;
   wrapAround_ = wrapAround;
   updatePeriod_ = 50u;
-  initConnectedPct_ = 0.5f;
+  initConnectedPct_ = 0.5f; //FIXME make SP's param, and much lower 0.01 https://discourse.numenta.org/t/spatial-pooler-implementation-for-mnist-dataset/2317/25?u=breznak 
 
   overlapDutyCycles_.assign(numColumns_, 0); //TODO make all these sparse or rm to reduce footprint
   activeDutyCycles_.assign(numColumns_, 0);
