@@ -1,5 +1,5 @@
 /* ---------------------------------------------------------------------
- * Copyright (C) 2018, David McDougall.
+ * Copyright (C) 2018-2019, David McDougall, @breznak
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero Public License version 3 as
@@ -16,7 +16,15 @@
  */
 
 /**
- * Solving the MNIST dataset with Spatial Pooler.
+ * Solving the MNIST dataset with Spatial Pooler. Parallel demonstartion using c++17 TS Parallel (TBB)
+ * Requirements:
+ *   - c++17 codebase
+ *   - compiler: MSVC 2017+, g++-9
+ *   - link with TBB (The Building Blocks)
+ *
+ *
+ * Note 1: the example is more ugly, because we parallelize for-loop, compared to std::algorithms `sort(execution::policy::par, a.begin(), a.end());`
+ * Note 2: Running SP.compute() in parallel is useless for sequences, but works for MNIST and the likes. 
  *
  * This consists of a simple black & white image encoder, a spatial pool, and an
  * SDR classifier.  The task is to recognise images of hand written numbers 0-9.
@@ -36,29 +44,17 @@
 #include <mnist/mnist_reader.hpp> // MNIST data itself + read methods, namespace mnist::
 #include <mnist/mnist_utils.hpp>  // mnist::binarize_dataset
 
+//includes for TS Parallel
+#include <execution>
+#include <tbb/parallel_for.h>
+#include <mutex>
 
 using namespace std;
 using namespace htm;
 
 class MNIST {
 /**
- * RESULTS:
- *
- * Order :	score			: column dim	: #pass : time(s): git commit	: comment
- * -------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- * 1/Score: 97.11% (289 / 10000 wrong)	: 28x28x16	: 4	: 557	: 1f0187fc6 	: epochs help, at cost of time 
- *
- * 2/Score: 96.56% (344 / 10000 wrong)	: 28x28x16	: 1	: 142	: 3ccadc6d6  
- *
- * 3/Score: 96.1% (390 / 10000 wrong).  : 28x28x30 	: 1  	: 256	: 454f7a9d8 
- *
- * others/
- * Score: 95.35% (465 / 10000 wrong)	: 28x28x16	: 2	: 125	: 		: smaller boosting (2.0)
- * 	 -- this will be my working model, reasonable performance/speed ratio
- *
- * Baseline: 
- * Score: 90.52% (948 / 10000 wrong).   : SP disabled   : 1     : 0.489	: 01a6c90297	: baseline with only classifier on raw images, on SP
- *
+ * RESULTS: Store results in the MNIST_SP.cpp file only, this parallel is just for experimenting with parallelization.
  */
 
   private:
@@ -70,12 +66,12 @@ class MNIST {
 
   public:
     UInt verbosity = 1;
-    const UInt train_dataset_iterations = 1u; //epochs somewhat help, at linear time
+    const UInt train_dataset_iterations = 20u; //epochs somewhat help, at linear time
 
 
 void setup() {
 
-  input.initialize({28, 28,1}); 
+  input.initialize({28, 28, 1}); 
   columns.initialize({28, 28, 8}); //1D vs 2D no big difference, 2D seems more natural for the problem. Speed-----, Results+++++++++; #columns HIGHEST impact. 
   sp.initialize(
     /* inputDimensions */             input.dimensions,
@@ -86,12 +82,12 @@ void setup() {
     /* localAreaDensity */            0.1f,  // % active bits
     /* numActiveColumnsPerInhArea */  -1,
     /* stimulusThreshold */           6u,
-    /* synPermInactiveDec */          0.002f, //FIXME inactive decay permanence plays NO role, investigate! (slightly better w/o it)
+    /* synPermInactiveDec */          0.002f, //very low values better for MNIST
     /* synPermActiveInc */            0.14f, //takes upto 5x steps to get dis/connected
     /* synPermConnected */            0.5f, //no difference, let's leave at 0.5 in the middle
     /* minPctOverlapDutyCycles */     0.2f, //speed of re-learning?
     /* dutyCyclePeriod */             1402,
-    /* boostStrength */               2.0f, // Boosting does help, but entropy is high, on MNIST it does not matter, for learning with TM prefer boosting off (=0.0), or "neutral"=1.0
+    /* boostStrength */               12.0f, // Boosting does help, but entropy is high, on MNIST it does not matter, for learning with TM prefer boosting off (BOOSTING_DISABLED), or "neutral"=1.0
     /* seed */                        4u,
     /* spVerbosity */                 1u,
     /* wrapAround */                  true); // does not matter (helps slightly)
@@ -135,18 +131,41 @@ void train(const bool skipSP=false) {
     }
     Random().shuffle( index.begin(), index.end() );
 
-    for(const auto idx : index) { // index = order of label (shuffeled)
+
+
+    //parallel loop with TBB
+    std::mutex m;
+    tbb::parallel_for( tbb::blocked_range<size_t>(0, index.size()),
+                       [&](tbb::blocked_range<size_t> r) {
+//    for(size_t i=0; i< index.size(); i++) { // index = order of label (shuffeled)
+      for(auto i = r.begin(); i < r.end(); ++i) {
+
+      const auto idx = index[i];
       // Get the input & label
       const auto image = dataset.training_images.at(idx);
       const UInt label  = dataset.training_labels.at(idx);
 
       // Compute & Train
-      input.setDense( image );
-      if(not skipSP) 
-        sp.compute(input, true, columns);
-      clsr.learn( skipSP ? input : columns, {label} );
+      SDR Pinput(input.dimensions);
+      Pinput.setDense( image );
+
+      SDR Pcolumns({28,28,8});
+      if(not skipSP)
+        sp.compute(Pinput, true, Pcolumns); //TODO change to return output?
+      //TODO make compute() const for parallelization? 
+      
+      // sync this 
+      {
+        m.lock(); //TODO use better locks than just mutex, unique_lock etc
+        clsr.learn( Pcolumns, {label} );
+        clsr.learn( skipSP ? Pinput : Pcolumns, {label} );
+        m.unlock(); 
+      }
       if( verbosity && (++i % 1000 == 0) ) cout << "." << flush;
     }
+    }); // !end of lambda
+
+
     if( verbosity ) cout << endl;
   
   cout << "epoch ended" << endl;
@@ -196,11 +215,7 @@ void test(const bool skipSP=false) {
 
 int main(int argc, char **argv) {
   MNIST m;
-  m.setup();
-  cout << "===========BASELINE: no SP====================" << endl;
-  m.train(true); //skip SP learning
-  m.test(true);
-  cout << "===========Spatial Pooler=====================" << endl;
+  cout << "=========== Spatial Pooler (parallel) =====================" << endl;
   m.setup();
   m.train();
   m.test();

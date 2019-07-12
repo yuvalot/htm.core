@@ -393,6 +393,29 @@ add_custom_target(mnist
                   COMMENT "Executing ${src_executable_mnistsp}"
                   VERBATIM)
 
+#########################################################
+## MNIST Spatial Pooler (Parallel Example)
+#
+set(src_executable_mnistsp_par mnist_sp_par)
+add_executable(${src_executable_mnistsp_par} examples/mnist/MNIST_SP_parallel.cpp)
+target_link_libraries(${src_executable_mnistsp_par}
+  ${INTERNAL_LINKER_FLAGS} #par uses tbb
+  ${core_library}
+  ${COMMON_OS_LIBS}
+)
+target_compile_options(    ${src_executable_mnistsp_par} PUBLIC ${INTERNAL_CXX_FLAGS})
+target_compile_definitions(${src_executable_mnistsp_par} PRIVATE ${COMMON_COMPILER_DEFINITIONS})
+# Pass MNIST data directory to main.cpp
+target_compile_definitions(${src_executable_mnistsp_par} PRIVATE MNIST_DATA_LOCATION=${mnist_SOURCE_DIR})
+target_include_directories(${src_executable_mnistsp_par} PRIVATE
+  ${CORE_LIB_INCLUDES}
+  ${EXTERNAL_INCLUDES}
+)
+add_custom_target(mnist_parallel
+  COMMAND ${src_executable_mnistsp_par}
+  DEPENDS ${src_executable_mnistsp_par}
+  COMMENT "Executing ${src_executable_mnistsp_par}"
+  VERBATIM)
 
 ############ INSTALL ######################################
 #
