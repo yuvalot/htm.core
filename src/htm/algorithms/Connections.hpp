@@ -23,6 +23,7 @@
 #define NTA_CONNECTIONS_HPP
 
 #include <map>
+#include <unordered_map>
 #include <set>
 #include <utility>
 #include <vector>
@@ -427,11 +428,31 @@ public:
    * values until the desired number of synapses have permanences above the
    * connectedThreshold.  This is applied to a single segment.
    *
-   * @param segment  Index of segment on cell.   Is returned by method getSegment.
+   * @param segment  Index of segment in connections. Is returned by method getSegment.
    * @param segmentThreshold  Desired number of connected synapses.
    */
   void raisePermanencesToThreshold(const Segment    segment,
                                    const UInt       segmentThreshold);
+
+  /**
+   * Ensures that the number of connected synapses is sane.  This method
+   * controls the sparsity of the synaptic connections, which is important for
+   * the segment to detect things.  If there are too few connections then the
+   * segment will not detect anything, and if there are too many connections
+   * then the segment will detect everything.
+   *
+   * See file: docs/synapse_competition.docx
+   *
+   * This method connects and disconnects synapses by uniformly changing the
+   * permanences of all synapses on the segment.
+   *
+   * @param segment  Index of segment in connections. Is returned by method getSegment.
+   * @param minimumSynapses Minimum number of connected synapses allowed on this segment (inclusive).
+   * @param maximumSynapses Maximum number of connected synapses allowed on this segment (inclusive).
+   */
+  void synapseCompetition(  const Segment    segment,
+                            const SynapseIdx minimumSynapses,
+                            const SynapseIdx maximumSynapses);
 
   /**
    * Modify all permanence on the given segment, uniformly.
@@ -630,8 +651,8 @@ private:
   Permanence               connectedThreshold_; //TODO make const
 
   // Extra bookkeeping for faster computing of segment activity.
-  std::map<CellIdx, std::vector<Synapse>> potentialSynapsesForPresynapticCell_; //TODO use unordered_map
-  std::map<CellIdx, std::vector<Synapse>> connectedSynapsesForPresynapticCell_;
+  std::unordered_map<CellIdx, std::vector<Synapse>> potentialSynapsesForPresynapticCell_;
+  std::unordered_map<CellIdx, std::vector<Synapse>> connectedSynapsesForPresynapticCell_;
   std::map<CellIdx, std::vector<Segment>> potentialSegmentsForPresynapticCell_;
   std::map<CellIdx, std::vector<Segment>> connectedSegmentsForPresynapticCell_;
 
