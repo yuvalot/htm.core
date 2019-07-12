@@ -154,7 +154,7 @@ if __name__ == "__main__":
     "5C": generateFigure5C,
     "6A": generateFigure6A,
     "6B": generateFigure6B,
- }
+  }
   figures = list(generateFigureFunc.keys())
   figures.sort()
 

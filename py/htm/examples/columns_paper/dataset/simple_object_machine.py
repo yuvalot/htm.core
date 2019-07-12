@@ -25,7 +25,6 @@ import numpy
 from htm.examples.columns_paper.dataset.object_machine_base import ObjectMachineBase
 
 
-
 class SimpleObjectMachine(ObjectMachineBase):
   """
   Most basic implementation of ObjectMachine, where objects are defined by set

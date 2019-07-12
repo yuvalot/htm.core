@@ -29,8 +29,8 @@ import random
 
 import plotly
 import plotly.graph_objs as go
-from htm.layers.l2_l4_inference import L4L2Experiment
-from htm.layers.object_machine_factory import createObjectMachine
+from htm.examples.columns_paper.layers.l2_l4_inference import L4L2Experiment
+from htm.examples.columns_paper.dataset.object_machine_factory import createObjectMachine
 
 # Plotly requires a valid user to be able to save High Res images
 plotlyUser = os.environ.get('PLOTLY_USERNAME')

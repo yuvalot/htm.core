@@ -89,9 +89,9 @@ import numpy as np
 from math import ceil
 from tabulate import tabulate
 
-from nupic.bindings.math import SparseMatrix
+from htm import SDR
 
-from htm.layers.laminar_network import createNetwork
+from htm.examples.columns_paper.layers.laminar_network import createNetwork
 
 
 
@@ -293,7 +293,7 @@ class L4L2Experiment(object):
     # will be populated during training
     self.objectL2Representations = {}
     self.objectL2RepresentationsMatrices = [
-      SparseMatrix(0, self.config["L2Params"]["cellCount"])
+      SDR(self.config["L2Params"]["cellCount"])
       for _ in range(self.numColumns)]
     self.objectNameToIndex = {}
     self.resetStatistics()

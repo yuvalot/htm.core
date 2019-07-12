@@ -25,9 +25,8 @@ import random
 import numpy as np
 import matplotlib.pyplot as plt
 
-from nupic.encoders.coordinate import CoordinateEncoder
+from htm.bindings.encoders import CoordinateEncoder, CoordinateEncoderParameters
 from htm.examples.columns_paper.dataset.object_machine_base import ObjectMachineBase
-
 
 
 class ContinuousLocationObjectMachine(ObjectMachineBase):

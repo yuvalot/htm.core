@@ -39,8 +39,8 @@ import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
 import numpy as np
 import pandas as pd
-from htm.layers.l2_l4_inference import L4L2Experiment
-from htm.layers.object_machine_factory import (
+from htm.examples.columns_paper.layers.l2_l4_inference import L4L2Experiment
+from htm.examples.columns_paper.dataset.object_machine_factory import (
   createObjectMachine
 )
 

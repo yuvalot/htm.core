@@ -21,7 +21,6 @@
 """
 This file plots the convergence of L4-L2 as you increase the number of columns,
 or adjust the confusion between objects.
-
 """
 
 import pickle
@@ -34,7 +33,7 @@ import numpy
 
 mpl.rcParams['pdf.fonttype'] = 42
 
-from htm.layers.multi_column_convergence_experiment import (
+from htm.examples.columns_paper.layers.multi_column_convergence_experiment import (
   runExperiment, runExperimentPool
 )
 

@@ -47,11 +47,11 @@ mpl.rcParams['pdf.fonttype'] = 42
 from matplotlib import rc
 rc('font',**{'family':'sans-serif','sans-serif':['Arial']})
 
-from htm.layers.object_machine_factory import (
+from htm.examples.columns_paper.dataset.object_machine_factory import (
   createObjectMachine
 )
 
-from htm.layers.multi_column_convergence_experiment import (
+from htm.examples.columns_paper.layers.multi_column_convergence_experiment import (
   runExperimentPool
 )
 

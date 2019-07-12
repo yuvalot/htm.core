@@ -19,26 +19,16 @@
 # http://numenta.org/licenses/
 # ----------------------------------------------------------------------
 """
-Overall factory methods to create networks of multiple layers and for
+Overall factory methods to create L2L4 networks of multiple layers and for
 experimenting with different laminar structures.
-
-There are two main types of networks:
-
-  L2L4 networks, and,
-  L2456 networks.
-
-Either type can be created as a single column or with multiple columns. Each
-type has its own creation file (imported here) - see that file for detailed
-descriptions.
 """
-from htm.engine import Network
-from htm.layers.l2_l4_network_creation import (
+from htm.bindings.engine_internal import Network
+from htm.examples.columns_paper.layers.l2_l4_network_creation import (
   createL4L2Column, createMultipleL4L2Columns,
   createMultipleL4L2ColumnsWithTopology)
-from htm.layers.combined_sequence_network_creation import (
+from htm.examples.columns_paper.layers.combined_sequence_network_creation import (
   createL4L2TMColumn
 )
-from htm.register_regions import registerAllResearchRegions
 
 
 def createNetwork(networkConfig):
@@ -48,8 +38,6 @@ def createNetwork(networkConfig):
   @param networkConfig: (dict) the configuration of this network.
   @return network: (Network) The actual network
   """
-
-  registerAllResearchRegions()
 
   network = Network()
 

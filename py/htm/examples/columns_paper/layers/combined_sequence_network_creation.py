@@ -51,7 +51,6 @@ import copy
 import json
 import numpy
 
-from htmresearch.frameworks.layers.l2_l4_network_creation import enableProfiling
 
 def createL4L2TMColumn(network, networkConfig, suffix=""):
   """
@@ -150,6 +149,5 @@ def createL4L2TMColumn(network, networkConfig, suffix=""):
   network.link(sensorInputName, L4ColumnName, "UniformLink", "",
                srcOutput="resetOut", destInput="resetIn")
 
-  enableProfiling(network)
 
   return network

@@ -98,11 +98,6 @@ import copy
 import json
 import numpy
 
-def enableProfiling(network):
-  """Enable profiling for all regions in the network."""
-  for region in list(network.regions.values()):
-    region.enableProfiling()
-
 
 def _addLateralSPRegion(network, networkConfig, suffix=""):
   spParams = networkConfig.get("lateralSPParams", {})
@@ -288,7 +283,6 @@ def createL4L2Column(network, networkConfig, suffix=""):
   network.link(sensorInputName, L4ColumnName, "UniformLink", "",
                srcOutput="resetOut", destInput="resetIn")
 
-  enableProfiling(network)
 
   return network
 
@@ -350,7 +344,6 @@ def createMultipleL4L2Columns(network, networkConfig):
           srcOutput="feedForwardOutput", destInput="lateralInput",
           propagationDelay=1)
 
-  enableProfiling(network)
 
   return network
 
@@ -455,5 +448,4 @@ def createMultipleL4L2ColumnsWithTopology(network, networkConfig):
         "UniformLink", "", srcOutput="feedForwardOutput",
         destInput="lateralInput", propagationDelay=1)
 
-  enableProfiling(network)
   return network

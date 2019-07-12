@@ -36,8 +36,6 @@ class ObjectMachineBase(object, metaclass=ABCMeta):
   This is the base class. It has a few generic methods and specifies
   required methods for any child class.
   """
-
-
   def __init__(self,
                numInputBits,
                sensorInputSize,
