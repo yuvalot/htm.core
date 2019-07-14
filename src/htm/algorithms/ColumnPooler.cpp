@@ -68,8 +68,8 @@ public:
   // TODO SENSIBLE DEFAULTS
   vector<UInt> proximalInputDimensions;
   vector<UInt> inhibitionDimensions;
-  UInt         cellsPerInhibitionArea;
 
+  UInt cellsPerInhibitionArea = 2048;
   Real sparsity = 0.02f;
 
   Topology_t  potentialPool     = NoTopology(1.0f);
@@ -77,26 +77,26 @@ public:
   Permanence  proximalIncrement = 0.01f;
   Permanence  proximalDecrement = 0.002f;
   Permanence  proximalSynapseThreshold = 0.40f;
-  UInt        proximalSegmentThreshold = 1u;
+  UInt        proximalSegmentThreshold = 6u;
   InitialPermanence_t proximalInitialPermanence =
                                   defaultProximalInitialPermanence(0.40f, 0.5f);
   Real        proximalMinConnections = 0.05f;
   Real        proximalMaxConnections = 0.30f;
 
   vector<UInt> distalInputDimensions       = {0u};
-  UInt         distalMaxSegments           = 255;
-  UInt         distalMaxSynapsesPerSegment = 255;
-  UInt         distalSegmentThreshold      = 13;
-  UInt         distalSegmentMatch          = 10;
+  UInt         distalMaxSegments           = 128;
+  UInt         distalMaxSynapsesPerSegment = 64;
   UInt         distalAddSynapses           = 20;
-  Permanence   distalInitialPermanence     = 0.21;
-  Permanence   distalIncrement             = 0.10;
-  Permanence   distalDecrement             = 0.10;
-  Permanence   distalMispredictDecrement   = 0.0f;
+  UInt         distalSegmentThreshold      = 14;
+  UInt         distalSegmentMatch          = 9;
   Permanence   distalSynapseThreshold      = 0.50;
+  Permanence   distalInitialPermanence     = 0.41;
+  Permanence   distalIncrement             = 0.10;
+  Permanence   distalDecrement             = 0.001;
+  Permanence   distalMispredictDecrement   = 0.0;
 
-  Real stabilityRate;
-  Real fatigueRate;
+  Real stabilityRate = 0.0f;;
+  Real fatigueRate   = 0.0f;;
 
   UInt period;
   Int  seed    = 0;

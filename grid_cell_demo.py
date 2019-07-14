@@ -18,7 +18,7 @@ import matplotlib as mpl
 from htm import SDR, Metrics
 from htm.bindings.encoders import CoordinateEncoder, CoordinateEncoderParameters
 from htm.bindings.encoders import ScalarEncoder, ScalarEncoderParameters
-from htm.bindings.algorithms import ColumnPooler, NoTopology
+from htm.bindings.algorithms import ColumnPooler, ColumnPoolerParameters, NoTopology
 
 
 class Environment(object):
@@ -80,22 +80,22 @@ default_parameters = {'gc': {
         'potentialPool': 0.9653887215973943,
         'proximalDecrement': 0.00041767455516643185,
         'proximalIncrement': 0.0063514371595179385,
-        'proximalSegmentThreshold': 4,
+        'proximalSegmentThreshold': 4 * 5,
         'proximalSegments': 3,
         'proximalSynapseThreshold': 0.2665465883854693,
         'stabilityRate': 0.9599504061401867,
         'proximalMinConnections': 0,
         'proximalMaxConnections': 1,
-        'distalMaxSegments': 32,
-        'distalMaxSynapsesPerSegment': 64,
-        'distalSegmentThreshold': 18,
-        'distalSegmentMatch': 11,
-        'distalAddSynapses': 27,
-        'distalInitialPermanence': .45,
-        'distalIncrement': .01,
-        'distalDecrement': .01,
-        'distalMispredictDecrement': .001,
-        'distalSynapseThreshold': .5,
+        # 'distalMaxSegments': 32,
+        # 'distalMaxSynapsesPerSegment': 64,
+        # 'distalSegmentThreshold': 18,
+        # 'distalSegmentMatch': 11,
+        # 'distalAddSynapses': 27,
+        # 'distalInitialPermanence': .45,
+        # 'distalIncrement': .01,
+        # 'distalDecrement': .01,
+        # 'distalMispredictDecrement': .001,
+        # 'distalSynapseThreshold': .5,
 }}
 
 
@@ -106,12 +106,6 @@ def main(parameters=default_parameters, argv=None, verbose=True):
   parser.add_argument('--debug', action='store_true')
   args = parser.parse_args(argv)
 
-  # Hold these parameters constant from swarming.
-  parameters['gc'].update({
-    'cellsPerInhibitionArea' : 100 if args.debug else 500,
-  })
-
-  # Setup
   env = Environment(size = 200)
 
   enc = CoordinateEncoderParameters()
@@ -132,7 +126,7 @@ def main(parameters=default_parameters, argv=None, verbose=True):
   hd.radius     = (2 * math.pi) / 6
   hd = ScalarEncoder( hd )
 
-  gcm = ColumnPooler.defaultParameters
+  gcm = ColumnPoolerParameters()
   for param, value in parameters['gc'].items():
     if param not in ['potentialPool']:
       setattr( gcm, param, value )
@@ -144,22 +138,20 @@ def main(parameters=default_parameters, argv=None, verbose=True):
   gcm = ColumnPooler(gcm)
 
   enc_sdr = enc.encode(env.position)
-  hd_act  = hd.encode( env.angle )
-  anomaly = []
   def compute(learn=True):
     enc.encode( env.position, enc_sdr )
-    hd.encode(  env.angle,    hd_act )
+    hd_act = hd.encode(  env.angle )
     distalActive = SDR(gcm.parameters.distalInputDimensions).concatenate(SDR(gcm.activeCells).flatten(), hd_act)
     gcm.compute(
             proximalInputActive   = enc_sdr,
             distalInputActive     = distalActive,
             learn                 = learn)
-    anomaly.append( gcm.rawAnomaly )
 
   print("Learning for %d steps ..."%args.steps)
   gcm.reset()
   pc_metrics = Metrics(enc.dimensions, args.steps)
   gc_metrics = Metrics(gcm.cellDimensions, args.steps)
+  anomaly    = []
   for step in range(args.steps):
     if verbose and step % 10000 == 0:
       print("Step %d"%step)
@@ -167,6 +159,7 @@ def main(parameters=default_parameters, argv=None, verbose=True):
     compute()
     pc_metrics.addData( enc_sdr )
     gc_metrics.addData( gcm.activeCells )
+    anomaly.append( gcm.rawAnomaly )
   print("Place Cell Metrics", str(pc_metrics))
   print("")
   print("Grid Cell Metrics", str(gc_metrics))

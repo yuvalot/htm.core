@@ -39,6 +39,7 @@ namespace htm_ext
   void init_Column_Pooler(py::module& m)
   {
     py::class_<Parameters> py_Parameters(m, "ColumnPoolerParameters");
+    py_Parameters.def(py::init<>());
     py_Parameters.def_readwrite("proximalInputDimensions",      &Parameters::proximalInputDimensions);
     py_Parameters.def_readwrite("distalInputDimensions",        &Parameters::distalInputDimensions);
     py_Parameters.def_readwrite("inhibitionDimensions",         &Parameters::inhibitionDimensions);
@@ -95,8 +96,6 @@ namespace htm_ext
         { return &self.activeCells; });
     py_ColumnPooler.def_property_readonly("rawAnomaly", [](const ColumnPooler &self)
         { return self.rawAnomaly; });
-    py_ColumnPooler.def_property_readonly_static("defaultParameters",
-        [](py::object self) { return new Parameters(); });
 
     py_ColumnPooler.def("reset", &ColumnPooler::reset);
 
