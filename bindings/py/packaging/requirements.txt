@@ -7,3 +7,5 @@ pytest-cov>=2.5.0
 hexy>=1.4.3 # for grid cell encoder
 mock>=1.0.1 # for anomaly likelihood test
 tabulate==0.7.5
+plyfile # For python example columns paper.
+plotly # For python example columns paper.
