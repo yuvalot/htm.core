@@ -760,7 +760,7 @@ void applyBoosting_(const UInt i,
 
 
 void SpatialPooler::updateBoostFactorsGlobal_() {
-  const Real targetDensity = localAreaDensity_;
+  const auto targetDensity = localAreaDensity_;
   
   for (UInt i = 0; i < numColumns_; ++i) { 
     applyBoosting_(i, targetDensity, activeDutyCycles_, boostStrength_, boostFactors_);
@@ -771,7 +771,7 @@ void SpatialPooler::updateBoostFactorsGlobal_() {
 void SpatialPooler::updateBoostFactorsLocal_() {
   for (UInt i = 0; i < numColumns_; ++i) {
     UInt numNeighbors = 0u;
-    Real localActivityDensity = 0.0f;
+    auto localActivityDensity = static_cast<Permanence>(0.0);
 
     if (wrapAround_) {
       for(auto neighbor: WrappingNeighborhood(i, inhibitionRadius_, columnDimensions_)) {
@@ -785,7 +785,7 @@ void SpatialPooler::updateBoostFactorsLocal_() {
       }
     }
 
-    const Real targetDensity = localActivityDensity / numNeighbors;
+    const auto targetDensity = localActivityDensity / numNeighbors;
     applyBoosting_(i, targetDensity, activeDutyCycles_, boostStrength_, boostFactors_);
   }
 }
