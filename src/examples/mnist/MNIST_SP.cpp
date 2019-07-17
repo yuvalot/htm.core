@@ -76,7 +76,7 @@ class MNIST {
 void setup() {
 
   input.initialize({28, 28,1}); 
-  columns.initialize({28, 28, 24}); //1D vs 2D no big difference, 2D seems more natural for the problem. Speed-----, Results+++++++++; #columns HIGHEST impact. 
+  columns.initialize({28, 28, 8}); //1D vs 2D no big difference, 2D seems more natural for the problem. Speed-----, Results+++++++++; #columns HIGHEST impact. 
   sp.initialize(
     /* inputDimensions */             input.dimensions,
     /* columnDimensions */            columns.dimensions,
@@ -156,10 +156,6 @@ void train(const bool skipSP=false) {
   
   tTrain.stop();
   cout << "MNIST train time: " << tTrain.getElapsed() << endl; 
-  cout << "SP nth \t" << sp.tNth.getElapsed() << endl;
-  cout << "SP sort \t" << sp.tSort.getElapsed() << endl;
-  cout << "SP while\t" << sp.tWhile.getElapsed() << endl;
-
 
   // Save the connections to file for postmortem analysis.
   ofstream dump("mnist_sp_learned.connections", ofstream::binary | ofstream::trunc | ofstream::out);
