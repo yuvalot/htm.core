@@ -41,13 +41,10 @@
 #include <htm/utils/SdrMetrics.hpp>
 #include <htm/os/Timer.hpp>
 
+#include <htm/types/Parallelizable.hpp>
+
 #include <mnist/mnist_reader.hpp> // MNIST data itself + read methods, namespace mnist::
 #include <mnist/mnist_utils.hpp>  // mnist::binarize_dataset
-
-//includes for TS Parallel
-#include <execution>
-#include <tbb/parallel_for.h>
-#include <mutex>
 
 using namespace std;
 using namespace htm;
