@@ -29,7 +29,7 @@
 #include <htm/types/Types.hpp>
 #include <htm/types/Serializable.hpp>
 #include <htm/types/Sdr.hpp>
-
+#include <htm/os/Timer.hpp>
 
 namespace htm {
 
@@ -1210,6 +1210,7 @@ protected:
 
 public:
   const Connections &connections = connections_;
+  mutable Timer tSort, tNth, tWhile;
 };
 
 std::ostream & operator<<(std::ostream & out, const SpatialPooler &sp);

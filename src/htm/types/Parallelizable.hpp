@@ -24,6 +24,6 @@
 
 namespace htm {
 namespace parallel {
-  const constexpr auto mode = std::execution::par; //TODO ifdef NUM_PARALLEL=1 -> seq
+  const constexpr auto mode = std::execution::par_unseq; //TODO ifdef NUM_PARALLEL=1 -> seq
 }
 }
