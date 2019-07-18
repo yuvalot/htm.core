@@ -38,6 +38,10 @@ from htm.examples.columns_paper.layers.multi_column_convergence_experiment impor
 )
 
 
+from htm.bindings.regions.RawSensor import RawSensor
+import htm.bindings.engine_internal as engine
+engine.Network.registerPyRegion(RawSensor.__module__, RawSensor.__name__)
+
 
 def plotConvergenceByColumn(results, columnRange, featureRange, numTrials):
   """
