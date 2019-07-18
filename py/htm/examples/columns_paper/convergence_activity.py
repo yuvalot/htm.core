@@ -32,12 +32,6 @@ import plotly.graph_objs as go
 from htm.examples.columns_paper.layers.l2_l4_inference import L4L2Experiment
 from htm.examples.columns_paper.dataset.object_machine_factory import createObjectMachine
 
-# Plotly requires a valid user to be able to save High Res images
-plotlyUser = os.environ.get('PLOTLY_USERNAME')
-plotlyAPIKey = os.environ.get('PLOTLY_API_KEY')
-if plotlyAPIKey is not None:
-  plotly.plotly.sign_in(plotlyUser, plotlyAPIKey)
-
 
 
 def plotActivity(l2ActiveCellsMultiColumn, highlightTouch):

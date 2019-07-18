@@ -40,9 +40,7 @@ import matplotlib.ticker as ticker
 import numpy as np
 import pandas as pd
 from htm.examples.columns_paper.layers.l2_l4_inference import L4L2Experiment
-from htm.examples.columns_paper.dataset.object_machine_factory import (
-  createObjectMachine
-)
+from htm.examples.columns_paper.dataset.object_machine_factory import createObjectMachine
 
 # Use Truetype fonts
 mpl.rcParams['pdf.fonttype'] = 42

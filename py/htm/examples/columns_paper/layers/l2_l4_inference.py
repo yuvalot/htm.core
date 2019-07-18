@@ -91,8 +91,8 @@ from tabulate import tabulate
 
 from htm import SDR
 
-from htm.examples.columns_paper.layers.laminar_network import createNetwork
-
+from htm.bindings.engine_internal import Network
+from htm.examples.columns_paper.layers.l2_l4_network_creation import createMultipleL4L2Columns
 
 
 class L4L2Experiment(object):
@@ -157,8 +157,7 @@ class L4L2Experiment(object):
              The type of region to use for L4
 
     @param   networkType (string)
-             Which type of L2L4 network to create.  Possible values for this parameter
-             are "MultipleL4L2Columns" and "L4L2Column"
+             UNUSED!
 
     @param   L4Overrides (dict)
              Parameters to override in the L4 region
@@ -242,7 +241,7 @@ class L4L2Experiment(object):
       self.config["L4Params"].update(L4Overrides)
 
     # create network
-    self.network = createNetwork(self.config)
+    self.network = createMultipleL4L2Columns(Network(), self.config)
     self.sensorInputs = []
     self.externalInputs = []
     self.L4Regions = []
@@ -345,7 +344,7 @@ class L4L2Experiment(object):
 
       if reset:
         # send reset signal
-        self._sendReset()
+        self.sendReset()
 
   def infer(self, sensationList, reset=True, objectName=None):
     """
@@ -405,7 +404,7 @@ class L4L2Experiment(object):
 
     if reset:
       # send reset signal
-      self._sendReset()
+      self.sendReset()
 
     # save statistics
     statistics["numSteps"] = len(sensationList)
@@ -442,7 +441,7 @@ class L4L2Experiment(object):
                               np.ones(len(activeCells), dtype="float32"))
 
 
-  def _sendReset(self, sequenceId=0):
+  def sendReset(self, sequenceId=0):
     """
     Sends a reset signal to the network.
     """
@@ -450,13 +449,6 @@ class L4L2Experiment(object):
       self.sensorInputs[col].addResetToQueue(sequenceId)
       self.externalInputs[col].addResetToQueue(sequenceId)
     self.network.run(1)
-
-
-  def sendReset(self, *args, **kwargs):
-    """
-    Public interface to sends a reset signal to the network.  This is logged.
-    """
-    self._sendReset(*args, **kwargs)
 
 
   def resetStatistics(self):
