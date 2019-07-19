@@ -352,7 +352,7 @@ void SpatialPooler::getConnectedSynapses(UInt column,
 }
 
 void SpatialPooler::getConnectedCounts(UInt connectedCounts[]) const {
-  for(UInt seg = 0; seg < numColumns_; seg++) {
+  for(UInt seg = 0; seg < numColumns_; seg++) { //in SP each column = 1 cell with 1 segment only.
     const auto &segment = connections_.dataForSegment( seg );
     connectedCounts[ seg ] = segment.numConnected; //TODO numConnected only used here, rm from SegmentData and compute for each segment.synapses?
   }
@@ -437,7 +437,7 @@ void SpatialPooler::initialize(
 
   connections_.initialize(numColumns_, synPermConnected_);
   for (Size i = 0; i < numColumns_; ++i) {
-    connections_.createSegment( (CellIdx)i );
+    connections_.createSegment( (CellIdx)i , 1 /* max segments per cell is fixed for SP to 1 */);
 
     // Note: initMapPotential_ & initPermanence_ return dense arrays.
     vector<UInt> potential = initMapPotential_((UInt)i, wrapAround_);
@@ -464,9 +464,7 @@ void SpatialPooler::compute(const SDR &input, const bool learn, SDR &active) {
   active.reshape( columnDimensions_ );
   
   updateBookeepingVars_(learn);
-  calculateOverlap_(input, overlaps_);
-  
-  auto &activeVector = active.getSparse();
+  calculateOverlap_(input, overlaps_, learn);
 
   //boosting
   //must be done before inhibition
@@ -474,6 +472,7 @@ void SpatialPooler::compute(const SDR &input, const bool learn, SDR &active) {
 
   //inhibition
   //update inhibition radius if it's time, only changes in local inh
+  auto& activeVector = active.getSparse();
   if(!globalInhibition_ and isUpdateRound_() and learn) {
     inhibitionRadius_ = updateInhibitionRadius_();
   }
@@ -823,9 +822,9 @@ void SpatialPooler::updateBookeepingVars_(bool learn) {
 
 
 void SpatialPooler::calculateOverlap_(const SDR &input,
-                                      vector<SynapseIdx> &overlaps) {
-  overlaps.assign( numColumns_, 0 );
-  connections_.computeActivity(overlaps, input.getSparse());
+                                      vector<SynapseIdx> &overlaps,
+				      const bool learn) {
+  connections_.computeActivity(overlaps, input.getSparse(), learn); //TODO remove method calculateOverlap_(), //TODO rm overlaps_ member
 }
 
 
