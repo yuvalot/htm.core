@@ -250,18 +250,14 @@ void Connections::destroySynapse(const Synapse synapse) {
     }
   }
 
-  const auto synapseOnSegment =
-      std::lower_bound(segmentData.synapses.cbegin(), segmentData.synapses.cend(),
-                       synapse, 
-		       [&](const Synapse a, const Synapse b) -> bool {
-			 return dataForSynapse(a).id < dataForSynapse(b).id;
-                       });
+  const auto synapseOnSegment = std::find(segmentData.synapses.cbegin(), 
+		                          segmentData.synapses.cend(),
+					  synapse);
 
-  NTA_ASSERT(synapseOnSegment != segmentData.synapses.end());
+  NTA_ASSERT(synapseOnSegment != segmentData.synapses.cend());
   NTA_ASSERT(*synapseOnSegment == synapse);
 
   segmentData.synapses.erase(synapseOnSegment);
-
   destroyedSynapses_.push_back(synapse);
 }
 
@@ -348,7 +344,7 @@ bool Connections::compareSegments(const Segment a, const Segment b) const {
   // default sort by cell
   if (aData.cell == bData.cell)
     //fallback to ordinals:
-    return aData.id < bData.id;
+    return aData.id < bData.id; //TODO is segment's id/ordinals needed?
   else return aData.cell < bData.cell;
 }
 
