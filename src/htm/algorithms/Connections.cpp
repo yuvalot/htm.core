@@ -607,6 +607,7 @@ void Connections::synapseCompetition(
 
 
 void Connections::bumpSegment(const Segment segment, const Permanence delta) {
+  if(delta <= htm::Epsilon) return;
   const vector<Synapse> &synapses = synapsesForSegment(segment);
   // TODO: vectorize?
   for( const auto syn : synapses ) {
