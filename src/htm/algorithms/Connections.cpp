@@ -26,20 +26,20 @@
 
 #include <htm/algorithms/Connections.hpp>
 
-#include <Eigen/Core> //Eigen::half
 
 using std::endl;
 using std::string;
 using std::vector;
 using namespace htm;
 
-using Permanence = Eigen::half;
+//!using Permanence = UInt16; //TODO try this optimization, overrides Permanence(=Real) from Connections.hpp 
 
 Connections::Connections(const CellIdx numCells, 
 		         const Permanence connectedThreshold, 
 			 const bool timeseries) {
   initialize(numCells, connectedThreshold, timeseries);
 }
+
 
 void Connections::initialize(CellIdx numCells, Permanence connectedThreshold, bool timeseries) {
   cells_ = vector<CellData>(numCells);
@@ -63,16 +63,19 @@ void Connections::initialize(CellIdx numCells, Permanence connectedThreshold, bo
   reset();
 }
 
+
 UInt32 Connections::subscribe(ConnectionsEventHandler *handler) {
   UInt32 token = nextEventToken_++;
   eventHandlers_[token] = handler;
   return token;
 }
 
+
 void Connections::unsubscribe(UInt32 token) {
   delete eventHandlers_.at(token);
   eventHandlers_.erase(token);
 }
+
 
 Segment Connections::createSegment(const CellIdx cell, 
 	                           const SegmentIdx maxSegmentsPerCell) {
@@ -157,12 +160,14 @@ Synapse Connections::createSynapse(Segment segment,
   return synapse;
 }
 
+
 bool Connections::segmentExists_(const Segment segment) const {
   const SegmentData &segmentData = segments_[segment];
   const vector<Segment> &segmentsOnCell = cells_[segmentData.cell].segments;
   return (std::find(segmentsOnCell.cbegin(), segmentsOnCell.cend(), segment) !=
           segmentsOnCell.cend());
 }
+
 
 bool Connections::synapseExists_(const Synapse synapse) const {
   const SynapseData &synapseData = synapses_[synapse];
@@ -171,6 +176,7 @@ bool Connections::synapseExists_(const Synapse synapse) const {
   return (std::find(synapsesOnSegment.begin(), synapsesOnSegment.end(),
                     synapse) != synapsesOnSegment.end());
 }
+
 
 /**
  * Helper method to remove a synapse from a presynaptic map, by moving the
