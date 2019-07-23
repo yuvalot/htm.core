@@ -135,8 +135,8 @@ void TemporalMemory::initialize(
   reset();
 }
 
-///*
-static CellIdx getLeastUsedCell(Random &rng, 
+
+static CellIdx getLeastUsedCell(Random &rng, //TODO this method is quite expensive, is it required?
 		                const UInt column, //TODO remove static methods, use private instead
                                 const Connections &connections,
                                 const UInt cellsPerColumn) {
@@ -224,6 +224,7 @@ static void growSynapses(Connections &connections,
     connections.createSynapse(segment, syn, initialPermanence); //TODO createSynapse consider creating a vector of new synapses at once?
   }
 }
+
 
 static void activatePredictedColumn(
     vector<CellIdx> &activeCells, 

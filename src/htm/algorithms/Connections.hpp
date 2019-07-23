@@ -82,12 +82,12 @@ struct SynapseData: public Serializable {
   CerealAdapter;
   template<class Archive>
   void save_ar(Archive & ar) const {
-    ar(cereal::make_nvp("perm", static_cast<Real>(permanence)), //FIXME still fails, had problems serializing Eigen::half, so cast to Real
-      cereal::make_nvp("presyn", presynapticCell));
+    ar(cereal::make_nvp("perm", permanence),
+       cereal::make_nvp("presyn", presynapticCell));
   }
   template<class Archive>
   void load_ar(Archive & ar) {
-    ar( static_cast<Permanence>(permanence), presynapticCell);
+    ar( permanence, presynapticCell);
   }
 
 };
@@ -572,7 +572,7 @@ public:
         }
       }
     }
-    ar(CEREAL_NVP(static_cast<Real>(connectedThreshold_)));
+    ar(CEREAL_NVP(connectedThreshold_));
     ar(CEREAL_NVP(sizes));
     ar(CEREAL_NVP(syndata));
     ar(CEREAL_NVP(iteration_));
@@ -582,7 +582,7 @@ public:
   void load_ar(Archive & ar) {
     std::deque<size_t> sizes;
     std::deque<SynapseData> syndata;
-    ar(CEREAL_NVP(static_cast<Permanence>(connectedThreshold_)));
+    ar(CEREAL_NVP(connectedThreshold_));
     ar(CEREAL_NVP(sizes));
     ar(CEREAL_NVP(syndata));
 
