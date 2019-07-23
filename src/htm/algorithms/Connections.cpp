@@ -32,7 +32,7 @@ using std::string;
 using std::vector;
 using namespace htm;
 
-using Permanence = UInt16; //TODO try this optimization, overrides Permanence(=Real) from Connections.hpp 
+//!using Permanence = UInt16; //TODO try this optimization, overrides Permanence(=Real) from Connections.hpp 
 
 Connections::Connections(const CellIdx numCells, 
 		         const Permanence connectedThreshold, 
