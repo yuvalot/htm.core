@@ -476,7 +476,7 @@ void Connections::adaptSegment(const Segment segment,
   }
 
   //balance synapses using competition on dendrite
-  synapseCompetition(segment, 4, 10); //FIXME derive these numbers
+  synapseCompetition(segment, 8, 11); //FIXME derive these numbers
 
   //destroy segment if it has too few synapses left -> will never be able to connect again
   if(pruneZeroSynapses and synapses.size() < connectedThreshold_) {
