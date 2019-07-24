@@ -475,6 +475,9 @@ void Connections::adaptSegment(const Segment segment,
     }
   }
 
+  //balance synapses using competition on dendrite
+  synapseCompetition(segment, 4, 10); //FIXME derive these numbers
+
   //destroy segment if it has too few synapses left -> will never be able to connect again
   if(pruneZeroSynapses and synapses.size() < connectedThreshold_) {
     destroySegment(segment);
@@ -545,7 +548,8 @@ void Connections::synapseCompetition(
                     const SynapseIdx maximumSynapses)
 {
   NTA_ASSERT( minimumSynapses <= maximumSynapses);
-  NTA_ASSERT( maximumSynapses > 0 );
+  NTA_ASSERT( maximumSynapses >= connectedThreshold );
+  NTA_ASSERT( minimumSynapses <  connectedThreshold );
 
   const auto &segData = dataForSegment( segment );
 
@@ -570,7 +574,7 @@ void Connections::synapseCompetition(
   // Can't connect more synapses than there are in the potential pool.
   desiredConnected = std::min( (SynapseIdx) segData.synapses.size(), desiredConnected);
   // The N'th synapse is at index N-1
-  if( desiredConnected != 0 ) {
+  if( desiredConnected > 0 ) {
     desiredConnected--;
   }
   // else {

@@ -510,7 +510,7 @@ public:
    */
   void synapseCompetition(  const Segment    segment,
                             const SynapseIdx minimumSynapses,
-                            const SynapseIdx maximumSynapses);
+                            const SynapseIdx maximumSynapses); 
 
 
   /**
