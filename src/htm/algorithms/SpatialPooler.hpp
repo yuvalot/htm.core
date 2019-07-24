@@ -233,8 +233,15 @@ public:
   @param active An SDR representing the winning columns after
         inhibition. The size of the SDR is equal to the number of
         columns (also returned by the method getNumColumns).
+
+  @param  spatialAnomalyInputValue (optional) `Real` used for computing "spatial anomaly", see @ref `this.spatial_anomaly.compute()`,
+          obtained by @ref `SP.anomaly`
+
    */
-  virtual void compute(const SDR &input, const bool learn, SDR &active);
+  virtual void compute(const SDR &input, 
+		       const bool learn, 
+		       SDR &active, 
+		       const Real spatialAnomalyInputValue = std::numeric_limits<Real>::min());
 
 
   /**
@@ -1220,7 +1227,7 @@ public:
      * This accounts for the human labelling bias for spatial values larger than what
      * has been seen so far.
      */
-    const Real SPATIAL_TOLERANCE = 0.05;
+    Real SPATIAL_TOLERANCE = 0.05;
 
     /**
      * toggle if we should compute spatial anomaly
@@ -1234,30 +1241,39 @@ public:
      *  @param value Real, input #TODO currently handles only 1 variable input, and requires value passed to compute! 
      *  # later remove, and implement using SP's internal state. But for now we are compatible with NAB's implementation. 
      *
-     * @return nothing, but updates internal variable `anomalyScore_`, which is either 0.0f (no anomaly), 
-     *   or exactly 0.9995947141f (spatial anomaly). This can be accessed by public @ref `SP.anomaly`
+     * @return nothing, but updates internal variable `anomalyScore_`, which is either `NO_ANOMALY` (0.0f) , 
+     *   or `SPATIAL_ANOMALY` (exactly 0.9995947141f). Accessed by public @ref `SP.anomaly`.
+     *
      */
     void compute(const Real value) {
-      anomalyScore_ = 0.0f;
-      if(minVal_ != maxVal_) {
+      anomalyScore_ = NO_ANOMALY;
+      if(not enabled) return;
+      NTA_ASSERT(SPATIAL_TOLERANCE > 0.0f and SPATIAL_TOLERANCE <= 1.0f); 
+
+      if(minVal_ != std::numeric_limits<Real>::max() and
+	 maxVal_ != std::numeric_limits<Real>::min() ) {
         const Real tolerance = (maxVal_ - minVal_) * SPATIAL_TOLERANCE;
         const Real maxExpected = maxVal_ + tolerance;
         const Real minExpected = minVal_ - tolerance;
 
         if(value > maxExpected or value < minExpected) { //spatial anomaly
-          anomalyScore_ = 0.9995947141f; //almost 1.0 = max anomaly. Encodes value specific to spatial anomaly (so this can be recognized on results),
-          // "5947141" would translate in l33t speech to "spatial" :)
+          anomalyScore_ = SPATIAL_ANOMALY; 
 	}
       }
       if(value > maxVal_) maxVal_ = value;
       if(value < minVal_) minVal_ = value;
+      NTA_ASSERT(anomalyScore_ == NO_ANOMALY or anomalyScore_ == SPATIAL_ANOMALY) << "Out of bounds of acceptable values";
     }
 
     private:
       Real minVal_ = std::numeric_limits<Real>::max(); //TODO fix serialization
       Real maxVal_ = std::numeric_limits<Real>::min();
+
     public:
-      Real anomalyScore_ = 0.0f; //default score = no anomaly
+      const Real NO_ANOMALY = 0.0f;
+      const Real SPATIAL_ANOMALY = 0.9995947141f; //almost 1.0 = max anomaly. Encodes value specific to spatial anomaly (so this can be recognized on results),
+        // "5947141" would translate in l33t speech to "spatial" :)
+      Real anomalyScore_ = NO_ANOMALY; //default score = no anomaly
   } spAnomaly;
 
   /**
