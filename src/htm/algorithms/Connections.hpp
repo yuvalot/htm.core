@@ -33,6 +33,7 @@
 #include <htm/types/Types.hpp>
 #include <htm/types/Serializable.hpp>
 #include <htm/types/Sdr.hpp>
+#include <htm/utils/Random.hpp>
 
 namespace htm {
 
@@ -715,9 +716,9 @@ private:
   std::vector<Synapse>     destroyedSynapses_;
   Permanence               connectedThreshold_; //TODO make const
   UInt32 iteration_ = 0;
+  Random rng_;
 
   // Extra bookkeeping for faster computing of segment activity.
- 
   struct identity { constexpr size_t operator()( const CellIdx t ) const noexcept { return t; };   };	//TODO in c++20 use std::identity 
 
   std::unordered_map<CellIdx, std::vector<Synapse>, identity> potentialSynapsesForPresynapticCell_;

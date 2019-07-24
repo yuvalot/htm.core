@@ -53,6 +53,8 @@ void Connections::initialize(CellIdx numCells, Permanence connectedThreshold, bo
   connectedThreshold_ = connectedThreshold - htm::Epsilon;
   iteration_ = 0;
 
+  rng_ = Random(42); //TODO set the seed
+
   nextEventToken_ = 0;
 
   timeseries_ = timeseries;
@@ -476,7 +478,8 @@ void Connections::adaptSegment(const Segment segment,
   }
 
   //balance synapses using competition on dendrite
-  synapseCompetition(segment, 4, 10); //FIXME derive these numbers
+  if(rng_.getReal64() < 0.01f) //1% chance //TODO set the probability?
+    synapseCompetition(segment, 4, 10); //FIXME derive these numbers
 
   //destroy segment if it has too few synapses left -> will never be able to connect again
   if(pruneZeroSynapses and synapses.size() < connectedThreshold_) {
