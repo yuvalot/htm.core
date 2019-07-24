@@ -1269,8 +1269,8 @@ public:
           anomalyScore_ = SPATIAL_ANOMALY; 
 	}
       }
-      if(value > maxVal_) maxVal_ = value;
-      if(value < minVal_) minVal_ = value;
+      if(value > maxVal_ or maxVal_ == INF_) maxVal_ = value;
+      if(value < minVal_ or minVal_ == INF_) minVal_ = value;
       NTA_ASSERT(anomalyScore_ == NO_ANOMALY or anomalyScore_ == SPATIAL_ANOMALY) << "Out of bounds of acceptable values";
     }
 
@@ -1288,8 +1288,9 @@ public:
 
     private:
       friend class SpatialPooler;
-      Real minVal_ = std::numeric_limits<Real>::max();
-      Real maxVal_ = std::numeric_limits<Real>::min();
+      static const constexpr Real INF_ = std::numeric_limits<Real>::infinity();
+      Real minVal_ = INF_;
+      Real maxVal_ = INF_;
       Real anomalyScore_ = NO_ANOMALY; //default score = no anomaly
 
     public:
