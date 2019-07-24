@@ -283,7 +283,11 @@ public:
        CEREAL_NVP(synPermBelowStimulusInc_),
        CEREAL_NVP(synPermConnected_),
        CEREAL_NVP(minPctOverlapDutyCycles_),
-       CEREAL_NVP(wrapAround_));
+       CEREAL_NVP(wrapAround_),
+       CEREAL_NVP(spAnomaly.minVal_),
+       CEREAL_NVP(spAnomaly.maxVal_),
+       CEREAL_NVP(spAnomaly.anomalyScore_)
+       );
     ar(CEREAL_NVP(boostFactors_));
     ar(CEREAL_NVP(overlapDutyCycles_));
     ar(CEREAL_NVP(activeDutyCycles_));
@@ -316,7 +320,11 @@ public:
        CEREAL_NVP(synPermBelowStimulusInc_),
        CEREAL_NVP(synPermConnected_),
        CEREAL_NVP(minPctOverlapDutyCycles_),
-       CEREAL_NVP(wrapAround_));
+       CEREAL_NVP(wrapAround_),
+       CEREAL_NVP(spAnomaly.minVal_),
+       CEREAL_NVP(spAnomaly.maxVal_),
+       CEREAL_NVP(spAnomaly.anomalyScore_)
+       );
     ar(CEREAL_NVP(boostFactors_));
     ar(CEREAL_NVP(overlapDutyCycles_));
     ar(CEREAL_NVP(activeDutyCycles_));
@@ -1226,11 +1234,13 @@ public:
      * a spatial anomaly regardless of the anomaly likelihood calculation. 
      * This accounts for the human labelling bias for spatial values larger than what
      * has been seen so far.
+     * Default value 0.05f aka 5%, as used in NAB.
      */
     Real SPATIAL_TOLERANCE = 0.05;
 
     /**
-     * toggle if we should compute spatial anomaly
+     * toggle whether we should compute spatial anomaly
+     * Default true.
      */
     bool enabled = true;
 
@@ -1248,10 +1258,9 @@ public:
     void compute(const Real value) {
       anomalyScore_ = NO_ANOMALY;
       if(not enabled) return;
-      NTA_ASSERT(SPATIAL_TOLERANCE > 0.0f and SPATIAL_TOLERANCE <= 1.0f); 
+      NTA_ASSERT(SPATIAL_TOLERANCE >= 0.0f and SPATIAL_TOLERANCE <= 1.0f); 
 
-      if(minVal_ != std::numeric_limits<Real>::max() and
-	 maxVal_ != std::numeric_limits<Real>::min() ) {
+      if(minVal_ != maxVal_) {
         const Real tolerance = (maxVal_ - minVal_) * SPATIAL_TOLERANCE;
         const Real maxExpected = maxVal_ + tolerance;
         const Real minExpected = minVal_ - tolerance;
@@ -1265,15 +1274,28 @@ public:
       NTA_ASSERT(anomalyScore_ == NO_ANOMALY or anomalyScore_ == SPATIAL_ANOMALY) << "Out of bounds of acceptable values";
     }
 
+    bool operator==(const spatial_anomaly& o) const noexcept {
+      return minVal_ == o.minVal_ and
+	     maxVal_ == o.maxVal_ and
+	     anomalyScore_ == o.anomalyScore_ and
+	     enabled == o.enabled and
+	     SPATIAL_TOLERANCE == o.SPATIAL_TOLERANCE;
+    }
+
+    inline bool operator!=(const spatial_anomaly& o) const noexcept {
+      return !this->operator==(o);
+    }
+
     private:
-      Real minVal_ = std::numeric_limits<Real>::max(); //TODO fix serialization
+      friend class SpatialPooler;
+      Real minVal_ = std::numeric_limits<Real>::max();
       Real maxVal_ = std::numeric_limits<Real>::min();
+      Real anomalyScore_ = NO_ANOMALY; //default score = no anomaly
 
     public:
-      const Real NO_ANOMALY = 0.0f;
-      const Real SPATIAL_ANOMALY = 0.9995947141f; //almost 1.0 = max anomaly. Encodes value specific to spatial anomaly (so this can be recognized on results),
+      static const constexpr Real NO_ANOMALY = 0.0f;
+      static const constexpr Real SPATIAL_ANOMALY = 0.9995947141f; //almost 1.0 = max anomaly. Encodes value specific to spatial anomaly (so this can be recognized on results),
         // "5947141" would translate in l33t speech to "spatial" :)
-      Real anomalyScore_ = NO_ANOMALY; //default score = no anomaly
   } spAnomaly;
 
   /**

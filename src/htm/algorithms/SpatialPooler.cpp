@@ -1027,6 +1027,10 @@ bool SpatialPooler::operator==(const SpatialPooler& o) const{
 
   //Random
   if (rng_ != o.rng_) return false;
+
+  //spatial anomaly
+  if (spAnomaly != o.spAnomaly) return false;
+
   return true;
 
 }
