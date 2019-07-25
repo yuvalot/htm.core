@@ -2107,6 +2107,17 @@ TEST(SpatialPoolerTest, ExactOutput) {
 TEST(SpatialPoolerTest, spatialAnomaly) {
   SDR inputs({ 1000 });
   SDR columns({ 200 });
+
+  {
+  SpatialPooler sp(inputs.dimensions, columns.dimensions);
+  // test too large threshold
+  sp.spAnomaly.SPATIAL_TOLERANCE = 1.2345f; //out of bounds, will crash!
+  EXPECT_ANY_THROW(sp.compute(inputs, false, columns, 0.1f /*whatever, fails on TOLERANCE */)) << "Spatial anomaly should fail if SPATIAL_TOLERANCE is out of bounds!";
+  sp.spAnomaly.SPATIAL_TOLERANCE = 0.01f; //within bounds, OK
+  EXPECT_NO_THROW(sp.compute(inputs, false, columns, 0.1f /*whatever */));
+  }
+
+  {
   SpatialPooler sp({inputs.dimensions}, {columns.dimensions},
     /*potentialRadius*/ 99999,
     /*potentialPct*/ 0.5f,
@@ -2122,15 +2133,6 @@ TEST(SpatialPoolerTest, spatialAnomaly) {
     /*seed*/ 42,
     /*spVerbosity*/ 0,
     /*wrapAround*/ true);
-
-
-  // test too large threshold
-#ifdef NTA_ASSERTIONS_ON  //only for Debug
-  sp.spAnomaly.SPATIAL_TOLERANCE = 1.2345f; //out of bounds, will crash!
-  EXPECT_ANY_THROW(sp.compute(inputs, false, columns, 0.1f /*whatever, fails on TOLERANCE */)) << "Spatial anomaly should fail if SPATIAL_TOLERANCE is out of bounds!";
-  sp.spAnomaly.SPATIAL_TOLERANCE = 0.01f; //within bounds, OK
-  EXPECT_NO_THROW(sp.compute(inputs, false, columns, 0.1f /*whatever */));
-#endif
 
   //test spatial anomaly computation
   sp.spAnomaly.SPATIAL_TOLERANCE = 0.2f; //threshold 20%
@@ -2164,7 +2166,7 @@ TEST(SpatialPoolerTest, spatialAnomaly) {
   sp.compute(inputs, true, columns, val);
   EXPECT_EQ(0.9995947141f, sp.anomaly) << "This should be an anomaly!";
   EXPECT_EQ(sp.spAnomaly.SPATIAL_ANOMALY, sp.anomaly) << "Should be same as above!";
-
+  }
   
 }
 

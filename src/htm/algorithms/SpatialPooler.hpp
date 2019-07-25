@@ -1258,7 +1258,7 @@ public:
     void compute(const Real value) {
       anomalyScore_ = NO_ANOMALY;
       if(not enabled) return;
-      NTA_ASSERT(SPATIAL_TOLERANCE >= 0.0f and SPATIAL_TOLERANCE <= 1.0f); 
+      NTA_CHECK(SPATIAL_TOLERANCE >= 0.0f and SPATIAL_TOLERANCE <= 1.0f); 
 
       if(minVal_ != maxVal_) {
         const Real tolerance = (maxVal_ - minVal_) * SPATIAL_TOLERANCE;
