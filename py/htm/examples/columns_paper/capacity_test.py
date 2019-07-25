@@ -59,9 +59,9 @@ def getL4Params():
   Returns a good default set of parameters to use in the L4 region.
   """
   return {
-    "columnCount": 150,
+    "numberOfCols": 150,
     "cellsPerColumn": 16,
-    "learn": True,
+    "learningMode": True,
     "learnOnOneCell": False,
     "initialPermanence": 0.51,
     "connectedPermanence": 0.6,
@@ -430,7 +430,7 @@ def runCapacityTest(numObjects,
   :param numCorticalColumns:
   :return:
   """
-  l4ColumnCount = l4Params["columnCount"]
+  l4ColumnCount = l4Params["numberOfCols"]
 
   numInputBits = objectParams['numInputBits']
   externalInputSize = objectParams['externalInputSize']
@@ -659,7 +659,7 @@ def runExperiment3(numCorticalColumns=DEFAULT_NUM_CORTICAL_COLUMNS,
      'thresh': 5})
 
   for expParam in expParams:
-    l4Params["columnCount"] = expParam['l4Column']
+    l4Params["numberOfCols"] = expParam['l4Column']
     numInputBits = expParam['w']
     l2Params['sampleSizeProximal'] = expParam['sample']
     l2Params['minThresholdProximal'] = expParam['thresh']
@@ -763,7 +763,7 @@ def runExperiment4(resultDirName=DEFAULT_RESULT_DIR_NAME,
     l2Params['sampleSizeProximal'] = expParam['sample']
     l2Params['minThresholdProximal'] = expParam['thresh']
 
-    l4Params["columnCount"] = expParam['l4Column']
+    l4Params["numberOfCols"] = expParam['l4Column']
     numInputBits = expParam['w']
     numCorticalColumns = expParam['l2Column']
 
@@ -872,7 +872,7 @@ def runExperiment5(resultDirName=DEFAULT_RESULT_DIR_NAME,
 
     numCorticalColumns = expParam['l2Column']
 
-    l4Params["columnCount"] = numL4MiniColumns
+    l4Params["numberOfCols"] = numL4MiniColumns
     l4Params["activationThreshold"] = int(numInputBits * .6)
     l4Params["minThreshold"] = int(numInputBits * .6)
     l4Params["sampleSize"] = int(2 * l4Params["activationThreshold"])

@@ -111,7 +111,7 @@ class L4L2Experiment(object):
                externalInputSize=1024,
                numExternalInputBits=20,
                L2Overrides=None,
-               L4RegionType="py.ApicalTMPairRegion",
+               L4RegionType="TMRegion",
                networkType = "MultipleL4L2Columns",
                longDistanceConnections = 0,
                maxConnectionDistance = 1,
@@ -802,9 +802,9 @@ class L4L2Experiment(object):
       minThreshold = activationThreshold
 
     return {
-      "columnCount": inputSize,
+      "numberOfCols": inputSize,
       "cellsPerColumn": 16,
-      "learn": True,
+      "learningMode": True,
       "initialPermanence": 0.51,
       "connectedPermanence": 0.6,
       "permanenceIncrement": 0.1,
@@ -859,7 +859,7 @@ class L4L2Experiment(object):
     return {
       "spatialImp": "cpp",
       "globalInhibition": 1,
-      "columnCount": 1024,
+      "numberOfCols": 1024,
       "inputWidth": inputSize,
       "numActiveColumnsPerInhArea": 40,
       "seed": self.seed,
@@ -875,7 +875,7 @@ class L4L2Experiment(object):
     return {
       "spatialImp": "cpp",
       "globalInhibition": 1,
-      "columnCount": 1024,
+      "numberOfCols": 1024,
       "inputWidth": inputSize,
       "numActiveColumnsPerInhArea": 40,
       "seed": self.seed,
@@ -910,7 +910,7 @@ class L4L2Experiment(object):
     """
 
     for region in self.L4Regions:
-      region.setParameter("learn", False)
+      region.setParameter("learningMode", False)
     for region in self.L2Regions:
       region.setParameter("learningMode", False)
 
@@ -920,7 +920,7 @@ class L4L2Experiment(object):
     Sets the learning mode.
     """
     for region in self.L4Regions:
-      region.setParameter("learn", True)
+      region.setParameter("learningMode", True)
     for region in self.L2Regions:
       region.setParameter("learningMode", True)
 

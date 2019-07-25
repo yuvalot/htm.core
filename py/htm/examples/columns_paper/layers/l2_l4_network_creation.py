@@ -68,7 +68,6 @@ import copy
 import json
 import numpy
 
-
 def _addLateralSPRegion(network, networkConfig, suffix=""):
   spParams = networkConfig.get("lateralSPParams", {})
 
@@ -289,9 +288,9 @@ def createMultipleL4L2Columns(network, networkConfig):
       }
     }
   """
-
   # Create each column
   numCorticalColumns = networkConfig["numCorticalColumns"]
+  assert( numCorticalColumns >= 1 )
   for i in range(numCorticalColumns):
     networkConfigCopy = copy.deepcopy(networkConfig)
     layerConfig = networkConfigCopy["L2Params"]
