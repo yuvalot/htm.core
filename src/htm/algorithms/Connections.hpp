@@ -459,14 +459,18 @@ public:
    * @param increment  Change in permanence for synapses with active presynapses.
    * @param decrement  Change in permanence for synapses with inactive presynapses.
    * @param pruneZeroSynapses (default false) If set, synapses that reach minPermanence(aka. "zero")
-   *        are removed. This is used in TemporalMemory.  If the segment becomes empty due to these
-   *        removed synapses, we remove the segment (see @ref `destroySegment`).
+   *        are removed. This is used in TemporalMemory.
+   * @param segmentThreshold (optional) (default 0) Minimum number of connected synapses for a segment
+   *        to be considered active. @see raisePermenencesToThreshold(). Equivalent to `SP.stimulusThreshold`.
+   *        If `pruneZeroSynapses` is used and synapses are removed, if the amount of synapses drops below 
+   *        `segmentThreshold`, we'll remove the segment as it can never become active again. See `destroySegment`.
    */
   void adaptSegment(const Segment segment,
                     const SDR &inputs,
                     const Permanence increment,
                     const Permanence decrement,
-		    const bool pruneZeroSynapses = false);
+		    const bool pruneZeroSynapses = false,
+		    const UInt segmentThreshold = 0);
 
   /**
    * Ensures a minimum number of connected synapses.  This raises permance

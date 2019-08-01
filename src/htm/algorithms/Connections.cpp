@@ -433,7 +433,8 @@ void Connections::adaptSegment(const Segment segment,
                                const SDR &inputs,
                                const Permanence increment,
                                const Permanence decrement, 
-			       const bool pruneZeroSynapses)
+			       const bool pruneZeroSynapses, 
+			       const UInt segmentThreshold)
 {
   const auto &inputArray = inputs.getDense();
 
@@ -476,7 +477,10 @@ void Connections::adaptSegment(const Segment segment,
   }
 
   //destroy segment if it has too few synapses left -> will never be able to connect again
-  if(pruneZeroSynapses and synapses.size() < connectedThreshold_) { //FIXME this is incorrect! connectedThreshold_ is if > then syn = connected. We need stimulusThreshold_ from TM.
+  if(!pruneZeroSynapses) {
+    NTA_ASSERT(segmentThreshold == 0) << "Setting segmentThreshold only makes sense when pruneZeroSynapses is allowed.";
+  }
+  if(pruneZeroSynapses and synapses.size() < segmentThreshold) { 
     destroySegment(segment);
     prunedSegs_++; //statistics
   }
