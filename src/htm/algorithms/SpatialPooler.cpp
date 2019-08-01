@@ -703,7 +703,7 @@ Real SpatialPooler::avgConnectedSpanForColumnND_(UInt column) const {
 void SpatialPooler::adaptSynapses_(const SDR &input,
                                    const SDR &active) {
   for(const auto &column : active.getSparse()) {
-    connections_.adaptSegment(column, input, synPermActiveInc_, synPermInactiveDec_);
+    connections_.adaptSegment(column, input, synPermActiveInc_, synPermInactiveDec_, true, stimulusThreshold_);
     connections_.raisePermanencesToThreshold( column, stimulusThreshold_ );
   }
 }

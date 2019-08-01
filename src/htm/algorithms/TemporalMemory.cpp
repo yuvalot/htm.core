@@ -251,7 +251,7 @@ static void activatePredictedColumn(
     do {
       if (learn) { 
         connections.adaptSegment(*activeSegment, prevActiveCells,
-                     permanenceIncrement, permanenceDecrement, true);
+                     permanenceIncrement, permanenceDecrement, true, minThreshold_);
 
         const Int32 nGrowDesired =
             static_cast<Int32>(maxNewSynapseCount) -
@@ -313,7 +313,7 @@ burstColumn(vector<CellIdx> &activeCells,
     if (bestMatchingSegment != columnMatchingSegmentsEnd) {
       // Learn on the best matching segment.
       connections.adaptSegment(*bestMatchingSegment, prevActiveCells,
-                   permanenceIncrement, permanenceDecrement, true);
+                   permanenceIncrement, permanenceDecrement, true, minThreshold_); //TODO consolidate SP.stimulusThreshold_ & TM.minThreshold_ into Conn.stimulusThreshold ? (replacing segmentThreshold arg used in some methods in Conn) 
 
       const Int32 nGrowDesired =
           maxNewSynapseCount -
@@ -351,7 +351,7 @@ static void punishPredictedColumn(
     for (auto matchingSegment = columnMatchingSegmentsBegin;
          matchingSegment != columnMatchingSegmentsEnd; matchingSegment++) {
       connections.adaptSegment(*matchingSegment, prevActiveCells,
-                   -predictedSegmentDecrement, 0.0, true);
+                   -predictedSegmentDecrement, 0.0, true, minThreshold_);
     }
   }
 }
