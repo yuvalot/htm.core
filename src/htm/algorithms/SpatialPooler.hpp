@@ -67,8 +67,8 @@ public:
   static const constexpr Real BOOSTING_EXP      = 1.0f * htm::Epsilon; //any value > BOOSTING_DISABLED enables the exponential boosting mode
 
   SpatialPooler();
-  SpatialPooler(const vector<UInt> inputDimensions, 
-		const vector<UInt> columnDimensions,
+  SpatialPooler(const vector<UInt>& inputDimensions, 
+		const vector<UInt>& columnDimensions,
                 UInt potentialRadius = 16u, 
 		Real potentialPct = 0.5f,
                 bool globalInhibition = true, 
@@ -212,8 +212,8 @@ public:
 
    */
   virtual void
-  initialize(const vector<UInt> inputDimensions, 
-	     const vector<UInt> columnDimensions,
+  initialize(const vector<UInt>& inputDimensions, 
+	     const vector<UInt>& columnDimensions,
              UInt potentialRadius = 16u, 
 	     Real potentialPct = 0.5f,
              bool globalInhibition = true, 

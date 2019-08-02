@@ -71,7 +71,7 @@ SpatialPooler::SpatialPooler() {
 }
 
 SpatialPooler::SpatialPooler(
-    const vector<UInt> inputDimensions, const vector<UInt> columnDimensions,
+    const vector<UInt>& inputDimensions, const vector<UInt>& columnDimensions,
     UInt potentialRadius, Real potentialPct, bool globalInhibition,
     Real localAreaDensity,
     UInt stimulusThreshold, Real synPermInactiveDec, Real synPermActiveInc,
@@ -401,7 +401,6 @@ void SpatialPooler::initialize(
   // 1D input produces 1D output; 2D => 2D, etc. //TODO allow nD -> mD conversion
   NTA_CHECK(inputDimensions_.size() == columnDimensions_.size()); 
 
-  NTA_CHECK(localAreaDensity > 0 && localAreaDensity <= MAX_LOCALAREADENSITY);
   setLocalAreaDensity(localAreaDensity); 
 
   rng_ = Random(seed);
