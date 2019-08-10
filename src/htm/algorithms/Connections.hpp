@@ -710,6 +710,11 @@ protected:
                               std::vector<Synapse> &synapsesForPresynapticCell,
                               std::vector<Segment> &segmentsForPresynapticCell);
 
+  /** 
+   *  Remove least recently used Segment from cell. 
+   */
+  void pruneLRUSegment_(const CellIdx& cell);
+
 private:
   std::vector<CellData>    cells_;
   std::vector<SegmentData> segments_;

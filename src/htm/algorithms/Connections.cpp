@@ -70,23 +70,39 @@ void Connections::unsubscribe(UInt32 token) {
   eventHandlers_.erase(token);
 }
 
+
+void Connections::pruneLRUSegment_(const CellIdx& cell) {
+  const auto& destroyCandidates = segmentsForCell(cell);
+#ifdef NTA_ASSERTIONS_ON
+  const auto numBefore = destroyCandidates.size();
+#endif
+  const auto compareSegmentsByLRU = [&](const Segment a, const Segment b) {
+    if(dataForSegment(a).lastUsed == dataForSegment(b).lastUsed) {
+      return a < b; //needed for deterministic sort
+    }
+    else return dataForSegment(a).lastUsed < dataForSegment(b).lastUsed; //sort segments by access time
+  };
+
+  const auto leastRecentlyUsedSegment = std::min_element(destroyCandidates.cbegin(),
+                                                         destroyCandidates.cend(), 
+							 compareSegmentsByLRU);
+  destroySegment(*leastRecentlyUsedSegment);
+  NTA_ASSERT(destroyCandidates.size() < numBefore) << "A segment should have been pruned, but wasn't!";
+#ifdef NTA_ASSERTIONS_ON
+  if(destroyCandidates.size() > 0) {
+    // the removed seg should be the "oldest", least recently used. So any other is more recent. We don't check all, but randomly ([0])
+    NTA_ASSERT(*leastRecentlyUsedSegment.lastUsed <= destroyCandidates[0].lastUsed) << "Should remove the least recently used segment,but did not.";
+  }
+#endif
+}
+
 Segment Connections::createSegment(const CellIdx cell, 
 	                           const SegmentIdx maxSegmentsPerCell) {
 
   //limit number of segmets per cell. If exceeded, remove the least recently used ones.
   NTA_ASSERT(maxSegmentsPerCell > 0);
   while (numSegments(cell) >= maxSegmentsPerCell) {
-    const auto& destroyCandidates = segmentsForCell(cell);
-    const auto compareSegmentsByLRU = [&](const Segment a, const Segment b) {
-	if(dataForSegment(a).lastUsed == dataForSegment(b).lastUsed) {
-	  return a < b; //needed for deterministic sort
-        } 
-	else return dataForSegment(a).lastUsed < dataForSegment(b).lastUsed; //sort segments by access time
-      };
-    const auto leastRecentlyUsedSegment = std::min_element(destroyCandidates.cbegin(), 
-        destroyCandidates.cend(), compareSegmentsByLRU);
-
-    destroySegment(*leastRecentlyUsedSegment);
+    pruneLRUSegment_(cell);
   }
 
   //proceed to create a new segment
@@ -95,7 +111,7 @@ Segment Connections::createSegment(const CellIdx cell,
     segment = destroyedSegments_.back();
     destroyedSegments_.pop_back();
   } else { //create a new segment
-    NTA_CHECK(segments_.size() < std::numeric_limits<Segment>::max()) << "Add segment failed: Range of Segment (data-type) insufficinet size."
+    NTA_CHECK(segments_.size() < std::numeric_limits<Segment>::max()) << "Add segment failed: Range of Segment (data-type) insufficient size."
 	    << (size_t)segments_.size() << " < " << (size_t)std::numeric_limits<Segment>::max();
     segment = static_cast<Segment>(segments_.size());
     const SegmentData& segmentData = SegmentData(cell, iteration_, nextSegmentOrdinal_++);
