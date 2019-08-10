@@ -566,6 +566,10 @@ public:
       }
     }
     ar(CEREAL_NVP(connectedThreshold_));
+    //the following member must not be serialized (so is set to =0).
+    //That is because of we serialize only active segments & synapses,
+    //excluding the "destroyed", so those fields start empty.
+//!    ar(CEREAL_NVP(destroyedSegments_));
     ar(CEREAL_NVP(sizes));
     ar(CEREAL_NVP(syndata));
     ar(CEREAL_NVP(iteration_));
@@ -611,8 +615,10 @@ public:
    * @retval Number of segments.
    */
   size_t numSegments() const { 
-	  NTA_ASSERT(segments_.size() >= destroyedSegments_.size());
-	  return segments_.size() - destroyedSegments_.size(); }
+	  const long num = static_cast<int>(segments_.size()) - destroyedSegments_; 
+          NTA_ASSERT(num >= 0) << "Number of segments must be greater than zero!";
+          return static_cast<size_t>(num);
+  }
 
   /**
    * Gets the number of segments on a cell.
@@ -718,7 +724,7 @@ protected:
 private:
   std::vector<CellData>    cells_;
   std::vector<SegmentData> segments_;
-  std::vector<Segment>     destroyedSegments_;
+  size_t                   destroyedSegments_ = 0;
   std::vector<SynapseData> synapses_;
   std::vector<Synapse>     destroyedSynapses_;
   Permanence               connectedThreshold_; //TODO make const

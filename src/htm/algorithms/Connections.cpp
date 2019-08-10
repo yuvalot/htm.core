@@ -40,7 +40,6 @@ Connections::Connections(const CellIdx numCells,
 void Connections::initialize(CellIdx numCells, Permanence connectedThreshold, bool timeseries) {
   cells_ = vector<CellData>(numCells);
   segments_.clear();
-  destroyedSegments_.clear();
   synapses_.clear();
   destroyedSynapses_.clear();
   potentialSynapsesForPresynapticCell_.clear();
@@ -91,7 +90,8 @@ void Connections::pruneLRUSegment_(const CellIdx& cell) {
 #ifdef NTA_ASSERTIONS_ON
   if(destroyCandidates.size() > 0) {
     // the removed seg should be the "oldest", least recently used. So any other is more recent. We don't check all, but randomly ([0])
-    NTA_ASSERT(*leastRecentlyUsedSegment.lastUsed <= destroyCandidates[0].lastUsed) << "Should remove the least recently used segment,but did not.";
+    NTA_ASSERT(dataForSegment(*leastRecentlyUsedSegment).lastUsed <= dataForSegment(destroyCandidates[0]).lastUsed) 
+	    << "Should remove the least recently used segment,but older exists.";
   }
 #endif
 }
@@ -106,17 +106,11 @@ Segment Connections::createSegment(const CellIdx cell,
   }
 
   //proceed to create a new segment
-  Segment segment;
-  if (!destroyedSegments_.empty() ) { //reuse old, destroyed segs
-    segment = destroyedSegments_.back();
-    destroyedSegments_.pop_back();
-  } else { //create a new segment
-    NTA_CHECK(segments_.size() < std::numeric_limits<Segment>::max()) << "Add segment failed: Range of Segment (data-type) insufficient size."
+  NTA_CHECK(segments_.size() < std::numeric_limits<Segment>::max()) << "Add segment failed: Range of Segment (data-type) insufficient size."
 	    << (size_t)segments_.size() << " < " << (size_t)std::numeric_limits<Segment>::max();
-    segment = static_cast<Segment>(segments_.size());
-    const SegmentData& segmentData = SegmentData(cell, iteration_, nextSegmentOrdinal_++);
-    segments_.push_back(segmentData);
-  }
+  const Segment segment = static_cast<Segment>(segments_.size());
+  const SegmentData& segmentData = SegmentData(cell, iteration_, nextSegmentOrdinal_++);
+  segments_.push_back(segmentData);
 
   CellData &cellData = cells_[cell];
   cellData.segments.push_back(segment); //assign the new segment to its mother-cell
@@ -227,7 +221,7 @@ void Connections::destroySegment(const Segment segment) {
   NTA_ASSERT(*segmentOnCell == segment);
 
   cellData.segments.erase(segmentOnCell);
-  destroyedSegments_.push_back(segment);
+  destroyedSegments_++;
 }
 
 
@@ -722,8 +716,8 @@ std::ostream& operator<< (std::ostream& stream, const Connections& self)
          << "%) Saturated (" <<   (Real) synapsesSaturated / self.numSynapses() << "%)" << std::endl;
   stream << "    Synapses pruned (" << (Real) self.prunedSyns_ / self.numSynapses() 
 	 << "%) Segments pruned (" << (Real) self.prunedSegs_ / self.numSegments() << "%)" << std::endl;
-  stream << "    Buffer for destroyed synapses: " << self.destroyedSynapses_.size() << " \t buffer for destr. segments: "
-	 << self.destroyedSegments_.size() << std::endl; 
+  stream << "    Buffer for destroyed synapses: " << self.destroyedSynapses_.size() 
+	 << "    Buffer for destroyed segments: " << self.destroyedSegments_ << std::endl;
 
   return stream;
 }
