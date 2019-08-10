@@ -41,7 +41,6 @@ void Connections::initialize(CellIdx numCells, Permanence connectedThreshold, bo
   cells_ = vector<CellData>(numCells);
   segments_.clear();
   synapses_.clear();
-  destroyedSynapses_.clear();
   potentialSynapsesForPresynapticCell_.clear();
   connectedSynapsesForPresynapticCell_.clear();
   potentialSegmentsForPresynapticCell_.clear();
@@ -127,16 +126,10 @@ Synapse Connections::createSynapse(Segment segment,
                                    CellIdx presynapticCell,
                                    Permanence permanence) {
   // Get an index into the synapses_ list, for the new synapse to reside at.
-  Synapse synapse;
-  if (!destroyedSynapses_.empty() ) {
-    synapse = destroyedSynapses_.back();
-    destroyedSynapses_.pop_back();
-  } else {
-    NTA_CHECK(synapses_.size() < std::numeric_limits<Synapse>::max()) << "Add synapse failed: Range of Synapse (data-type) insufficient size."
+  NTA_CHECK(synapses_.size() < std::numeric_limits<Synapse>::max()) << "Add synapse failed: Range of Synapse (data-type) insufficient size."
 	    << synapses_.size() << " < " << (size_t)std::numeric_limits<Synapse>::max();
-    synapse = static_cast<Synapse>(synapses_.size());
-    synapses_.push_back(SynapseData());
-  }
+  const Synapse synapse = static_cast<Synapse>(synapses_.size());
+  synapses_.push_back(SynapseData());
 
   // Fill in the new synapse's data
   SynapseData &synapseData    = synapses_[synapse];
@@ -268,7 +261,7 @@ void Connections::destroySynapse(const Synapse synapse) {
   NTA_ASSERT(*synapseOnSegment == synapse);
 
   segmentData.synapses.erase(synapseOnSegment);
-  destroyedSynapses_.push_back(synapse);
+  destroyedSynapses_++;
 }
 
 
@@ -713,7 +706,7 @@ std::ostream& operator<< (std::ostream& stream, const Connections& self)
          << "%) Saturated (" <<   (Real) synapsesSaturated / self.numSynapses() << "%)" << std::endl;
   stream << "    Synapses pruned (" << (Real) self.prunedSyns_ / self.numSynapses() 
 	 << "%) Segments pruned (" << (Real) self.prunedSegs_ / self.numSegments() << "%)" << std::endl;
-  stream << "    Buffer for destroyed synapses: " << self.destroyedSynapses_.size() 
+  stream << "    Buffer for destroyed synapses: " << self.destroyedSynapses_
 	 << "    Buffer for destroyed segments: " << self.destroyedSegments_ << std::endl;
 
   return stream;
