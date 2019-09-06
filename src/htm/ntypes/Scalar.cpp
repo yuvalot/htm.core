@@ -25,6 +25,7 @@
 #include <htm/ntypes/Scalar.hpp>
 #include <htm/utils/Log.hpp>
 #include <htm/ntypes/BasicType.hpp>
+#include <cstring>
 
 using namespace htm;
 
@@ -86,7 +87,7 @@ template <> bool Scalar::getValue<bool>() const {
 
 void Scalar::assign(char* ptr, NTA_BasicType type) const {
   NTA_CHECK(theType_ == type);
-  memcpy(ptr, &value, BasicType::getSize(type));
+  std::memcpy(ptr, &value, BasicType::getSize(type));
 }
 
 } // namespace htm
