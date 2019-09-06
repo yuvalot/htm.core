@@ -102,6 +102,9 @@ const std::string Value::getDescription() const {
   case arrayCategory:
     return std::string("Array of type ") +  BasicType::getName(array_->getType());
     break;
+  case noCategory:
+    return std::string("Type undefined");
+    break;
   }
   return "NOT REACHED";
 }
