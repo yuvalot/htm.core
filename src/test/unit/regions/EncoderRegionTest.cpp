@@ -99,10 +99,10 @@ TEST(EncoderRegionTest, testMultiEncoder) {
   net.run(1);
 
   SDR inSDR = sp->getInputData("bottomUpIn").getSDR();
-  EXPECT_EQ(inSDR.size, 900);  // Size is width of both encoder outputs.
+  EXPECT_EQ(inSDR.size, 900u);  // Size is width of both encoder outputs.
 
   SDR outSDR = sp->getOutputData("bottomUpOut").getSDR();
-  EXPECT_EQ(outSDR.size, 300);
+  EXPECT_EQ(outSDR.size, 300u);
 }
 
 TEST(EncoderRegionTest, testSerialize) {

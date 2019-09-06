@@ -132,7 +132,6 @@ private:
   std::shared_ptr<char> sensedValue_;  // could be any NTA_BasicType numeric type.
 
   std::shared_ptr<GenericEncoder> encoder_;
-  char *args_;  // a pointer to the beginning of the encoder's parameter structure.
   std::shared_ptr<Spec> spec_;
   ParameterDescriptor desc_;
 
