@@ -25,10 +25,20 @@
 #include <cmath>     // std::isnan std::nextafter
 #include <htm/encoders/ScalarEncoder.hpp>
 
-namespace htm {
 
-ScalarEncoder::ScalarEncoder(const ScalarEncoderParameters &parameters)
-  { initialize( parameters ); }
+using namespace htm;
+
+
+ScalarEncoder::ScalarEncoder() : GenericEncoder({0}) { 
+    // Note: This encoder is not useable until initialize() is called.
+}
+
+ScalarEncoder::ScalarEncoder(const ScalarEncoderParameters &parameters) : GenericEncoder({0}) { 
+  initialize( parameters ); 
+}
+
+ScalarEncoder::ScalarEncoder(ArWrapper &wrapper) { cereal_adapter_load(wrapper); }
+
 
 void ScalarEncoder::initialize(const ScalarEncoderParameters &parameters)
 {
@@ -132,7 +142,7 @@ void ScalarEncoder::initialize(const ScalarEncoderParameters &parameters)
   NTA_CHECK( args_.activeBits < args_.size );
 
   // Initialize parent class.
-  BaseEncoder<Real64>::initialize({ args_.size });
+  GenericEncoder::init_base({args_.size});
 }
 
 void ScalarEncoder::encode(Real64 input, SDR &output)
@@ -188,6 +198,24 @@ void ScalarEncoder::encode(Real64 input, SDR &output)
   output.setSparse( sparse );
 }
 
+bool ScalarEncoder::operator==(const GenericEncoder &other) const {
+  if (other.getName() != getName())
+    return false;
+  const ScalarEncoder &o = static_cast<const ScalarEncoder&>(other);
+  if (parameters.minimum    == o.parameters.minimum &&
+      parameters.maximum    == o.parameters.maximum &&
+      parameters.clipInput  == o.parameters.clipInput &&
+      parameters.periodic   == o.parameters.periodic &&
+      parameters.category   == o.parameters.category &&
+      parameters.activeBits == o.parameters.activeBits &&
+      parameters.size       == o.parameters.size &&
+      parameters.radius     == o.parameters.radius &&
+      parameters.resolution == o.parameters.resolution)
+    return true;
+  return false;
+}
+
+
 std::ostream & operator<<(std::ostream & out, const ScalarEncoder &self)
 {
   out << "ScalarEncoder \n";
@@ -201,4 +229,10 @@ std::ostream & operator<<(std::ostream & out, const ScalarEncoder &self)
   return out;
 }
 
-} // end namespace htm
+
+// Register ScalarEncoder for Cereal Serialization
+CEREAL_REGISTER_TYPE(ScalarEncoder);
+CEREAL_REGISTER_POLYMORPHIC_RELATION(GenericEncoder, ScalarEncoder)
+
+
+

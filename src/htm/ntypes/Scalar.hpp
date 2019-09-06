@@ -37,6 +37,7 @@ public:
   NTA_BasicType getType();
 
   template <typename T> T getValue() const;
+  void assign(char *ptr, NTA_BasicType type) const;
 
   union {
     Handle handle;

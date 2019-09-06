@@ -27,37 +27,44 @@
 using namespace std;
 using namespace htm;
 
-RandomDistributedScalarEncoder::RandomDistributedScalarEncoder(
-                                              const RDSE_Parameters &parameters)
-  { initialize( parameters ); }
+RandomDistributedScalarEncoder::RandomDistributedScalarEncoder() {}
+// Note: This encoder is not useable until initialize() is called.
 
-void RandomDistributedScalarEncoder::initialize( const RDSE_Parameters &parameters)
-{
+RandomDistributedScalarEncoder::RandomDistributedScalarEncoder( const RDSE_Parameters &params) { 
+  initialize( params ); 
+}
+
+RandomDistributedScalarEncoder::RandomDistributedScalarEncoder(ArWrapper &wrapper) {
+  cereal_adapter_load(wrapper);
+}
+
+
+void RandomDistributedScalarEncoder::initialize(const RDSE_Parameters &params) {
   // Check size parameter
-  NTA_CHECK( parameters.size > 0u );
+  NTA_CHECK(params.size > 0u);
 
   // Initialize parent class.
-  BaseEncoder<Real64>::initialize({ parameters.size });
+  GenericEncoder::init_base({params.size});
 
   // Check other parameters
   UInt num_active_args = 0;
-  if( parameters.activeBits > 0u)   { num_active_args++; }
-  if( parameters.sparsity   > 0.0f) { num_active_args++; }
+  if (params.activeBits > 0u) {  num_active_args++; }
+  if (params.sparsity > 0.0f) {  num_active_args++; }
   NTA_CHECK( num_active_args != 0u )
       << "Missing argument, need one of: 'activeBits' or 'sparsity'.";
   NTA_CHECK( num_active_args == 1u )
       << "Too many arguments, choose only one of: 'activeBits' or 'sparsity'.";
 
   UInt num_resolution_args = 0;
-  if( parameters.radius     > 0.0f) { num_resolution_args++; }
-  if( parameters.category )         { num_resolution_args++; }
-  if( parameters.resolution > 0.0f) { num_resolution_args++; }
+  if (params.radius > 0.0f) { num_resolution_args++; }
+  if (params.category) { num_resolution_args++; }
+  if (params.resolution > 0.0f) { num_resolution_args++; }
   NTA_CHECK( num_resolution_args != 0u )
       << "Missing argument, need one of: 'radius', 'resolution', 'category'.";
   NTA_CHECK( num_resolution_args == 1u )
       << "Too many arguments, choose only one of: 'radius', 'resolution', 'category'.";
 
-  args_ = parameters;
+  args_ = params;
   // Finish filling in all of parameters.
 
   // Determine number of activeBits.
@@ -88,8 +95,7 @@ void RandomDistributedScalarEncoder::initialize( const RDSE_Parameters &paramete
   }
 }
 
-void RandomDistributedScalarEncoder::encode(Real64 input, SDR &output)
-{
+void RandomDistributedScalarEncoder::encode(Real64 input,  SDR &output) {
   // Check inputs
   NTA_CHECK( output.size == size );
   if( isnan(input) ) {
@@ -126,9 +132,28 @@ void RandomDistributedScalarEncoder::encode(Real64 input, SDR &output)
   output.setDense( data );
 }
 
+//  bool RandomDistributedScalarEncoder::equals(const BaseEncoder &other) const
+//  {
+
+bool RandomDistributedScalarEncoder::operator==(const GenericEncoder &other) const {
+  if (other.getName() != getName())
+    return false;
+  const RandomDistributedScalarEncoder &o = static_cast<const RandomDistributedScalarEncoder &>(other);
+  if (parameters.size == o.parameters.size &&
+      parameters.activeBits == o.parameters.activeBits &&
+      parameters.sparsity == o.parameters.sparsity &&
+      parameters.radius == o.parameters.radius &&
+      parameters.resolution == o.parameters.resolution &&
+      parameters.category == o.parameters.category &&
+      parameters.seed == o.parameters.seed)
+        return true;
+    return false;
+}
+
+
 std::ostream & htm::operator<<(std::ostream & out, const RandomDistributedScalarEncoder &self)
 {
-  out << "RDSE ";
+  out << self.getName();
   out << "  size:       " << self.parameters.size << ",\n";
   out << "  activeBits: " << self.parameters.activeBits << ",\n";
   out << "  resolution: " << self.parameters.resolution << ",\n";
@@ -136,3 +161,7 @@ std::ostream & htm::operator<<(std::ostream & out, const RandomDistributedScalar
   out << "  seed:       " << self.parameters.seed << std::endl;
   return out;
 }
+
+// Register RandomDistributedScalarEncoder for Cereal Serialization
+CEREAL_REGISTER_TYPE(RandomDistributedScalarEncoder);
+CEREAL_REGISTER_POLYMORPHIC_RELATION(GenericEncoder, RandomDistributedScalarEncoder)

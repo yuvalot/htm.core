@@ -27,7 +27,7 @@
 
 using namespace htm;
 
-TEST(RDSE, testConstruct) {
+TEST(RDSETest, testConstruct) {
   SDR  A({ 100u, 100u, 3u });
   RDSE_Parameters P;
   P.size       = A.size;
@@ -37,7 +37,7 @@ TEST(RDSE, testConstruct) {
   R.encode( 3, A );
 }
 
-TEST(RDSE, testSerialize) {
+TEST(RDSETest, testSerialize) {
   RDSE_Parameters P;
   P.size       = 1000;
   P.sparsity   = 0.05f;

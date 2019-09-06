@@ -153,7 +153,7 @@ void Region::initialize() {
 }
 
 
-const std::shared_ptr<Spec>& Region::getSpecFromType(const std::string &nodeType) {
+const std::shared_ptr<Spec> Region::getSpecFromType(const std::string &nodeType) {
   RegionImplFactory &factory = RegionImplFactory::getInstance();
   return factory.getSpec(nodeType);
 }

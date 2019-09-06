@@ -98,6 +98,11 @@ typedef void* Handle;
 typedef std::size_t Size;
 
 /**
+ * Regpresents a boolean value.
+ */
+typedef bool Bool;
+
+/**
  * @}
  */
 

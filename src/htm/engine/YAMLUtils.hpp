@@ -27,21 +27,27 @@ namespace htm
 
   namespace YAMLUtils
   {
+
+    /*
+     * parse the yamlstring
+     */
+    std::string findFieldValue(const char *yamlstring,
+                               const std::string &fieldname);
     /* 
      * For converting default values
      * @param yamlstring - is a string in parsable format (eg. '[1 2 3]' ), not a path to yaml file!
      */
     Value toValue(const std::string& yamlstring, NTA_BasicType dataType);
 
-/*
- * For converting param specs for Regions and LinkPolicies
- */
-ValueMap toValueMap(const char *yamlstring,
-                    Collection<ParameterSpec> &parameters,
-                    const std::string &nodeType = "",
-                    const std::string &regionName = "");
+    /*
+     * For converting param specs for Regions and LinkPolicies
+     */
+    ValueMap toValueMap(const char *yamlstring,
+                        Collection<ParameterSpec> &parameters,
+                        const std::string &nodeType = "",
+                        const std::string &regionName = "");
 
-} // namespace YAMLUtils
+  } // namespace YAMLUtils
 } // namespace htm
 
 #endif //  NTA_YAML_HPP

@@ -594,6 +594,12 @@ void Network::registerRegion(const std::string name, RegisteredRegionImpl *wrapp
 void Network::unregisterRegion(const std::string name) {
 	RegionImplFactory::unregisterRegion(name);
 }
+
+void Network::registerEncoder(const std::string name, RegisteredEncoder *wrapper) {
+  RegionImplFactory::registerEncoder(name, wrapper);
+}
+
+
 void Network::cleanup() {
     RegionImplFactory::cleanup();
 }

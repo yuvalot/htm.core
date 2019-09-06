@@ -161,15 +161,12 @@ public:
 
   /* ------- Convenience methods  that access region data -------- */
 
-  std::string getType() const;
+  virtual std::string getType() const;
 
-  std::string getName() const;
+  virtual std::string getName() const;
 
 
   /* ------- Parameter support in the base class. ---------*/
-  // The default implementation of all of these methods goes through
-  // set/getParameterFromBuffer, which is compatible with NuPIC 1.
-  // RegionImpl subclasses may override for higher performance.
 
   virtual Int32 getParameterInt32(const std::string &name, Int64 index);
   virtual UInt32 getParameterUInt32(const std::string &name, Int64 index);

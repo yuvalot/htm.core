@@ -24,6 +24,10 @@
 
 using namespace htm;
 
+Value::Value() { 
+  category_ = noCategory; 
+}
+
 Value::Value(std::shared_ptr<Scalar> &s) {
   category_ = scalarCategory;
   scalar_ = s;
@@ -53,10 +57,12 @@ NTA_BasicType Value::getType() const {
   case arrayCategory:
     return array_->getType();
     break;
-  default:
+  case stringCategory:
     // string
     return NTA_BasicType_Byte;
     break;
+  default:
+    NTA_THROW << "Value::getType() Value has no type.";
   }
 }
 
@@ -104,7 +110,7 @@ void ValueMap::add(const std::string &key, const Value &value) {
   if (map_.find(key) != map_.end()) {
     NTA_THROW << "Key '" << key << "' specified twice";
   }
-  auto vp = new Value(value);
+  auto vp = std::make_shared<Value>(value);
 
   map_.insert(std::make_pair(key, vp));
 }
@@ -134,24 +140,14 @@ template bool Value::getScalarT<bool>() const;
 ValueMap::ValueMap(){};
 
 ValueMap::~ValueMap() {
-  for (auto &elem : map_) {
-    delete elem.second;
-    elem.second = nullptr;
-  }
   map_.clear();
 }
 
 ValueMap::ValueMap(const ValueMap &rhs) {
-  for (auto &elem : map_) {
-    delete elem.second;
-    elem.second = nullptr;
-  }
   map_.clear();
 
   for (const auto &rh : rhs) {
-    auto vp = new Value(*(rh.second));
-
-    map_.insert(std::make_pair(rh.first, vp));
+    map_.insert(std::make_pair(rh.first, rh.second));
   }
 }
 
@@ -159,7 +155,7 @@ void ValueMap::dump() const {
   NTA_DEBUG << "===== Value Map:";
   for (const auto &elem : map_) {
     std::string key = elem.first;
-    Value *value = elem.second;
+    std::shared_ptr<Value> value = elem.second;
     NTA_DEBUG << "key: " << key
               << " datatype: " << BasicType::getName(value->getType())
               << " category: " << value->getCategory();
@@ -171,12 +167,12 @@ bool ValueMap::contains(const std::string &key) const {
   return (map_.find(key) != map_.end());
 }
 
-Value &ValueMap::getValue(const std::string &key) const {
+std::shared_ptr<Value> ValueMap::getValue(const std::string &key) const {
   auto item = map_.find(key);
   if (item == map_.end()) {
     NTA_THROW << "No value '" << key << "' found in Value Map";
   }
-  return *(item->second);
+  return (item->second);
 }
 
 template <typename T>
@@ -200,48 +196,61 @@ template <typename T> T ValueMap::getScalarT(const std::string &key) const {
   return s->getValue<T>();
 }
 
+
+void ValueMap::assign(const std::string &key, char *ptr, NTA_BasicType type) const {
+  std::shared_ptr<Scalar> s = getScalar(key);
+  if (s->getType() != type) {
+    NTA_THROW << "Invalid attempt to access parameter '" << key
+              << "' as type a " << BasicType::getName(type)
+              << " but the Spec defines it as type "
+              << BasicType::getName(s->getType());
+  }
+  s->assign(ptr, type);
+}
+
+
 std::shared_ptr<Array> ValueMap::getArray(const std::string &key) const {
-  Value &v = getValue(key);
-  if (!v.isArray()) {
+  std::shared_ptr<Value> v = getValue(key);
+  if (!v->isArray()) {
     NTA_THROW << "Attempt to access element '" << key
               << "' of value map as an array but it is a '"
-              << v.getDescription();
+              << v->getDescription();
   }
-  return v.getArray();
+  return v->getArray();
 }
 
 std::shared_ptr<Scalar> ValueMap::getScalar(const std::string &key) const {
-  Value &v = getValue(key);
-  if (!v.isScalar()) {
+  std::shared_ptr<Value> v = getValue(key);
+  if (!v->isScalar()) {
     NTA_THROW << "Attempt to access element '" << key
               << "' of value map as an array but it is a '"
-              << v.getDescription();
+              << v->getDescription();
   }
-  return v.getScalar();
+  return v->getScalar();
 }
 
 std::string ValueMap::getString(const std::string& key) const {
-  Value& v = getValue(key);
-  if (! v.isString())
+  std::shared_ptr<Value> v = getValue(key);
+  if (! v->isString())
   {
     NTA_THROW << "Attempt to access element '" << key
               << "' of value map as a string but it is a '"
-              << v.getDescription();
+              << v->getDescription();
   }
-  return v.getString();
+  return v->getString();
 }
 std::string ValueMap::getString(const std::string &key, const std::string defaultValue) const {
   auto item = map_.find(key);
   if (item == map_.end()) {
     return defaultValue;
   } else {
-    Value &v = getValue(key);
-    if (!v.isString()) {
+    std::shared_ptr<Value> v = getValue(key);
+    if (!v->isString()) {
       NTA_THROW << "Attempt to access element '" << key
                 << "' of value map as a string but it is a '"
-                << v.getDescription();
+                << v->getDescription();
     }
-    return v.getString();
+    return v->getString();
   }
 }
 
@@ -282,4 +291,5 @@ template Real32 ValueMap::getScalarT(const std::string &key) const;
 template Real64 ValueMap::getScalarT(const std::string &key) const;
 template Handle ValueMap::getScalarT(const std::string &key) const;
 template bool ValueMap::getScalarT(const std::string &key) const;
+
 } // namespace htm

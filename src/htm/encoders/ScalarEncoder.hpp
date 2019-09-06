@@ -24,7 +24,7 @@
 #define NTA_ENCODERS_SCALAR
 
 #include <htm/types/Types.hpp>
-#include <htm/encoders/BaseEncoder.hpp>
+#include <htm/encoders/GenericEncoder.hpp>
 
 namespace htm {
 
@@ -38,7 +38,7 @@ namespace htm {
    * These are mutually exclusive and only one of them should be non-zero when
    * constructing the encoder.
    */
-  struct ScalarEncoderParameters
+  struct ScalarEncoderParameters: public BaseParameters
   {
     /**
      * Members "minimum" and "maximum" define the range of the input signal.
@@ -119,17 +119,46 @@ namespace htm {
    * To inspect this run:
    * $ python -m htm.examples.encoders.scalar_encoder --help
    */
-  class ScalarEncoder : public BaseEncoder<Real64>
+  class ScalarEncoder : public GenericEncoder
   {
   public:
-    ScalarEncoder() {};
+    ScalarEncoder();  // Note: encoder cannot be used until parameters are passed to initialize( );
     ScalarEncoder( const ScalarEncoderParameters &parameters );
+    ScalarEncoder(ArWrapper &ar); // for Cereal load_ar( )
+
     void initialize( const ScalarEncoderParameters &parameters );
+    void initialize(BaseParameters *params) override { // for use by generic EncoderRegion
+      initialize(*(ScalarEncoderParameters *)params);
+    }
+
+    std::string getName() const override { return "ScalarEncoder"; }
+    // A discription of the fields in the RDSE_Parameters structure.
+    ParameterDescriptor getDescriptor() override {
+      ParameterDescriptor desc = {
+          NTA_BasicType_Real64, // expected input type
+          1,                    // expected input array size (0 means variable)
+          (char *)&args_,       // pointer to parameter structure (for getters)
+          sizeof(args_),        // sizeof parameter structure
+          // list of fields in the parameter structure
+          {FIELD(minimum),  FIELD(maximum),    FIELD(clipInput), 
+           FIELD(periodic), FIELD(category),   FIELD(activeBits), 
+           FIELD(sparsity),  FIELD(size),      FIELD(radius),     
+           FIELD(resolution)}};
+      return desc;
+    }
+
 
     const ScalarEncoderParameters &parameters = args_;
 
-    void encode(Real64 input, SDR &output) override;
+    void encode(Real64 input, SDR &output);
 
+    // Special generic call for use by EncoderRegion.
+    // For this encoder, cast the inputPtr to a Real64* and dereference it.
+    void encode(void *inputPtr, size_t count, SDR &output) override {
+      NTA_CHECK(count == 1) << "Unexpected input count for RDSE encoder.";
+      Real64 input = *((Real64 *)inputPtr);
+      encode(input, output);
+    }
 
     CerealAdapter;  // see Serializable.hpp
     // FOR Cereal Serialization
@@ -167,6 +196,12 @@ namespace htm {
     }
 
     ~ScalarEncoder() override {};
+
+    bool operator==(const GenericEncoder &other) const override;
+    inline bool operator!=(const ScalarEncoder &other) const {
+      return !operator==(other);
+    }
+
 
   private:
     ScalarEncoderParameters args_;

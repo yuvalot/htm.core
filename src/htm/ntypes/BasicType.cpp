@@ -140,6 +140,27 @@ template <> NTA_BasicType BasicType::getType<bool>() {
 template <> NTA_BasicType BasicType::getType<SDR>() {
   return NTA_BasicType_SDR;
 }
+
+NTA_BasicType BasicType::getType(const std::type_info &t) {
+  if (t == typeid(Int32))
+    return NTA_BasicType_Int32;
+  if (t == typeid(UInt32))
+    return NTA_BasicType_UInt32;
+  if (t == typeid(Int64))
+    return NTA_BasicType_Int64;
+  if (t == typeid(UInt64))
+    return NTA_BasicType_UInt64;
+  if (t == typeid(Real32))
+    return NTA_BasicType_Real32;
+  if (t == typeid(Real64))
+    return NTA_BasicType_Real64;
+  if (t == typeid(bool))
+    return NTA_BasicType_Bool;
+  if (t == typeid(std::string))
+    return NTA_BasicType_Byte;
+  throw Exception(__FILE__, __LINE__, "Unexpected basic type in parameter structure `" + std::string(t.name()) + "'.");
+}
+
 } // namespace htm
 
 // Return the size in bytes of a basic type
@@ -189,11 +210,12 @@ NTA_BasicType BasicType::parse(const std::string &s) {
 }
 
 /**
-* target is bool (0 or anything else)
-* target is same type as source.
-* target is larger type then source and same sign.
-* No range checks needed.
-*/
+ * A helper function used by convertArray()
+ * target is bool (0 or anything else)
+ * target is same type as source.
+ * target is larger type then source and same sign.
+ * No range checks are needed.
+ */
 template <typename T, typename F>
 static void cpyarray(void *toPtr, const void *fromPtr, size_t count) {
   T *ptr1 = static_cast<T *>(toPtr);
@@ -204,8 +226,9 @@ static void cpyarray(void *toPtr, const void *fromPtr, size_t count) {
 }
 
 /**
- * source type larger than source or sign different.
- * Range checks needed
+ * A helper function used by convertArray()
+ * source type larger than source or sign different
+ * and where Range checks are needed.
  */
 template <typename T, typename F>
 static void cpyarray(void *toPtr, const void *fromPtr, size_t count, F minVal, F maxVal) {
@@ -218,6 +241,9 @@ static void cpyarray(void *toPtr, const void *fromPtr, size_t count, F minVal, F
   }
 }
 
+/**
+ * A helper function used by convertArray() for NTA_BasicType_SDR type destinations.
+ */
 template <typename T>
 static void cpyIntoSDR(Byte *toPtr, const T *fromPtr, size_t count) {
   const T zero = static_cast<T>(0);
@@ -225,7 +251,10 @@ static void cpyIntoSDR(Byte *toPtr, const T *fromPtr, size_t count) {
     toPtr[i] = fromPtr[i] != zero; // 1 or 0
 }
 
-
+/**
+ * A generic function that converts an array of one type into an array of another type.
+ * Note: an NTA_BasicType_SDR type is handled as a dense array of bytes containing 1 or 0.
+ */
 void BasicType::convertArray(void *ptr1, NTA_BasicType toType, const void *ptr2,
                              NTA_BasicType fromType, size_t count) {
   if (ptr2 == nullptr || count == 0)

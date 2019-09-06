@@ -57,11 +57,12 @@ namespace htm {
  */
 class Value {
 public:
+  // note: default copy constructor is used.
   Value(std::shared_ptr<Scalar> &s);
   Value(std::shared_ptr<Array> &a);
   Value(const std::string &s);
 
-  enum Category { scalarCategory, arrayCategory, stringCategory };
+  enum Category { noCategory, scalarCategory, arrayCategory, stringCategory };
 
   bool isArray() const;
   bool isString() const;
@@ -81,7 +82,6 @@ public:
   const std::string getDescription() const;
 
 private:
-  // Default constructor would not be useful
   Value();
   Category category_;
   std::shared_ptr<Scalar> scalar_;
@@ -92,7 +92,7 @@ private:
 class ValueMap {
 public:
   ValueMap();
-  ValueMap(const ValueMap &rhs);
+  ValueMap(const ValueMap &rhs); // copy constructor (shallow copy)
   ~ValueMap();
   void add(const std::string &key, const Value &value);
 
@@ -100,7 +100,7 @@ public:
   bool contains(const std::string &key) const;
 
   // map.find(key) + exception if not found
-  Value &getValue(const std::string &key) const;
+  std::shared_ptr<Value> getValue(const std::string &key) const;
 
   // Method below are for convenience, bypassing the Value
   std::shared_ptr<Array> getArray(const std::string &key) const;
@@ -115,19 +115,20 @@ public:
   T getScalarT(const std::string &key, T defaultValue) const;
 
   // raise exception if value is not specified in map
-  template <typename T> T getScalarT(const std::string &key) const;
+  template <typename T> 
+  T getScalarT(const std::string &key) const;
+
+  void assign(const std::string &key, char *ptr, NTA_BasicType type) const;
 
   void dump() const;
 
-  typedef std::map<std::string, Value *>::const_iterator const_iterator;
+  typedef std::map<std::string, std::shared_ptr<Value>>::const_iterator const_iterator;
   const_iterator begin() const;
   const_iterator end() const;
 
 private:
-  // must be a Value* since Value doesn't have a default constructor
-  // We own all the items in the map and must delete them in our destructor
-  typedef std::map<std::string, Value *>::iterator iterator;
-  std::map<std::string, Value *> map_;
+  typedef std::map<std::string, std::shared_ptr<Value> >::iterator iterator;
+  std::map<std::string, std::shared_ptr<Value> > map_;
 };
 
 } // namespace htm

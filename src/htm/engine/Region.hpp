@@ -105,7 +105,7 @@ public:
    *
    * @returns The spec that describes this region
    */
-  const std::shared_ptr<Spec> &getSpec() const { return spec_; }
+  const std::shared_ptr<Spec> getSpec() const { return spec_; }
 
   /**
    * Get the Spec of a region type without an instance.
@@ -115,8 +115,7 @@ public:
    *
    * @returns The Spec that describes this region type
    */
-  static const std::shared_ptr<Spec> &
-  getSpecFromType(const std::string &nodeType);
+  static const std::shared_ptr<Spec> getSpecFromType(const std::string &nodeType);
 
   /**
    * @}

@@ -20,6 +20,7 @@
 
 #include <htm/types/Types.hpp>
 #include <string>
+#include <typeinfo>
 
 namespace htm {
 
@@ -61,9 +62,10 @@ public:
    * To convert <T> -> NTA_BasicType in a templated method
    */
   template <typename T> static NTA_BasicType getType();
+  static NTA_BasicType getType(const std::type_info &t);
 
   /**
-   * Return the size in bits of a basic type
+   * Return the size in bytes of a basic type
    */
   static size_t getSize(NTA_BasicType t);
 

@@ -43,6 +43,8 @@ class Region;
 class Spec;
 class ValueMap;
 class RegisteredRegionImpl;
+class RegisteredEncoder;
+class GenericEncoder;
 
 class RegionImplFactory {
 public:
@@ -61,7 +63,7 @@ public:
 
 
   // Returns node spec for a specific node type as a shared pointer.
-  std::shared_ptr<Spec>& getSpec(const std::string nodeType);
+  std::shared_ptr<Spec> getSpec(const std::string nodeType);
 
   // RegionImplFactory caches nodespecs and the dynamic library reference
   // This frees up the cached information.
@@ -72,11 +74,17 @@ public:
 
 
   // Allows the user to load custom region types
-  static void registerRegion(const std::string& regionType,
-                             RegisteredRegionImpl *wrapper);
+  static void registerRegion(const std::string& regionType, RegisteredRegionImpl *wrapper);
 
   // Allows the user to unregister region types
   static void unregisterRegion(const std::string regionType);
+
+  // Allows the user to register an encoder
+  static void registerEncoder(const std::string &encoderType, RegisteredEncoder *wrapper);
+
+  // Create an instance of an encoder
+  std::shared_ptr<GenericEncoder> createEncoder(const std::string &encoderType);
+
 
 private:
   RegionImplFactory(){};
@@ -88,6 +96,9 @@ private:
   std::map<const std::string, std::shared_ptr<Spec> > regionSpecMap;
   void addRegionType(const std::string nodeType, RegisteredRegionImpl* wrapper);
 
+  // Mappings for encoder plugins that map to Class and module
+  std::map<const std::string, std::shared_ptr<RegisteredEncoder> > encoderTypeMap;
+  void addEncoderType(const std::string encoderType, RegisteredEncoder *wrapper);
 };
 } // namespace htm
 

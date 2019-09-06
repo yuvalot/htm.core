@@ -67,7 +67,8 @@ std::string RegionImpl::getName() const { return region_->getName(); }
 getParameterT(Int32);
 getParameterT(UInt32);
 getParameterT(Int64);
-getParameterT(UInt64) getParameterT(Real32);
+getParameterT(UInt64);
+getParameterT(Real32);
 getParameterT(Real64);
 getParameterInternalT(Bool, bool);
 

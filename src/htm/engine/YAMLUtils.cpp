@@ -67,7 +67,13 @@ static void _toScalar(const YAML::Node &node, std::shared_ptr<Scalar> &s) {
     s->value.real64 = node.as<Real64>();
     break;
   case NTA_BasicType_Bool:
-    s->value.boolean = node.as<bool>();
+    try {
+      s->value.boolean = node.as<bool>(); // looking for 'true' or 'false'
+    } catch (...) {
+      int x = node.as<int>(); // looking for '0' or non-zero
+      s->value.boolean = (x == 0) ? false : true;
+    }
+
     break;
   case NTA_BasicType_Handle:
     NTA_THROW << "Attempt to specify a YAML value for a scalar of type Handle";
@@ -119,7 +125,12 @@ static void _toArray(const YAML::Node& node, std::shared_ptr<Array>& a) {
      ((Real64*)buffer)[i] = item.as<Real64>();
       break;
     case NTA_BasicType_Bool:
-     ((bool*)buffer)[i] = item.as<bool>();
+      try {
+        ((bool *)buffer)[i] = item.as<bool>();  // looking for 'true' or 'false'
+      } catch (...) {
+        int x = item.as<int>();   // looking for '0' or non-zero
+        ((bool *)buffer)[i] = (x == 0) ? false : true;
+      }
       break;
     default:
       // should not happen
@@ -129,11 +140,12 @@ static void _toArray(const YAML::Node& node, std::shared_ptr<Array>& a) {
 }
 
 static Value toValue(const YAML::Node &node, NTA_BasicType dataType) {
-  if (node.Type() == YAML::NodeType::Map ||
-      node.Type() == YAML::NodeType::Null) {
+  auto t = node.Type();
+  if (t == YAML::NodeType::Map ||
+      t == YAML::NodeType::Null) {
     NTA_THROW << "YAML string does not represent a value.";
   }
-  if (node.Type() == YAML::NodeType::Scalar) {
+  if (t == YAML::NodeType::Scalar) {
     if (dataType == NTA_BasicType_Byte) {
       // node >> *str;
       const std::string val = node.as<std::string>();
@@ -164,13 +176,44 @@ Value toValue(const std::string& yamlstring, NTA_BasicType dataType)
   return toValue(doc, dataType);
 }
 
+std::string findFieldValue(const char *yamlstring,
+                           const std::string &fieldname) {
+  std::string paddedstring(yamlstring);
+  // TODO: strip white space to determine if empty
+  bool empty = (paddedstring.size() == 0);
+
+  // TODO: utf-8 compatible?
+  const YAML::Node doc = YAML::Load(paddedstring);
+  if (!empty) {
+    // A ValueMap is specified as a dictionary
+    if (doc.Type() != YAML::NodeType::Map) {
+      // an error: complain
+      std::string ys(yamlstring);
+      if (ys.size() > 30) {
+        ys = ys.substr(0, 30) + "...";
+      }
+      NTA_THROW
+          << "YAML string '" << ys
+          << "' does not not specify a dictionary of key-value pairs. "
+          << "Region and Link parameters must be specified as a dictionary";
+    }
+  }
+  for (auto i = doc.begin(); i != doc.end(); i++) {
+    const auto key = i->first.as<std::string>();
+    if (key == fieldname && i->second.Type() == YAML::NodeType::Scalar) {
+      const auto val = i->second.as<std::string>();
+      return val;
+    }
+  } 
+  return "";
+}
 /*
- * For converting param specs for Regions and LinkPolicies
+ * For converting param specs for Regions into a ValueMap
  */
 ValueMap toValueMap(const char *yamlstring,
                     Collection<ParameterSpec> &parameters,
-                    const std::string &nodeType,
-                    const std::string &regionName) {
+                    const std::string &nodeType,               // for error messages
+                    const std::string &regionName) {           // for error messages
 
   ValueMap vm;
 
@@ -278,7 +321,7 @@ ValueMap toValueMap(const char *yamlstring,
                     << BasicType::getName(ps.dataType) << " count " << ps.count;
 #endif
           // NOTE: this can handle both scalers and arrays
-          //       Arrays MUST be in Yaml sequence format even if one element.
+          //       Arrays MUST be in Yaml or JSON sequence format even if one element.
           //       i.e.  [1,2,3]
           Value v = toValue(ps.defaultValue, ps.dataType);
           if (v.isScalar() && ps.count != 1)
@@ -291,7 +334,7 @@ ValueMap toValueMap(const char *yamlstring,
           }
           vm.add(item.first, v);
         } catch (...) {
-          NTA_THROW << "Unable to set default value for item '" << item.first
+          NTA_THROW << "toValueMap(); Unable to configure default value for item '" << item.first
                     << "' of datatype " << BasicType::getName(ps.dataType)
                     << " with value '" << ps.defaultValue << "'";
         }

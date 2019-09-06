@@ -129,8 +129,8 @@ public:
        CEREAL_NVP(unclonedInt64ArrayParam_));
   }
 
-  bool operator==(const RegionImpl &other) const override;
-  inline bool operator!=(const TestNode &other) const {
+  virtual bool operator==(const RegionImpl &other) const override;
+  virtual bool operator!=(const RegionImpl &other) const override {
     return !operator==(other);
   }
 

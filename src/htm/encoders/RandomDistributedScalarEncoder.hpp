@@ -22,7 +22,7 @@
 #ifndef NTA_ENCODERS_RDSE
 #define NTA_ENCODERS_RDSE
 
-#include <htm/encoders/BaseEncoder.hpp>
+#include <htm/encoders/GenericEncoder.hpp>
 #include <htm/utils/Log.hpp>
 
 namespace htm {
@@ -36,7 +36,7 @@ namespace htm {
  * Members "radius", "resolution", & "category" are mutually exclusive, specify
  * exactly one of them.
  */
-struct RDSE_Parameters
+struct RDSE_Parameters : public BaseParameters 
 {
   /**
    * Member "size" is the total number of bits in the encoded output SDR.
@@ -109,16 +109,47 @@ struct RDSE_Parameters
  * To inspect this run:
  * $ python -m htm.examples.encoders.rdse --help
  */
-class RandomDistributedScalarEncoder : public BaseEncoder<Real64>
+class RandomDistributedScalarEncoder : public GenericEncoder
 {
 public:
-  RandomDistributedScalarEncoder() {}
-  RandomDistributedScalarEncoder( const RDSE_Parameters &parameters );
-  void initialize( const RDSE_Parameters &parameters );
+  RandomDistributedScalarEncoder(); // for use by EncoderRegion.
+  RandomDistributedScalarEncoder( const RDSE_Parameters &params );  // for direct access
+  RandomDistributedScalarEncoder(ArWrapper &ar);                    // for Cereal load_ar( )
+
+
+  void initialize(BaseParameters *params) override {  // for use by generic EncoderRegion
+    initialize(*(RDSE_Parameters *)params);
+  }
+  void initialize(const RDSE_Parameters &params);
+
+  std::string getName() const override { return "RDSE"; }
+
+  // A discription of the fields in the RDSE_Parameters structure.
+  ParameterDescriptor getDescriptor() override {
+    ParameterDescriptor desc = {
+        NTA_BasicType_Real64, // expected input type
+        1,                    // expected input array size (0 means variable)
+        (char *)&args_,       // pointer to parameter structure (for getters)
+        sizeof(args_),        // sizeof parameter structure
+        // list of fields in the parameter structure
+        {FIELD(size), FIELD(activeBits), FIELD(sparsity), FIELD(radius),
+         FIELD(resolution), FIELD(category), FIELD(seed)}};
+    return desc;
+  }
+ 
 
   const RDSE_Parameters &parameters = args_;
 
-  void encode(Real64 input, SDR &output) override;
+
+  void encode(Real64 input, SDR &output);
+
+  // Special generic call for use by EncoderRegion.
+  // For this encoder, cast the inputPtr to a Real64* and dereference it.  
+  void encode(void *inputPtr, size_t count, SDR &output) override {
+    NTA_CHECK(count == 1) << "Unexpected input count for RDSE encoder.";
+    Real64 input = *((Real64 *)inputPtr);
+    encode(input, output);
+  }
 
 
   ~RandomDistributedScalarEncoder() override {};
@@ -127,7 +158,7 @@ public:
   // FOR Cereal Serialization
   template<class Archive>
   void save_ar(Archive& ar) const {
-    std::string name = "RandomDistributedScalarEncoder";
+    std::string name = "RDSE";
     ar(cereal::make_nvp("name", name));
     ar(cereal::make_nvp("size", args_.size));
     ar(cereal::make_nvp("activeBits", args_.activeBits));
@@ -141,10 +172,9 @@ public:
   // FOR Cereal Deserialization
   template<class Archive>
   void load_ar(Archive& ar) {
-    std::vector<UInt> dim;
     std::string name;
     ar(cereal::make_nvp("name", name));
-    NTA_CHECK(name == "RandomDistributedScalarEncoder");
+    NTA_CHECK(name == "RDSE");
     ar(cereal::make_nvp("size", args_.size));
     ar(cereal::make_nvp("activeBits", args_.activeBits));
     ar(cereal::make_nvp("sparsity", args_.sparsity));
@@ -152,15 +182,38 @@ public:
     ar(cereal::make_nvp("resolution", args_.resolution));
     ar(cereal::make_nvp("category", args_.category));
     ar(cereal::make_nvp("seed", args_.seed));
-    BaseEncoder<Real64>::initialize({ parameters.size });
+    this->GenericEncoder::init_base({parameters.size});
   }
+  template <class Archive>
+  static void load_and_construct( Archive &ar,
+      cereal::construct<RandomDistributedScalarEncoder> &construct) {
+    RDSE_Parameters args;
+    std::string name;
+    ar(cereal::make_nvp("name", name));
+    NTA_CHECK(name == "RDSE");
+    ar(cereal::make_nvp("size", args.size));
+    ar(cereal::make_nvp("activeBits", args.activeBits));
+    ar(cereal::make_nvp("sparsity", args.sparsity));
+    ar(cereal::make_nvp("radius", args.radius));
+    ar(cereal::make_nvp("resolution", args.resolution));
+    ar(cereal::make_nvp("category", args.category));
+    ar(cereal::make_nvp("seed", args.seed));
+    construct(args);
+  }
+
+  bool operator==(const GenericEncoder &other) const override;
+  inline bool operator!=(const RandomDistributedScalarEncoder &other) const {
+    return !operator==(other);
+  }
+
+
 private:
   RDSE_Parameters args_;
 };
 
 typedef RandomDistributedScalarEncoder RDSE;
 
-std::ostream & operator<<(std::ostream & out, const RandomDistributedScalarEncoder & self);
+std::ostream &operator<<(std::ostream &out,  const RandomDistributedScalarEncoder &self);
 
 }      // End namespace htm
 #endif // End ifdef NTA_ENCODERS_RDSE

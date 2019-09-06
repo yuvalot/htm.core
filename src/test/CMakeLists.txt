@@ -84,11 +84,12 @@ set(os_tests
 	   )
 	   
 set(regions_tests
+       unit/regions/EncoderRegionTest.cpp
 	   unit/regions/RegionTestUtilities.cpp
 	   unit/regions/RegionTestUtilities.hpp
 	   unit/regions/SPRegionTest.cpp
-           unit/regions/TMRegionTest.cpp
-           unit/regions/VectorFileTest.cpp
+       unit/regions/TMRegionTest.cpp
+       unit/regions/VectorFileTest.cpp
 	   )
 
 	   

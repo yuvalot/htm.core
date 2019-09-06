@@ -121,8 +121,8 @@ TEST(ValueTest, ValueMap) {
   x = vm.getScalarT("scalar2", (Int32)20);
   ASSERT_EQ((Int32)20, x);
 
-  Value v = vm.getValue("array");
-  ASSERT_EQ(Value::arrayCategory, v.getCategory());
-  ASSERT_TRUE(v.getArray() == a);
+  std::shared_ptr<Value> v = vm.getValue("array");
+  ASSERT_EQ(Value::arrayCategory, v->getCategory());
+  ASSERT_TRUE(v->getArray() == a);
 }
 }

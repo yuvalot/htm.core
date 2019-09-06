@@ -41,6 +41,7 @@ namespace htm {
 class Region;
 class Dimensions;
 class RegisteredRegionImpl;
+class RegisteredEncoder;
 class Link;
 
 /**
@@ -413,6 +414,8 @@ public:
    * Removes a region implementation from the RegionImplFactory's list of packages
    */
   static void unregisterRegion(const std::string name);
+
+  static void registerEncoder(const std::string name,  RegisteredEncoder *wrapper);
 
   /*
    * Removes all region registrations in RegionImplFactory.

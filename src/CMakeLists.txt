@@ -83,6 +83,7 @@ set(algorithm_files
 
 set(encoders_files 
     htm/encoders/BaseEncoder.hpp
+	htm/encoders/GenericEncoder.hpp
     htm/encoders/ScalarEncoder.cpp
     htm/encoders/ScalarEncoder.hpp
     htm/encoders/RandomDistributedScalarEncoder.hpp
@@ -110,6 +111,8 @@ set(engine_files
     htm/engine/RegionImplFactory.hpp
     htm/engine/RegisteredRegionImpl.hpp
     htm/engine/RegisteredRegionImplCpp.hpp
+    htm/engine/RegisteredEncoder.hpp
+    htm/engine/RegisteredEncoderCpp.hpp
     htm/engine/Spec.cpp
     htm/engine/Spec.hpp
     htm/engine/YAMLUtils.cpp
@@ -150,6 +153,8 @@ set(os_files
 )
 
 set(regions_files
+    htm/regions/EncoderRegion.cpp
+    htm/regions/EncoderRegion.hpp
     htm/regions/ScalarSensor.cpp
     htm/regions/ScalarSensor.hpp
     htm/regions/SPRegion.cpp

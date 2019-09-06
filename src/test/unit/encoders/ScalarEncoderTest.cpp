@@ -54,7 +54,7 @@ void doScalarValueCases(ScalarEncoder& e, std::vector<ScalarValueCase> cases)
 }
 
 
-TEST(ScalarEncoder, testClippingInputs) {
+TEST(ScalarEncoderTest, testClippingInputs) {
   ScalarEncoderParameters p;
   p.size       = 10;
   p.activeBits = 2;
@@ -81,7 +81,7 @@ TEST(ScalarEncoder, testClippingInputs) {
   }
 }
 
-TEST(ScalarEncoder, ValidScalarInputs) {
+TEST(ScalarEncoderTest, ValidScalarInputs) {
   ScalarEncoderParameters p;
   p.size       = 10;
   p.activeBits = 2;
@@ -96,7 +96,7 @@ TEST(ScalarEncoder, ValidScalarInputs) {
   EXPECT_ANY_THROW(e.encode(20.0001f, output));
 }
 
-TEST(ScalarEncoder, NonIntegerBucketWidth) {
+TEST(ScalarEncoderTest, NonIntegerBucketWidth) {
   ScalarEncoderParameters p;
   p.size       = 7;
   p.activeBits = 3;
@@ -110,7 +110,7 @@ TEST(ScalarEncoder, NonIntegerBucketWidth) {
   doScalarValueCases(encoder, cases);
 }
 
-TEST(ScalarEncoder, RoundToNearestMultipleOfResolution) {
+TEST(ScalarEncoderTest, RoundToNearestMultipleOfResolution) {
   ScalarEncoderParameters p;
   p.activeBits = 3;
   p.minimum    = 10.0;
@@ -138,7 +138,7 @@ TEST(ScalarEncoder, RoundToNearestMultipleOfResolution) {
   doScalarValueCases(encoder, cases);
 }
 
-TEST(ScalarEncoder, PeriodicRoundNearestMultipleOfResolution) {
+TEST(ScalarEncoderTest, PeriodicRoundNearestMultipleOfResolution) {
   ScalarEncoderParameters p;
   p.activeBits = 3;
   p.minimum    = 10.0;
@@ -166,7 +166,7 @@ TEST(ScalarEncoder, PeriodicRoundNearestMultipleOfResolution) {
   doScalarValueCases(encoder, cases);
 }
 
-TEST(ScalarEncoder, Serialization) {
+TEST(ScalarEncoderTest, Serialization) {
   std::vector<ScalarEncoder*> inputs;
   ScalarEncoderParameters p;
   p.minimum    = -1.234;
