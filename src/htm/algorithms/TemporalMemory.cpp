@@ -515,7 +515,7 @@ void TemporalMemory::compute(const SDR &activeColumns,
                          cellsToColumns( getPredictiveCells() ));
       const Real like = tmAnomaly_.anomalyLikelihood_.anomalyProbability(raw);
       const Real log  = tmAnomaly_.anomalyLikelihood_.computeLogLikelihood(like);
-      tmAnomaly_.anomaly_ = log;
+      tmAnomaly_.anomaly_ = log; //TODO loglike is `log(1 - likelihood)/log(epsilon)`, should we return 1-loglike to be consistent with "anomalies"? (high score for anomalous inputs).
 				} break;
   // TODO: Update mean & standard deviation of anomaly here.
   };

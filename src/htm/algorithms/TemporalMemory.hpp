@@ -688,8 +688,23 @@ public:
    *  anomaly score computed for the current inputs
    *  (auto-updates after each call to TM::compute())
    *
-   *  @return a float value from computeRawAnomalyScore()
-   *  from Anomaly.hpp
+   *  Note, if you use manual learning methods for TM (activateDendrites, etc.) the scores 
+   *  will not be in sync (works only if `TM.compute` is used). 
+   *
+   *  Options `ANMode` {DISABLED, RAW, LIKELIHOOD, LOGLIKELIHOOD} passed during constructor 
+   *  of this class affect the computation of anomaly here. 
+   *    - "DISABLED": always returns 0.5f, no computation is performed (use if you don't care for anomaly
+   *      and need maximum speed). 
+   *    - "RAW": return value from `computeRawAnomalyScore()` from `Anomaly.hpp`, default.
+   *    - "LIKELIHOOD": Compute the probability that the current anomaly score represents
+   *      an anomaly given the historical distribution of anomaly scores. The closer
+   *      the number is to 1, the higher the chance it is an anomaly.
+   *      Computed from `anomalyProbability()` in `AnomalyLikelihood.hpp`.
+   *    - "LOGLIKELIHOOD": Compute a log scale representation of the likelihood value. This mode performs
+   *      `computeLogLikelihood()` from `AnomalyLikelihood.hpp`
+   *
+   *  @return a float value based on `ANMode` argument used in constructor of the TM class. 
+   *    By default return value from `computeRawAnomalyScore()` from `Anomaly.hpp`
    */
 const Real &anomaly = tmAnomaly_.anomaly_; //this is position dependant, the struct anomaly_tm must be defined before this use,
 // otherwise this surprisingly compiles, but a call to `tmAnomaly_.anomaly` segfaults!
