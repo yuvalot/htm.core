@@ -21,10 +21,9 @@
  * Implement the CoordinateEncoder
  */
 
-#define _USE_MATH_DEFINES // Define before including anything
 #include <htm/encoders/CoordinateEncoder.hpp>
 
-#include <math.h> // tgamma, M_PI
+#include <cmath> // tgamma, M_PI
 #include <murmurhash3/MurmurHash3.hpp>
 
 using namespace std;
@@ -36,9 +35,14 @@ CoordinateEncoder::CoordinateEncoder(const CoordinateEncoderParameters &paramete
 void CoordinateEncoder::initialize( const CoordinateEncoderParameters &parameters ) {
   // Check parameters:  This has all of the same constraints as the RDSE does.
   // The RDSE will raise an exception if the parameters are bad.
-  RDSE rdse( parameters );
+  try {
+    RDSE dummy( parameters );
+  } catch(Exception& ex) {
+    NTA_THROW << "CoordinateEncoder: parsing parameters failed. Reason: " << ex.what(); 
+  }
   NTA_CHECK( parameters.numDimensions > 0u );
 
+  RDSE rdse(parameters);
   BaseEncoder<const vector<Real64> &>::initialize({ parameters.size });
   args_ = parameters;
   // Fill in remaining parameters.
