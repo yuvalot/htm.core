@@ -22,16 +22,14 @@
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
 
-#include <nupic/encoders/CoordinateEncoder.hpp>
+#include <htm/encoders/CoordinateEncoder.hpp>
 
 namespace py = pybind11;
 
 using namespace std;
-using namespace nupic;
-using namespace nupic::encoders;
-using nupic::sdr::SDR;
+using namespace htm;
 
-namespace nupic_ext
+namespace htm_ext
 {
   void init_CoordinateEncoder(py::module& m)
   {
