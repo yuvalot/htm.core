@@ -1,7 +1,6 @@
 /* ----------------------------------------------------------------------
- * Numenta Platform for Intelligent Computing (NuPIC)
+ * HTM Community Edition of NuPIC
  * Copyright (C) 2019, David McDougall
- * The following terms and conditions apply:
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero Public License version 3 as
@@ -14,8 +13,6 @@
  *
  * You should have received a copy of the GNU Affero Public License
  * along with this program.  If not, see http://www.gnu.org/licenses.
- *
- * http://numenta.org/licenses/
  * ---------------------------------------------------------------------- */
 
 #include <bindings/suppress_register.hpp>  //include before pybind11.h
@@ -24,22 +21,22 @@
 #include <pybind11/stl.h>
 namespace py = pybind11;
 
-#include <nupic/encoders/ScalarEncoder.hpp>
-#include <nupic/types/Sdr.hpp>
+#include <htm/encoders/ScalarEncoder.hpp>
+#include <htm/types/Sdr.hpp>
 
-namespace nupic_ext
+namespace htm_ext
 {
-  using namespace nupic::encoders;
-  using nupic::sdr::SDR;
+  using namespace htm;
 
   void init_ScalarEncoder(py::module& m)
   {
     py::class_<ScalarEncoderParameters> py_ScalarEncParams(m, "ScalarEncoderParameters",
         R"(
 
-The following three (3) members define the total number of bits in the output:
+The following four (4) members define the total number of bits in the output:
      size,
      radius,
+     category,
      resolution.
 
 These are mutually exclusive and only one of them should be non-zero when
@@ -64,10 +61,15 @@ R"(This controls what happens near the edges of the input range.
 
 If true, then the minimum & maximum input values are adjacent and the first and
 last bits of the output SDR are also adjacent.  The contiguous block of 1's
-wraps around the end back to the begining.
+wraps around the end back to the beginning.
 
 If false, then minimum & maximum input values are the endpoints of the input
 range, are not adjacent, and activity does not wrap around.)");
+
+    py_ScalarEncParams.def_readwrite("category", &ScalarEncoderParameters::category,
+R"(This means that the inputs are enumerated categories.
+If true then this encoder will only encode unsigned integers, and all inputs
+will have unique / non-overlapping representations.)");
 
     py_ScalarEncParams.def_readwrite("activeBits", &ScalarEncoderParameters::activeBits,
 R"(This is the number of true bits in the encoded output SDR. The output
@@ -99,8 +101,8 @@ The ScalarEncoder encodes a numeric (floating point) value into an array of
 bits. The output is 0's except for a contiguous block of 1's. The location of
 this contiguous block varies continuously with the input value.
 
-For help or to examine this run:
-$ python -m nupic.examples.rf_view_ScalarEncoder --help.)");
+To inspect this run:
+$ python -m htm.examples.encoders.scalar_encoder --help)");
 
     py_ScalarEnc.def(py::init<ScalarEncoderParameters&>(), R"()");
     py_ScalarEnc.def_property_readonly("parameters",
@@ -115,7 +117,7 @@ fields are filled in automatically.)");
 
     py_ScalarEnc.def("encode", &ScalarEncoder::encode, R"()");
 
-    py_ScalarEnc.def("encode", [](ScalarEncoder &self, nupic::Real64 value) {
+    py_ScalarEnc.def("encode", [](ScalarEncoder &self, htm::Real64 value) {
         auto output = new SDR( self.dimensions );
         self.encode( value, *output );
         return output; },

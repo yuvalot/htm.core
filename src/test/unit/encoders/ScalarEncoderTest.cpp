@@ -1,5 +1,5 @@
 /* ---------------------------------------------------------------------
- * Numenta Platform for Intelligent Computing (NuPIC)
+ * HTM Community Edition of NuPIC
  * Copyright (C) 2016, Numenta, Inc.
  *               2019, David McDougall
  *
@@ -17,29 +17,19 @@
  *
  * You should have received a copy of the GNU Affero Public License
  * along with this program.  If not, see http://www.gnu.org/licenses.
- *
- * http://numenta.org/licenses/
- * ---------------------------------------------------------------------
- */
+ * --------------------------------------------------------------------- */
 
 /** @file
  * Unit tests for the ScalarEncoder
  */
 
 #include "gtest/gtest.h"
-#include <nupic/encoders/ScalarEncoder.hpp>
+#include <htm/encoders/ScalarEncoder.hpp>
 #include <vector>
 
 namespace testing {
     
-using namespace nupic;
-using nupic::sdr::SDR;
-using nupic::encoders::ScalarEncoder;
-using nupic::encoders::ScalarEncoderParameters;
-
-TEST(ScalarEncoder, testExampleUsage) {
-  // TODO
-}
+using namespace htm;
 
 
 struct ScalarValueCase
@@ -53,6 +43,7 @@ void doScalarValueCases(ScalarEncoder& e, std::vector<ScalarValueCase> cases)
   for( auto c : cases )
   {
     SDR expectedOutput( e.dimensions );
+    std::sort( c.expectedOutput.begin(), c.expectedOutput.end() );
     expectedOutput.setSparse( c.expectedOutput );
 
     SDR actualOutput( e.dimensions );
@@ -127,7 +118,7 @@ TEST(ScalarEncoder, RoundToNearestMultipleOfResolution) {
   p.resolution = 1;
   ScalarEncoder encoder( p );
 
-  ASSERT_EQ(encoder.parameters.size, 12u);
+  ASSERT_EQ(encoder.parameters.size, 13u);
 
   std::vector<ScalarValueCase> cases = {
       {10.00f, {0, 1, 2}},
@@ -139,9 +130,10 @@ TEST(ScalarEncoder, RoundToNearestMultipleOfResolution) {
       {14.50f, {5, 6, 7}},
       {15.49f, {5, 6, 7}},
       {15.50f, {6, 7, 8}},
+      {19.00f, {9, 10, 11}},
       {19.49f, {9, 10, 11}},
-      {19.50f, {9, 10, 11}},
-      {20.00f, {9, 10, 11}}};
+      {19.50f, {10, 11, 12}},
+      {20.00f, {10, 11, 12}}};
 
   doScalarValueCases(encoder, cases);
 }
@@ -197,16 +189,15 @@ TEST(ScalarEncoder, Serialization) {
   q.sparsity = 0.15f;
   inputs.push_back( new ScalarEncoder( q ) );
 
-  std::stringstream buf;
-  for( const auto x : inputs ) {
-    x->save( buf );
-  }
-
-  // cerr << "SERIALIZED:" << endl << buf.str() << endl;
-
   for( const auto enc1 : inputs ) {
+    std::stringstream buf;
+    enc1->save( buf, JSON );
+  
+    std::cerr << "SERIALIZED:" << std::endl << buf.str() << std::endl;
+    buf.seekg(0);
+
     ScalarEncoder enc2;
-    enc2.load( buf );
+    enc2.load( buf, JSON );
 
     const auto &p1 = enc1->parameters;
     const auto &p2 = enc2.parameters;

@@ -1,8 +1,6 @@
 /* ---------------------------------------------------------------------
- * Numenta Platform for Intelligent Computing (NuPIC)
- * Copyright (C) 2018, Numenta, Inc.  Unless you have an agreement
- * with Numenta, Inc., for a separate license for this software code, the
- * following terms and conditions apply:
+ * HTM Community Edition of NuPIC
+ * Copyright (C) 2018, Numenta, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero Public License version 3 as
@@ -16,12 +14,8 @@
  * You should have received a copy of the GNU Affero Public License
  * along with this program.  If not, see http://www.gnu.org/licenses.
  *
- * http://numenta.org/licenses/
-
-
  * Author: David Keeney, April, 2018
- * ---------------------------------------------------------------------
- */
+ * --------------------------------------------------------------------- */
 
 /*---------------------------------------------------------------------
  * This is a test of the TMRegion module.  It does not check the
@@ -44,24 +38,23 @@
  *---------------------------------------------------------------------
  */
 
-#include <nupic/engine/Input.hpp>
-#include <nupic/engine/Link.hpp>
-#include <nupic/engine/Network.hpp>
-#include <nupic/engine/NuPIC.hpp>
-#include <nupic/engine/Output.hpp>
-#include <nupic/engine/Region.hpp>
-#include <nupic/engine/RegisteredRegionImplCpp.hpp>
-#include <nupic/engine/Spec.hpp>
-#include <nupic/engine/YAMLUtils.hpp>
-#include <nupic/math/Math.hpp>
-#include <nupic/ntypes/Array.hpp>
-#include <nupic/os/Directory.hpp>
-#include <nupic/os/Env.hpp>
-#include <nupic/os/Path.hpp>
-#include <nupic/os/Timer.hpp>
-#include <nupic/regions/TMRegion.hpp>
-#include <nupic/types/Exception.hpp>
-#include <nupic/utils/VectorHelpers.hpp>
+#include <htm/engine/Input.hpp>
+#include <htm/engine/Link.hpp>
+#include <htm/engine/Network.hpp>
+#include <htm/engine/NuPIC.hpp>
+#include <htm/engine/Output.hpp>
+#include <htm/engine/Region.hpp>
+#include <htm/engine/RegisteredRegionImplCpp.hpp>
+#include <htm/engine/Spec.hpp>
+#include <htm/engine/YAMLUtils.hpp>
+#include <htm/ntypes/Array.hpp>
+#include <htm/os/Directory.hpp>
+#include <htm/os/Env.hpp>
+#include <htm/os/Path.hpp>
+#include <htm/os/Timer.hpp>
+#include <htm/regions/TMRegion.hpp>
+#include <htm/types/Exception.hpp>
+#include <htm/utils/VectorHelpers.hpp>
 
 #include <cmath>   // fabs/abs
 #include <cstdlib> // exit
@@ -81,10 +74,9 @@ static bool verbose = false; // turn this on to print extra stuff for debugging 
 
 // The following string should contain a valid expected Spec - manually
 // verified.
-#define EXPECTED_SPEC_COUNT 17 // The number of parameters expected in the TMRegion Spec
+#define EXPECTED_SPEC_COUNT 18 // The number of parameters expected in the TMRegion Spec
 
-using namespace nupic;
-using namespace nupic::utils;
+using namespace htm;
 
 namespace testing {
 
@@ -107,11 +99,11 @@ TEST(TMRegionTest, testSpecAndParameters) {
 TEST(TMRegionTest, checkTMRegionImpl) {
   Network net;
 
-  size_t regionCntBefore = net.getRegions().getCount();
+  size_t regionCntBefore = net.getRegions().size();
 
   VERBOSE << "Adding a built-in TMRegion region..." << std::endl;
   std::shared_ptr<Region> region1 = net.addRegion("region1", "TMRegion", "");
-  size_t regionCntAfter = net.getRegions().getCount();
+  size_t regionCntAfter = net.getRegions().size();
   ASSERT_TRUE(regionCntBefore + 1 == regionCntAfter)
       << " Expected number of regions to increase by one.  ";
   ASSERT_TRUE(region1->getType() == "TMRegion")
@@ -130,7 +122,7 @@ TEST(TMRegionTest, initialization_with_custom_impl) {
   VERBOSE << "Creating network..." << std::endl;
   Network net;
 
-  size_t regionCntBefore = net.getRegions().getCount();
+  size_t regionCntBefore = net.getRegions().size();
 
   // make sure the custom region registration works for CPP.
   // We will just use the same TMRegion class but it could be a subclass or some
@@ -150,7 +142,7 @@ TEST(TMRegionTest, initialization_with_custom_impl) {
   VERBOSE << "Adding a custom-built TMRegion region..." << std::endl;
   net.registerRegion("TMRegionCustom", new RegisteredRegionImplCpp<TMRegion>());
   std::shared_ptr<Region> region2 = net.addRegion("region2", "TMRegionCustom", nodeParams);
-  size_t regionCntAfter = net.getRegions().getCount();
+  size_t regionCntAfter = net.getRegions().size();
   ASSERT_TRUE(regionCntBefore + 1 == regionCntAfter)
       << "  Expected number of regions to increase by one.  ";
   ASSERT_TRUE(region2->getType() == "TMRegionCustom")
@@ -260,6 +252,11 @@ TEST(TMRegionTest, testLinking) {
   EXPECT_EQ(r1OutputArray.getCount(), dataWidth);
   EXPECT_TRUE(r1OutputArray.getType() == NTA_BasicType_Real32);
 
+  // check anomaly
+  EXPECT_FLOAT_EQ(region3->getParameterReal32("anomaly"), 1.0f);
+  const Real32 *anomalyBuffer = reinterpret_cast<const Real32*>(region3->getOutputData("anomaly").getBuffer());
+  EXPECT_FLOAT_EQ(anomalyBuffer[0], 0.0f); // Note: it is zero because no links are connected to this output.
+
 
   VERBOSE << "  SPRegion Output " << std::endl;
   Array r2OutputArray = region2->getOutputData("bottomUpOut");
@@ -275,8 +272,10 @@ TEST(TMRegionTest, testLinking) {
   EXPECT_TRUE(r3InputArray.getType() == NTA_BasicType_SDR);
   VERBOSE << "   " << r3InputArray << "\n";
   std::vector<Byte> expected3in = VectorHelpers::sparseToBinary<Byte>(
-    { 1, 2, 3, 5, 6, 8, 11, 13, 17, 19 }, (UInt32)r3InputArray.getCount());
-  EXPECT_TRUE(r3InputArray == expected3in);
+    {
+      7
+    }, (UInt32)r3InputArray.getCount());
+  EXPECT_EQ(r3InputArray, expected3in) << r3InputArray;
 
   VERBOSE << "  TMRegion output "
           << region3->getOutputDimensions("bottomUpOut") << "\n";
@@ -290,13 +289,12 @@ TEST(TMRegionTest, testLinking) {
       << r3InputArray.getCount();
   EXPECT_TRUE(r3OutputArray.getType() == NTA_BasicType_SDR);
   VERBOSE << "   " << r3OutputArray << "\n";
-  std::vector<Byte> expected3out = VectorHelpers::sparseToBinary<Byte>(
-            { 5u, 6u, 7u, 8u, 9u, 10u, 11u, 12u, 13u, 14u, 15u, 16u, 17u, 18u, 19u,
-             25u, 26u, 27u, 28u, 29u, 30u, 31u, 32u, 33u, 34u, 40u, 41u, 42u, 43u,
-             44u, 55u, 56u, 57u, 58u, 59u, 65u, 66u, 67u, 68u, 69u, 85u, 86u, 87u,
-             88u, 89u, 95u, 96u, 97u, 98u, 99u }, (UInt32)r3OutputArray.getCount());
-  EXPECT_TRUE(r3OutputArray == expected3out);
-  EXPECT_EQ(r3OutputArray.getSDR().getSparse().size(), 50u);
+  std::vector<Byte> expected3out = VectorHelpers::sparseToBinary<Byte>( //TODO replace with SDR 
+            {
+	      35, 36, 37, 38, 39
+	    }, (UInt32)r3OutputArray.getCount());
+  EXPECT_EQ(r3OutputArray, expected3out) << r3OutputArray;
+  EXPECT_EQ(r3OutputArray.getSDR().getSparse().size(), 5u);
 
   // execute TMRegion several more times and check that it has output.
   VERBOSE << "Execute 9 times." << std::endl;
@@ -311,19 +309,18 @@ TEST(TMRegionTest, testLinking) {
       << numberOfCols << " * " << cellsPerColumn;
   VERBOSE << "   " << r3OutputArray << ")\n";
   std::vector<Byte> expected3outa = VectorHelpers::sparseToBinary<Byte>(
-            {20u, 21u, 22u, 23u, 24u, 25u, 26u, 27u, 28u, 29u, 35u, 36u, 37u, 38u,
-             39u, 45u, 46u, 47u, 48u, 49u, 50u, 51u, 52u, 53u, 54u, 60u, 61u, 62u,
-             63u, 64u, 70u, 71u, 72u, 73u, 74u, 80u, 81u, 82u, 83u, 84u, 90u, 91u,
-             92u, 93u, 94u, 95u, 96u, 97u, 98u, 99u}, (UInt32)r3OutputArray.getCount());
-  EXPECT_TRUE(r3OutputArray == expected3outa);
+            {
+	      95, 96, 97, 98, 99
+	    }, (UInt32)r3OutputArray.getCount());
+  EXPECT_EQ(r3OutputArray, expected3outa) << r3OutputArray;
 
 
   VERBOSE << "   Input to VectorFileEffector "
           << region4->getInputDimensions("dataIn") << "\n";
   Array r4InputArray = region4->getInputData("dataIn");
-  EXPECT_TRUE(r4InputArray.getType() == NTA_BasicType_Real32);
+  EXPECT_EQ(r4InputArray.getType(), NTA_BasicType_Real32);
   VERBOSE << "   " << r4InputArray << "\n";
-  EXPECT_TRUE(r4InputArray == expected3outa);
+  EXPECT_EQ(r4InputArray, expected3outa) << r4InputArray;
 
   // cleanup
   region3->executeCommand({"closeFile"});
@@ -340,21 +337,12 @@ TEST(TMRegionTest, testSerialization) {
     VERBOSE << "Setup first network and save it" << std::endl;
     std::shared_ptr<Region> n1region1 = net1->addRegion( "region1", "ScalarSensor",
                                              "{n: 48,w: 10,minValue: 0.05,maxValue: 10}");
-    n1region1->setParameterReal64("sensedValue", 5.0);
-
     std::shared_ptr<Region> n1region2 =  net1->addRegion("region2", "TMRegion", "{numberOfCols: 48}");
 
     net1->link("region1", "region2", "", "", "encoded", "bottomUpIn");
-    VERBOSE << "Initialize" << std::endl;
-    net1->initialize();
+    n1region1->setParameterReal64("sensedValue", 5.0);
 
-    VERBOSE << "compute region1" << std::endl;
-    n1region1->prepareInputs();
-    n1region1->compute();
-
-    VERBOSE << "compute region2" << std::endl;
-    n1region2->prepareInputs();
-    n1region2->compute();
+    net1->run(1);
 
     // take a snapshot of everything in TMRegion at this point
     // save to a bundle.
@@ -370,13 +358,15 @@ TEST(TMRegionTest, testSerialization) {
     net2 = new Network();
     net2->loadFromFile("TestOutputDir/tmRegionTest.stream");
 
+
     VERBOSE << "checked restored network" << std::endl;
-    std::shared_ptr<Region> n2region2 = net2->getRegions().getByName("region2");
+    std::shared_ptr<Region> n2region2 = net2->getRegion("region2");
     ASSERT_TRUE(n2region2->getType() == "TMRegion")
         << " Restored TMRegion region does not have the right type.  Expected "
            "TMRegion, found "
         << n2region2->getType();
 
+    EXPECT_FLOAT_EQ(n2region2->getParameterReal32("anomaly"), 1.0f);
     EXPECT_TRUE(compareParameters(n2region2, parameterMap))
         << "Conflict when comparing TMRegion parameters after restore with "
            "before save.";
@@ -384,17 +374,11 @@ TEST(TMRegionTest, testSerialization) {
     VERBOSE << "continue with execution." << std::endl;
     // can we continue with execution?  See if we get any exceptions.
     n1region1->setParameterReal64("sensedValue", 0.12);
-    n1region1->prepareInputs();
-    n1region1->compute();
+    net1->run(1);
+    net2->run(1);
 
-    n2region2->prepareInputs();
-    VERBOSE << "continue 4." << std::endl;
-    n2region2->compute();
-    VERBOSE << "continue 5." << std::endl;
-
-    // Change a parameters and see if it is retained after a restore.
+    // Change a parameter and see if it is retained after a restore.
     n2region2->setParameterReal32("permanenceDecrement", 0.099f);
-    n2region2->compute();
 
     parameterMap.clear();
     EXPECT_TRUE(captureParameters(n2region2, parameterMap))
@@ -406,15 +390,18 @@ TEST(TMRegionTest, testSerialization) {
     VERBOSE << "Restore into a third network and compare changed parameters." << std::endl;
     net3 = new Network();
     net3->loadFromFile("TestOutputDir/tmRegionTest.stream");
-    std::shared_ptr<Region> n3region2 = net3->getRegions().getByName("region2");
+    std::shared_ptr<Region> n3region2 = net3->getRegion("region2");
     EXPECT_TRUE(n3region2->getType() == "TMRegion")
         << "Failure: Restored region does not have the right type. "
            " Expected \"TMRegion\", found \""
         << n3region2->getType() << "\".";
 
+    Real32 p = n3region2->getParameterReal32("permanenceDecrement");
+    EXPECT_FLOAT_EQ(p, 0.099f);
+
     EXPECT_TRUE(compareParameters(n3region2, parameterMap))
         << "Comparing parameters after second restore with before save.";
-  } catch (nupic::Exception &ex) {
+  } catch (htm::Exception &ex) {
     FAIL() << "Failure: Exception: " << ex.getFilename() << "("
            << ex.getLineNumber() << ") " << ex.getMessage() << "" << std::endl;
   } catch (std::exception &e) {

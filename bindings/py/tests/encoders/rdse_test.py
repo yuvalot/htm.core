@@ -1,8 +1,6 @@
 # ----------------------------------------------------------------------
-# Numenta Platform for Intelligent Computing (NuPIC)
+# HTM Community Edition of NuPIC
 # Copyright (C) 2019, David McDougall
-#
-# The following terms and conditions apply:
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero Public License version 3 as
@@ -22,17 +20,11 @@
 import pickle
 import numpy as np
 import unittest
-import pytest
-import time
 
-from nupic.bindings.sdr import SDR, Metrics
-from nupic.bindings.encoders import RDSE, RDSE_Parameters
+from htm.bindings.sdr import SDR, Metrics
+from htm.bindings.encoders import RDSE, RDSE_Parameters
 
 class RDSE_Test(unittest.TestCase):
-    @pytest.mark.skip("TODO UNIMPLEMENTED!")
-    def testExampleUsage(self):
-        1/0
-
     def testConstructor(self):
         params1 = RDSE_Parameters()
         params1.size     = 100
@@ -263,6 +255,44 @@ class RDSE_Test(unittest.TestCase):
         B = R.encode( 987654 )
         assert( A != B )
 
-    @pytest.mark.skip(reason="Known issue: https://github.com/htm-community/nupic.cpp/issues/160")
+
     def testPickle(self):
-        assert(False) # TODO: Unimplemented
+        """
+        The pickling is successfull if pickle serializes and de-serialize the
+        RDSE object. 
+        Moreover, the de-serialized object shall give the same SDR than the 
+        original encoder given the same scalar value to encode.
+        """        
+        rdse_params = RDSE_Parameters()
+        rdse_params.sparsity = 0.1
+        rdse_params.size = 100
+        rdse_params.resolution = 0.1
+        rdse_params.seed = 1997
+
+        rdse = RDSE(rdse_params)
+        filename = "RDSE_testPickle"
+
+        try:
+            with open(filename, "wb") as f:
+                pickle.dump(rdse, f)
+        except:
+            dump_success = False
+        else:
+            dump_success = True
+
+        assert(dump_success)
+
+        try:
+            with open(filename, "rb") as f:
+                rdse_loaded = pickle.load(f)
+        except:
+            read_success = False
+        else:
+            read_success = True
+
+        assert(read_success)
+        value_to_encode = 69003        
+        SDR_original = rdse.encode(value_to_encode)
+        SDR_loaded = rdse_loaded.encode(value_to_encode)
+
+        assert(SDR_original == SDR_loaded)

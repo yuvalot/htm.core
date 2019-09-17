@@ -1,8 +1,6 @@
 /* ---------------------------------------------------------------------
- * Numenta Platform for Intelligent Computing (NuPIC)
- * Copyright (C) 2013, Numenta, Inc.  Unless you have an agreement
- * with Numenta, Inc., for a separate license for this software code, the
- * following terms and conditions apply:
+ * HTM Community Edition of NuPIC
+ * Copyright (C) 2013, Numenta, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero Public License version 3 as
@@ -15,10 +13,7 @@
  *
  * You should have received a copy of the GNU Affero Public License
  * along with this program.  If not, see http://www.gnu.org/licenses.
- *
- * http://numenta.org/licenses/
- * ---------------------------------------------------------------------
- */
+ * --------------------------------------------------------------------- */
 
 /** @file
  * Implementation of BasicType test
@@ -27,11 +22,11 @@
 #include <limits>
 
 #include <gtest/gtest.h>
-#include <nupic/ntypes/BasicType.hpp>
+#include <htm/ntypes/BasicType.hpp>
 
 namespace testing {
     
-using namespace nupic;
+using namespace htm;
 
 TEST(BasicTypeTest, isValid)
 {
@@ -112,7 +107,7 @@ TEST(BasicTypeTest, parse)
 
 class convertArrayTester {
 public:
-  Byte bufByte[8] = {0, 1, 2, 3, 4, 5, -128, 127};
+  Byte bufByte[8] = {0, 1, 2, 3, 4, 5, static_cast<Byte>(-128), 127}; //Byte is unsigned on ARM, signed on x86, therefore the cast is needed for ARM
   Int16 bufInt16[8] = {0, 1, 2, 3, 4, 5, -32768, 32767};
   UInt16 bufUInt16[8] = {0, 1, 2, 3, 4, 5, 0, 0xffff};
   Int32 bufInt32[8] = {0, 1, 2, 3, 4, 5, -2147483647L, 2147483647L};
@@ -204,7 +199,7 @@ TEST(BasicTypeTest, convertArray) {
   BasicType::convertArray(ca.dest, NTA_BasicType_Int16, ca.bufByte,
                           NTA_BasicType_Byte, 8);
   ASSERT_TRUE(ca.checkArray<Int16>(ca.dest)) << "Byte to Int16 conversion";
-  // Note: Bytes are char, not unsigned char.
+  // Note: Bytes are char, not unsigned char on x86, but on ARM char is unsigned type.
 
   BasicType::convertArray(ca.dest, NTA_BasicType_Int16, ca.bufInt16,
                           NTA_BasicType_Int16, 8);

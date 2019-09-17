@@ -1,5 +1,5 @@
 # ----------------------------------------------------------------------
-# Numenta Platform for Intelligent Computing (NuPIC)
+# HTM Community Edition of NuPIC
 # Copyright (C) 2019, David McDougall
 #
 # This program is free software: you can redistribute it and/or modify
@@ -13,8 +13,6 @@
 #
 # You should have received a copy of the GNU Affero Public License
 # along with this program.  If not, see http://www.gnu.org/licenses.
-#
-# http://numenta.org/licenses/
 # ----------------------------------------------------------------------
 
 """Unit tests for Scalar Encoder."""
@@ -25,14 +23,10 @@ import unittest
 import pytest
 import time
 
-from nupic.bindings.encoders import ScalarEncoder, ScalarEncoderParameters
-from nupic.bindings.sdr import SDR, Metrics
+from htm.encoders.scalar_encoder import ScalarEncoder, ScalarEncoderParameters
+from htm.bindings.sdr import SDR, Metrics
 
 class ScalarEncoder_Test(unittest.TestCase):
-    @pytest.mark.skip("TODO UNIMPLEMENTED!")
-    def testExampleUsage(self):
-        1/0
-
     def testConstructor(self):
         p = ScalarEncoderParameters()
         p.size       = 1000
@@ -60,6 +54,33 @@ class ScalarEncoder_Test(unittest.TestCase):
         assert( list(sdr.sparse) == [0, 1, 2] )
         sdr2 = enc.encode( 1 )
         assert( list(sdr2.sparse) == [7, 8, 9] )
+
+    def testCategories(self):
+        # Test two categories.
+        p = ScalarEncoderParameters()
+        p.minimum    = 0
+        p.maximum    = 1
+        p.activeBits = 3
+        p.radius     = 1
+        enc = ScalarEncoder(p)
+        sdr = SDR( enc.dimensions )
+        zero = enc.encode( 0 )
+        one  = enc.encode( 1 )
+        assert( zero.getOverlap( one ) == 0 )
+        # Test three categories.
+        p = ScalarEncoderParameters()
+        p.minimum    = 0
+        p.maximum    = 2
+        p.activeBits = 3
+        p.radius     = 1
+        enc = ScalarEncoder(p)
+        sdr = SDR( enc.dimensions )
+        zero = enc.encode( 0 )
+        one  = enc.encode( 1 )
+        two  = enc.encode( 2 )
+        assert( zero.getOverlap( one ) == 0 )
+        assert( one.getOverlap( two ) == 0 )
+        assert( two.getSum() == 3 )
 
     def testBadParameters(self):
         # Start with sane parameters.
@@ -280,6 +301,6 @@ class ScalarEncoder_Test(unittest.TestCase):
         assert( mtr.activationFrequency.max() < 1.75 * .10 )
         assert( mtr.overlap.min() > .85 )
 
-    @pytest.mark.skip(reason="Known issue: https://github.com/htm-community/nupic.cpp/issues/160")
+    @pytest.mark.skip(reason="Known issue: https://github.com/htm-community/htm.core/issues/160")
     def testPickle(self):
         assert(False) # TODO: Unimplemented

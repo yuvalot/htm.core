@@ -25,71 +25,94 @@
 
 #include <cstdint> //uint8_t
 #include <iostream>
+#include <fstream>      // std::ofstream
 #include <vector>
 
-#include <nupic/algorithms/SpatialPooler.hpp>
-#include <nupic/algorithms/SDRClassifier.hpp>
-#include <nupic/utils/SdrMetrics.hpp>
+#include <htm/algorithms/SpatialPooler.hpp>
+#include <htm/algorithms/SDRClassifier.hpp>
+#include <htm/utils/SdrMetrics.hpp>
+#include <htm/os/Timer.hpp>
 
 #include <mnist/mnist_reader.hpp> // MNIST data itself + read methods, namespace mnist::
+#include <mnist/mnist_utils.hpp>  // mnist::binarize_dataset
 
-namespace examples {
 
 using namespace std;
-using namespace nupic;
-
-using nupic::algorithms::spatial_pooler::SpatialPooler;
-using nupic::algorithms::sdr_classifier::SDRClassifier;
-using nupic::algorithms::sdr_classifier::ClassifierResult;
+using namespace htm;
 
 class MNIST {
+/**
+ * RESULTS:
+ *
+ * Order :	score			: column dim	: #pass : time(s): git commit	: comment
+ * -------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ * 1/Score: 97.11% (289 / 10000 wrong)	: 28x28x16	: 4	: 557	: 1f0187fc6 	: epochs help, at cost of time 
+ *
+ * 2/Score: 96.56% (344 / 10000 wrong)	: 28x28x16	: 1	: 142	: 3ccadc6d6  
+ *
+ * 3/Score: 96.1% (390 / 10000 wrong).  : 28x28x30 	: 1  	: 256	: 454f7a9d8 
+ *
+ * others/
+ * Score: 95.35% (465 / 10000 wrong)	: 28x28x16	: 2	: 125	: 		: smaller boosting (2.0)
+ * 	 -- this will be my working model, reasonable performance/speed ratio
+ *
+ * Baseline: 
+ * Score: 90.52% (948 / 10000 wrong).   : SP disabled   : 1     : 0.489	: 01a6c90297	: baseline with only classifier on raw images, on SP
+ *
+ */
 
   private:
     SpatialPooler sp;
-    sdr::SDR input;
-    sdr::SDR columns;
-    SDRClassifier clsr;
+    SDR input;
+    SDR columns;
+    Classifier clsr;
     mnist::MNIST_dataset<std::vector, std::vector<uint8_t>, uint8_t> dataset;
 
   public:
     UInt verbosity = 1;
-    const UInt train_dataset_iterations = 1u;
+    const UInt train_dataset_iterations = 1u; //epochs somewhat help, at linear time
 
 
 void setup() {
 
-  input.initialize({28, 28});
+  input.initialize({28, 28,1}); 
+  columns.initialize({28, 28, 8}); //1D vs 2D no big difference, 2D seems more natural for the problem. Speed-----, Results+++++++++; #columns HIGHEST impact. 
   sp.initialize(
     /* inputDimensions */             input.dimensions,
-    /* columnDimensions */            {28, 28}, //mostly affects speed, to some threshold accuracy only marginally
-    /* potentialRadius */             5u,
-    /* potentialPct */                0.5f,
-    /* globalInhibition */            false,
-    /* localAreaDensity */            0.20f,  //% active bits, //quite important variable (speed x accuracy)
-    /* numActiveColumnsPerInhArea */  -1,
+    /* columnDimensions */            columns.dimensions,
+    /* potentialRadius */             7, // with 2D, 7 results in 15x15 area, which is cca 25% for the input area. Slightly improves than 99999 aka "no topology, all to all connections"
+    /* potentialPct */                0.1f, //we have only 10 classes, and << #columns. So we want to force each col to specialize. Cca 0.3 w "7" above, or very small (0.1) for "no topology". Cannot be too small due to internal checks. Speed++
+    /* globalInhibition */            true, //Speed+++++++; SDR quality-- (global does have active nearby cols, which we want to avoid (local)); Results+-0
+    /* localAreaDensity */            0.1f,  // % active bits
     /* stimulusThreshold */           6u,
-    /* synPermInactiveDec */          0.005f,
-    /* synPermActiveInc */            0.01f,
-    /* synPermConnected */            0.4f,
-    /* minPctOverlapDutyCycles */     0.001f,
+    /* synPermInactiveDec */          0.002f, //FIXME inactive decay permanence plays NO role, investigate! (slightly better w/o it)
+    /* synPermActiveInc */            0.14f, //takes upto 5x steps to get dis/connected
+    /* synPermConnected */            0.5f, //no difference, let's leave at 0.5 in the middle
+    /* minPctOverlapDutyCycles */     0.2f, //speed of re-learning?
     /* dutyCyclePeriod */             1402,
-    /* boostStrength */               2.5f, //boosting does help
-    /* seed */                        93u,
+    /* boostStrength */               2.0f, // Boosting does help, but entropy is high, on MNIST it does not matter, for learning with TM prefer boosting off (=0.0), or "neutral"=1.0
+    /* seed */                        4u,
     /* spVerbosity */                 1u,
-    /* wrapAround */                  false); //wrap is false for this problem
+    /* wrapAround */                  true); // does not matter (helps slightly)
 
-  columns.initialize({sp.getNumColumns()});
+  // Save the connections to file for postmortem analysis.
+  ofstream dump("mnist_sp_initial.connections", ofstream::binary | ofstream::trunc | ofstream::out);
+  sp.connections.save( dump );
+  dump.close();
 
-  clsr.initialize(
-    /* steps */         {0},
-    /* alpha */         .001,
-    /* actValueAlpha */ .3,
-                        verbosity);
+  clsr.initialize( /* alpha */ 0.001f);
 
   dataset = mnist::read_dataset<std::vector, std::vector, uint8_t, uint8_t>(string("../ThirdParty/mnist_data/mnist-src/")); //from CMake
+  mnist::binarize_dataset(dataset);
 }
 
-void train() {
+
+/**
+ *  train the SP on the training set. 
+ *  @param skipSP bool (default false) if set, output directly the input to the classifier.
+ *  This is used for a baseline benchmark (Classifier directly learns on input images)
+ */
+void train(const bool skipSP=false) {
   // Train
 
   if(verbosity)
@@ -97,8 +120,10 @@ void train() {
          << " cycles ..." << endl;
   size_t i = 0;
 
-  sdr::Metrics inputStats(input,    1402);
-  sdr::Metrics columnStats(columns, 1402);
+  Metrics inputStats(input,    1402);
+  Metrics columnStats(columns, 1402);
+
+  Timer tTrain(true);
 
   for(auto epoch = 0u; epoch < train_dataset_iterations; epoch++) {
     NTA_INFO << "epoch " << epoch;
@@ -116,25 +141,29 @@ void train() {
 
       // Compute & Train
       input.setDense( image );
-      sp.compute(input, true, columns);
-      ClassifierResult result;
-      clsr.compute(sp.getIterationNum(), columns.getSparse(),
-        /* bucketIdxList */   {label},
-        /* actValueList */    {(Real)label},
-        /* category */        true,
-        /* learn */           true,
-        /* infer */           false,
-                              result);
+      if(not skipSP) 
+        sp.compute(input, true, columns);
+      clsr.learn( skipSP ? input : columns, {label} );
       if( verbosity && (++i % 1000 == 0) ) cout << "." << flush;
     }
     if( verbosity ) cout << endl;
-  }
+  
   cout << "epoch ended" << endl;
-  cout << inputStats << endl;
-  cout << columnStats << endl;
+  cout << "inputStats "  << inputStats << endl;
+  cout << "columnStats " << columnStats << endl;
+  cout << sp << endl;
+  }
+  
+  tTrain.stop();
+  cout << "MNIST train time: " << tTrain.getElapsed() << endl; 
+
+  // Save the connections to file for postmortem analysis.
+  ofstream dump("mnist_sp_learned.connections", ofstream::binary | ofstream::trunc | ofstream::out);
+  sp.connections.save( dump );
+  dump.close();
 }
 
-void test() {
+void test(const bool skipSP=false) {
   // Test
   Real score = 0;
   UInt n_samples = 0;
@@ -147,30 +176,30 @@ void test() {
 
     // Compute
     input.setDense( image );
-    sp.compute(input, false, columns);
-    ClassifierResult result;
-    clsr.compute(sp.getIterationNum(), columns.getSparse(),
-      /* bucketIdxList */   {},
-      /* actValueList */    {},
-      /* category */        true,
-      /* learn */           false,
-      /* infer */           true,
-                            result);
+    if(not skipSP) 
+      sp.compute(input, false, columns);
+
     // Check results
-    if(clsr.getClassification( result[0] ) == label)
+    if( argmax( clsr.infer( skipSP ? input : columns ) ) == label)
         score += 1;
     n_samples += 1;
     if( verbosity && i % 1000 == 0 ) cout << "." << flush;
   }
   if( verbosity ) cout << endl;
-  cout << "Score: " << 100.0 * score / n_samples << "% " << endl;
+  cout << "===========RESULTs=================" << endl;
+  cout << "Score: " << 100.0 * score / n_samples << "% ("<< (n_samples - score) << " / " << n_samples << " wrong). "   << endl;
+  cout << "SDR example: " << columns << endl;
 }
 
 };  // End class MNIST
-}   // End namespace examples
 
 int main(int argc, char **argv) {
-  examples::MNIST m;
+  MNIST m;
+  m.setup();
+  cout << "===========BASELINE: no SP====================" << endl;
+  m.train(true); //skip SP learning
+  m.test(true);
+  cout << "===========Spatial Pooler=====================" << endl;
   m.setup();
   m.train();
   m.test();

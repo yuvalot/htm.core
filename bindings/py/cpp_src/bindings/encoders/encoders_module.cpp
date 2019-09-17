@@ -1,5 +1,5 @@
 /* ---------------------------------------------------------------------
- * Numenta Platform for Intelligent Computing (NuPIC)
+ * HTM Community Edition of NuPIC
  * Copyright (C) 2018, chhenning
  *               2019, David McDougall
  *
@@ -14,8 +14,6 @@
  *
  * You should have received a copy of the GNU Affero Public License
  * along with this program.  If not, see http://www.gnu.org/licenses.
- *
- * http://numenta.org/licenses/
  * --------------------------------------------------------------------- */
 
 /** @file
@@ -27,20 +25,19 @@
 
 namespace py = pybind11;
 
-namespace nupic_ext
+namespace htm_ext
 {
     void init_ScalarEncoder(py::module&);
     void init_RDSE(py::module&);
     void init_CoordinateEncoder(py::module&);
+    void init_SimHashDocumentEncoder(py::module&);
 }
 
-using namespace nupic_ext;
+using namespace htm_ext;
 
 PYBIND11_MODULE(encoders, m) {
     m.doc() =
-R"(nupic.bindings.encoders
-
-An encoder converts a value to a sparse distributed representation.
+R"(Encoders convert values into sparse distributed representation.
 
 There are several critical properties which all encoders must have:
 
@@ -55,9 +52,16 @@ There are several critical properties which all encoders must have:
     have enough active bits to handle noise and subsampling.
 
 Reference: https://arxiv.org/pdf/1602.05925.pdf
-)";
+
+
+CategoryEncoders:
+
+    To encode categories of input, make a ScalarEncoder or a Random Distributed
+Scalar Encoder (RDSE), and set the parameter category=True.  Then enumerate your
+categories into integers before encoding them. )";
 
     init_ScalarEncoder(m);
     init_RDSE(m);
     init_CoordinateEncoder(m);
+    init_SimHashDocumentEncoder(m);
 }

@@ -1,8 +1,6 @@
 # -----------------------------------------------------------------------------
-# Numenta Platform for Intelligent Computing (NuPIC)
-# Copyright (C) 2016, Numenta, Inc.  Unless you have purchased from
-# Numenta, Inc. a separate commercial license for this software code, the
-# following terms and conditions apply:
+# HTM Community Edition of NuPIC
+# Copyright (C) 2016, Numenta, Inc.
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero Public License version 3 as
@@ -15,8 +13,6 @@
 #
 # You should have received a copy of the GNU Affero Public License
 # along with this program.  If not, see http://www.gnu.org/licenses.
-#
-# http://numenta.org/licenses/
 # -----------------------------------------------------------------------------
 #
 #######################################
@@ -34,10 +30,10 @@
 
 FILE(MAKE_DIRECTORY  ${REPOSITORY_DIR}/build/ThirdParty)
 execute_process(COMMAND ${CMAKE_COMMAND} 
-                        -G ${CMAKE_GENERATOR}
+            -G ${CMAKE_GENERATOR}
 			-D CMAKE_INSTALL_PREFIX=. 
-                        -D NEEDS_BOOST:BOOL=${NEEDS_BOOST}
-                        -D BINDING_BUILD:STRING=${BINDING_BUILD}
+            -D NEEDS_BOOST:BOOL=${NEEDS_BOOST}
+            -D BINDING_BUILD:STRING=${BINDING_BUILD}
 			-D CMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
 			-D REPOSITORY_DIR=${REPOSITORY_DIR}
 			 ../../external
@@ -100,6 +96,8 @@ set(EXTERNAL_INCLUDES
 	${eigen_INCLUDE_DIRS}
 	${mnist_INCLUDE_DIRS}
 	${cereal_INCLUDE_DIRS}
+	${digestpp_INCLUDE_DIRS}
+	${common_INCLUDE_DIRS}
 	${REPOSITORY_DIR}/external/common/include
 )
 

@@ -1,8 +1,6 @@
 /* ---------------------------------------------------------------------
- * Numenta Platform for Intelligent Computing (NuPIC)
- * Copyright (C) 2015-2016, Numenta, Inc.  Unless you have an agreement
- * with Numenta, Inc., for a separate license for this software code, the
- * following terms and conditions apply:
+ * HTM Community Edition of NuPIC
+ * Copyright (C) 2015-2016, Numenta, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero Public License version 3 as
@@ -15,10 +13,7 @@
  *
  * You should have received a copy of the GNU Affero Public License
  * along with this program.  If not, see http://www.gnu.org/licenses.
- *
- * http://numenta.org/licenses/
- * ---------------------------------------------------------------------
- */
+ * --------------------------------------------------------------------- */
 
 #include "gtest/gtest.h"
 
@@ -29,34 +24,32 @@
 #include <fstream>
 #include <iostream>
 
-#include <nupic/algorithms/SpatialPooler.hpp>
-#include <nupic/algorithms/TemporalMemory.hpp>
-#include <nupic/algorithms/Anomaly.hpp>
-#include <nupic/utils/Random.hpp>
-#include <nupic/os/Timer.hpp>
-#include <nupic/types/Types.hpp> // macro "UNUSED"
+#include <htm/algorithms/SpatialPooler.hpp>
+#include <htm/algorithms/TemporalMemory.hpp>
+#include <htm/utils/Random.hpp>
+#include <htm/os/Timer.hpp>
+#include <htm/types/Types.hpp> // macro "UNUSED"
+#include <htm/utils/MovingAverage.hpp>
 
 namespace testing {
 
 using namespace std;
-using namespace nupic;
-using nupic::sdr::SDR;
-using namespace nupic::algorithms::connections;
-using ::nupic::algorithms::spatial_pooler::SpatialPooler;
-using ::nupic::algorithms::temporal_memory::TemporalMemory;
-using namespace nupic::algorithms::anomaly;
+using namespace htm;
 
 #define SEED 42
 
 Random rng(SEED);
 
-float runTemporalMemoryTest(UInt numColumns, UInt w,   int numSequences,
+float runTemporalMemoryTest(UInt numColumns, UInt w,   int numSequences, //TODO rather than learning large/small TM, test on large sequence vs many small seqs
                                                        int numElements,
                                                        string label) {
   Timer timer(true);
+  MovingAverage anom10(numSequences * numElements); //used for averaging anomaly scores
+  Real avgAnomBefore = 1.0f, avgAnomAfter = 1.0f;
+  NTA_CHECK(avgAnomBefore >= avgAnomAfter) << "TM should lear and avg anomalies improve, but we got: "
+	  << avgAnomBefore << " and now: " << avgAnomAfter; //invariant
 
   // Initialize
-
   TemporalMemory tm;
   tm.initialize( {numColumns} );
 
@@ -77,13 +70,17 @@ float runTemporalMemoryTest(UInt numColumns, UInt w,   int numSequences,
 
   // learn
   for (int i = 0; i < 5; i++) {
-    for (auto sequence : sequences) {
-      for (auto sdr : sequence) {
+    for (const auto& sequence : sequences) {
+      for (const auto& sdr : sequence) {
         tm.compute(sdr, true);
-	//TODO get untrained anomaly score here
+	const Real an = tm.anomaly;
+	avgAnomAfter = anom10.compute(an); //average anomaly score
       }
       tm.reset();
     }
+    NTA_CHECK(avgAnomBefore >= avgAnomAfter) << "TM should learn and avg anomalies improve, but we got: "
+      << avgAnomBefore << " and now: " << avgAnomAfter; //invariant
+    avgAnomBefore = avgAnomAfter; //update
   }
   cout << (float)timer.getElapsed() << " in " << label << ": initialize + learn"  << endl;
 
@@ -91,11 +88,14 @@ float runTemporalMemoryTest(UInt numColumns, UInt w,   int numSequences,
   for (auto sequence : sequences) {
     for (auto sdr : sequence) {
       tm.compute(sdr, false);
-      //TODO get trained (lower) anomaly
+      avgAnomAfter = anom10.compute(tm.anomaly);
     }
     tm.reset();
   }
-  //TODO check anomaly trained < anomaly untrained
+
+#if defined NDEBUG && !defined(NTA_OS_WINDOWS) //because Win & Debug run shorter training due to time, so learning is not as good
+  NTA_CHECK(avgAnomAfter <= 0.021f) << "Anomaly scores diverged: "<< avgAnomAfter;
+#endif
   cout << (float)timer.getElapsed() << " in " << label << ": initialize + learn + test"  << endl;
   timer.stop();
   return (float)timer.getElapsed();
