@@ -230,16 +230,13 @@ public:
         will be removed from activeVector.  TODO: we may want to keep
         boosting on even when learning is off.
 
-  @param active An SDR representing the winning columns after
-        inhibition. The size of the SDR is equal to the number of
-        columns (also returned by the method getNumColumns).
-
   @return param `active` is filled with active output columns. 
+
   @return overlaps dense vector of number of connected synapses for each column `active`.
           Determines each column's overlap with the current input vector.
           The overlap of a column is the number of synapses for that column
           that are connected (permanence value is greater than
-          '_synPermConnected') to input bits which are turned on.
+          'synPermConnected') to input bits which are turned on.
           The overlap score for a column is defined as the number of synapses in
           a "connected state" (connected synapses) that are connected to
           input bits which are turned on.

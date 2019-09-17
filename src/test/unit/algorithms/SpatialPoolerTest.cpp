@@ -1064,10 +1064,10 @@ TEST(SpatialPoolerTest, testCalculateOverlap) {
 
   for (UInt i = 0; i < numTrials; i++) {
     SDR input({numInputs});
+    SDR output(sp.getColumnDimensions());
     input.setDense(SDR_dense_t(inputs[i], inputs[i] + numInputs));
     //former SP.calculateOverlap_()
-    SDR dummy({sp.getColumnDimensions()});
-    const auto overlaps = sp.compute(input, true, dummy);
+    const auto overlaps = sp.compute(input, false, output);
     ASSERT_TRUE(check_vector_eq(trueOverlaps[i], overlaps));
   }
 }
@@ -1658,7 +1658,7 @@ TEST(SpatialPoolerTest, getOverlaps) {
   SDR activeColumns( {3} );
   activeColumns.setDense(vector<UInt>{0, 0, 0});
   //overlaps (not boosted)
-  auto& overlaps = sp.compute(input, true, activeColumns);
+  const auto& overlaps = sp.compute(input, true, activeColumns);
   const vector<SynapseIdx> expectedOverlaps = {0, 3, 5};
   EXPECT_EQ(expectedOverlaps, overlaps);
 
