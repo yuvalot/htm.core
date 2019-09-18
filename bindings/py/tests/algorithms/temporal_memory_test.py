@@ -171,6 +171,25 @@ class TemporalMemoryBindingsTest(unittest.TestCase):
     _print("activeCols:"+str(len(activeColumnsA.sparse)))
     _print("activeCells:"+str(len(tm.getActiveCells().sparse)))
     _print("predictiveCells:"+str(len(predictiveCellsSDR.sparse)))
+
+
+  def testAnomaly(self):
+    """test convergence of TM and quality of anomaly methods"""
+    from htm.bindings.algorithms import ANMode
+    tm = TM(columnDimensions=[2048], anomalyMode=ANMode.RAW) #FIXME likelihood is always 0.5?! .LIKELIHOOD)
+
+    modes = [ANMode.RAW, ANMode.LIKELIHOOD, ANMode.LOGLIKELIHOOD]
+    for mod in modes: #this block test convergence of TM and anomaly score for select mode
+      #FIXME why not visible from bidngings? tm.setAnomalyMode(mod)
+      #print("testing {}".format(mod))
+      inp = SDR([2048]).randomize(0.05) #starting SDR with 5% bits ON
+
+      #learn TM a bit, anomaly should be low
+      for _ in range(200):
+        inp.addNoise(0.02) #change 2% bits -> 98% overlap => anomaly should ideally be 2%
+        tm.compute(inp, learn=True)
+      self.assertLess(tm.anomaly, 0.08)
+
     
 
 def _print(txt):

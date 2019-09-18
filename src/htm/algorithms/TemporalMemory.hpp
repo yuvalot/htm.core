@@ -129,7 +129,7 @@ public:
    * cells and winner cells of these external inputs must be given to methods
    * TM.compute and TM.activateDendrites
    *
-   * @param anomalyMode (optional, default `ANMode::RAW`)from enum ANMode, how is 
+   * @param anomalyMode (optional, default `TemporalMemory::ANMode::RAW`)from enum ANMode, how is 
    * `TM.anomaly` computed. Options ANMode {DISABLED, RAW, LIKELIHOOD, LOGLIKELIHOOD}
    * 
    */
@@ -149,7 +149,7 @@ public:
       SynapseIdx      maxSynapsesPerSegment       = 255,
       bool            checkInputs                 = true,
       UInt            externalPredictiveInputs    = 0,
-      ANMode	      anomalyMode 		  = ANMode::RAW
+      ANMode	      anomalyMode 		  = TemporalMemory::ANMode::RAW
       );
 
   virtual void
@@ -169,7 +169,7 @@ public:
     SynapseIdx    maxSynapsesPerSegment       = 255,
     bool          checkInputs                 = true,
     UInt          externalPredictiveInputs    = 0,
-    ANMode        anomalyMode                 = ANMode::RAW
+    ANMode        anomalyMode                 = TemporalMemory::ANMode::RAW
     );
 
   virtual ~TemporalMemory();
@@ -677,13 +677,17 @@ private:
       Real anomaly_ = 0.5f; //default value
       ANMode mode_ = ANMode::RAW;
       AnomalyLikelihood anomalyLikelihood_; //TODO provide default/customizable params here
-  };
+      void reset() {
+        anomaly_ = 0.5f;
+	mode_ = ANMode::RAW;
+	//TODO provide anomalyLikelihood_.reset();
+      }
+  } tmAnomaly_;
 
 public:
   Connections connections;
   const UInt &externalPredictiveInputs = externalPredictiveInputs_;
 
-  anomaly_tm tmAnomaly_;
   /*
    *  anomaly score computed for the current inputs
    *  (auto-updates after each call to TM::compute())
@@ -693,6 +697,14 @@ public:
    */
 const Real &anomaly = tmAnomaly_.anomaly_; //this is position dependant, the struct anomaly_tm must be defined before this use,
 // otherwise this surprisingly compiles, but a call to `tmAnomaly_.anomaly` segfaults!
+
+/**
+ * set new mode for TM.anomaly computation. 
+ * This will reset existing anomaly. 
+ *
+ * @param mode: Options TemporalMemory::ANMode {DISABLED, RAW, LIKELIHOOD, LOGLIKELIHOOD}
+ */
+void setAnomalyMode(ANMode mode);
 
 };
 

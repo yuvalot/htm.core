@@ -47,7 +47,7 @@ Example usage:
     TODO
 )");
 
-	py::enum_<TemporalMemory::ANMode>(m, "ANMode")
+	py::enum_<TemporalMemory::ANMode>(m, "ANMode") //TODO currently htm.bindings.algorithms.ANMode, make ANMode part of algorithms.TemporalMemory
 	  .value("DISABLED",   TemporalMemory::ANMode::DISABLED)
 	  .value("RAW",        TemporalMemory::ANMode::RAW)
 	  .value("LIKELIHOOD", TemporalMemory::ANMode::LIKELIHOOD)
@@ -371,6 +371,8 @@ R"()");
         py_HTM.def_property_readonly("anomaly", [](const HTM_t &self) { return self.anomaly; },
           "Anomaly score updated with each TM::compute() call. "
         );
+
+	py_HTM.def("setAnomalyMode", &HTM_t::setAnomalyMode);
 
         py_HTM.def("__str__",
             [](HTM_t &self) {

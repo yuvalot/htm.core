@@ -537,7 +537,7 @@ void TemporalMemory::reset(void) {
   activeSegments_.clear();
   matchingSegments_.clear();
   segmentsValid_ = false;
-  tmAnomaly_.anomaly_ = -1.0f; //TODO reset rather to 0.5 as default (undecided) anomaly
+  tmAnomaly_.reset();
 }
 
 // ==============================
@@ -718,6 +718,10 @@ SynapseIdx TemporalMemory::getMaxSynapsesPerSegment() const {
 
 UInt TemporalMemory::version() const { return TM_VERSION; }
 
+void TemporalMemory::setAnomalyMode(ANMode mode) {
+  tmAnomaly_.reset(); 
+  tmAnomaly_.mode_ = mode;
+}
 
 static set<pair<CellIdx, SynapseIdx>>
 getComparableSegmentSet(const Connections &connections,
