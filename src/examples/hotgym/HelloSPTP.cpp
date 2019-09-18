@@ -24,7 +24,7 @@
 #include "htm/algorithms/TemporalMemory.hpp"
 #include "htm/algorithms/SpatialPooler.hpp"
 #include "htm/encoders/RandomDistributedScalarEncoder.hpp"
-#include "htm/algorithms/AnomalyLikelihood.hpp"
+#include "htm/algorithms/SDRClassifier.hpp" // Classifier, Predictor
 
 #include "htm/types/Sdr.hpp"
 #include "htm/utils/Random.hpp"
@@ -75,8 +75,8 @@ EPOCHS = 2; // make test faster in Debug
   Random rnd(42); //uses fixed seed for deterministic output checks
 
   TemporalMemory tm(vector<UInt>{COLS}, CELLS);
+  tm.setAnomalyMode(TemporalMemory::ANMode::RAW); //set other modes here
 
-  AnomalyLikelihood anLikelihood;
   tInit.stop();
 
   // data for processing input
@@ -85,7 +85,7 @@ EPOCHS = 2; // make test faster in Debug
   SDR outSPlocal(spLocal.getColumnDimensions()); //for SPlocal
   SDR outSP(vector<UInt>{COLS});
   SDR outTM(spGlobal.getColumnDimensions()); 
-  Real an = 0.0f, anLikely = 0.0f; //for anomaly:
+  Real an = 0.0f; //for anomaly:
   MovingAverage avgAnom10(1000); //chose the window large enough so there's (some) periodicity in the patter, so TM can learn something
 
   //metrics
@@ -98,9 +98,6 @@ EPOCHS = 2; // make test faster in Debug
    * For example: fn = sin(x) -> periodic >= 2Pi ~ 6.3 && x+=0.01 -> 630 steps to 1st period -> window >= 630
    */
   Real avgAnomOld_ = 1.0;
-  NTA_CHECK(avgAnomOld_ >= avgAnom10.getCurrentAvg()) << "TM should learn and avg anomalies improve, but we got: "
-    << avgAnomOld_ << " and now: " << avgAnom10.getCurrentAvg(); //invariant
-
 
   // Start a stopwatch timer
   printf("starting:  %d iterations.", EPOCHS);
@@ -148,14 +145,11 @@ EPOCHS = 2; // make test faster in Debug
     //Anomaly (pure x likelihood)
     an = tm.anomaly;
     avgAnom10.compute(an); //moving average
-    if(e % 1000 == 0) {
+    if(e % (500 + avgAnom10.getData().size() /*size of avg window for an*/) == 0) {
       NTA_CHECK(avgAnomOld_ >= avgAnom10.getCurrentAvg()) << "TM should learn and avg anomalies improve, but we got: "
         << avgAnomOld_ << " and now: " << avgAnom10.getCurrentAvg(); //invariant
       avgAnomOld_ = avgAnom10.getCurrentAvg(); //update
     }
-    tAnLikelihood.start();
-    anLikelihood.anomalyProbability(an); //FIXME AnLikelihood is 0.0, probably not working correctly
-    tAnLikelihood.stop();
 
 
     // print
@@ -176,7 +170,6 @@ EPOCHS = 2; // make test faster in Debug
       cout << "Epoch = " << e << endl;
       cout << "Anomaly = " << an << endl;
       cout << "Anomaly (avg) = " << avgAnom10.getCurrentAvg() << endl;
-      cout << "Anomaly (Likelihood) = " << anLikely << endl;
       cout << "SP (g)= " << outSP << endl;
       cout << "SP (l)= " << outSPlocal <<endl;
       cout << "TM= " << outTM << endl;
@@ -189,7 +182,6 @@ EPOCHS = 2; // make test faster in Debug
       if(useSPlocal)  cout << "SP (l):\t" << tSPloc.getElapsed()*1.0f  << endl;
       if(useSPglobal) cout << "SP (g):\t" << tSPglob.getElapsed() << endl;
       if(useTM) cout << "TM:\t" << tTM.getElapsed() << endl;
-      cout << "AN:\t" << tAnLikelihood.getElapsed() << endl;
 
       // check deterministic SP, TM output 
       SDR goldEnc({DIM_INPUT});
