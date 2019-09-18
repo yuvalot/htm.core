@@ -36,12 +36,18 @@ namespace examples {
 using namespace std;
 using namespace htm;
 
+/**
+ *  helper to transform (Real) data to categories (UInt) for Classifier/Predictor
+ **/
+UInt realToCategory_(const Real r) {
+  return static_cast<UInt>(r*1000); //precision on 3 dec places
+}
 
 // work-load
 Real64 BenchmarkHotgym::run(UInt EPOCHS, bool useSPlocal, bool useSPglobal, bool useTM, const UInt COLS, const UInt DIM_INPUT, const UInt CELLS)
 {
 #ifndef NDEBUG
-EPOCHS = 2; // make test faster in Debug
+EPOCHS = 10; // make test faster in Debug
 #endif
 
 #if defined __aarch64__ || defined __arm__
@@ -77,6 +83,8 @@ EPOCHS = 2; // make test faster in Debug
   TemporalMemory tm(vector<UInt>{COLS}, CELLS);
   tm.setAnomalyMode(TemporalMemory::ANMode::RAW); //set other modes here
 
+  Predictor pred( vector<UInt>{0,1,2,10}); //predict 0 (=classify current), 1,2 & 10 steps ahead
+
   tInit.stop();
 
   // data for processing input
@@ -110,11 +118,13 @@ EPOCHS = 2; // make test faster in Debug
     //Encode
     tEnc.start();
     x+=0.01f; //step size for fn(x)
-    enc.encode(sin(x), input); //model sin(x) function //TODO replace with CSV data
-//    cout << x << "\n" << sin(x) << "\n" << input << "\n\n";
+    const Real data = sin(x);
+    enc.encode(data, input); //model sin(x) function //TODO replace with CSV data
+//    cout << x << "\n" << data << "\n" << input << "\n\n";
     tEnc.stop();
 
     tRng.start();
+    //TODO this is dropout: 
     input.addNoise(0.01f, rnd); //change 1% of the SDR for each iteration, this makes a random sequence, but seemingly stable
     tRng.stop();
 
@@ -151,10 +161,16 @@ EPOCHS = 2; // make test faster in Debug
       avgAnomOld_ = avgAnom10.getCurrentAvg(); //update
     }
 
+    //Classifier, Predictor
+    tCls.start();
+    //! pred.learn(e, outTM, { realToCategory_(data) }); //FIXME fails with bad_alloc in Release, no crash in Debug?!
+    tCls.stop();
+
 
     // print
     if (e == EPOCHS - 1) {
       tAll.stop();
+      pred.reset();
 
       //print connections stats
       cout << "\nInput :\n" << statsInput
@@ -173,6 +189,9 @@ EPOCHS = 2; // make test faster in Debug
       cout << "SP (g)= " << outSP << endl;
       cout << "SP (l)= " << outSPlocal <<endl;
       cout << "TM= " << outTM << endl;
+      cout << "Cls[0]= "  << argmax(pred.infer(e, outTM)[0]) << endl;
+      cout << "Cls[10]= " << argmax(pred.infer(e, outTM)[10]) << endl;
+
 
       //timers
       cout << "==============TIMERS============" << endl;
@@ -182,6 +201,7 @@ EPOCHS = 2; // make test faster in Debug
       if(useSPlocal)  cout << "SP (l):\t" << tSPloc.getElapsed()*1.0f  << endl;
       if(useSPglobal) cout << "SP (g):\t" << tSPglob.getElapsed() << endl;
       if(useTM) cout << "TM:\t" << tTM.getElapsed() << endl;
+      cout << "Cls:\t" << tCls.getElapsed() << endl;
 
       // check deterministic SP, TM output 
       SDR goldEnc({DIM_INPUT});

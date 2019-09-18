@@ -242,7 +242,7 @@ public:
    *
    * @returns: A mapping from prediction step to PDF.
    */
-  Predictions infer(UInt recordNum, const SDR &pattern);
+  Predictions infer(UInt recordNum, const SDR &pattern); //TODO should recordNum be optional? I think we need only SDR to learn/make predictions
 
   /**
    * Learn from example data.
