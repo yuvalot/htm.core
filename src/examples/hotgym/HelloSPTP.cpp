@@ -192,8 +192,8 @@ EPOCHS = 10; // make test faster in Debug
       cout << "SP (g)= " << outSP << endl;
       cout << "SP (l)= " << outSPlocal <<endl;
       cout << "TM= " << outTM << endl;
-      cout << "Cls[0]= "  << categoryToReal_(argmax(pred.infer(e, outTM)[0])) << endl;
-      cout << "Cls[10]= " << categoryToReal_(argmax(pred.infer(e, outTM)[10])) << endl;
+      cout << "Cls[0]= "  << categoryToReal_(argmax(pred.infer(outTM)[0])) << endl;
+      cout << "Cls[10]= " << categoryToReal_(argmax(pred.infer(outTM)[10])) << endl;
 
 
       //timers
