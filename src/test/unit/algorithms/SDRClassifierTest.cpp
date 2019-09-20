@@ -66,7 +66,7 @@ TEST(SDRClassifierTest, HandleLargeLabels)
   inputData.randomize(0.02f);
   Classifier clsr;
 
-  UInt hugeLabel = numeric_limits<UInt>::max();
+  UInt hugeLabel = numeric_limits<UInt>::max() -2;
   EXPECT_NO_THROW(clsr.learn( inputData, { hugeLabel } ));
   ASSERT_EQ( argmax( clsr.infer( inputData ) ),  hugeLabel );
 }

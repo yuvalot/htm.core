@@ -79,7 +79,7 @@ void Classifier::learn(const SDR &pattern, const vector<UInt> &categoryIdxList)
   NTA_ASSERT(pattern.size == dimensions_) << "Input SDR does not match previously seen size!";
 
   // Check if this is a new category & resize the weights table to hold it.
-  const auto maxCategoryIdx = *max_element(categoryIdxList.cbegin(), categoryIdxList.cend());
+  const size_t maxCategoryIdx = *max_element(categoryIdxList.cbegin(), categoryIdxList.cend());
   if( maxCategoryIdx >= numCategories_ ) {
     numCategories_ = maxCategoryIdx + 1;
     for( auto & vec : weights_ ) {

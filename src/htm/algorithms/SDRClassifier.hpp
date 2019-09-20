@@ -157,7 +157,7 @@ public:
 private:
   Real alpha_;
   UInt dimensions_;
-  UInt numCategories_;
+  size_t numCategories_;
 
   /**
    * 2D map used to store the data.
