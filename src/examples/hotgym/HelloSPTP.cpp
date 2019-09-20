@@ -195,6 +195,8 @@ EPOCHS = 10; // make test faster in Debug
       cout << "Cls[0]= " << categoryToReal_(argmax(pred.infer(outTM)[0])) << endl;
       cout << "Cls[100]= " << categoryToReal_(argmax(pred.infer(outTM)[100])) << endl;
 
+      NTA_CHECK( categoryToReal_(argmax(pred.infer(outTM)[0])) != -1) << "Classifier did not learn"; //FIXME Predictor is not learning, this should be ~ sin(49.99)
+
 
       //timers
       cout << "==============TIMERS============" << endl;
