@@ -40,7 +40,10 @@ using namespace htm;
  *  helper to transform (Real) data to categories (UInt) for Classifier/Predictor
  **/
 UInt realToCategory_(const Real r) {
-  return static_cast<UInt>(r*1000); //precision on 3 dec places
+  return static_cast<UInt>((r+1.0f /*map sin(x):[-1,1] map it to [0,2]*/)*1000); //precision on 3 dec places
+}
+Real categoryToReal_(const UInt bin) {
+  return static_cast<Real>((bin/1000.0f)-1.0f);
 }
 
 // work-load
@@ -163,7 +166,7 @@ EPOCHS = 10; // make test faster in Debug
 
     //Classifier, Predictor
     tCls.start();
-    //! pred.learn(e, outTM, { realToCategory_(data) }); //FIXME fails with bad_alloc in Release, no crash in Debug?!
+    pred.learn(e, outTM, { realToCategory_(data) }); //FIXME fails with bad_alloc if label is too large! PDF should use map, instead of a vector
     tCls.stop();
 
 
@@ -189,8 +192,8 @@ EPOCHS = 10; // make test faster in Debug
       cout << "SP (g)= " << outSP << endl;
       cout << "SP (l)= " << outSPlocal <<endl;
       cout << "TM= " << outTM << endl;
-      cout << "Cls[0]= "  << argmax(pred.infer(e, outTM)[0]) << endl;
-      cout << "Cls[10]= " << argmax(pred.infer(e, outTM)[10]) << endl;
+      cout << "Cls[0]= "  << categoryToReal_(argmax(pred.infer(e, outTM)[0])) << endl;
+      cout << "Cls[10]= " << categoryToReal_(argmax(pred.infer(e, outTM)[10])) << endl;
 
 
       //timers
