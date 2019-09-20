@@ -86,7 +86,7 @@ EPOCHS = 10; // make test faster in Debug
   TemporalMemory tm(vector<UInt>{COLS}, CELLS);
   tm.setAnomalyMode(TemporalMemory::ANMode::RAW); //set other modes here
 
-  Predictor pred( vector<UInt>{0,1,2,10}); //predict 0 (=classify current), 1,2 & 10 steps ahead
+  Predictor pred( vector<UInt>{0,100}); //predict 0 (=classify current), 100 steps ahead
 
   tInit.stop();
 
@@ -192,8 +192,8 @@ EPOCHS = 10; // make test faster in Debug
       cout << "SP (g)= " << outSP << endl;
       cout << "SP (l)= " << outSPlocal <<endl;
       cout << "TM= " << outTM << endl;
-      cout << "Cls[0]= "  << categoryToReal_(argmax(pred.infer(outTM)[0])) << endl;
-      cout << "Cls[10]= " << categoryToReal_(argmax(pred.infer(outTM)[10])) << endl;
+      cout << "Cls[0]= " << categoryToReal_(argmax(pred.infer(outTM)[0])) << endl;
+      cout << "Cls[100]= " << categoryToReal_(argmax(pred.infer(outTM)[100])) << endl;
 
 
       //timers
