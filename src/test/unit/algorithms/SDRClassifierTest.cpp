@@ -59,6 +59,19 @@ TEST(SDRClassifierTest, ExampleUsageClassifier)
 }
 
 
+TEST(SDRClassifierTest, HandleLargeLabels) 
+{
+  // Make a random SDR and associate it with the category B.
+  SDR inputData({ 1000u });
+  inputData.randomize(0.02f);
+  Classifier clsr;
+
+  UInt hugeLabel = numeric_limits<UInt>::max();
+  EXPECT_NO_THROW(clsr.learn( inputData, { hugeLabel } ));
+  ASSERT_EQ( argmax( clsr.infer( inputData ) ),  hugeLabel );
+}
+
+
 TEST(SDRClassifierTest, ExampleUsagePredictor)
 {
   // Predict 1 and 2 time steps into the future.
