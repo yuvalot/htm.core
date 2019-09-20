@@ -39,7 +39,7 @@ void Classifier::initialize(const Real alpha)
   NTA_CHECK(alpha > 0.0f);
   alpha_ = alpha;
   dimensions_ = 0;
-  numCategories_ = 0u;
+  categories_.clear();
   weights_.clear();
 }
 
@@ -47,15 +47,16 @@ void Classifier::initialize(const Real alpha)
 PDF Classifier::infer(const SDR & pattern) const {
   // Check input dimensions, or if this is the first time the Classifier is used and dimensions
   // are unset, return zeroes.
-  NTA_CHECK( dimensions_ != 0 )
+  NTA_CHECK( not categories_.empty() )
     << "Classifier: must call `learn` before `infer`.";
   NTA_ASSERT(pattern.size == dimensions_) << "Input SDR does not match previously seen size!";
 
   // Accumulate feed forward input.
-  PDF probabilities( numCategories_, 0.0f );
+  PDF probabilities( categories_.size(), 0.0f );
   for( const auto bit : pattern.getSparse() ) {
-    for( size_t i = 0; i < numCategories_; i++ ) {
-      probabilities[i] += weights_[bit][i];
+    for( size_t i=0u; i< categories_.size(); i++) {
+      const auto category = categories_.at(i);
+      probabilities[i] += weights_.at(bit).at(category); // needs .at() instead of [] because of the infer() const
     }
   }
 
@@ -72,19 +73,20 @@ void Classifier::learn(const SDR &pattern, const vector<UInt> &categoryIdxList)
   if( dimensions_ == 0 ) {
     dimensions_ = pattern.size;
     while( weights_.size() < pattern.size ) {
-      const auto initialEmptyWeights = PDF( numCategories_, 0.0f );
+      std::unordered_map<UInt, Real64> initialEmptyWeights;
       weights_.push_back( initialEmptyWeights );
     }
   }
   NTA_ASSERT(pattern.size == dimensions_) << "Input SDR does not match previously seen size!";
 
   // Check if this is a new category & resize the weights table to hold it.
-  const size_t maxCategoryIdx = *max_element(categoryIdxList.cbegin(), categoryIdxList.cend());
-  if( maxCategoryIdx >= numCategories_ ) {
-    numCategories_ = maxCategoryIdx + 1;
-    for( auto & vec : weights_ ) {
-      while( vec.size() < numCategories_ ) {
-        vec.push_back( 0.0f );
+  for (const auto cat: categoryIdxList) {
+    const bool alreadyInCategories = std::find(categories_.cbegin(), categories_.cend(), cat) != categories_.cend();
+    if( not alreadyInCategories ) {
+      categories_.push_back(cat);
+      //update existing inner weights: set new cat's weight to zero
+      for( auto & mapp : weights_ ) {
+        mapp.insert({cat, 0.0f});
       }
     }
   }
@@ -92,8 +94,8 @@ void Classifier::learn(const SDR &pattern, const vector<UInt> &categoryIdxList)
   // Compute errors and update weights.
   const auto& error = calculateError_(categoryIdxList, pattern);
   for( const auto& bit : pattern.getSparse() ) {
-    for(size_t i = 0u; i < numCategories_; i++) {
-      weights_[bit][i] += alpha_ * error[i];
+    for(const auto cat: categories_) {
+      weights_[bit][cat] += alpha_ * error[cat];
     }
   }
 }
@@ -106,7 +108,7 @@ std::vector<Real64> Classifier::calculateError_(const std::vector<UInt> &categor
   auto likelihoods = infer(pattern);
 
   // Compute target likelihoods
-  PDF targetDistribution(numCategories_ + 1u, 0.0f);
+  PDF targetDistribution(categories_.size() + 1u, 0.0f);
   for( size_t i = 0u; i < categoryIdxList.size(); i++ ) {
     targetDistribution[categoryIdxList[i]] = 1.0f / categoryIdxList.size();
   }

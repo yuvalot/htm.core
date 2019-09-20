@@ -146,25 +146,25 @@ public:
   {
     ar(cereal::make_nvp("alpha",         alpha_),
        cereal::make_nvp("dimensions",    dimensions_),
-       cereal::make_nvp("numCategories", numCategories_),
+       cereal::make_nvp("categories",    categories_),
        cereal::make_nvp("weights",       weights_));
   }
 
   template<class Archive>
   void load_ar(Archive & ar)
-    { ar( alpha_, dimensions_, numCategories_, weights_ ); }
+    { ar( alpha_, dimensions_, categories_, weights_ ); }
 
 private:
   Real alpha_;
   UInt dimensions_;
-  size_t numCategories_;
+  std::vector<UInt> categories_;
 
   /**
    * 2D map used to store the data.
    * Use as: weights_[ input-bit ][ category-index ]
    * Real64 (not just Real) so the computations do not lose precision.
    */
-  std::vector<std::vector<Real64>> weights_;
+  std::vector<std::unordered_map<UInt, Real64>> weights_;
 
   // Helper function to compute the error signal for learning.
   std::vector<Real64> calculateError_(const std::vector<UInt> &bucketIdxList,
