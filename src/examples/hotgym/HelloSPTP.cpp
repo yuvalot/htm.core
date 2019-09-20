@@ -86,7 +86,7 @@ EPOCHS = 10; // make test faster in Debug
   TemporalMemory tm(vector<UInt>{COLS}, CELLS);
   tm.setAnomalyMode(TemporalMemory::ANMode::RAW); //set other modes here
 
-  Predictor pred( vector<UInt>{0,100}); //predict 0 (=classify current), 100 steps ahead
+  Predictor pred( {0,100}); //predict 0 (=classify current), 100 steps ahead
 
   tInit.stop();
 

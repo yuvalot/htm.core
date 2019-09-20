@@ -85,7 +85,7 @@ TEST(SDRClassifierTest, ExampleUsagePredictor)
   vector<UInt> labels = { 4, 5, 6, 7 };
 
   // Make a Predictor and train it.
-  Predictor pred( vector<UInt>{ 1, 2 } );
+  Predictor pred( vector<StepsAheadT>{ 1, 2 } );
   pred.learn( 0, sequence[0], { labels[0] } );
   pred.learn( 1, sequence[1], { labels[1] } );
   pred.learn( 2, sequence[2], { labels[2] } );
@@ -107,7 +107,7 @@ TEST(SDRClassifierTest, ExampleUsagePredictor)
 TEST(SDRClassifierTest, SingleValue) {
   // Feed the same input 10 times, the corresponding probability should be
   // very high
-  vector<UInt> steps{1u};
+  vector<StepsAheadT> steps{1};
   Predictor c(steps, 0.1f);
 
   // Create a vector of input bit indices
@@ -128,7 +128,7 @@ TEST(SDRClassifierTest, SingleValue) {
 TEST(SDRClassifierTest, ComputeComplex) {
   // More complex classification
   // This test is ported from the Python unit test
-  Predictor c({1u}, 1.0f);
+  Predictor c({1}, 1.0f);
 
   // Create a input vector
   SDR input1({ 20u });
@@ -210,7 +210,7 @@ TEST(SDRClassifierTest, MultipleCategories) {
 
 
 TEST(SDRClassifierTest, SaveLoad) {
-  vector<UInt> steps{ 1u };
+  vector<StepsAheadT> steps{ 1 };
   Predictor c1(steps, 0.1f);
 
   // Train a Predictor with a few different things.

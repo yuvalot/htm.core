@@ -147,7 +147,7 @@ Example Usage:
     numpy.argmax( B[2] )  ->  labels[3]
 )");
 
-        py_Predictor.def(py::init<const std::vector<UInt> &, Real>(),
+        py_Predictor.def(py::init<const std::vector<StepsAheadT> &, Real>(),
 R"(Argument steps is the number of steps into the future to learn and predict.
 The Predictor accepts a list of steps.
 
@@ -182,7 +182,7 @@ This may also be a list for when the input has multiple categories.)",
             py::arg("pattern"),
             py::arg("classification"));
 
-        py_Predictor.def("learn", [](Predictor &self, UInt recordNum, const SDR &pattern, UInt categoryIdx)
+        py_Predictor.def("learn", [](Predictor &self, UInt recordNum, const SDR &pattern, UInt categoryIdx) //override for using UInt category, instead of {UInt}
             { self.learn( recordNum, pattern, {categoryIdx} ); },
                 py::arg("recordNum"),
                 py::arg("pattern"),

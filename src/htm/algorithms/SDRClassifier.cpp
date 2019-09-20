@@ -138,10 +138,11 @@ void htm::softmax(PDF::iterator begin, PDF::iterator end) {
 /******************************************************************************/
 
 
-Predictor::Predictor(const vector<UInt> &steps, const Real alpha)
+Predictor::Predictor(const vector<StepsAheadT> &steps, const Real alpha)
   { initialize(steps, alpha); }
 
-void Predictor::initialize(const vector<UInt> &steps, const Real alpha)
+
+void Predictor::initialize(const vector<StepsAheadT> &steps, const Real alpha)
 {
   NTA_CHECK( not steps.empty() ) << "Required argument steps is empty!";
   steps_ = steps;

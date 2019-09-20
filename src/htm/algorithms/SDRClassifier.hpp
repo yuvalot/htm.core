@@ -135,7 +135,8 @@ public:
    * Learn from example data.
    *
    * @param pattern:  The active input bit SDR.
-   * @param categoryIdxList:  The current categories or bucket indices.
+   * @param categoryIdxList:  The current categories (or bucket indices) 
+   *   that should be associated with this pattern. 
    */
   void learn(const SDR & pattern, const std::vector<UInt> & categoryIdxList);
 
@@ -180,12 +181,13 @@ void softmax(PDF::iterator begin, PDF::iterator end);
 /******************************************************************************/
 
 
+using StepsAheadT = unsigned short; 
 /**
  * The key is the step, for predicting multiple time steps into the future.
  * The value is a PDF (probability distribution function, of the result being in
  * each bucket or category).
  */
-using Predictions = std::unordered_map<UInt, PDF>;
+using Predictions = std::unordered_map<StepsAheadT, PDF>;
 
 /**
  * The Predictor class does N-Step ahead predictions.
@@ -209,7 +211,7 @@ using Predictions = std::unordered_map<UInt, PDF>;
  *    vector<UInt> labels = { 4, 5, 6, 7 };
  *
  *    // Make a Predictor and train it.
- *    Predictor pred( vector<UInt>{ 1, 2 } );
+ *    Predictor pred( vector<StepsAheadT>{ 1, 2 } );
  *    pred.learn( 0, sequence[0], { labels[0] } );
  *    pred.learn( 1, sequence[1], { labels[1] } );
  *    pred.learn( 2, sequence[2], { labels[2] } );
@@ -238,13 +240,13 @@ public:
    *                A larger alpha results in faster adaptation to the data.
    *                (The default value will likely be OK in most cases.)
    */
-  Predictor(const std::vector<UInt> &steps, Real alpha = 0.001f );
+  Predictor(const std::vector<StepsAheadT> &steps, Real alpha = 0.001f );
 
   /**
    * Constructor for use when deserializing.
    */
   Predictor() {}
-  void initialize(const std::vector<UInt> &steps, Real alpha = 0.001f );
+  void initialize(const std::vector<StepsAheadT> &steps, Real alpha = 0.001f );
 
   /**
    * For use with time series datasets.
@@ -288,7 +290,7 @@ public:
 
 private:
   // The list of prediction steps to learn and infer.
-  std::vector<UInt> steps_;
+  std::vector<StepsAheadT> steps_;
 
   // Stores the input pattern history, starting with the previous input.
   std::deque<SDR>  patternHistory_;
@@ -296,7 +298,7 @@ private:
   void checkMonotonic_(UInt recordNum) const;
 
   // One per prediction step
-  std::unordered_map<UInt, Classifier> classifiers_;
+  std::unordered_map<StepsAheadT, Classifier> classifiers_;
 
 };      // End of Predictor class
 
