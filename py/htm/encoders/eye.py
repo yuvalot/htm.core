@@ -18,10 +18,96 @@ import scipy.misc
 import math
 import scipy.ndimage
 import random
-import PIL, PIL.ImageDraw
-import matplotlib.pyplot as plt
-from sdr import SDR
-import encoders
+import PIL
+from htm.bindings.sdr import SDR
+
+
+class ChannelEncoder:
+    """
+    This assigns a random range to each bit of the output SDR.  Each bit becomes
+    active if its corresponding input falls in its range.  By using random
+    ranges, each bit represents a different thing even if it mostly overlaps
+    with other comparable bits.  This way redundant bits add meaning.
+    """
+    def __init__(self, input_shape, num_samples, sparsity,
+        dtype       = np.float64,
+        drange      = range(0,1),
+        wrap        = False):
+        """
+        Argument input_shape is tuple of dimensions for each input frame.
+
+        Argument num_samples is number of bits in the output SDR which will
+                 represent each input number, this is the added data depth.
+
+        Argument sparsity is fraction of output which on average will be active.
+                 This is also the fraction of the input spaces which (on 
+                 average) each bin covers.
+
+        Argument dtype is numpy data type of channel.
+
+        Argument drange is a range object or a pair of values representing the 
+                 range of possible channel values.
+
+        Argument wrap ... default is False.
+                 This supports modular input spaces and ranges which wrap
+                 around. It does this by rotating the inputs by a constant
+                 random amount which hides where the discontinuity in ranges is.
+                 No ranges actually wrap around the input space.
+        """
+        self.input_shape  = tuple(input_shape)
+        self.num_samples  = int(round(num_samples))
+        self.sparsity     = sparsity
+        self.output_shape = self.input_shape + (self.num_samples,)
+        self.dtype        = dtype
+        self.drange       = drange
+        self.len_drange   = max(drange) - min(drange)
+        self.wrap         = bool(wrap)
+        if self.wrap:
+            # Each bit responds to a range of input values, length of range is 2*Radius.
+            radius        = self.len_drange * self.sparsity / 2
+            self.offsets  = np.random.uniform(0, self.len_drange, self.input_shape)
+            self.offsets  = np.array(self.offsets, dtype=self.dtype)
+            # If wrapping is enabled then don't generate ranges which will be
+            # truncated near the edges.
+            centers = np.random.uniform(min(self.drange) + radius,
+                                        max(self.drange) - radius,
+                                        size=self.output_shape)
+        else:
+            # Buckets near the edges of the datarange are OK.  They will not
+            # respond to a full range of input values but are needed to
+            # represent the bits at the edges of the data range.
+            #
+            # Expand the data range and create bits which will encode for the
+            # edges of the datarange to ensure a resonable sparsity at the
+            # extremes of the data ragne.  Increase the size of all of the
+            # buckets to accomidate for the extra area being represented.
+            M = .95 # Maximum fraction of bucket-size outside of the true data range to allocate buckets.
+            len_pad_drange = self.len_drange / (1 - M * self.sparsity)
+            extra_space    = (len_pad_drange - self.len_drange) / 2
+            pad_drange     = (min(self.drange) - extra_space, max(self.drange) + extra_space)
+            radius         = len_pad_drange * self.sparsity / 2
+            centers = np.random.uniform(min(pad_drange),
+                                        max(pad_drange),
+                                        size=self.output_shape)
+        # Make the lower and upper bounds of the ranges.
+        low  = np.clip(centers - radius, min(self.drange), max(self.drange))
+        high = np.clip(centers + radius, min(self.drange), max(self.drange))
+        self.low  = np.array(low, dtype=self.dtype)
+        self.high = np.array(high, dtype=self.dtype)
+
+    def encode(self, img):
+        """Returns a dense boolean np.ndarray."""
+        assert(img.shape == self.input_shape)
+        assert(img.dtype == self.dtype)
+        if self.wrap:
+            img += self.offsets
+            # Technically this should subtract min(drange) before doing modulus
+            # but the results should also be indistinguishable B/C of the random
+            # offsets.  Min(drange) effectively becomes part of the offset.
+            img %= self.len_drange
+            img += min(self.drange)
+        img = img.reshape(img.shape + (1,))
+        return np.logical_and(self.low <= img, img <= self.high)
 
 
 class Eye:
@@ -69,12 +155,12 @@ class Eye:
         print(self.retina.printSetup())
         print()
 
-        self.parvo_enc = encoders.ChannelEncoder(
+        self.parvo_enc = ChannelEncoder(
                             input_shape = (output_diameter, output_diameter, 3,),
                             num_samples = 1, sparsity = sparsity ** (1/3.),
                             dtype=np.uint8, drange=[0, 255,])
 
-        self.magno_enc = encoders.ChannelEncoder(
+        self.magno_enc = ChannelEncoder(
                             input_shape = (output_diameter, output_diameter),
                             num_samples = 1, sparsity = sparsity,
                             dtype=np.uint8, drange=[0, 255],)
@@ -111,7 +197,6 @@ class Eye:
         # Sanity checks.
         assert(len(self.image.shape) == 3)
         assert(self.image.shape[2] == 3) # Color images only.
-
         self.reset()
         self.center_view()
 
@@ -241,12 +326,6 @@ class Eye:
         return roi
 
     def show_view(self, window_name='Eye'):
-        if False:
-            print("Sparsity %g"%(len(self.output_sdr) / self.output_sdr.size))
-            parvo = self.output_sdr.dense[:,:,0]
-            magno = self.output_sdr.dense[:,:,1]
-            print("Parvo Sparsity %g"%(np.count_nonzero(parvo) / np.product(parvo.shape)))
-            print("Magno Sparsity %g"%(np.count_nonzero(magno) / np.product(magno.shape)))
         roi = self.make_roi_pretty()
         cv2.imshow('Region Of Interest', roi)
         cv2.imshow('Parvocellular', self.parvo[:,:,::-1])
@@ -270,6 +349,14 @@ class Eye:
         # Add this position offset.
         coords += np.array(np.rint(self.position), dtype=np.int).reshape(1, 2)
         return coords
+
+    def small_random_movement(self):
+        max_change_angle = (2*3.14159) / 500
+        self.position = (
+            self.position[0] + random.gauss(1, .75),
+            self.position[1] + random.gauss(1, .75),)
+        self.orientation += random.uniform(-max_change_angle, max_change_angle)
+        self.scale = 1
 
     def reset(self):
         self.retina.clearBuffers()
@@ -309,6 +396,7 @@ class EyeSensorSampler:
         """Displays the samples."""
         if not self.samples:
             return  # Nothing to show...
+        import matplotlib.pyplot as plt
         plt.figure("Sample views")
         num = len(self.samples)
         rows = math.floor(num ** .5)
@@ -320,269 +408,52 @@ class EyeSensorSampler:
             plt.show()
 
 
-# TODO: Consider splitting motor controls and motor sensory into different
-# classes...
-#
-#
-# EXPERIMENT: Try breaking out each output encoder by type instead of
-# concatenating them all together.  Each type of sensors would then get its own
-# HTM.  Maybe keep the derivatives with their source?
-#
-class EyeController:
-    """
-    Motor controller for the EyeSensor class.
-
-    The eye sensor has 4 degrees of freedom: X and Y location, scale, and
-    orientation. These values can be controlled by activating control vectors,
-    each of which  has a small but cumulative effect.  CV's are normally
-    distributed with a mean of zero.  Activate control vectors by calling
-    controller.move(control-vectors).
-
-    The controller outputs its current location, scale and orientation as well
-    as their first derivatives w/r/t time as an SDR.
-    """
-    def __init__(self, eye_sensor,
-        # Control Vector Parameters
-        num_cv                      = 600,
-        pos_stddev                  = 1,
-        angle_stddev                = math.pi / 8,
-        scale_stddev                = 2,
-        # Motor Sensor Parameters
-        position_encoder            = None,
-        velocity_encoder            = None,
-        angle_encoder               = None,
-        angular_velocity_encoder    = None,
-        scale_encoder               = None,
-        scale_velocity_encoder      = None,):
-        """
-        Argument num_cv is the approximate number of control vectors to use.
-        Arguments pos_stddev, angle_stddev, and scale_stddev are the standard
-                  deviations of the control vector movements, control vectors
-                  are normally distributed about a mean of 0.
-
-        Arguments position_encoder, velocity_encoder, angle_encoder,
-                  angular_velocity_encoder, scale_encoder, and
-                  scale_velocity_encoder are instances of
-                  RandomDistributedScalarEncoderParameters.
-
-        Attribute control_sdr ... eye movement input controls
-        Attribute motor_sdr ... internal motor sensor output
-
-        Attribute gaze is a list of tuples of (X, Y, Orientation, Scale)
-                  History of recent movements, self.move() updates this.
-                  This is cleared by the following methods:
-                      self.new_image() 
-                      self.center_view()
-                      self.randomize_view()
-        """
-        assert(isinstance(parameters, EyeControllerParameters))
-        assert(isinstance(eye_sensor, EyeSensor))
-        self.args = args = parameters
-        self.eye_sensor  = eye_sensor
-        self.control_vectors, self.control_sdr = self.make_control_vectors(
-                num_cv       = args.num_cv,
-                pos_stddev   = args.pos_stddev,
-                angle_stddev = args.angle_stddev,
-                scale_stddev = args.scale_stddev,)
-
-        self.motor_position_encoder         = RandomDistributedScalarEncoder(args.position_encoder)
-        self.motor_angle_encoder            = RandomDistributedScalarEncoder(args.angle_encoder)
-        self.motor_scale_encoder            = RandomDistributedScalarEncoder(args.scale_encoder)
-        self.motor_velocity_encoder         = RandomDistributedScalarEncoder(args.velocity_encoder)
-        self.motor_angular_velocity_encoder = RandomDistributedScalarEncoder(args.angular_velocity_encoder)
-        self.motor_scale_velocity_encoder   = RandomDistributedScalarEncoder(args.scale_velocity_encoder)
-        self.motor_encoders = [ self.motor_position_encoder,    # X Posititon
-                                self.motor_position_encoder,    # Y Position
-                                self.motor_angle_encoder,
-                                self.motor_scale_encoder,
-                                self.motor_velocity_encoder,    # X Velocity
-                                self.motor_velocity_encoder,    # Y Velocity
-                                self.motor_angular_velocity_encoder,
-                                self.motor_scale_velocity_encoder,]
-        self.motor_sdr = SDR((sum(enc.output.size for enc in self.motor_encoders),))
-        self.gaze = []
-
-    @staticmethod
-    def make_control_vectors(num_cv, pos_stddev, angle_stddev, scale_stddev):
-        """
-        Argument num_cv is the approximate number of control vectors to create
-        Arguments pos_stddev, angle_stddev, and scale_stddev are the standard
-                  deviations of the controls effects of position, angle, and 
-                  scale.
-
-        Returns pair of control_vectors, control_sdr
-
-        The control_vectors determines what happens for each output. Each
-        control is a 4-tuple of (X, Y, Angle, Scale) movements. To move,
-        active controls are summed and applied to the current location.
-        control_sdr contains the shape of the control_vectors.
-        """
-        cv_sz = int(round(num_cv // 6))
-        control_shape = (6*cv_sz,)
-
-        pos_controls = [
-            (random.gauss(0, pos_stddev), random.gauss(0, pos_stddev), 0, 0)
-                for i in range(4*cv_sz)]
-
-        angle_controls = [
-            (0, 0, random.gauss(0, angle_stddev), 0)
-                for angle_control in range(cv_sz)]
-
-        scale_controls = [
-            (0, 0, 0, random.gauss(0, scale_stddev))
-                for scale_control in range(cv_sz)]
-
-        control_vectors = pos_controls + angle_controls + scale_controls
-        random.shuffle(control_vectors)
-        control_vectors = np.array(control_vectors)
-
-        # Add a little noise to all control vectors
-        control_vectors[:, 0] += np.random.normal(0, pos_stddev/10,    control_shape)
-        control_vectors[:, 1] += np.random.normal(0, pos_stddev/10,    control_shape)
-        control_vectors[:, 2] += np.random.normal(0, angle_stddev/10,  control_shape)
-        control_vectors[:, 3] += np.random.normal(0, scale_stddev/10,  control_shape)
-        return control_vectors, SDR(control_shape)
-
-    def move(self, control_sdr=None, min_dist_from_edge=0):
-        """
-        Apply the given controls to the current gaze location and updates the
-        motor sdr accordingly.
-
-        Argument control_sdr is assigned into this classes attribute
-                 self.control_sdr.  It represents the control vectors to use.
-                 The selected control vectors are summed and their effect is
-                 applied to the eye's location.
-
-        Returns an SDR encoded representation of the eyes new location and 
-        velocity.
-        """
-        self.control_sdr.assign(control_sdr)
-        eye = self.eye_sensor
-        # Calculate the forces on the motor
-        controls = self.control_vectors[self.control_sdr.index]
-        controls = np.sum(controls, axis=0)
-        dx, dy, dangle, dscale = controls
-        # Calculate the new rotation
-        eye.orientation = (eye.orientation + dangle) % (2*math.pi)
-        # Calculate the new scale
-        new_scale  = np.clip(eye.scale + dscale, eye.args.min_scale, eye.args.max_scale)
-        real_ds    = new_scale - eye.scale
-        avg_scale  = (new_scale + eye.scale) / 2
-        eye.scale = new_scale
-        # Scale the movement such that the same CV yields the same visual
-        # displacement, regardless of scale.
-        dx       *= avg_scale
-        dy       *= avg_scale
-        # Calculate the new position.  
-        x, y     = eye.position
-        p        = [x + dx, y + dy]
-        edge     = min_dist_from_edge
-        p        = np.clip(p, [edge,edge], np.subtract(eye.image.shape[:2], edge))
-        real_dp  = np.subtract(p, eye.position)
-        eye.position = p
-        # Book keeping.
-        self.gaze.append(tuple(eye.position) + (eye.orientation, eye.scale))
-        # Put together information about the motor.
-        velocity = (
-            eye.position[0],
-            eye.position[1],
-            eye.orientation,
-            eye.scale,
-            real_dp[0],
-            real_dp[1],
-            dangle,
-            real_ds,
-        )
-        # Encode the motors sensors and concatenate them into one big SDR.
-        v_enc = [enc.encode(v) for v, enc in zip(velocity, self.motor_encoders)]
-        self.motor_sdr.dense = np.concatenate([sdr.dense for sdr in v_enc])
-        return self.motor_sdr
-
-    def reset_gaze_tracking(self):
-        """
-        Discard any prior gaze tracking.  Call this after forcibly moving eye
-        to a new starting position.
-        """
-        self.gaze = [(
-            self.eye_sensor.position[0],
-            self.eye_sensor.position[1],
-            self.eye_sensor.orientation,
-            self.eye_sensor.scale)]
-
-    def gaze_tracking(self, diag=True):
-        """
-        Returns vector of tuples of (position-x, position-y, orientation, scale)
-        """
-        if diag:
-            im   = PIL.Image.fromarray(self.eye_sensor.image)
-            draw = PIL.ImageDraw.Draw(im)
-            width, height = im.size
-            # Draw a red line through the centers of each gaze point
-            for p1, p2 in zip(self.gaze, self.gaze[1:]):
-                x1, y1, a1, s1 = p1
-                x2, y2, a2, s2 = p2
-                draw.line((y1, x1, y2, x2), fill='black', width=5)
-                draw.line((y1, x1, y2, x2), fill='red', width=2)
-            # Draw the bounding box of the eye sensor around each gaze point
-            for x, y, orientation, scale in self.gaze:
-                # Find the four corners of the eye's window
-                corners = []
-                for ec_x, ec_y in [(0,0), (0,-1), (-1,-1), (-1,0)]:
-                    corners.append(self.eye_sensor.eye_coords[:, ec_x, ec_y])
-                # Convert from list of pairs to index array.
-                corners = np.transpose(corners)
-                # Rotate the corners
-                c = math.cos(orientation)
-                s = math.sin(orientation)
-                rot = np.array([[c, -s], [s, c]])
-                corners = np.matmul(rot, corners)
-                # Scale/zoom the corners
-                corners *= scale
-                # Position the corners
-                corners += np.array([x, y]).reshape(2, 1)
-                # Convert from index array to list of coordinates pairs
-                corners = list(tuple(coord) for coord in np.transpose(corners))
-                # Draw the points
-                for start, end in zip(corners, corners[1:] + [corners[0]]):
-                    line_coords = (start[1], start[0], end[1], end[0],)
-                    draw.line(line_coords, fill='green', width=2)
-            del draw
-            plt.figure("Gaze Tracking")
-            im = np.array(im)
-            plt.imshow(im, interpolation='nearest')
-            plt.show()
-        return self.gaze[:]
-
-
-def small_random_movement(eye_sensor):
-    max_change_angle        = (2*3.14159) / 500
-    eye_sensor.position     = (
-        eye_sensor.position[0] + random.gauss(1, .75),
-        eye_sensor.position[1] + random.gauss(1, .75),)
-    eye_sensor.orientation += random.uniform(-max_change_angle, max_change_angle)
-    eye_sensor.scale = 1
-
+def _get_images(path):
+    """ Returns list of all image files found under the given file path. """
+    image_extensions = [
+        '.bmp',
+        '.dib',
+        '.png',
+        '.jpg',
+        '.jpeg',
+        '.jpe',
+        '.tif',
+        '.tiff',
+    ]
+    images = []
+    import os
+    if os.path.isfile(path):
+        basename, ext = os.path.splitext(path)
+        if ext.lower() in image_extensions:
+            images.append( path )
+    else:
+        for dirpath, dirnames, filenames in os.walk(path):
+            for fn in filenames:
+                basename, ext = os.path.splitext(fn)
+                if ext.lower() in image_extensions:
+                    images.append( os.path.join(dirpath, fn) )
+    return images
 
 if __name__ == '__main__':
-    eye = Eye()
-
-    import datasets, random
-    # data = datasets.Dataset('./datasets/small_items')
-    data = datasets.Dataset('./datasets/textures')
-    print("Num Images:", len(data))
-    data.shuffle()
-    for z in range(len(data)):
-        eye.reset()
-        data.next_image()
-        img_path = data.current_image
-        print("Loading image %s"%img_path)
-        img = np.asarray(PIL.Image.open(img_path))
-        eye.new_image(img)
-        eye.scale = 1
-
-        for i in range(10):
-            sdr = eye.compute()
-            eye.show_view()
-            small_random_movement(eye)
-
-    print("All images seen.")
+    import argparse
+    args = argparse.ArgumentParser()
+    args.add_argument('IMAGE', type=str)
+    args   = args.parse_args()
+    images = _get_images( args.IMAGE )
+    random.shuffle(images)
+    if not images:
+        print('No images found at file path "%s"!'%args.IMAGE)
+    else:
+        eye = Eye()
+        sampler = EyeSensorSampler(eye, 1000)
+        for img_path in images:
+            eye.reset()
+            print("Loading image %s"%img_path)
+            eye.new_image(img_path)
+            eye.scale = 1
+            for i in range(10):
+                sdr = eye.compute()
+                eye.show_view()
+                eye.small_random_movement()
+        print("All images seen.")
+        sampler.view_samples()
