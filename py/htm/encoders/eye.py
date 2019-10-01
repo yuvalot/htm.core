@@ -12,13 +12,13 @@ Fun Fact 1: The human optic nerve has 800,000 ~ 1,700,000 nerve fibers.
 Fun Fact 2: The human eye can distiguish between 10 million different colors.
 Sources: Wikipedia. """
 
-import numpy as np
-import cv2
-import scipy.misc
 import math
-import scipy.ndimage
 import random
-import PIL
+
+import numpy as np
+import cv2 # pip install opencv-contrib-python
+from PIL import Image # pip Pillow
+
 from htm.bindings.sdr import SDR
 
 
@@ -178,7 +178,7 @@ class Eye:
         # Load image if needed.
         if isinstance(image, str):
             self.image_file = image
-            self.image = np.array(PIL.Image.open(image), copy=False)
+            self.image = np.array(Image.open(image), copy=False)
         else:
             self.image_file = None
             self.image = image
@@ -250,7 +250,7 @@ class Eye:
         x_shape, y_shape, color_depth = image_slice.shape
         roi[x_offset:x_offset+x_shape, y_offset:y_offset+y_shape] = image_slice
         # Rescale the ROI to remove the scaling effect.
-        roi = scipy.misc.imresize(roi, (self.retina_diameter, self.retina_diameter))
+        roi = np.array(Image.fromarray(roi).resize( (self.retina_diameter, self.retina_diameter)))
         return roi
 
     def compute(self):
@@ -272,8 +272,8 @@ class Eye:
             center = (center, center),
             M      = M,
             flags  = cv2.WARP_FILL_OUTLIERS)
-        parvo = scipy.misc.imresize(parvo, (self.output_diameter, self.output_diameter))
-        magno = scipy.misc.imresize(magno, (self.output_diameter, self.output_diameter))
+        parvo = np.array(Image.fromarray(parvo).resize( (self.output_diameter, self.output_diameter)))
+        magno = np.array(Image.fromarray(magno).resize( (self.output_diameter, self.output_diameter)))
 
         # Apply rotation by rolling the images around axis 1.
         rotation = self.output_diameter * self.orientation / (2 * math.pi)
