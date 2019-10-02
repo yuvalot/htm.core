@@ -133,12 +133,15 @@ class Eye:
     """
     def __init__(self,
         output_diameter   = 200,
-        sparsity          = .2,): #TODO add arg mode: parvo, magno, both
+        sparsity          = .2,
+        mode              = "both"):
         """
         Argument output_diameter is size of output ... output is a 
             field of view (image) with circular shape
         Argument sparsity is fraction of bits in eye.output_sdr which are 
             active, on average.
+        Argument mode: one of "parvo", "magno", "both". Which retinal cells 
+            to emulate.
         """
         self.output_diameter   = output_diameter
         # Argument resolution_factor is used to expand the sensor array so that
@@ -150,6 +153,7 @@ class Eye:
         self.fovea_scale       = 0.177
         assert(output_diameter // 2 * 2 == output_diameter) # Diameter must be an even number.
         assert(self.retina_diameter // 2 * 2 == self.retina_diameter) # (Resolution Factor X Diameter) must be an even number.
+        assert(mode in ["magno", "parvo", "both"])
 
         self.output_sdr = SDR((output_diameter, output_diameter, 2,))
 
@@ -161,20 +165,27 @@ class Eye:
         print(self.retina.printSetup())
         print()
 
-        self.parvo_enc = ChannelEncoder(
+        if mode == "both" or mode == "parvo":
+          self.parvo_enc = ChannelEncoder(
                             input_shape = (output_diameter, output_diameter, 3,),
                             num_samples = 1, 
                             sparsity = sparsity ** (1/3.),
                             dtype=np.uint8, drange=[0, 255,])
+        else:
+          self.parvo_enc = None
 
-        self.magno_enc = ChannelEncoder(
+        if mode == "both" or mode == "magno":
+          self.magno_enc = ChannelEncoder(
                             input_shape = (output_diameter, output_diameter),
                             num_samples = 1, 
                             sparsity = sparsity,
                             dtype=np.uint8, drange=[0, 255],)
+        else:
+          self.magno_enc = None
 
         self.image_file = None
         self.image = None
+
 
     def new_image(self, image):
         """
@@ -290,12 +301,20 @@ class Eye:
         self.magno = np.roll(magno, rotation, axis=0)
 
         # Encode images into SDRs.
-        p   = self.parvo_enc.encode(self.parvo)
-        pr, pg, pb = np.dsplit(p, 3)
-        p   = np.logical_and(np.logical_and(pr, pg), pb)
-        p   = np.expand_dims(np.squeeze(p), axis=2)
-        m   = self.magno_enc.encode(self.magno)
-        sdr = np.concatenate([p, m], axis=2)
+        p = []
+        m = []
+        if self.parvo_enc is not None:
+          p   = self.parvo_enc.encode(self.parvo)
+          pr, pg, pb = np.dsplit(p, 3)
+          p   = np.logical_and(np.logical_and(pr, pg), pb)
+          p   = np.expand_dims(np.squeeze(p), axis=2)
+          sdr = p
+        if self.magno_enc is not None:
+          m   = self.magno_enc.encode(self.magno)
+          sdr = m
+        if self.magno_enc is not None and self.parvo_enc is not None:
+          sdr = np.concatenate([p, m], axis=2)
+
         self.output_sdr.dense = sdr
         return self.output_sdr
 
