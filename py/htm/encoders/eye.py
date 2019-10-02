@@ -134,14 +134,17 @@ class Eye:
     def __init__(self,
         output_diameter   = 200,
         sparsity          = .2,
-        mode              = "both"):
+        mode              = "both",
+        color             = False,):
         """
         Argument output_diameter is size of output ... output is a 
-            field of view (image) with circular shape
+            field of view (image) with circular shape. Default 200
         Argument sparsity is fraction of bits in eye.output_sdr which are 
-            active, on average.
+            active, on average. Default 0.2 (=20%)
         Argument mode: one of "parvo", "magno", "both". Which retinal cells 
-            to emulate.
+            to emulate. Default "both".
+        Argument color: True/False. Emulate color vision, or only B/W?
+            Default True.
         """
         self.output_diameter   = output_diameter
         # Argument resolution_factor is used to expand the sensor array so that
@@ -154,20 +157,26 @@ class Eye:
         assert(output_diameter // 2 * 2 == output_diameter) # Diameter must be an even number.
         assert(self.retina_diameter // 2 * 2 == self.retina_diameter) # (Resolution Factor X Diameter) must be an even number.
         assert(mode in ["magno", "parvo", "both"])
+        assert(color is False or color is True)
+        self.color = color
 
         self.output_sdr = SDR((output_diameter, output_diameter, 2,))
 
         self.retina = cv2.bioinspired.Retina_create(
             inputSize            = (self.retina_diameter, self.retina_diameter),
-            colorMode            = True, #TODO make color optional, ie work on B/W images too
+            colorMode            = color,
             colorSamplingMethod  = cv2.bioinspired.RETINA_COLOR_BAYER,)
 
         print(self.retina.printSetup())
         print()
 
         if mode == "both" or mode == "parvo":
+          dims = (output_diameter, output_diameter)
+          if color is True: 
+            dims = (output_diameter, output_diameter, 3,)
+
           self.parvo_enc = ChannelEncoder(
-                            input_shape = (output_diameter, output_diameter, 3,),
+                            input_shape = dims,
                             num_samples = 1, 
                             sparsity = sparsity * (1/3.), #biologically, parvocellular pathway is only 33% of the magnocellular (in terms of cells)
                             dtype=np.uint8, drange=[0, 255,])
@@ -305,8 +314,9 @@ class Eye:
         m = []
         if self.parvo_enc is not None:
           p   = self.parvo_enc.encode(self.parvo)
-          pr, pg, pb = np.dsplit(p, 3)
-          p   = np.logical_and(np.logical_and(pr, pg), pb)
+          if self.color:
+            pr, pg, pb = np.dsplit(p, 3)
+            p   = np.logical_and(np.logical_and(pr, pg), pb)
           p   = np.expand_dims(np.squeeze(p), axis=2)
           sdr = p
         if self.magno_enc is not None:
@@ -355,7 +365,10 @@ class Eye:
     def show_view(self, window_name='Eye'):
         roi = self.make_roi_pretty()
         cv2.imshow('Region Of Interest', roi)
-        cv2.imshow('Parvocellular', self.parvo[:,:,::-1])
+        if self.color:
+          cv2.imshow('Parvocellular', self.parvo[:,:,::-1])
+        else:
+          cv2.imshow('Parvocellular', self.parvo)
         cv2.imshow('Magnocellular', self.magno)
         cv2.waitKey(1)
 
