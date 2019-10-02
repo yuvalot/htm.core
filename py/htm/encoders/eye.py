@@ -169,7 +169,7 @@ class Eye:
           self.parvo_enc = ChannelEncoder(
                             input_shape = (output_diameter, output_diameter, 3,),
                             num_samples = 1, 
-                            sparsity = sparsity ** (1/3.),
+                            sparsity = sparsity * (1/3.), #biologically, parvocellular pathway is only 33% of the magnocellular (in terms of cells)
                             dtype=np.uint8, drange=[0, 255,])
         else:
           self.parvo_enc = None
