@@ -389,8 +389,8 @@ class Eye:
           cv2.imshow('Parvocellular', self.parvo[:,:,::-1])
         else:
           cv2.imshow('Parvocellular', self.parvo)
-        cv2.imshow('Magnocellular', self.magno)
-        cv2.waitKey(1)
+        cv2.imshow('Magnocellular', self.magno) #TODO also plot the output SDR 
+        cv2.waitKey(1000)
 
     def input_space_sample_points(self, npoints):
         """
@@ -474,5 +474,6 @@ if __name__ == '__main__':
                 pos,rot,sc = eye.small_random_movement()
                 sdr = eye.compute(pos,rot,sc) #TODO derive from Encoder
                 eye.show_view()
-#                print(sdr) #FIXME the resulting SDR is extremely dense
+                print("Sparsity: {}".format(len(sdr.sparse)/np.product(sdr.dimensions)))
+                print(sdr.dimensions) #TODO make SDR 2D, diameter x diameter. not current (200, 200, 2) 
         print("All images seen.")
