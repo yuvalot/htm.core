@@ -1,6 +1,7 @@
 # Written by David McDougall, 2018
 
-""" From Wikipedia "Retina": Although there are more than 130 million
+"""
+From Wikipedia "Retina": Although there are more than 130 million
 retinal receptors, there are only approximately 1.2 million fibres
 (axons) in the optic nerve; a large amount of pre-processing is
 performed within the retina. The fovea produces the most accurate
@@ -8,9 +9,14 @@ information. Despite occupying about 0.01% of the visual field (less
 than 2 of visual angle), about 10% of axons in the optic nerve are
 devoted to the fovea.
 
+For more information on visual processing on retina, see 
+https://foundationsofvision.stanford.edu/chapter-5-the-retinal-representation/#visualinformation
+
+
 Fun Fact 1: The human optic nerve has 800,000 ~ 1,700,000 nerve fibers.
 Fun Fact 2: The human eye can distiguish between 10 million different colors.
-Sources: Wikipedia. """
+~Sources: Wikipedia. 
+"""
 
 import math
 import random
@@ -116,26 +122,27 @@ class Eye:
 
     Attribute output_sdr ... retina's output
     Attribute roi ... The most recent view, kept as a attribute.
-    Attribute parvo ... 
-    Attribute magno ... 
+    Attribute parvo ... SDR with parvocellular pathway (color)
+    Attribute magno ... SDR with magnocellular pathway (movement) 
 
     The following three attributes control where the eye is looking within
     the image.  They are Read/Writable.
     Attribute position     (X, Y) coords of eye center within image
-    Attribute orientation  ... units are radians
-    Attribute scale        ... 
+    Attribute orientation  ... units are radians TODO of what? sensor/image
+    Attribute scale        ... TODO
     """
     def __init__(self,
         output_diameter   = 200,
-        resolution_factor = 3,
-        fovea_scale       = .177,
-        sparsity          = .2,):
+        resolution_factor = 3, #TODO rm as arg?
+        fovea_scale       = .177, #TODO rm as arg?
+        sparsity          = .2,): #TODO add arg mode: parvo, magno, both
         """
-        Argument output_diameter is size of output ...
+        Argument output_diameter is size of output ... output is a 
+            field of view (image) with circular shape
         Argument resolution_factor is used to expand the sensor array so that
             the fovea has adequate resolution.  After log-polar transform image
             is reduced by this factor back to the output_diameter.
-        Argument fovea_scale is magic number ...
+        Argument fovea_scale  ... represents "zoom" aka distance from the object/image. 
         Argument sparsity is fraction of bits in eye.output_sdr which are 
             active, on average.
         """
@@ -149,7 +156,7 @@ class Eye:
 
         self.retina = cv2.bioinspired.Retina_create(
             inputSize            = (self.retina_diameter, self.retina_diameter),
-            colorMode            = True,
+            colorMode            = True, #TODO make color optional, ie work on B/W images too
             colorSamplingMethod  = cv2.bioinspired.RETINA_COLOR_BAYER,)
 
         print(self.retina.printSetup())
@@ -157,12 +164,14 @@ class Eye:
 
         self.parvo_enc = ChannelEncoder(
                             input_shape = (output_diameter, output_diameter, 3,),
-                            num_samples = 1, sparsity = sparsity ** (1/3.),
+                            num_samples = 1, 
+                            sparsity = sparsity ** (1/3.),
                             dtype=np.uint8, drange=[0, 255,])
 
         self.magno_enc = ChannelEncoder(
                             input_shape = (output_diameter, output_diameter),
-                            num_samples = 1, sparsity = sparsity,
+                            num_samples = 1, 
+                            sparsity = sparsity,
                             dtype=np.uint8, drange=[0, 255],)
 
         self.image_file = None
