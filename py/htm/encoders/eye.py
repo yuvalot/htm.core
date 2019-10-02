@@ -160,8 +160,10 @@ class Eye:
         assert(self.retina_diameter // 2 * 2 == self.retina_diameter) # (Resolution Factor X Diameter) must be an even number.
         assert(mode in ["magno", "parvo", "both"])
         assert(color is False or color is True)
+        # color, or B/W vision
         self.color = color
         assert(plot is False or plot is True)
+        # plot images?
         self.plot = plot
 
         self.output_sdr = SDR((output_diameter, output_diameter, 2,))
@@ -196,7 +198,7 @@ class Eye:
         else:
           self.magno_enc = None
 
-        self.image_file = None
+        # the current input image
         self.image = None
 
 
@@ -209,16 +211,13 @@ class Eye:
         """
         # Load image if needed.
         if isinstance(image, str):
-            self.image_file = image
             self.image = np.array(Image.open(image), copy=False)
         else:
-            self.image_file = None
             self.image = image
         # Get the image into the right format.
         assert(isinstance(self.image, np.ndarray))
         if self.image.dtype != np.uint8:
             raise TypeError('Image "%s" dtype is not unsigned 8 bit integer, image.dtype is %s.'%(
-                self.image_file if self.image_file is not None else 'argument',
                 self.image.dtype))
         # Ensure there are three color channels.
         if len(self.image.shape) == 2 or self.image.shape[2] == 1:
@@ -331,6 +330,7 @@ class Eye:
 
         self.output_sdr.dense = sdr
         return self.output_sdr
+
 
     def make_roi_pretty(self, roi=None):
         """
