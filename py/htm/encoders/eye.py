@@ -281,7 +281,19 @@ class Eye:
         roi = np.array(Image.fromarray(roi).resize( (self.retina_diameter, self.retina_diameter)))
         return roi
 
-    def compute(self):
+    def compute(self, position=None, rotation=None, scale=None):
+        """
+        Arguments position, rotation, scale: optional, if not None, the self.xxx is overriden
+          with the provided value. 
+        """
+        # set position
+        if position is not None:
+          self.position = pos
+        if rotation is not None:
+          self.orientation=rotation
+        if scale is not None:
+          self.scale=scale
+
         self.roi = self._crop_roi()
 
         # Retina image transforms (Parvo & Magnocellular).
@@ -399,12 +411,17 @@ class Eye:
         return coords
 
     def small_random_movement(self):
+        """returns small difference in position, rotation, scale.
+           This is naive "saccadic" movements.
+        """
         max_change_angle = (2*3.14159) / 500
         self.position = (
             self.position[0] + random.gauss(1, .75),
             self.position[1] + random.gauss(1, .75),)
         self.orientation += random.uniform(-max_change_angle, max_change_angle)
         self.scale = 1
+        return (self.position, self.orientation, self.scale)
+
 
     def reset(self):
         self.retina.clearBuffers()
@@ -454,8 +471,8 @@ if __name__ == '__main__':
             eye.new_image(img_path)
             eye.scale = 1
             for i in range(10):
-                sdr = eye.compute() #TODO derive from Encoder
+                pos,rot,sc = eye.small_random_movement()
+                sdr = eye.compute(pos,rot,sc) #TODO derive from Encoder
                 eye.show_view()
 #                print(sdr) #FIXME the resulting SDR is extremely dense
-                eye.small_random_movement() #TODO make the positions&orientation args of encode()
         print("All images seen.")
