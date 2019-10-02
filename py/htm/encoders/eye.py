@@ -257,6 +257,8 @@ class Eye:
 
         Returns RGB image.
         """
+        assert(self.image is not None)
+
         r     = int(round(self.scale * self.retina_diameter / 2))
         x, y  = self.position
         x     = int(round(x))
@@ -289,28 +291,35 @@ class Eye:
 
         # Retina image transforms (Parvo & Magnocellular).
         self.retina.run(self.roi)
-        parvo = self.retina.getParvo()
-        magno = self.retina.getMagno()
+        if self.parvo_enc is not None:
+          parvo = self.retina.getParvo()
+        if self.magno_enc is not None:
+          magno = self.retina.getMagno()
 
         # Log Polar Transform.
         center = self.retina_diameter / 2
         M      = self.retina_diameter * self.fovea_scale
-        parvo = cv2.logPolar(parvo,
+        if self.parvo_enc is not None:
+          parvo = cv2.logPolar(parvo,
             center = (center, center),
             M      = M,
             flags  = cv2.WARP_FILL_OUTLIERS)
-        magno = cv2.logPolar(magno,
+          parvo = np.array(Image.fromarray(parvo).resize( (self.output_diameter, self.output_diameter)))
+
+        if self.magno_enc is not None:
+          magno = cv2.logPolar(magno,
             center = (center, center),
             M      = M,
             flags  = cv2.WARP_FILL_OUTLIERS)
-        parvo = np.array(Image.fromarray(parvo).resize( (self.output_diameter, self.output_diameter)))
-        magno = np.array(Image.fromarray(magno).resize( (self.output_diameter, self.output_diameter)))
+          magno = np.array(Image.fromarray(magno).resize( (self.output_diameter, self.output_diameter)))
 
         # Apply rotation by rolling the images around axis 1.
         rotation = self.output_diameter * self.orientation / (2 * math.pi)
         rotation = int(round(rotation))
-        self.parvo = np.roll(parvo, rotation, axis=0)
-        self.magno = np.roll(magno, rotation, axis=0)
+        if self.parvo_enc is not None:
+          self.parvo = np.roll(parvo, rotation, axis=0)
+        if self.magno_enc is not None:
+          self.magno = np.roll(magno, rotation, axis=0)
 
         # Encode images into SDRs.
         p = []
