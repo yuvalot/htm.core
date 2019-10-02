@@ -132,10 +132,10 @@ class Eye:
     Attribute scale        ... TODO
     """
     def __init__(self,
-        output_diameter   = 200,
-        sparsity          = .2,
+        output_diameter   = 200, #TODO set as percentage of imput image?
+        sparsity          = .2, #TODO what is biological sparsity on retina?
         mode              = "both",
-        color             = False,):
+        color             = True,):
         """
         Argument output_diameter is size of output ... output is a 
             field of view (image) with circular shape. Default 200
@@ -454,7 +454,8 @@ if __name__ == '__main__':
             eye.new_image(img_path)
             eye.scale = 1
             for i in range(10):
-                sdr = eye.compute()
+                sdr = eye.compute() #TODO derive from Encoder
                 eye.show_view()
-                eye.small_random_movement()
+#                print(sdr) #FIXME the resulting SDR is extremely dense
+                eye.small_random_movement() #TODO make the positions&orientation args of encode()
         print("All images seen.")
