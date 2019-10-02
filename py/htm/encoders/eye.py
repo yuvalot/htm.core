@@ -135,8 +135,7 @@ class Eye:
         output_diameter   = 200,
         sparsity          = .2,
         mode              = "both",
-        color             = False,
-        plot              = False,):
+        color             = False,):
         """
         Argument output_diameter is size of output ... output is a 
             field of view (image) with circular shape. Default 200
@@ -146,7 +145,6 @@ class Eye:
             to emulate. Default "both".
         Argument color: True/False. Emulate color vision, or only B/W?
             Default True.
-        Argument plot: True/False. Whether to display plots, default False.
         """
         self.output_diameter   = output_diameter
         # Argument resolution_factor is used to expand the sensor array so that
@@ -162,9 +160,6 @@ class Eye:
         assert(color is False or color is True)
         # color, or B/W vision
         self.color = color
-        assert(plot is False or plot is True)
-        # plot images?
-        self.plot = plot
 
         self.output_sdr = SDR((output_diameter, output_diameter, 2,))
 
@@ -375,14 +370,7 @@ class Eye:
         roi[center+2, center-2] = np.full(3, 255) - roi[center+2, center-2]
         return roi
 
-    def show_view(self, window_name='Eye', delay=1):
-        """plot the retina's output SDRs. 
-        Argument delay: ms to wait between saccadic movements.
-          Default 1ms.
-        """
-        if self.plot is False:
-          return
-
+    def show_view(self, window_name='Eye'):
         roi = self.make_roi_pretty()
         cv2.imshow('Region Of Interest', roi)
         if self.color:
@@ -390,7 +378,7 @@ class Eye:
         else:
           cv2.imshow('Parvocellular', self.parvo)
         cv2.imshow('Magnocellular', self.magno)
-        cv2.waitKey(delay)
+        cv2.waitKey(1)
 
     def input_space_sample_points(self, npoints):
         """
@@ -410,7 +398,7 @@ class Eye:
         coords += np.array(np.rint(self.position), dtype=np.int).reshape(1, 2)
         return coords
 
-    def small_random_movement(self): #TODO pass as custom fn
+    def small_random_movement(self):
         max_change_angle = (2*3.14159) / 500
         self.position = (
             self.position[0] + random.gauss(1, .75),
@@ -459,7 +447,7 @@ if __name__ == '__main__':
     if not images:
         print('No images found at file path "%s"!'%args.IMAGE)
     else:
-        eye = Eye(plot=True)
+        eye = Eye()
         for img_path in images:
             eye.reset()
             print("Loading image %s"%img_path)
