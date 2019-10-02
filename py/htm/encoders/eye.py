@@ -133,21 +133,21 @@ class Eye:
     """
     def __init__(self,
         output_diameter   = 200,
-        resolution_factor = 3, #TODO rm as arg?
         fovea_scale       = .177, #TODO rm as arg?
         sparsity          = .2,): #TODO add arg mode: parvo, magno, both
         """
         Argument output_diameter is size of output ... output is a 
             field of view (image) with circular shape
-        Argument resolution_factor is used to expand the sensor array so that
-            the fovea has adequate resolution.  After log-polar transform image
-            is reduced by this factor back to the output_diameter.
         Argument fovea_scale  ... represents "zoom" aka distance from the object/image. 
         Argument sparsity is fraction of bits in eye.output_sdr which are 
             active, on average.
         """
         self.output_diameter   = output_diameter
-        self.retina_diameter   = int(resolution_factor * output_diameter)
+        # Argument resolution_factor is used to expand the sensor array so that
+        # the fovea has adequate resolution.  After log-polar transform image
+        # is reduced by this factor back to the output_diameter.
+        self.resolution_factor = 3
+        self.retina_diameter   = int(self.resolution_factor * output_diameter)
         self.fovea_scale       = fovea_scale
         assert(output_diameter // 2 * 2 == output_diameter) # Diameter must be an even number.
         assert(self.retina_diameter // 2 * 2 == self.retina_diameter) # (Resolution Factor X Diameter) must be an even number.
