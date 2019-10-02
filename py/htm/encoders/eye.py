@@ -413,53 +413,6 @@ class Eye:
         self.retina.clearBuffers()
 
 
-class EyeSensorSampler:
-    """
-    Samples eyesensor.rgb, the eye's view.
-
-    Attribute samples is list of RGB numpy arrays.
-    """
-    def __init__(self, eyesensor, sample_period, number_of_samples=30):
-        """
-        This draws its samples directly from the output of eyesensor.view() by
-        wrapping the method.
-        """
-        self.sensor         = sensor = eyesensor
-        self.sensor_compute = sensor.compute
-        self.sensor.compute = self.compute
-        self.age          = 0
-        self.samples      = []
-        number_of_samples = min(number_of_samples, sample_period)   # Don't die.
-        self.schedule     = random.sample(range(sample_period), number_of_samples)
-        self.schedule.sort(reverse=True)
-
-    def compute(self, *args, **kw_args):
-        """Wrapper around eyesensor.view which takes samples"""
-        retval = self.sensor_compute(*args, **kw_args)
-        if self.schedule and self.age == self.schedule[-1]:
-            self.schedule.pop()
-            roi = self.sensor.make_roi_pretty(self.sensor.roi)
-            self.samples.append(roi)
-        self.age += 1
-        return retval
-
-    def view_samples(self, show=True):
-        """Displays the samples."""
-        if not self.samples:
-            return  # Nothing to show...
-        if show is False:
-            return
-        import matplotlib.pyplot as plt
-        plt.figure("Sample views")
-        num = len(self.samples)
-        rows = math.floor(num ** .5)
-        cols = math.ceil(num / rows)
-        for idx, img in enumerate(self.samples):
-            plt.subplot(rows, cols, idx+1)
-            plt.imshow(img[:,:,::-1], interpolation='nearest')
-        if show:
-            plt.show()
-
 
 def _get_images(path):
     """ Returns list of all image files found under the given file path. """
@@ -498,7 +451,6 @@ if __name__ == '__main__':
         print('No images found at file path "%s"!'%args.IMAGE)
     else:
         eye = Eye(plot=True)
-        sampler = EyeSensorSampler(eye, 1000)
         for img_path in images:
             eye.reset()
             print("Loading image %s"%img_path)
@@ -509,4 +461,3 @@ if __name__ == '__main__':
                 eye.show_view()
                 eye.small_random_movement()
         print("All images seen.")
-        sampler.view_samples()
