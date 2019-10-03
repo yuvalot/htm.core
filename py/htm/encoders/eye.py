@@ -119,17 +119,49 @@ class ChannelEncoder:
 class Eye:
     """
     Optic sensor with central fovae.
+    Simulates functionality of eye's retinal parvocellular(P-cells),
+    and magnocellular(M-cells) pathways, at the saccadic steps. 
 
-    Attribute output_sdr ... retina's output
+    On high level, 
+    magno cells: 
+      - detect change in temporal information in the image, ie motion 
+        detection, video processing tasks, ... 
+    parvo cells: 
+      - detect color, shape information in the (static) image. Useful
+        for image classification, etc. 
+    For more details see: 
+    https://foundationsofvision.stanford.edu/chapter-5-the-retinal-representation/#visualinformation
+
+   #TODO the motion-control of "where to look at" is not fully researched 
+   and covered by this code. You need to manually control the positions 
+   of the eye/sensor (where it looks at) at the level of saccades. 
+    
+
+    Attribute output_sdr ... retina's output SDR
+      dimensions are (width, height, 2). The 3rd dimension is for 
+      P,M-cells, which are likely processed separately in the thalamus. 
     Attribute roi ... The most recent view, kept as a attribute.
     Attribute parvo ... SDR with parvocellular pathway (color)
     Attribute magno ... SDR with magnocellular pathway (movement) 
 
     The following three attributes control where the eye is looking within
     the image.  They are Read/Writable.
+      Note: (X,Y,scale,rotation) require manual control by the user, as in the brain
+      this is part of the Motor-Control, which is not in the scope of this encoder. 
+
     Attribute position     (X, Y) coords of eye center within image
-    Attribute orientation  ... units are radians TODO of what? sensor/image
-    Attribute scale        ... TODO
+      (wrt [0,0] corner of the image). Default starting position is the center
+      of the image. 
+    Attribute orientation  ... units are radians, the rotation of the sensor
+      (wrt the image)
+    Attribute scale        ... The scale controls the distance between the eye
+      and the image (scale is similar to distance on Z-axis). 
+      Note: In experiments you typically need to manually tune the `scale` for the dataset, 
+      to find a reasonable value through trial and error.
+      More explanation: "When you look at a really big image, you need to take
+      a few steps back to be able to see the whole thing. The scale parameter 
+      allows the eye to do just that, walk forwards and backwards from the image,
+      to find good place to view it from."
     """
     def __init__(self,
         output_diameter   = 200, #TODO set as percentage of imput image?
