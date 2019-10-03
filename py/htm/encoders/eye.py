@@ -164,7 +164,7 @@ class Eye:
       to find good place to view it from."
     """
     def __init__(self,
-        output_diameter   = 200, #TODO set as percentage of imput image?
+        output_diameter   = 200, # output_sdr size is diameter^2
         sparsity          = .2, #TODO what is biological sparsity on retina?
         mode              = "both",
         color             = True,):
