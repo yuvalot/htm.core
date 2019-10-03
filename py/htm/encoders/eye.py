@@ -170,10 +170,11 @@ class Eye:
         color             = True,):
         """
         Argument output_diameter is size of output ... output is a 
-            field of view (image) with circular shape. Default 200
+            field of view (image) with circular shape. Default 200. 
+            `output_sdr` size is `output_diameter^2`
         Argument sparsity is fraction of bits in eye.output_sdr which are 
             active, on average. Default 0.2 (=20%)
-        Argument mode: one of "parvo", "magno", "both". Which retinal cells 
+        Argument mode: one of "parvo", "magno", "both". Which retinal cells #TODO replace mode with p_m_ratio?
             to emulate. Default "both".
         Argument color: True/False. Emulate color vision, or only B/W?
             Default True.
