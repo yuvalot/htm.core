@@ -435,7 +435,11 @@ class Eye:
           cv2.imshow('Parvocellular', self.parvo_img[:,:,::-1])
         else:
           cv2.imshow('Parvocellular', self.parvo_img)
-        cv2.imshow('Magnocellular', self.magno_img) #TODO also plot the output SDR 
+        cv2.imshow('Magnocellular', self.magno_img)
+        idx = self.parvo_sdr.dense.astype(np.uint8).reshape(self.output_diameter, self.output_diameter)*255
+        cv2.imshow('Parvo SDR', idx)
+        idx = self.magno_sdr.dense.astype(np.uint8).reshape(self.output_diameter, self.output_diameter)*255
+        cv2.imshow('Magno SDR', idx)
         cv2.waitKey(1000)
 
     def input_space_sample_points(self, npoints):
@@ -520,6 +524,6 @@ if __name__ == '__main__':
                 pos,rot,sc = eye.small_random_movement()
                 sdr = eye.compute(pos,rot,sc) #TODO derive from Encoder
                 eye.show_view()
-                print("Sparsity parvo: {}".format(len(eye.parvo_sdr.sparse)/np.product(eye.parvo_sdr.dimensions)))
-                print("Sparsity magno: {}".format(len(eye.magno_sdr.sparse)/np.product(eye.magno_sdr.dimensions)))
+            print("Sparsity parvo: {}".format(len(eye.parvo_sdr.sparse)/np.product(eye.parvo_sdr.dimensions)))
+            print("Sparsity magno: {}".format(len(eye.magno_sdr.sparse)/np.product(eye.magno_sdr.dimensions)))
         print("All images seen.")
