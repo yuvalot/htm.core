@@ -205,13 +205,21 @@ class Eye:
 
         if mode == "both" or mode == "parvo":
           dims = (output_diameter, output_diameter)
+          sparsityP = sparsity
           if color is True: 
             dims = (output_diameter, output_diameter, 3,)
+
+            # The reason the parvo-cellular has `3rd-root of the sparsity` is that there are three color channels (RGB), 
+            # each of which is encoded separately and then combined. The color channels are combined with a logical AND, 
+            # which on average reduces the sparsity.
+            # This same principal applies to any time you combine two encoders with a logical bit-wise AND, the final combined
+            # sparsity would be `sparsity^n`, hence the cubic root for 3 dims: 
+            sparsityP = sparsityP ** (1/3.)
 
           self.parvo_enc = ChannelEncoder(
                             input_shape = dims,
                             num_samples = 1, 
-                            sparsity = sparsity * (1/3.), #biologically, parvocellular pathway is only 33% of the magnocellular (in terms of cells)
+                            sparsity = sparsityP, #TODO biologically, parvocellular pathway is only 33% of the magnocellular (in terms of cells)
                             dtype=np.uint8, drange=[0, 255,])
         else:
           self.parvo_enc = None
