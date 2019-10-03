@@ -195,6 +195,8 @@ class Eye:
         self.color = color
 
         self.output_sdr = SDR((output_diameter, output_diameter, 2,))
+        self.parvo_sdr  = SDR((output_diameter, output_diameter,))
+        self.magno_sdr  = SDR((output_diameter, output_diameter,))
 
         self.retina = cv2.bioinspired.Retina_create(
             inputSize            = (self.retina_diameter, self.retina_diameter),
@@ -365,27 +367,30 @@ class Eye:
         rotation = self.output_diameter * self.orientation / (2 * math.pi)
         rotation = int(round(rotation))
         if self.parvo_enc is not None:
-          self.parvo = np.roll(parvo, rotation, axis=0)
+          self.parvo_img = np.roll(parvo, rotation, axis=0)
         if self.magno_enc is not None:
-          self.magno = np.roll(magno, rotation, axis=0)
+          self.magno_img = np.roll(magno, rotation, axis=0)
 
         # Encode images into SDRs.
         p = []
         m = []
         if self.parvo_enc is not None:
-          p   = self.parvo_enc.encode(self.parvo)
+          p   = self.parvo_enc.encode(parvo)
           if self.color:
             pr, pg, pb = np.dsplit(p, 3)
             p   = np.logical_and(np.logical_and(pr, pg), pb)
           p   = np.expand_dims(np.squeeze(p), axis=2)
           sdr = p
         if self.magno_enc is not None:
-          m   = self.magno_enc.encode(self.magno)
+          m   = self.magno_enc.encode(magno)
           sdr = m
         if self.magno_enc is not None and self.parvo_enc is not None:
           sdr = np.concatenate([p, m], axis=2)
 
         self.output_sdr.dense = sdr
+        self.magno_sdr.dense = m.flatten()
+        self.parvo_sdr.dense = p.flatten()
+
         return self.output_sdr
 
 
@@ -427,10 +432,10 @@ class Eye:
         roi = self.make_roi_pretty()
         cv2.imshow('Region Of Interest', roi)
         if self.color:
-          cv2.imshow('Parvocellular', self.parvo[:,:,::-1])
+          cv2.imshow('Parvocellular', self.parvo_img[:,:,::-1])
         else:
-          cv2.imshow('Parvocellular', self.parvo)
-        cv2.imshow('Magnocellular', self.magno) #TODO also plot the output SDR 
+          cv2.imshow('Parvocellular', self.parvo_img)
+        cv2.imshow('Magnocellular', self.magno_img) #TODO also plot the output SDR 
         cv2.waitKey(1000)
 
     def input_space_sample_points(self, npoints):
@@ -515,6 +520,6 @@ if __name__ == '__main__':
                 pos,rot,sc = eye.small_random_movement()
                 sdr = eye.compute(pos,rot,sc) #TODO derive from Encoder
                 eye.show_view()
-                print("Sparsity: {}".format(len(sdr.sparse)/np.product(sdr.dimensions)))
-                print(sdr.dimensions) #TODO make SDR 2D, diameter x diameter. not current (200, 200, 2) 
+                print("Sparsity parvo: {}".format(len(eye.parvo_sdr.sparse)/np.product(eye.parvo_sdr.dimensions)))
+                print("Sparsity magno: {}".format(len(eye.magno_sdr.sparse)/np.product(eye.magno_sdr.dimensions)))
         print("All images seen.")
