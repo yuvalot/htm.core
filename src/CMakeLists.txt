@@ -187,8 +187,6 @@ set(utils_files
     htm/utils/VectorHelpers.hpp
     htm/utils/SdrMetrics.cpp
     htm/utils/SdrMetrics.hpp
-    htm/utils/StlIo.cpp
-    htm/utils/StlIo.hpp
     htm/utils/Topology.cpp
     htm/utils/Topology.hpp
 )
@@ -240,7 +238,7 @@ endif()
 target_compile_definitions(${src_objlib} PRIVATE ${COMMON_COMPILER_DEFINITIONS})
 target_include_directories(${src_objlib} PRIVATE 
 		${CORE_LIB_INCLUDES} 
-		${EXTERNAL_INCLUDES}
+		SYSTEM ${EXTERNAL_INCLUDES}
 		)
 
 if(${HTM_IWYU})
@@ -440,6 +438,10 @@ install(DIRECTORY "${CMAKE_INSTALL_PREFIX}/distr/dist/"
 	  MESSAGE_NEVER
 	  DESTINATION py
 	  FILES_MATCHING PATTERN "*.whl")
+
+# copy requirements.txt into dist/ 
+install(FILES ${REPOSITORY_DIR}/requirements.txt
+        DESTINATION distr/dist)
 
 
 ############### PACKAGE ###########################
