@@ -193,12 +193,9 @@ class Eye:
    of the eye/sensor (where it looks at) at the level of saccades. 
     
 
-    Attribute output_sdr ... retina's output SDR
-      dimensions are (width, height, 2). The 3rd dimension is for 
-      P,M-cells, which are likely processed separately in the thalamus. 
     Attribute roi ... The most recent view, kept as a attribute.
-    Attribute parvo ... SDR with parvocellular pathway (color)
-    Attribute magno ... SDR with magnocellular pathway (movement) 
+    Attribute parvo_sdr ... SDR with parvocellular pathway (color)
+    Attribute magno_sdr ... SDR with magnocellular pathway (movement) 
 
     The following three attributes control where the eye is looking within
     the image.  They are Read/Writable.
@@ -222,14 +219,14 @@ class Eye:
 
 
     def __init__(self,
-        output_diameter   = 200, # output_sdr size is diameter^2
+        output_diameter   = 200, # output SDR size is diameter^2
         sparsityParvo     = 0.2,
         sparsityMagno     = 0.025,
         color             = True,):
         """
         Argument output_diameter is size of output ... output is a 
             field of view (image) with circular shape. Default 200. 
-            `output_sdr` size is `output_diameter^2`
+            `parvo/magno_sdr` size is `output_diameter^2`
         Argument `sparsityParvo` - sparsity of parvo-cellular pathway of the eye.
             As a simplification, "parvo" cells (P-cells) represent colors, static 
             object's properties (shape,...) and are used for image classification. 
@@ -266,9 +263,6 @@ class Eye:
           assert(sparsityParvo > 0)
         self.color = color
 
-        self.output_sdr = SDR((output_diameter, output_diameter, 2,))
-        self.parvo_sdr  = SDR((output_diameter, output_diameter,))
-        self.magno_sdr  = SDR((output_diameter, output_diameter,))
 
         self.retina = cv2.bioinspired.Retina_create(
             inputSize            = (self.retina_diameter, self.retina_diameter),
@@ -283,7 +277,7 @@ class Eye:
 
           sparsityP_ = sparsityParvo
           if color is True: 
-            dims = (output_diameter, output_diameter, 3,)
+            dims = (output_diameter, output_diameter, 3,) #3 for RGB color channels
 
             # The reason the parvo-cellular has `3rd-root of the sparsity` is that there are three color channels (RGB), 
             # each of which is encoded separately and then combined. The color channels are combined with a logical AND, 
@@ -309,8 +303,13 @@ class Eye:
         else:
           self.magno_enc = None
 
-        # the current input image
-        self.image = None
+        # output variables:
+        self.image = None # the current input RGB image
+        self.roi   = None # self.image cropped to region of interest
+        self.parvo_img = None # output visualization of parvo/magno cells
+        self.magno_img = None
+        self.parvo_sdr  = SDR((output_diameter, output_diameter,)) # parvo/magno cellular representation (SDR)
+        self.magno_sdr  = SDR((output_diameter, output_diameter,))
 
 
     def new_image(self, image):
@@ -352,6 +351,7 @@ class Eye:
         """Set the eye's view point to a random location"""
         if scale_range is None:
             scale_range = [2, min(self.image.shape[:2]) / self.retina_diameter]
+        assert(len(scale_range) == 2)
         self.orientation = random.uniform(0, 2 * math.pi)
         self.scale       = random.uniform(min(scale_range), max(scale_range))
         roi_radius       = self.scale * self.retina_diameter / 2
@@ -400,7 +400,8 @@ class Eye:
     def compute(self, position=None, rotation=None, scale=None):
         """
         Arguments position, rotation, scale: optional, if not None, the self.xxx is overriden
-          with the provided value. 
+          with the provided value.
+        Returns tuple (SDR parvo, SDR magno) 
         """
         # set position
         if position is not None:
@@ -410,6 +411,7 @@ class Eye:
         if scale is not None:
           self.scale=scale
 
+        # apply field of view (FOV)
         self.roi = self._crop_roi()
 
         # Retina image transforms (Parvo & Magnocellular).
@@ -424,16 +426,16 @@ class Eye:
         M      = self.retina_diameter * self.fovea_scale
         if self.parvo_enc is not None:
           parvo = cv2.logPolar(parvo,
-            center = (center, center),
-            M      = M,
-            flags  = cv2.WARP_FILL_OUTLIERS)
+                               center = (center, center),
+                               M = M,
+                               flags = cv2.WARP_FILL_OUTLIERS)
           parvo = np.array(Image.fromarray(parvo).resize( (self.output_diameter, self.output_diameter)))
 
         if self.magno_enc is not None:
           magno = cv2.logPolar(magno,
-            center = (center, center),
-            M      = M,
-            flags  = cv2.WARP_FILL_OUTLIERS)
+                               center = (center, center),
+                               M = M,
+                               flags = cv2.WARP_FILL_OUTLIERS)
           magno = np.array(Image.fromarray(magno).resize( (self.output_diameter, self.output_diameter)))
 
         # Apply rotation by rolling the images around axis 1.
@@ -453,18 +455,13 @@ class Eye:
             pr, pg, pb = np.dsplit(p, 3)
             p   = np.logical_and(np.logical_and(pr, pg), pb)
           p   = np.expand_dims(np.squeeze(p), axis=2)
-          sdr = p
         if self.magno_enc is not None:
           m   = self.magno_enc.encode(magno)
-          sdr = m
-        if self.magno_enc is not None and self.parvo_enc is not None:
-          sdr = np.concatenate([p, m], axis=2)
 
-        self.output_sdr.dense = sdr
         self.magno_sdr.dense = m.flatten()
         self.parvo_sdr.dense = p.flatten()
 
-        return self.output_sdr
+        return (self.parvo_sdr, self.magno_sdr)
 
 
     def make_roi_pretty(self, roi=None):
@@ -551,6 +548,7 @@ class Eye:
 
 
 
+
 def _get_images(path):
     """ Returns list of all image files found under the given file path. """
     image_extensions = [
@@ -595,7 +593,7 @@ if __name__ == '__main__':
             eye.scale = 1
             for i in range(10):
                 pos,rot,sc = eye.small_random_movement()
-                sdr = eye.compute(pos,rot,sc) #TODO derive from Encoder
+                (sdrParvo, sdrMagno) = eye.compute(pos,rot,sc) #TODO derive from Encoder
                 eye.show_view()
             print("Sparsity parvo: {}".format(len(eye.parvo_sdr.sparse)/np.product(eye.parvo_sdr.dimensions)))
             print("Sparsity magno: {}".format(len(eye.magno_sdr.sparse)/np.product(eye.magno_sdr.dimensions)))
