@@ -34,7 +34,63 @@ class ChannelEncoder:
     active if its corresponding input falls in its range.  By using random
     ranges, each bit represents a different thing even if it mostly overlaps
     with other comparable bits.  This way redundant bits add meaning.
+
+    Further explanation for this encoder (which is currently only used by 
+    Retina): 
+
+    Two requirements for encoding SDRs are that every bit of information represents
+    a range of possible values, and that for every input multiple bits activate in the SDR. 
+    The effects of these requirements are that each output bit is inaccurate and redundant. 
+    This encoder makes every output bit receptive to a unique range of inputs, 
+    which are uniformly distributed throughout the input space. This meets the requirements 
+    for being an SDR and has more representational power than if many of the bits 
+    represented the identical input ranges. 
+    This design makes all of those redundancies add useful information.
+
+    1. Semantic similarity happens when two inputs which are similar have similar SDR representations. 
+    This encoder design does two things to cause semantic similarity: 
+    (1) SDR bits are responsive to a range of input values, 
+    and (2) topology allows near by bits to represent similar things.
+
+    Many encoders apply thresholds to real valued input data to convert the input 
+    into Boolean outputs. In this encoder uses two thresholds to form ranges which 
+    are referred to as ‘bins’. A small change in the input value might cause some 
+    of the output bits to change and a large change in input value will cause all 
+    of the output bits to change. How sensitive the output bits are to changes 
+    in the input value -the semantic similarity- is determined by the sizes of the bins. 
+    The sizes of the bins are in turn determined by the sparsity, as follows:
+    - Assume that the inputs are distributed in a uniform random way throughout the input range. 
+    - The size of the bins then determines the probability that an input value will fall inside of a bin. 
+    This means that the sparsity is related to the size of the bins, 
+    which in turn means that the sparsity is related to the amount of semantic similarity. 
+    This may seem counter-intuitive but this same property holds true for all 
+    encoders which use bins to convert real numbers into discrete bits.
+
+    2. This encoder relies on topology in the input image, 
+    the idea that adjacent pixels in the input image are likely to show the same thing. 
+    If an area of the output SDR can not represent a color because it did not generate
+    the bins needed to, then it may still be near to a pixel which does represent the color. 
+    In the case where there are less than one active output bits per input pixel, 
+    multiple close together outputs can work together to represent the input. 
+    Also, if an output bit changes in response to a small change in input, 
+    then some semantic similarity is lost. 
+    Topology allows nearby outputs to represent the same thing, 
+    and since each output uses random bins they will not all change when 
+    the input reaches a single threshold.
+
+    Note about sparsity and color channels:
+      To encode color images create separate encoders for each color channel. 
+      Then recombine the output SDRs into a single monolithic SDR by multiplying them together. 
+      Multiplication is equivalent to logical “and” in this situation. 
+      Notice that the combined SDR’s sparsity is the different; the fraction of bits which 
+      are active in the combined SDR is the product of the fraction of the bits 
+      which are active in all input SDRs. 
+      For example, to make an encoder with 8 bits per pixel and a sparsity of 1/8: 
+      create three encoders with 8 bits per pixel and a sparsity of 1/2.
+
+    ~see more Numenta forums. 
     """
+
     def __init__(self, input_shape, num_samples, sparsity,
         dtype       = np.float64,
         drange      = range(0,1),
