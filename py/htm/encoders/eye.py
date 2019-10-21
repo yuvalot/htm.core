@@ -163,21 +163,32 @@ class Eye:
       allows the eye to do just that, walk forwards and backwards from the image,
       to find good place to view it from."
     """
+
+
     def __init__(self,
         output_diameter   = 200, # output_sdr size is diameter^2
-        sparsity          = .2, #TODO what is biological sparsity on retina?
-        mode              = "both",
+        sparsityParvo     = 0.2,
+        sparsityMagno     = 0.025,
         color             = True,):
         """
         Argument output_diameter is size of output ... output is a 
             field of view (image) with circular shape. Default 200. 
             `output_sdr` size is `output_diameter^2`
-        Argument sparsity is fraction of bits in eye.output_sdr which are 
-            active, on average. Default 0.2 (=20%)
-        Argument mode: one of "parvo", "magno", "both". Which retinal cells #TODO replace mode with p_m_ratio?
-            to emulate. Default "both".
-        Argument color: True/False. Emulate color vision, or only B/W?
-            Default True.
+        Argument `sparsityParvo` - sparsity of parvo-cellular pathway of the eye.
+            As a simplification, "parvo" cells (P-cells) represent colors, static 
+            object's properties (shape,...) and are used for image classification. 
+            For biologically accurate details see eg. 
+            https://foundationsofvision.stanford.edu/chapter-5-the-retinal-representation/
+            The sparsity of the retinal output is the sum of sparsityParvo + sparsityMagno, 
+            which is represented in `Eye.sparsity` and represents sparsity of the output SDR. 
+            Note: biologically, the ratio between P/M-cells is about 8(P):1(M):(1 rest), see
+            https://www.pnas.org/content/94/11/5900
+        Argument `sparsityMagno` - sparsity of the magno-cellular (M-cells) pathway, which
+            transfers (higly) temporal information in the visual data, as use "used" for
+            motion detection and motion tracking, video processing.
+            For details see @param `sparsityParvo`.
+            TODO: output of M-cells should be processed on a fast TM.
+        Argument color: use color vision (requires P-cells > 0), default true.
         """
         self.output_diameter   = output_diameter
         # Argument resolution_factor is used to expand the sensor array so that
@@ -189,9 +200,14 @@ class Eye:
         self.fovea_scale       = 0.177
         assert(output_diameter // 2 * 2 == output_diameter) # Diameter must be an even number.
         assert(self.retina_diameter // 2 * 2 == self.retina_diameter) # (Resolution Factor X Diameter) must be an even number.
-        assert(mode in ["magno", "parvo", "both"])
-        assert(color is False or color is True)
-        # color, or B/W vision
+        assert(sparsityParvo >= 0 and sparsityParvo <= 1.0)
+        self.sparsityParvo = sparsityParvo
+        assert(sparsityMagno >= 0 and sparsityMagno <= 1.0)
+        self.sparsityMagno = sparsityMagno
+        self.sparsity = sparsityParvo + sparsityMagno
+        assert(self.sparsity > 0 and self.sparsity <= 1.0)
+        if color is True:
+          assert(sparsityParvo > 0)
         self.color = color
 
         self.output_sdr = SDR((output_diameter, output_diameter, 2,))
@@ -206,9 +222,10 @@ class Eye:
         print(self.retina.printSetup())
         print()
 
-        if mode == "both" or mode == "parvo":
+        if sparsityParvo > 0:
           dims = (output_diameter, output_diameter)
-          sparsityP = sparsity
+
+          sparsityP_ = sparsityParvo
           if color is True: 
             dims = (output_diameter, output_diameter, 3,)
 
@@ -217,21 +234,21 @@ class Eye:
             # which on average reduces the sparsity.
             # This same principal applies to any time you combine two encoders with a logical bit-wise AND, the final combined
             # sparsity would be `sparsity^n`, hence the cubic root for 3 dims: 
-            sparsityP = sparsityP ** (1/3.)
+            sparsityP_ = sparsityParvo ** (1/3.)
 
           self.parvo_enc = ChannelEncoder(
                             input_shape = dims,
                             num_samples = 1, 
-                            sparsity = sparsityP, #TODO biologically, parvocellular pathway is only 33% of the magnocellular (in terms of cells)
+                            sparsity = sparsityP_,
                             dtype=np.uint8, drange=[0, 255,])
         else:
           self.parvo_enc = None
 
-        if mode == "both" or mode == "magno":
+        if sparsityMagno > 0:
           self.magno_enc = ChannelEncoder(
                             input_shape = (output_diameter, output_diameter),
                             num_samples = 1, 
-                            sparsity = sparsity,
+                            sparsity = sparsityMagno,
                             dtype=np.uint8, drange=[0, 255],)
         else:
           self.magno_enc = None
