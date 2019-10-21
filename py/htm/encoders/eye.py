@@ -361,12 +361,18 @@ class Eye:
     def _crop_roi(self):
         """
         Crop to Region Of Interest (ROI) which contains the whole field of view.
-        Note that the size of the ROI is (eye.output_diameter *
-        eye.resolution_factor).
+        Adds a black circular boarder to mask out areas which the eye can't see.
+
+        Note: size of the ROI is (eye.output_diameter * eye.resolution_factor).
+        Note: the circular boarder is actually a bit too far out, playing with
+          eye.fovea_scale can hide areas which this ROI image will show.
 
         Arguments: eye.scale, eye.position, eye.image
 
-        Returns RGB image.
+        Returns RGB image (diameter * diameter, but effectively cropped to an 
+          inner circle - FOV). 
+
+        See also, @see make_roi_pretty()
         """
         assert(self.image is not None)
 
@@ -375,12 +381,14 @@ class Eye:
         x     = int(round(x))
         y     = int(round(y))
         x_max, y_max, color_depth = self.image.shape
+
         # Find the boundary of the ROI and slice out the image.
         x_low  = max(0, x-r)
         x_high = min(x_max, x+r)
         y_low  = max(0, y-r)
         y_high = min(y_max, y+r)
         image_slice = self.image[x_low : x_high, y_low : y_high]
+
         # Make the ROI and insert the image into it.
         roi = np.zeros((2*r, 2*r, 3,), dtype=np.uint8)
         if x-r < 0:
@@ -393,9 +401,17 @@ class Eye:
             y_offset = 0
         x_shape, y_shape, color_depth = image_slice.shape
         roi[x_offset:x_offset+x_shape, y_offset:y_offset+y_shape] = image_slice
+
         # Rescale the ROI to remove the scaling effect.
         roi = np.array(Image.fromarray(roi).resize( (self.retina_diameter, self.retina_diameter)))
+
+        # Mask out areas the eye can't see by drawing a circle boarder.
+        center = int(roi.shape[0] / 2)
+        circle_mask = np.zeros(roi.shape, dtype=np.uint8)
+        cv2.circle(circle_mask, (center, center), center, thickness = -1, color=(255,255,255))
+        roi = np.minimum(roi, circle_mask)
         return roi
+
 
     def compute(self, position=None, rotation=None, scale=None):
         """
@@ -460,6 +476,8 @@ class Eye:
 
         self.magno_sdr.dense = m.flatten()
         self.parvo_sdr.dense = p.flatten()
+        assert(len(self.magno_sdr.sparse) > 0)
+        assert(len(self.parvo_sdr.sparse) > 0)
 
         return (self.parvo_sdr, self.magno_sdr)
 
@@ -467,12 +485,10 @@ class Eye:
     def make_roi_pretty(self, roi=None):
         """
         Makes the eye's view look more presentable.
-        - Adds a black circular boarder to mask out areas which the eye can't see
-          Note that this boarder is actually a bit too far out, playing with
-          eye.fovea_scale can hide areas which this ROI image will show.
         - Adds 5 dots to the center of the image to show where the fovea is.
 
         Returns an RGB image.
+        See _crop_roi()
         """
         if roi is None:
             roi = self.roi
@@ -484,13 +500,8 @@ class Eye:
         M   = cv2.getRotationMatrix2D((cols / 2, rows / 2), angle, 1)
         roi = cv2.warpAffine(roi, M, (cols,rows))
 
-        # Mask out areas the eye can't see by drawing a circle boarder.
-        center = int(roi.shape[0] / 2)
-        circle_mask = np.zeros(roi.shape, dtype=np.uint8)
-        cv2.circle(circle_mask, (center, center), center, thickness = -1, color=(255,255,255))
-        roi = np.minimum(roi, circle_mask)
-
         # Invert 5 pixels in the center to show where the fovea is located.
+        center = int(roi.shape[0] / 2)
         roi[center, center]     = np.full(3, 255) - roi[center, center]
         roi[center+2, center+2] = np.full(3, 255) - roi[center+2, center+2]
         roi[center-2, center+2] = np.full(3, 255) - roi[center-2, center+2]
@@ -498,7 +509,8 @@ class Eye:
         roi[center+2, center-2] = np.full(3, 255) - roi[center+2, center-2]
         return roi
 
-    def show_view(self, window_name='Eye'):
+
+    def plot(self, window_name='Eye', delay=1000):
         roi = self.make_roi_pretty()
         cv2.imshow('Region Of Interest', roi)
         if self.color:
@@ -510,25 +522,8 @@ class Eye:
         cv2.imshow('Parvo SDR', idx)
         idx = self.magno_sdr.dense.astype(np.uint8).reshape(self.output_diameter, self.output_diameter)*255
         cv2.imshow('Magno SDR', idx)
-        cv2.waitKey(1000)
+        cv2.waitKey(delay)
 
-    def input_space_sample_points(self, npoints):
-        """
-        Returns a sampling of coordinates which the eye is currently looking at.
-        Use the result to determine the actual label of the image in the area
-        where the eye is looking.
-        """
-        # Find the retina's radius in the image.
-        r = int(round(self.scale * self.retina_diameter / 2))
-        # Shrink the retina's radius so that sample points are nearer the fovea.
-        # Also shrink radius B/C this does not account for the diagonal
-        # distance, just the manhattan distance.
-        r = r * 2/3
-        # Generate points.
-        coords = np.random.random_integers(-r, r, size=(npoints, 2))
-        # Add this position offset.
-        coords += np.array(np.rint(self.position), dtype=np.int).reshape(1, 2)
-        return coords
 
     def small_random_movement(self):
         """returns small difference in position, rotation, scale.
@@ -591,10 +586,11 @@ if __name__ == '__main__':
             print("Loading image %s"%img_path)
             eye.new_image(img_path)
             eye.scale = 1
+            eye.center_view()
             for i in range(10):
                 pos,rot,sc = eye.small_random_movement()
                 (sdrParvo, sdrMagno) = eye.compute(pos,rot,sc) #TODO derive from Encoder
-                eye.show_view()
+                eye.plot(500)
             print("Sparsity parvo: {}".format(len(eye.parvo_sdr.sparse)/np.product(eye.parvo_sdr.dimensions)))
             print("Sparsity magno: {}".format(len(eye.magno_sdr.sparse)/np.product(eye.magno_sdr.dimensions)))
         print("All images seen.")
