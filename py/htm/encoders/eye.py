@@ -311,8 +311,8 @@ class Eye:
         # output variables:
         self.image = np.zeros(self.retina.getInputSize()) # the current input RGB image
         self.roi   = None # self.image cropped to region of interest
-        self.parvo_img = np.zeros(self.retina.getOutputSize()) # output visualization of parvo/magno cells
-        self.magno_img = np.zeros(self.retina.getOutputSize())
+        #self.retina.getParvo() # output visualization of parvo/magno cells
+        #self.retina.getMagno()
         self.parvo_sdr  = SDR(self.retina.getOutputSize()) # parvo/magno cellular representation (SDR)
         self.magno_sdr  = SDR(self.retina.getOutputSize())
         
@@ -458,27 +458,19 @@ class Eye:
 
         # Retina image transforms (Parvo & Magnocellular).
         self.retina.run(self.roi)
-        if self.parvo_enc is not None:
-          parvo = self.retina.getParvo()
-          self.parvo_img = parvo
-        if self.magno_enc is not None:
-          magno = self.retina.getMagno()
-          self.magno_img = magno
 
         # Encode images into SDRs.
-        p = []
-        m = []
         if self.parvo_enc is not None:
-          p   = self.parvo_enc.encode(parvo)
+          p   = self.parvo_enc.encode(self.retina.getParvo())
           if self.color:
             pr, pg, pb = np.dsplit(p, 3)
             p   = np.logical_and(np.logical_and(pr, pg), pb)
           p   = np.expand_dims(np.squeeze(p), axis=2)
+          self.parvo_sdr.dense = p.flatten()
         if self.magno_enc is not None:
-          m   = self.magno_enc.encode(magno)
+          m   = self.magno_enc.encode(self.retina.getMagno())
+          self.magno_sdr.dense = m.flatten()
 
-        self.magno_sdr.dense = m.flatten()
-        self.parvo_sdr.dense = p.flatten()
         assert(len(self.magno_sdr.sparse) > 0)
         assert(len(self.parvo_sdr.sparse) > 0)
 
@@ -517,10 +509,10 @@ class Eye:
         roi = self.make_roi_pretty()
         cv2.imshow('Region Of Interest', roi)
         if self.color:
-          cv2.imshow('Parvocellular', self.parvo_img[:,:,::-1])
+          cv2.imshow('Parvocellular', self.retina.getParvo()[:,:,::-1])
         else:
-          cv2.imshow('Parvocellular', self.parvo_img)
-        cv2.imshow('Magnocellular', self.magno_img)
+          cv2.imshow('Parvocellular', self.retina.getParvo())
+        cv2.imshow('Magnocellular', self.retina.getMagno())
         idx = self.parvo_sdr.dense.astype(np.uint8).reshape(self.retina.getOutputSize())*255
         cv2.imshow('Parvo SDR', idx)
         idx = self.magno_sdr.dense.astype(np.uint8).reshape(self.retina.getOutputSize())*255
