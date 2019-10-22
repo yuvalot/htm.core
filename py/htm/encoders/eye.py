@@ -261,10 +261,10 @@ class Eye:
           assert(sparsityParvo > 0)
         self.color = color
 
-        reductionFactor_ = inputShape[0]/output_diameter #TODO how would this work with non-square images?
+        reductionFactor_ = max(inputShape)/output_diameter
         assert(reductionFactor_ >= 1.0)
         self.retina = cv2.bioinspired.Retina_create(
-            inputSize            = inputShape,
+            inputSize            = (max(inputShape), max(inputShape)), #FIXME avoid transformation to the bigger square, work with rectangles
             colorMode            = color,
             colorSamplingMethod  = cv2.bioinspired.RETINA_COLOR_BAYER,
             useRetinaLogSampling = True,
@@ -453,16 +453,14 @@ class Eye:
         self.roi = self._crop_roi()
 
         # Retina image transforms (Parvo & Magnocellular).
-        print("IMG", self.image.shape)
         self.retina.run(self.roi)
         if self.parvo_enc is not None:
           parvo = self.retina.getParvo()
-          print("RAW", parvo.shape)
         if self.magno_enc is not None:
           magno = self.retina.getMagno()
 
         # Apply rotation by rolling the images around axis 1.
-        rotation = self.retina.getOutputSize()[0] * self.orientation / (2 * math.pi) #TODO rotate before retina processes stuff
+        rotation = max(self.retina.getOutputSize()) * self.orientation / (2 * math.pi) #TODO rotate before retina processes stuff
         rotation = int(round(rotation))
         if self.parvo_enc is not None:
           self.parvo_img = np.roll(parvo, rotation, axis=0)
