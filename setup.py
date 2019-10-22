@@ -401,7 +401,6 @@ if __name__ == "__main__":
                     'matplotlib':'examples',
                     'scipy':'examples',
                     'opencv-contrib-python': 'examples', #for cv2.bioinspired for RetinaEncoder
-                    'Pillow': 'examples'
     },
     zip_safe=False,
     cmdclass={

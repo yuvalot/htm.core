@@ -23,7 +23,6 @@ import random
 
 import numpy as np
 import cv2 # pip install opencv-contrib-python
-from PIL import Image # pip Pillow
 
 from htm.bindings.sdr import SDR
 
@@ -321,7 +320,8 @@ class Eye:
         """
         # Load image if needed.
         if isinstance(image, str):
-            self.image = np.array(Image.open(image), copy=False)
+            self.image = cv2.imread(image)
+            self.image = cv2.cvtColor(self.image, cv2.COLOR_BGR2RGB)
         else:
             self.image = image
         # Get the image into the right format.
@@ -403,7 +403,7 @@ class Eye:
         roi[x_offset:x_offset+x_shape, y_offset:y_offset+y_shape] = image_slice
 
         # Rescale the ROI to remove the scaling effect.
-        roi = np.array(Image.fromarray(roi).resize( (self.retina_diameter, self.retina_diameter)))
+        roi.resize( (self.retina_diameter, self.retina_diameter, 3))
 
         # Mask out areas the eye can't see by drawing a circle boarder.
         center = int(roi.shape[0] / 2)
@@ -445,14 +445,14 @@ class Eye:
                                center = (center, center),
                                M = M,
                                flags = cv2.WARP_FILL_OUTLIERS)
-          parvo = np.array(Image.fromarray(parvo).resize( (self.output_diameter, self.output_diameter)))
+          parvo = cv2.resize(parvo,  dsize=(self.output_diameter, self.output_diameter), interpolation = cv2.INTER_CUBIC)
 
         if self.magno_enc is not None:
           magno = cv2.logPolar(magno,
                                center = (center, center),
                                M = M,
                                flags = cv2.WARP_FILL_OUTLIERS)
-          magno = np.array(Image.fromarray(magno).resize( (self.output_diameter, self.output_diameter)))
+          magno = cv2.resize(magno, dsize=(self.output_diameter, self.output_diameter), interpolation = cv2.INTER_CUBIC)
 
         # Apply rotation by rolling the images around axis 1.
         rotation = self.output_diameter * self.orientation / (2 * math.pi)
