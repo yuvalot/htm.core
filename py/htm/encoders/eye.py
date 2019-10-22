@@ -49,7 +49,7 @@ class ChannelEncoder:
     1. Semantic similarity happens when two inputs which are similar have similar SDR representations. 
     This encoder design does two things to cause semantic similarity: 
     (1) SDR bits are responsive to a range of input values, 
-    and (2) topology allows near by bits to represent similar things.
+    (2) topology allows near by bits to represent similar things.
 
     Many encoders apply thresholds to real valued input data to convert the input 
     into Boolean outputs. In this encoder uses two thresholds to form ranges which 
@@ -86,8 +86,10 @@ class ChannelEncoder:
       which are active in all input SDRs. 
       For example, to make an encoder with 8 bits per pixel and a sparsity of 1/8: 
       create three encoders with 8 bits per pixel and a sparsity of 1/2.
-
-    ~see more Numenta forums. 
+ 
+    For more on encoding see: 
+    Encoding Data for HTM Systems, Scott Purdy 2016, 
+    https://arxiv.org/abs/1602.05925
     """
 
     def __init__(self, input_shape, num_samples, sparsity,
@@ -118,7 +120,8 @@ class ChannelEncoder:
         self.input_shape  = tuple(input_shape)
         self.num_samples  = int(round(num_samples))
         self.sparsity     = sparsity
-        self.output_shape = self.input_shape + (self.num_samples,)
+        self.dimensions   = self.input_shape + (self.num_samples,) # output shape
+        self.size         = np.prod(self.dimensions)
         self.dtype        = dtype
         self.drange       = drange
         self.len_drange   = max(drange) - min(drange)
@@ -132,7 +135,7 @@ class ChannelEncoder:
             # truncated near the edges.
             centers = np.random.uniform(min(self.drange) + radius,
                                         max(self.drange) - radius,
-                                        size=self.output_shape)
+                                        size=self.dimensions)
         else:
             # Buckets near the edges of the datarange are OK.  They will not
             # respond to a full range of input values but are needed to
@@ -149,7 +152,7 @@ class ChannelEncoder:
             radius         = len_pad_drange * self.sparsity / 2
             centers = np.random.uniform(min(pad_drange),
                                         max(pad_drange),
-                                        size=self.output_shape)
+                                        size=self.dimensions)
         # Make the lower and upper bounds of the ranges.
         low  = np.clip(centers - radius, min(self.drange), max(self.drange))
         high = np.clip(centers + radius, min(self.drange), max(self.drange))
@@ -157,7 +160,12 @@ class ChannelEncoder:
         self.high = np.array(high, dtype=self.dtype)
 
     def encode(self, img):
-        """Returns a dense boolean np.ndarray."""
+        """
+        Argument img - ndarray
+        Returns a SDR
+        """
+        #assert(isinstance(inp, SDR)) #TODO make Channel take SDR as input too
+        #img = np.ndarray(inp.dense).reshape(self.input_shape)
         assert(img.shape == self.input_shape)
         assert(img.dtype == self.dtype)
         if self.wrap:
@@ -168,7 +176,10 @@ class ChannelEncoder:
             img %= self.len_drange
             img += min(self.drange)
         img = img.reshape(img.shape + (1,))
-        return np.logical_and(self.low <= img, img <= self.high)
+        img = np.logical_and(self.low <= img, img <= self.high)
+        enc = SDR(self.dimensions)
+        enc.dense = img
+        return enc
 
 
 class Eye:
@@ -463,19 +474,16 @@ class Eye:
           self.magno_img = np.roll(magno, rotation, axis=0)
 
         # Encode images into SDRs.
-        p = []
-        m = []
         if self.parvo_enc is not None:
-          p   = self.parvo_enc.encode(parvo)
+          p   = self.parvo_enc.encode(parvo).dense
           if self.color:
             pr, pg, pb = np.dsplit(p, 3)
             p   = np.logical_and(np.logical_and(pr, pg), pb)
           p   = np.expand_dims(np.squeeze(p), axis=2)
+          self.parvo_sdr.dense = p.flatten()
         if self.magno_enc is not None:
-          m   = self.magno_enc.encode(magno)
+          self.magno_sdr = self.magno_enc.encode(magno)
 
-        self.magno_sdr.dense = m.flatten()
-        self.parvo_sdr.dense = p.flatten()
         assert(len(self.magno_sdr.sparse) > 0)
         assert(len(self.parvo_sdr.sparse) > 0)
 
