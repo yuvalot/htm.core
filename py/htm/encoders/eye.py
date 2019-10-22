@@ -231,8 +231,6 @@ class Eye:
             object's properties (shape,...) and are used for image classification. 
             For biologically accurate details see eg. 
             https://foundationsofvision.stanford.edu/chapter-5-the-retinal-representation/
-            The sparsity of the retinal output is the sum of sparsityParvo + sparsityMagno, 
-            which is represented in `Eye.sparsity` and represents sparsity of the output SDR. 
             Note: biologically, the ratio between P/M-cells is about 8(P):1(M):(1 rest), see
             https://www.pnas.org/content/94/11/5900
         Argument `sparsityMagno` - sparsity of the magno-cellular (M-cells) pathway, which
@@ -253,11 +251,13 @@ class Eye:
         assert(output_diameter // 2 * 2 == output_diameter) # Diameter must be an even number.
         assert(self.retina_diameter // 2 * 2 == self.retina_diameter) # (Resolution Factor X Diameter) must be an even number.
         assert(sparsityParvo >= 0 and sparsityParvo <= 1.0)
+        if sparsityParvo > 0:
+          assert(sparsityParvo * (self.retina_diameter **2) > 0)
         self.sparsityParvo = sparsityParvo
         assert(sparsityMagno >= 0 and sparsityMagno <= 1.0)
+        if sparsityMagno > 0:
+          assert(sparsityMagno * (self.retina_diameter **2) > 0)
         self.sparsityMagno = sparsityMagno
-        self.sparsity = sparsityParvo + sparsityMagno
-        assert(self.sparsity > 0 and self.sparsity <= 1.0)
         if color is True:
           assert(sparsityParvo > 0)
         self.color = color
@@ -421,7 +421,7 @@ class Eye:
         """
         # set position
         if position is not None:
-          self.position = pos
+          self.position = position
         if rotation is not None:
           self.orientation=rotation
         if scale is not None:
