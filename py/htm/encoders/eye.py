@@ -48,8 +48,8 @@ class ChannelEncoder:
 
     1. Semantic similarity happens when two inputs which are similar have similar SDR representations. 
     This encoder design does two things to cause semantic similarity: 
-    (1) SDR bits are responsive to a range of input values, 
-    and (2) topology allows near by bits to represent similar things.
+    (1) SDR bits are responsive to a range of input values, and
+    (2) topology allows nearby bits to represent similar things.
 
     Many encoders apply thresholds to real valued input data to convert the input 
     into Boolean outputs. In this encoder uses two thresholds to form ranges which 
@@ -246,9 +246,6 @@ class Eye:
         Argument color: use color vision (requires P-cells > 0), default true. (Grayscale is faster)
         """
         self.output_diameter   = output_diameter
-        # Argument resolution_factor is used to expand the sensor array so that
-        # the fovea has adequate resolution.  After log-polar transform image
-        # is reduced by this factor back to the output_diameter.
         self.resolution_factor = 3
         self.retina_diameter   = int(self.resolution_factor * output_diameter)
         # Argument fovea_scale  ... represents "zoom" aka distance from the object/image.
@@ -271,7 +268,11 @@ class Eye:
         self.retina = cv2.bioinspired.Retina_create(
             inputSize            = (self.retina_diameter, self.retina_diameter),
             colorMode            = color,
-            colorSamplingMethod  = cv2.bioinspired.RETINA_COLOR_BAYER,)
+            colorSamplingMethod  = cv2.bioinspired.RETINA_COLOR_BAYER,
+            useRetinaLogSampling = True,
+	    reductionFactor      = self.resolution_factor, # how much is the image under-sampled #TODO tune these params
+	    samplingStrenght     = 4.0, # how much are the corners blured/forgotten
+            )
 
         # Activate Parvo/Magno vision based on whether sparsityXXX is set.
         self.retina.activateContoursProcessing(sparsityParvo > 0) # Parvo
@@ -385,6 +386,7 @@ class Eye:
         """
         assert(self.image is not None)
 
+
         r     = int(round(self.scale * self.retina_diameter / 2))
         x, y  = self.position
         x     = int(round(x))
@@ -443,25 +445,9 @@ class Eye:
         self.retina.run(self.roi)
         if self.parvo_enc is not None:
           parvo = self.retina.getParvo()
+          print("RAW", parvo.shape)
         if self.magno_enc is not None:
           magno = self.retina.getMagno()
-
-        # Log Polar Transform.
-        center = self.retina_diameter / 2
-        M      = self.retina_diameter * self.fovea_scale
-        if self.parvo_enc is not None:
-          parvo = cv2.logPolar(parvo,
-                               center = (center, center),
-                               M = M,
-                               flags = cv2.WARP_FILL_OUTLIERS)
-          parvo = cv2.resize(parvo,  dsize=(self.output_diameter, self.output_diameter), interpolation = cv2.INTER_CUBIC)
-
-        if self.magno_enc is not None:
-          magno = cv2.logPolar(magno,
-                               center = (center, center),
-                               M = M,
-                               flags = cv2.WARP_FILL_OUTLIERS)
-          magno = cv2.resize(magno, dsize=(self.output_diameter, self.output_diameter), interpolation = cv2.INTER_CUBIC)
 
         # Apply rotation by rolling the images around axis 1.
         rotation = self.output_diameter * self.orientation / (2 * math.pi)
@@ -592,14 +578,17 @@ if __name__ == '__main__':
         eye = Eye()
         for img_path in images:
             eye.reset()
+            eye.fovea_scale = 0.2
             print("Loading image %s"%img_path)
             eye.new_image(img_path)
-            eye.scale = 1
-            eye.center_view()
+            #eye.center_view()
+            #manually set position to look at head:
+            eye.position = (400, 400)
             for i in range(10):
                 pos,rot,sc = eye.small_random_movement()
+                sc = 1
                 (sdrParvo, sdrMagno) = eye.compute(pos,rot,sc) #TODO derive from Encoder
-                eye.plot(500)
+                eye.plot(5000)
             print("Sparsity parvo: {}".format(len(eye.parvo_sdr.sparse)/np.product(eye.parvo_sdr.dimensions)))
             print("Sparsity magno: {}".format(len(eye.magno_sdr.sparse)/np.product(eye.magno_sdr.dimensions)))
         print("All images seen.")
