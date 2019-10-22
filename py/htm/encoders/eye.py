@@ -249,10 +249,7 @@ class Eye:
         # Argument resolution_factor is used to expand the sensor array so that
         # the fovea has adequate resolution.  After log-polar transform image
         # is reduced by this factor back to the output_diameter.
-        self.resolution_factor = 3
-        self.retina_diameter   = int(self.resolution_factor * output_diameter)
-        # Argument fovea_scale  ... represents "zoom" aka distance from the object/image.
-        self.fovea_scale       = 0.177
+        resolution_factor = 2
         assert(output_diameter // 2 * 2 == output_diameter) # Diameter must be an even number.
         assert(sparsityParvo >= 0 and sparsityParvo <= 1.0)
         self.sparsityParvo = sparsityParvo
@@ -263,7 +260,7 @@ class Eye:
         self.color = color
 
         self.retina = cv2.bioinspired.Retina_create(
-            inputSize            = (3*output_diameter, 3*output_diameter),
+            inputSize            = (resolution_factor*output_diameter, resolution_factor*output_diameter),
             colorMode            = color,
             colorSamplingMethod  = cv2.bioinspired.RETINA_COLOR_BAYER,
             useRetinaLogSampling = True,
@@ -425,11 +422,6 @@ class Eye:
         inDims_ = inDims_ + (3,) #add 3rd dim '3' for RGB
         roi.resize( inDims_ )
 
-        # Mask out areas the eye can't see by drawing a circle boarder.
-        center = int(roi.shape[0] / 2)
-        circle_mask = np.zeros(roi.shape, dtype=np.uint8)
-        cv2.circle(circle_mask, (center, center), center, thickness = -1, color=(255,255,255))
-        roi = np.minimum(roi, circle_mask)
         return roi
 
 
@@ -450,12 +442,10 @@ class Eye:
 
         # apply field of view (FOV) & rotation
         self.image = Eye.new_image_(image) #TODO remove the FOV, already done in retina's logPolar transform
-        self.rotate_(self.image, rotation)
-
+        self.image = self.rotate_(self.image, rotation)
         self.roi = self._crop_roi()
 
         # Retina image transforms (Parvo & Magnocellular).
-        print("IMG", self.image.shape)
         self.retina.run(self.roi)
         
         if self.parvo_enc is not None:
@@ -464,8 +454,8 @@ class Eye:
           magno = self.retina.getMagno()
 
         # Log Polar Transform.
-        center = self.retina_diameter / 2
-        M      = self.retina_diameter * self.fovea_scale
+        center = self.retina.getInputSize()[0] / 2
+        M      = self.retina.getInputSize()[0] * self.scale
         if self.parvo_enc is not None:
           parvo = cv2.logPolar(parvo,
                                center = (center, center),
@@ -491,6 +481,8 @@ class Eye:
           m   = self.magno_enc.encode(magno)
           self.magno_sdr.dense = m.flatten()
 
+
+        self.parvo_img = parvo
         assert(len(self.magno_sdr.sparse) > 0)
         assert(len(self.parvo_sdr.sparse) > 0)
 
@@ -508,13 +500,6 @@ class Eye:
         if roi is None:
             roi = self.roi
 
-        # Show the ROI, first rotate it like the eye is rotated.
-        angle = self.orientation * 360 / (2 * math.pi)
-        roi = self.roi[:,:,::-1]
-        rows, cols, color_depth = roi.shape
-        M   = cv2.getRotationMatrix2D((cols / 2, rows / 2), angle, 1)
-        roi = cv2.warpAffine(roi, M, (cols,rows))
-
         # Invert 5 pixels in the center to show where the fovea is located.
         center = int(roi.shape[0] / 2)
         roi[center, center]     = np.full(3, 255) - roi[center, center]
@@ -522,6 +507,12 @@ class Eye:
         roi[center-2, center+2] = np.full(3, 255) - roi[center-2, center+2]
         roi[center-2, center-2] = np.full(3, 255) - roi[center-2, center-2]
         roi[center+2, center-2] = np.full(3, 255) - roi[center+2, center-2]
+
+        # Mask out areas the eye can't see by drawing a circle boarder.
+        center = int(roi.shape[0] / 2)
+        circle_mask = np.zeros(roi.shape, dtype=np.uint8)
+        cv2.circle(circle_mask, (center, center), center, thickness = -1, color=(255,255,255))
+        roi = np.minimum(roi, circle_mask)
         return roi
 
 
@@ -544,7 +535,7 @@ class Eye:
         """returns small difference in position, rotation, scale.
            This is naive "saccadic" movements.
         """
-        max_change_angle = (2*3.14159) / 500
+        max_change_angle = (2*math.pi) / 100
         self.position = (
             self.position[0] + random.gauss(1, .75),
             self.position[1] + random.gauss(1, .75),)
@@ -605,9 +596,9 @@ if __name__ == '__main__':
             eye.position = (400, 400)
             for i in range(10):
                 pos,rot,sc = eye.small_random_movement()
-                sc = 1
+                sc = 1.0 #FIXME scaling with any other than 1.0 breaks plots
                 (sdrParvo, sdrMagno) = eye.compute(img_path, pos,rot,sc) #TODO derive from Encoder
-                eye.plot(delay=5000)
+                eye.plot(delay=1500)
             print("Sparsity parvo: {}".format(len(eye.parvo_sdr.sparse)/np.product(eye.parvo_sdr.dimensions)))
             print("Sparsity magno: {}".format(len(eye.magno_sdr.sparse)/np.product(eye.magno_sdr.dimensions)))
         print("All images seen.")
