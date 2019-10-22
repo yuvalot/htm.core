@@ -223,7 +223,7 @@ class Eye:
 
 
     def __init__(self,
-        output_diameter   = 200, # output SDR size is diameter^2
+        output_diameter   = 200, # fovea image size, also approximately output SDR size (= diameter^2)
         sparsityParvo     = 0.2,
         sparsityMagno     = 0.025,
         color             = True,):
@@ -245,20 +245,19 @@ class Eye:
             TODO: output of M-cells should be processed on a fast TM.
         Argument color: use color vision (requires P-cells > 0), default true. (Grayscale is faster)
         """
-        self.output_diameter   = output_diameter
-        self.resolution_factor = 3
-        self.retina_diameter   = int(self.resolution_factor * output_diameter)
+        resolution_factor = 3
+        retina_diameter   = int(resolution_factor * output_diameter)
         # Argument fovea_scale  ... represents "zoom" aka distance from the object/image.
         self.fovea_scale       = 0.177
         assert(output_diameter // 2 * 2 == output_diameter) # Diameter must be an even number.
-        assert(self.retina_diameter // 2 * 2 == self.retina_diameter) # (Resolution Factor X Diameter) must be an even number.
+        assert(retina_diameter // 2 * 2 == retina_diameter) # (Resolution Factor X Diameter) must be an even number.
         assert(sparsityParvo >= 0 and sparsityParvo <= 1.0)
         if sparsityParvo > 0:
-          assert(sparsityParvo * (self.retina_diameter **2) > 0)
+          assert(sparsityParvo * (retina_diameter **2) > 0)
         self.sparsityParvo = sparsityParvo
         assert(sparsityMagno >= 0 and sparsityMagno <= 1.0)
         if sparsityMagno > 0:
-          assert(sparsityMagno * (self.retina_diameter **2) > 0)
+          assert(sparsityMagno * (retina_diameter **2) > 0)
         self.sparsityMagno = sparsityMagno
         if color is True:
           assert(sparsityParvo > 0)
@@ -266,11 +265,11 @@ class Eye:
 
 
         self.retina = cv2.bioinspired.Retina_create(
-            inputSize            = (self.retina_diameter, self.retina_diameter),
+            inputSize            = (retina_diameter, retina_diameter),
             colorMode            = color,
             colorSamplingMethod  = cv2.bioinspired.RETINA_COLOR_BAYER,
             useRetinaLogSampling = True,
-	    reductionFactor      = self.resolution_factor, # how much is the image under-sampled #TODO tune these params
+	    reductionFactor      = resolution_factor, # how much is the image under-sampled #TODO tune these params
 	    samplingStrenght     = 4.0, # how much are the corners blured/forgotten
             )
 
@@ -282,11 +281,11 @@ class Eye:
         print()
 
         if sparsityParvo > 0:
-          dims = (output_diameter, output_diameter)
+          dims = self.retina.getOutputSize()
 
           sparsityP_ = sparsityParvo
-          if color is True: 
-            dims = (output_diameter, output_diameter, 3,) #3 for RGB color channels
+          if color is True:
+            dims = dims +(3,) #append 3rd dim with value '3' for RGB color channels
 
             # The reason the parvo-cellular has `3rd-root of the sparsity` is that there are three color channels (RGB), 
             # each of which is encoded separately and then combined. The color channels are combined with a logical AND, 
@@ -305,7 +304,7 @@ class Eye:
 
         if sparsityMagno > 0:
           self.magno_enc = ChannelEncoder(
-                            input_shape = (output_diameter, output_diameter),
+                            input_shape = self.retina.getOutputSize(),
                             num_samples = 1, 
                             sparsity = sparsityMagno,
                             dtype=np.uint8, drange=[0, 255],)
@@ -315,10 +314,10 @@ class Eye:
         # output variables:
         self.image = None # the current input RGB image
         self.roi   = None # self.image cropped to region of interest
-        self.parvo_img = None # output visualization of parvo/magno cells
-        self.magno_img = None
-        self.parvo_sdr  = SDR((output_diameter, output_diameter,)) # parvo/magno cellular representation (SDR)
-        self.magno_sdr  = SDR((output_diameter, output_diameter,))
+        self.parvo_img = np.zeros(self.retina.getOutputSize()) # output visualization of parvo/magno cells
+        self.magno_img = np.zeros(self.retina.getOutputSize())
+        self.parvo_sdr  = SDR(self.retina.getOutputSize()) # parvo/magno cellular representation (SDR)
+        self.magno_sdr  = SDR(self.retina.getOutputSize())
 
 
     def new_image(self, image):
@@ -355,16 +354,16 @@ class Eye:
         """Center the view over the image"""
         self.orientation = 0
         self.position    = (self.image.shape[0]/2., self.image.shape[1]/2.)
-        self.scale       = np.min(np.divide(self.image.shape[:2], self.retina_diameter))
+        self.scale       = np.min(np.divide(self.image.shape[:2], self.retina.getInputSize()[0]))
 
     def randomize_view(self, scale_range=None):
         """Set the eye's view point to a random location"""
         if scale_range is None:
-            scale_range = [2, min(self.image.shape[:2]) / self.retina_diameter]
+            scale_range = [2, min(self.image.shape[:2]) / self.retina.getInputSize()[0]]
         assert(len(scale_range) == 2)
         self.orientation = random.uniform(0, 2 * math.pi)
         self.scale       = random.uniform(min(scale_range), max(scale_range))
-        roi_radius       = self.scale * self.retina_diameter / 2
+        roi_radius       = self.scale * self.retina.getInputSize()[0] / 2
         self.position    = [random.uniform(roi_radius, dim - roi_radius)
                                  for dim in self.image.shape[:2]]
 
@@ -373,7 +372,7 @@ class Eye:
         Crop to Region Of Interest (ROI) which contains the whole field of view.
         Adds a black circular boarder to mask out areas which the eye can't see.
 
-        Note: size of the ROI is (eye.output_diameter * eye.resolution_factor).
+        Note: size of the ROI is (eye.retina.getOutputSize()[0] * resolution_factor).
         Note: the circular boarder is actually a bit too far out, playing with
           eye.fovea_scale can hide areas which this ROI image will show.
 
@@ -387,7 +386,7 @@ class Eye:
         assert(self.image is not None)
 
 
-        r     = int(round(self.scale * self.retina_diameter / 2))
+        r     = int(round(self.scale * self.retina.getInputSize()[0] / 2))
         x, y  = self.position
         x     = int(round(x))
         y     = int(round(y))
@@ -414,7 +413,9 @@ class Eye:
         roi[x_offset:x_offset+x_shape, y_offset:y_offset+y_shape] = image_slice
 
         # Rescale the ROI to remove the scaling effect.
-        roi.resize( (self.retina_diameter, self.retina_diameter, 3))
+        inDims_ = self.retina.getInputSize()
+        inDims_ = inDims_ + (3,) #add 3rd dim '3' for RGB
+        roi.resize( inDims_ )
 
         # Mask out areas the eye can't see by drawing a circle boarder.
         center = int(roi.shape[0] / 2)
@@ -450,7 +451,7 @@ class Eye:
           magno = self.retina.getMagno()
 
         # Apply rotation by rolling the images around axis 1.
-        rotation = self.output_diameter * self.orientation / (2 * math.pi)
+        rotation = self.retina.getOutputSize()[0] * self.orientation / (2 * math.pi)
         rotation = int(round(rotation))
         if self.parvo_enc is not None:
           self.parvo_img = np.roll(parvo, rotation, axis=0)
@@ -513,9 +514,9 @@ class Eye:
         else:
           cv2.imshow('Parvocellular', self.parvo_img)
         cv2.imshow('Magnocellular', self.magno_img)
-        idx = self.parvo_sdr.dense.astype(np.uint8).reshape(self.output_diameter, self.output_diameter)*255
+        idx = self.parvo_sdr.dense.astype(np.uint8).reshape(self.retina.getOutputSize())*255
         cv2.imshow('Parvo SDR', idx)
-        idx = self.magno_sdr.dense.astype(np.uint8).reshape(self.output_diameter, self.output_diameter)*255
+        idx = self.magno_sdr.dense.astype(np.uint8).reshape(self.retina.getOutputSize())*255
         cv2.imshow('Magno SDR', idx)
         cv2.waitKey(delay)
 
