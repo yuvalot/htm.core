@@ -250,8 +250,6 @@ class Eye:
         """
         assert(len(inputShape) == 2)
         self.inputShape = inputShape
-        # Argument fovea_scale  ... represents "zoom" aka distance from the object/image.
-        self.fovea_scale       = 0.177
         assert(output_diameter // 2 * 2 == output_diameter) # Diameter must be an even number.
         assert(sparsityParvo >= 0 and sparsityParvo <= 1.0)
         self.sparsityParvo = sparsityParvo
@@ -372,14 +370,19 @@ class Eye:
         self.position    = [random.uniform(roi_radius, dim - roi_radius)
                                  for dim in self.image.shape[:2]]
 
+    def rotate_(self, image, angle):
+      image_center = tuple(np.array(image.shape[1::-1]) / 2)
+      rot_mat = cv2.getRotationMatrix2D(image_center, angle, 1.0)
+      result = cv2.warpAffine(image, rot_mat, image.shape[1::-1], flags=cv2.INTER_LINEAR)
+      return result
+
+
     def _crop_roi(self):
         """
         Crop to Region Of Interest (ROI) which contains the whole field of view.
         Adds a black circular boarder to mask out areas which the eye can't see.
 
         Note: size of the ROI is (eye.retina.getOutputSize()[0] * resolution_factor).
-        Note: the circular boarder is actually a bit too far out, playing with
-          eye.fovea_scale can hide areas which this ROI image will show.
 
         Arguments: eye.scale, eye.position, eye.image
 
@@ -446,9 +449,10 @@ class Eye:
         if scale is not None:
           self.scale=scale
 
-        # apply field of view (FOV)
+        # apply field of view (FOV) & rotation
         self.image = Eye.new_image_(image) #TODO remove the FOV, already done in retina's logPolar transform
         assert(self.image.shape[:2] == self.inputShape), print("Image must match retina's dims: ",self.image.shape, self.inputShape)
+        self.rotate_(self.image, rotation)
 
         self.roi = self._crop_roi()
 
@@ -456,16 +460,10 @@ class Eye:
         self.retina.run(self.roi)
         if self.parvo_enc is not None:
           parvo = self.retina.getParvo()
+          self.parvo_img = parvo
         if self.magno_enc is not None:
           magno = self.retina.getMagno()
-
-        # Apply rotation by rolling the images around axis 1.
-        rotation = max(self.retina.getOutputSize()) * self.orientation / (2 * math.pi) #TODO rotate before retina processes stuff
-        rotation = int(round(rotation))
-        if self.parvo_enc is not None:
-          self.parvo_img = np.roll(parvo, rotation, axis=0)
-        if self.magno_enc is not None:
-          self.magno_img = np.roll(magno, rotation, axis=0)
+          self.magno_img = magno
 
         # Encode images into SDRs.
         p = []
@@ -591,7 +589,6 @@ if __name__ == '__main__':
 
         for img_path in images:
             eye.reset()
-            eye.fovea_scale = 0.2
             print("Loading image %s"%img_path)
             #eye.center_view()
             #manually set position to look at head:
