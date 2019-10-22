@@ -259,10 +259,10 @@ class Eye:
           assert(sparsityParvo > 0)
         self.color = color
 
-        reductionFactor_ = max(inputShape)/output_diameter
+        reductionFactor_ = inputShape[0]/output_diameter #TODO how would this work with non-square images?
         assert(reductionFactor_ >= 1.0)
         self.retina = cv2.bioinspired.Retina_create(
-            inputSize            = (max(inputShape), max(inputShape)), #FIXME avoid transformation to the bigger square, work with rectangles
+            inputSize            = inputShape,
             colorMode            = color,
             colorSamplingMethod  = cv2.bioinspired.RETINA_COLOR_BAYER,
             useRetinaLogSampling = True,
@@ -457,6 +457,7 @@ class Eye:
         self.roi = self._crop_roi()
 
         # Retina image transforms (Parvo & Magnocellular).
+        print("IMG", self.image.shape)
         self.retina.run(self.roi)
 
         # Encode images into SDRs.
