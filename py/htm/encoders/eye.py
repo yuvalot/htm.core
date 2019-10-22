@@ -158,7 +158,7 @@ class ChannelEncoder:
 
     def encode(self, img):
         """Returns a dense boolean np.ndarray."""
-        assert(img.shape == self.input_shape)
+        assert(img.shape == self.input_shape),print("Channel: img must have same dims as input_shape:", img.shape, self.input_shape)
         assert(img.dtype == self.dtype)
         if self.wrap:
             img += self.offsets
@@ -223,11 +223,14 @@ class Eye:
 
 
     def __init__(self,
+        inputShape, 
         output_diameter   = 200, # fovea image size, also approximately output SDR size (= diameter^2)
         sparsityParvo     = 0.2,
         sparsityMagno     = 0.025,
         color             = True,):
         """
+        Argument inputShape - shape of the input image(s). 
+            The images, video frames must have the same shape.
         Argument output_diameter is size of output ... output is a 
             field of view (image) with circular shape. Default 200. 
             `parvo/magno_sdr` size is `output_diameter^2`
@@ -245,31 +248,27 @@ class Eye:
             TODO: output of M-cells should be processed on a fast TM.
         Argument color: use color vision (requires P-cells > 0), default true. (Grayscale is faster)
         """
-        resolution_factor = 3
-        retina_diameter   = int(resolution_factor * output_diameter)
+        assert(len(inputShape) == 2)
+        self.inputShape = inputShape
         # Argument fovea_scale  ... represents "zoom" aka distance from the object/image.
         self.fovea_scale       = 0.177
         assert(output_diameter // 2 * 2 == output_diameter) # Diameter must be an even number.
-        assert(retina_diameter // 2 * 2 == retina_diameter) # (Resolution Factor X Diameter) must be an even number.
         assert(sparsityParvo >= 0 and sparsityParvo <= 1.0)
-        if sparsityParvo > 0:
-          assert(sparsityParvo * (retina_diameter **2) > 0)
         self.sparsityParvo = sparsityParvo
         assert(sparsityMagno >= 0 and sparsityMagno <= 1.0)
-        if sparsityMagno > 0:
-          assert(sparsityMagno * (retina_diameter **2) > 0)
         self.sparsityMagno = sparsityMagno
         if color is True:
           assert(sparsityParvo > 0)
         self.color = color
 
-
+        reductionFactor_ = inputShape[0]/output_diameter #TODO how would this work with non-square images?
+        assert(reductionFactor_ >= 1.0)
         self.retina = cv2.bioinspired.Retina_create(
-            inputSize            = (retina_diameter, retina_diameter),
+            inputSize            = inputShape,
             colorMode            = color,
             colorSamplingMethod  = cv2.bioinspired.RETINA_COLOR_BAYER,
             useRetinaLogSampling = True,
-	    reductionFactor      = resolution_factor, # how much is the image under-sampled #TODO tune these params
+	    reductionFactor      = reductionFactor_, # how much is the image under-sampled #TODO tune these params
 	    samplingStrenght     = 4.0, # how much are the corners blured/forgotten
             )
 
@@ -312,43 +311,49 @@ class Eye:
           self.magno_enc = None
 
         # output variables:
-        self.image = None # the current input RGB image
+        self.image = np.zeros(self.retina.getInputSize()) # the current input RGB image
         self.roi   = None # self.image cropped to region of interest
         self.parvo_img = np.zeros(self.retina.getOutputSize()) # output visualization of parvo/magno cells
         self.magno_img = np.zeros(self.retina.getOutputSize())
         self.parvo_sdr  = SDR(self.retina.getOutputSize()) # parvo/magno cellular representation (SDR)
         self.magno_sdr  = SDR(self.retina.getOutputSize())
+        
+        # Motor-control variables (to be set by user):
+        self.orientation = 0 #in degrees
+        self.position    = (0,0)
+        self.scale       = 1.0
 
 
-    def new_image(self, image):
+    def new_image_(image):
         """
         Argument image ...
             If String, will load image from file path.
             If numpy.ndarray, will attempt to cast to correct data type and
                 dimensions.
+
+        Return: the new image ndarray (only useful if string is passed in)
         """
         # Load image if needed.
         if isinstance(image, str):
-            self.image = cv2.imread(image)
-            self.image = cv2.cvtColor(self.image, cv2.COLOR_BGR2RGB)
+            image = cv2.imread(image)
+            image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
         else:
-            self.image = image
+            image = image
         # Get the image into the right format.
-        assert(isinstance(self.image, np.ndarray))
-        if self.image.dtype != np.uint8:
-            raise TypeError('Image "%s" dtype is not unsigned 8 bit integer, image.dtype is %s.'%(
-                self.image.dtype))
+        assert(isinstance(image, np.ndarray))
+        assert(image.dtype == np.uint8), print(
+                'Image "%s" dtype is not unsigned 8 bit integer, image.dtype is %s.'%(image.dtype))
         # Ensure there are three color channels.
-        if len(self.image.shape) == 2 or self.image.shape[2] == 1:
-            self.image = np.dstack([self.image] * 3)
+        if len(image.shape) == 2 or image.shape[2] == 1:
+            image = np.dstack([image] * 3)
         # Drop the alpha channel if present.
-        elif self.image.shape[2] == 4:
-            self.image = self.image[:,:,:3]
+        elif image.shape[2] == 4:
+            image = image[:,:,:3]
         # Sanity checks.
-        assert(len(self.image.shape) == 3)
-        assert(self.image.shape[2] == 3) # Color images only.
-        self.reset()
-        self.center_view()
+        assert(len(image.shape) == 3)
+        assert(image.shape[2] == 3) # Color images only.
+        return image
+
 
     def center_view(self):
         """Center the view over the image"""
@@ -425,8 +430,10 @@ class Eye:
         return roi
 
 
-    def compute(self, position=None, rotation=None, scale=None):
+    def compute(self, image, position=None, rotation=None, scale=None):
         """
+        Argument image - string (to load) or numpy.ndarray with image data
+          Images must match retina's inputShape, so be all of the same dimensions.
         Arguments position, rotation, scale: optional, if not None, the self.xxx is overriden
           with the provided value.
         Returns tuple (SDR parvo, SDR magno) 
@@ -440,9 +447,13 @@ class Eye:
           self.scale=scale
 
         # apply field of view (FOV)
+        self.image = Eye.new_image_(image) #TODO remove the FOV, already done in retina's logPolar transform
+        assert(self.image.shape[:2] == self.inputShape), print("Image must match retina's dims: ",self.image.shape, self.inputShape)
+
         self.roi = self._crop_roi()
 
         # Retina image transforms (Parvo & Magnocellular).
+        print("IMG", self.image.shape)
         self.retina.run(self.roi)
         if self.parvo_enc is not None:
           parvo = self.retina.getParvo()
@@ -451,7 +462,7 @@ class Eye:
           magno = self.retina.getMagno()
 
         # Apply rotation by rolling the images around axis 1.
-        rotation = self.retina.getOutputSize()[0] * self.orientation / (2 * math.pi)
+        rotation = self.retina.getOutputSize()[0] * self.orientation / (2 * math.pi) #TODO rotate before retina processes stuff
         rotation = int(round(rotation))
         if self.parvo_enc is not None:
           self.parvo_img = np.roll(parvo, rotation, axis=0)
@@ -576,20 +587,22 @@ if __name__ == '__main__':
     if not images:
         print('No images found at file path "%s"!'%args.IMAGE)
     else:
-        eye = Eye()
+        #know the input image dims somehow
+        inShape = Eye.new_image_(images[0]).shape[:2]
+        eye = Eye(inShape)
+
         for img_path in images:
             eye.reset()
             eye.fovea_scale = 0.2
             print("Loading image %s"%img_path)
-            eye.new_image(img_path)
             #eye.center_view()
             #manually set position to look at head:
             eye.position = (400, 400)
             for i in range(10):
                 pos,rot,sc = eye.small_random_movement()
                 sc = 1
-                (sdrParvo, sdrMagno) = eye.compute(pos,rot,sc) #TODO derive from Encoder
-                eye.plot(5000)
+                (sdrParvo, sdrMagno) = eye.compute(img_path, pos,rot,sc) #TODO derive from Encoder
+                eye.plot(delay=5000)
             print("Sparsity parvo: {}".format(len(eye.parvo_sdr.sparse)/np.product(eye.parvo_sdr.dimensions)))
             print("Sparsity magno: {}".format(len(eye.magno_sdr.sparse)/np.product(eye.magno_sdr.dimensions)))
         print("All images seen.")
