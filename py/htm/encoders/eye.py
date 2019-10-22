@@ -177,6 +177,11 @@ class Eye:
     Simulates functionality of eye's retinal parvocellular(P-cells),
     and magnocellular(M-cells) pathways, at the saccadic steps. 
 
+    Based on OpenCV's cv2.bioinspired.Retina model: 
+    https://docs.opencv.org/3.4/d2/d94/bioinspired_retina.html
+    http://web.iitd.ac.in/~sumeet/Modelling_Vision.pdf
+
+
     On high level, 
     magno cells: 
       - detect change in temporal information in the image, ie motion 
@@ -238,7 +243,7 @@ class Eye:
             motion detection and motion tracking, video processing.
             For details see @param `sparsityParvo`.
             TODO: output of M-cells should be processed on a fast TM.
-        Argument color: use color vision (requires P-cells > 0), default true.
+        Argument color: use color vision (requires P-cells > 0), default true. (Grayscale is faster)
         """
         self.output_diameter   = output_diameter
         # Argument resolution_factor is used to expand the sensor array so that
@@ -267,6 +272,10 @@ class Eye:
             inputSize            = (self.retina_diameter, self.retina_diameter),
             colorMode            = color,
             colorSamplingMethod  = cv2.bioinspired.RETINA_COLOR_BAYER,)
+
+        # Activate Parvo/Magno vision based on whether sparsityXXX is set.
+        self.retina.activateContoursProcessing(sparsityParvo > 0) # Parvo
+        self.retina.activateMovingContoursProcessing(sparsityMagno > 0) # Magno
 
         print(self.retina.printSetup())
         print()
