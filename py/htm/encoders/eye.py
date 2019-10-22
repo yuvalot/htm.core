@@ -48,8 +48,8 @@ class ChannelEncoder:
 
     1. Semantic similarity happens when two inputs which are similar have similar SDR representations. 
     This encoder design does two things to cause semantic similarity: 
-    (1) SDR bits are responsive to a range of input values, and
-    (2) topology allows nearby bits to represent similar things.
+    (1) SDR bits are responsive to a range of input values, 
+    and (2) topology allows near by bits to represent similar things.
 
     Many encoders apply thresholds to real valued input data to convert the input 
     into Boolean outputs. In this encoder uses two thresholds to form ranges which 
@@ -223,14 +223,11 @@ class Eye:
 
 
     def __init__(self,
-        inputShape, 
         output_diameter   = 200, # fovea image size, also approximately output SDR size (= diameter^2)
         sparsityParvo     = 0.2,
         sparsityMagno     = 0.025,
         color             = True,):
         """
-        Argument inputShape - shape of the input image(s). 
-            The images, video frames must have the same shape.
         Argument output_diameter is size of output ... output is a 
             field of view (image) with circular shape. Default 200. 
             `parvo/magno_sdr` size is `output_diameter^2`
@@ -248,8 +245,14 @@ class Eye:
             TODO: output of M-cells should be processed on a fast TM.
         Argument color: use color vision (requires P-cells > 0), default true. (Grayscale is faster)
         """
-        assert(len(inputShape) == 2)
-        self.inputShape = inputShape
+        self.output_diameter   = output_diameter
+        # Argument resolution_factor is used to expand the sensor array so that
+        # the fovea has adequate resolution.  After log-polar transform image
+        # is reduced by this factor back to the output_diameter.
+        self.resolution_factor = 3
+        self.retina_diameter   = int(self.resolution_factor * output_diameter)
+        # Argument fovea_scale  ... represents "zoom" aka distance from the object/image.
+        self.fovea_scale       = 0.177
         assert(output_diameter // 2 * 2 == output_diameter) # Diameter must be an even number.
         assert(sparsityParvo >= 0 and sparsityParvo <= 1.0)
         self.sparsityParvo = sparsityParvo
@@ -259,14 +262,12 @@ class Eye:
           assert(sparsityParvo > 0)
         self.color = color
 
-        reductionFactor_ = inputShape[0]/output_diameter #TODO how would this work with non-square images?
-        assert(reductionFactor_ >= 1.0)
         self.retina = cv2.bioinspired.Retina_create(
-            inputSize            = inputShape,
+            inputSize            = (3*output_diameter, 3*output_diameter),
             colorMode            = color,
             colorSamplingMethod  = cv2.bioinspired.RETINA_COLOR_BAYER,
             useRetinaLogSampling = True,
-	    reductionFactor      = reductionFactor_, # how much is the image under-sampled #TODO tune these params
+	    reductionFactor      = 1.2, #!reductionFactor_, # how much is the image under-sampled #TODO tune these params
 	    samplingStrenght     = 4.0, # how much are the corners blured/forgotten
             )
 
@@ -393,7 +394,6 @@ class Eye:
         """
         assert(self.image is not None)
 
-
         r     = int(round(self.scale * self.retina.getInputSize()[0] / 2))
         x, y  = self.position
         x     = int(round(x))
@@ -436,7 +436,6 @@ class Eye:
     def compute(self, image, position=None, rotation=None, scale=None):
         """
         Argument image - string (to load) or numpy.ndarray with image data
-          Images must match retina's inputShape, so be all of the same dimensions.
         Arguments position, rotation, scale: optional, if not None, the self.xxx is overriden
           with the provided value.
         Returns tuple (SDR parvo, SDR magno) 
@@ -451,7 +450,6 @@ class Eye:
 
         # apply field of view (FOV) & rotation
         self.image = Eye.new_image_(image) #TODO remove the FOV, already done in retina's logPolar transform
-        assert(self.image.shape[:2] == self.inputShape), print("Image must match retina's dims: ",self.image.shape, self.inputShape)
         self.rotate_(self.image, rotation)
 
         self.roi = self._crop_roi()
@@ -459,17 +457,38 @@ class Eye:
         # Retina image transforms (Parvo & Magnocellular).
         print("IMG", self.image.shape)
         self.retina.run(self.roi)
+        
+        if self.parvo_enc is not None:
+          parvo = self.retina.getParvo()
+        if self.magno_enc is not None:
+          magno = self.retina.getMagno()
+
+        # Log Polar Transform.
+        center = self.retina_diameter / 2
+        M      = self.retina_diameter * self.fovea_scale
+        if self.parvo_enc is not None:
+          parvo = cv2.logPolar(parvo,
+                               center = (center, center),
+                               M = M,
+                               flags = cv2.WARP_FILL_OUTLIERS)
+
+        if self.magno_enc is not None:
+          magno = cv2.logPolar(magno,
+                               center = (center, center),
+                               M = M,
+                               flags = cv2.WARP_FILL_OUTLIERS)
+
 
         # Encode images into SDRs.
         if self.parvo_enc is not None:
-          p   = self.parvo_enc.encode(self.retina.getParvo())
+          p   = self.parvo_enc.encode(parvo)
           if self.color:
             pr, pg, pb = np.dsplit(p, 3)
             p   = np.logical_and(np.logical_and(pr, pg), pb)
           p   = np.expand_dims(np.squeeze(p), axis=2)
           self.parvo_sdr.dense = p.flatten()
         if self.magno_enc is not None:
-          m   = self.magno_enc.encode(self.retina.getMagno())
+          m   = self.magno_enc.encode(magno)
           self.magno_sdr.dense = m.flatten()
 
         assert(len(self.magno_sdr.sparse) > 0)
@@ -576,9 +595,7 @@ if __name__ == '__main__':
     if not images:
         print('No images found at file path "%s"!'%args.IMAGE)
     else:
-        #know the input image dims somehow
-        inShape = Eye.new_image_(images[0]).shape[:2]
-        eye = Eye(inShape)
+        eye = Eye()
 
         for img_path in images:
             eye.reset()
