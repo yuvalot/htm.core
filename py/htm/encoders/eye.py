@@ -591,17 +591,22 @@ if __name__ == '__main__':
     if not images:
         print('No images found at file path "%s"!'%args.IMAGE)
     else:
-        eye = Eye()
+        eye = Eye(output_diameter=200,
+                  sparsityParvo=0.2,
+                  sparsityMagno=0.02,
+                  color=True)
         for img_path in images:
             eye.reset()
             print("Loading image %s"%img_path)
             eye.new_image(img_path)
-            eye.scale = 1
-            eye.center_view()
+            #eye.fovea_scale = 0.0177 #TODO find which value?
+            #eye.center_view()
+            eye.position=(400,400)
             for i in range(10):
                 pos,rot,sc = eye.small_random_movement()
+                sc=1.0 #FIXME broken (only plot?) whenever scale != 1.0 
                 (sdrParvo, sdrMagno) = eye.compute(pos,rot,sc) #TODO derive from Encoder
-                eye.plot(500)
+                eye.plot(delay=5000)
             print("Sparsity parvo: {}".format(len(eye.parvo_sdr.sparse)/np.product(eye.dimensions)))
             print("Sparsity magno: {}".format(len(eye.magno_sdr.sparse)/np.product(eye.dimensions)))
         print("All images seen.")
