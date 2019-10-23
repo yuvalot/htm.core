@@ -445,8 +445,9 @@ class Eye:
         if scale is not None:
           self.scale=scale
 
-        # apply field of view (FOV)
+        # apply field of view (FOV), rotation
         self.roi = self._crop_roi()
+        self.roi = self.rotate_(self.roi, self.orientation)
 
         # Retina image transforms (Parvo & Magnocellular).
         self.retina.run(self.roi)
@@ -454,6 +455,7 @@ class Eye:
           parvo = self.retina.getParvo()
         if self.magno_enc is not None:
           magno = self.retina.getMagno()
+
 
         # Log Polar Transform.
         center = self.retina_diameter / 2
@@ -472,13 +474,8 @@ class Eye:
                                flags = cv2.WARP_FILL_OUTLIERS)
           magno = cv2.resize(magno, dsize=(self.output_diameter, self.output_diameter), interpolation = cv2.INTER_CUBIC)
 
-        # Apply rotation by rolling the images around axis 1.
-        rotation = self.output_diameter * self.orientation / (2 * math.pi)
-        rotation = int(round(rotation))
-        if self.parvo_enc is not None:
-          self.parvo_img = np.roll(parvo, rotation, axis=0)
-        if self.magno_enc is not None:
-          self.magno_img = np.roll(magno, rotation, axis=0)
+        self.parvo_img = parvo
+        self.magno_img = magno
 
         # Encode images into SDRs.
         if self.parvo_enc is not None:
@@ -508,13 +505,6 @@ class Eye:
         if roi is None:
             roi = self.roi
 
-        # Show the ROI, first rotate it like the eye is rotated.
-        angle = self.orientation * 360 / (2 * math.pi)
-        roi = self.roi[:,:,::-1]
-        rows, cols, color_depth = roi.shape
-        M   = cv2.getRotationMatrix2D((cols / 2, rows / 2), angle, 1)
-        roi = cv2.warpAffine(roi, M, (cols,rows))
-
         # Invert 5 pixels in the center to show where the fovea is located.
         center = int(roi.shape[0] / 2)
         roi[center, center]     = np.full(3, 255) - roi[center, center]
@@ -528,6 +518,14 @@ class Eye:
 
         return roi
 
+    def rotate_(self, img, angle):
+      """
+      rotate the image img, by angle in degrees
+      """
+      angle = angle * 360 / (2 * math.pi)
+      rows, cols, color_depth = img.shape
+      M   = cv2.getRotationMatrix2D((cols / 2, rows / 2), angle, 1)
+      return cv2.warpAffine(img, M, (cols,rows))
 
     def plot(self, window_name='Eye', delay=1000):
         roi = self.make_roi_pretty()
