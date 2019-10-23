@@ -314,14 +314,14 @@ class Eye:
           self.magno_enc = None
 
         # output variables:
-        self.image = None # the current input RGB image
-        self.roi   = None # self.image cropped to region of interest
-        self.parvo_img = None # output visualization of parvo/magno cells
-        self.magno_img = None
-        self.parvo_sdr  = SDR((output_diameter, output_diameter,)) # parvo/magno cellular representation (SDR)
-        self.magno_sdr  = SDR((output_diameter, output_diameter,))
-        self.dimensions = self.retina.getOutputSize()
+        self.dimensions = (output_diameter, output_diameter,)
         self.size       = np.prod(self.dimensions)
+        self.image      = None # the current input RGB image
+        self.roi        = np.zeros(self.dimensions) # self.image cropped to region of interest
+        self.parvo_img  = None # output visualization of parvo/magno cells
+        self.magno_img  = None
+        self.parvo_sdr  = SDR(self.dimensions) # parvo/magno cellular representation (SDR)
+        self.magno_sdr  = SDR(self.dimensions)
 
 
     def new_image(self, image):
