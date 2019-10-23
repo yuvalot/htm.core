@@ -24,5 +24,6 @@ class EyeEncoderTest(unittest.TestCase):
       #eye.plot(delay=500)
     print("Sparsity parvo: {}".format(len(eye.parvo_sdr.sparse)/np.product(eye.parvo_sdr.dimensions)))
     print("Sparsity magno: {}".format(len(eye.magno_sdr.sparse)/np.product(eye.magno_sdr.dimensions)))
+    assert(eye.dimensions == (1,1))
 
   

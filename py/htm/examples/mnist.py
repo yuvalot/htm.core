@@ -24,6 +24,7 @@ from sklearn.datasets import fetch_openml
 
 from htm.bindings.algorithms import SpatialPooler, Classifier
 from htm.bindings.sdr import SDR, Metrics
+from htm.encoders.eye import Eye
 
 
 def load_ds(name, num_test, shape=None):
@@ -90,9 +91,13 @@ def main(parameters=default_parameters, argv=None, verbose=True):
     random.shuffle(training_data)
 
     # Setup the AI.
-    enc = SDR(train_images[0].shape)
+    encoder = Eye(output_diameter=train_images[0].shape[0],
+                  sparsityParvo = 0.2,
+                  sparsityMagno = 0.0, 
+                  color = True)
+
     sp = SpatialPooler(
-        inputDimensions            = enc.dimensions,
+        inputDimensions            = encoder.dimensions,
         columnDimensions           = parameters['columnDimensions'],
         potentialRadius            = parameters['potentialRadius'],
         potentialPct               = parameters['potentialPct'],
@@ -115,7 +120,10 @@ def main(parameters=default_parameters, argv=None, verbose=True):
     # Training Loop
     for i in range(len(train_images)):
         img, lbl = random.choice(training_data)
-        encode(img, enc)
+        encoder.new_image(img)
+        (enc, _) = encoder.compute()
+        if i == 1:
+          encoder.plot()
         sp.compute( enc, True, columns )
         sdrc.learn( columns, lbl ) #TODO SDRClassifier could accept string as a label, currently must be int
 
@@ -125,7 +133,7 @@ def main(parameters=default_parameters, argv=None, verbose=True):
     # Testing Loop
     score = 0
     for img, lbl in test_data:
-        encode(img, enc)
+        enc = encode(img)
         sp.compute( enc, False, columns )
         if lbl == np.argmax( sdrc.infer( columns ) ):
             score += 1
