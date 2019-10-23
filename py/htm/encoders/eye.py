@@ -320,6 +320,8 @@ class Eye:
         self.magno_img = None
         self.parvo_sdr  = SDR((output_diameter, output_diameter,)) # parvo/magno cellular representation (SDR)
         self.magno_sdr  = SDR((output_diameter, output_diameter,))
+        self.dimensions = self.retina.getOutputSize()
+        self.size       = np.prod(self.dimensions)
 
 
     def new_image(self, image):
@@ -599,6 +601,6 @@ if __name__ == '__main__':
                 pos,rot,sc = eye.small_random_movement()
                 (sdrParvo, sdrMagno) = eye.compute(pos,rot,sc) #TODO derive from Encoder
                 eye.plot(500)
-            print("Sparsity parvo: {}".format(len(eye.parvo_sdr.sparse)/np.product(eye.parvo_sdr.dimensions)))
-            print("Sparsity magno: {}".format(len(eye.magno_sdr.sparse)/np.product(eye.magno_sdr.dimensions)))
+            print("Sparsity parvo: {}".format(len(eye.parvo_sdr.sparse)/np.product(eye.dimensions)))
+            print("Sparsity magno: {}".format(len(eye.magno_sdr.sparse)/np.product(eye.dimensions)))
         print("All images seen.")
