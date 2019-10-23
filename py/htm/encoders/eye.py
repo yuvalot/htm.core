@@ -339,9 +339,6 @@ class Eye:
             self.image = image
         # Get the image into the right format.
         assert(isinstance(self.image, np.ndarray))
-        if self.image.dtype != np.uint8:
-            raise TypeError('Image "%s" dtype is not unsigned 8 bit integer, image.dtype is %s.'%(
-                self.image.dtype))
         # Ensure there are three color channels.
         if len(self.image.shape) == 2 or self.image.shape[2] == 1:
             self.image = np.dstack([self.image] * 3)
@@ -483,11 +480,11 @@ class Eye:
             p   = np.logical_and(np.logical_and(pr, pg), pb)
           p   = np.expand_dims(np.squeeze(p), axis=2)
           self.parvo_sdr.dense = p.flatten()
+          assert(len(self.parvo_sdr.sparse) > 0)
+
         if self.magno_enc is not None:
           self.magno_sdr = self.magno_enc.encode(magno)
-
-        assert(len(self.magno_sdr.sparse) > 0)
-        assert(len(self.parvo_sdr.sparse) > 0)
+          assert(len(self.magno_sdr.sparse) > 0)
 
         return (self.parvo_sdr, self.magno_sdr)
 
@@ -523,15 +520,19 @@ class Eye:
     def plot(self, window_name='Eye', delay=1000):
         roi = self.make_roi_pretty()
         cv2.imshow('Region Of Interest', roi)
-        if self.color:
-          cv2.imshow('Parvocellular', self.parvo_img[:,:,::-1])
-        else:
-          cv2.imshow('Parvocellular', self.parvo_img)
-        cv2.imshow('Magnocellular', self.magno_img)
-        idx = self.parvo_sdr.dense.astype(np.uint8).reshape(self.output_diameter, self.output_diameter)*255
-        cv2.imshow('Parvo SDR', idx)
-        idx = self.magno_sdr.dense.astype(np.uint8).reshape(self.output_diameter, self.output_diameter)*255
-        cv2.imshow('Magno SDR', idx)
+        if self.sparsityParvo > 0: # parvo enabled
+          if self.color:
+            cv2.imshow('Parvocellular', self.parvo_img[:,:,::-1])
+          else:
+            cv2.imshow('Parvocellular', self.parvo_img)
+          idx = self.parvo_sdr.dense.astype(np.uint8).reshape(self.output_diameter, self.output_diameter)*255
+          cv2.imshow('Parvo SDR', idx)
+
+        if self.sparsityMagno > 0: # magno enabled
+          cv2.imshow('Magnocellular', self.magno_img)
+          idx = self.magno_sdr.dense.astype(np.uint8).reshape(self.output_diameter, self.output_diameter)*255
+          cv2.imshow('Magno SDR', idx)
+
         cv2.waitKey(delay)
 
 
