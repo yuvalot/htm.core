@@ -548,6 +548,7 @@ class Eye:
     def plot(self, window_name='Eye', delay=1000):
         roi = self.make_roi_pretty()
         cv2.imshow('Region Of Interest', roi)
+        cv2.imshow('Whole image', self.image)
 
         if self.sparsityParvo > 0: # parvo enabled
           if self.color:
