@@ -461,7 +461,6 @@ class Eye:
 
         # apply field of view (FOV), rotation
         self.roi = self.rotate_(self.image, self.orientation) 
-        print(self.scale)
         self.roi = Eye._crop_roi(self.roi, self.position, self.retina_diameter, self.scale)
 
         # Retina image transforms (Parvo & Magnocellular).
@@ -571,10 +570,10 @@ class Eye:
         """returns small difference in position, rotation, scale.
            This is naive "saccadic" movements.
         """
-        max_change_angle = (2*3.14159) / 500
+        max_change_angle = (2*math.pi) / 100
         self.position = (
-            self.position[0] + random.gauss(1, .75),
-            self.position[1] + random.gauss(1, .75),)
+            self.position[0] + random.gauss(1.2, .75),
+            self.position[1] + random.gauss(1.2, .75),)
         self.orientation += random.uniform(-max_change_angle, max_change_angle)
         self.scale += random.gauss(0, 0.1)
         return (self.position, self.orientation, self.scale)
@@ -630,7 +629,7 @@ if __name__ == '__main__':
             eye.reset()
             print("Loading image %s"%img_path)
             eye.new_image(img_path)
-            eye.fovea_scale = 0.177 #TODO find which value?
+            eye.fovea_scale = 0.077 #TODO find which value?
             #eye.center_view()
             eye.position=(400,400)
             for i in range(10):
