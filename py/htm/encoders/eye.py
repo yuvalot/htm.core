@@ -421,6 +421,13 @@ class Eye:
         # Rescale the ROI to remove the scaling effect.
         roi.resize( (self.retina_diameter, self.retina_diameter, 3))
 
+        # Mask out areas the eye can't see by drawing a circle boarder.
+        # this represents the "shape" of the sensor/eye (comment out to leave rectangural)
+        center = int(roi.shape[0] / 2)
+        circle_mask = np.zeros(roi.shape, dtype=np.uint8)
+        cv2.circle(circle_mask, (center, center), center, thickness = -1, color=(255,255,255))
+        roi = np.minimum(roi, circle_mask)
+
         return roi
 
 
@@ -515,12 +522,6 @@ class Eye:
         roi[center-2, center+2] = np.full(3, 255) - roi[center-2, center+2]
         roi[center-2, center-2] = np.full(3, 255) - roi[center-2, center-2]
         roi[center+2, center-2] = np.full(3, 255) - roi[center+2, center-2]
-
-        # Mask out areas the eye can't see by drawing a circle boarder.
-        center = int(roi.shape[0] / 2)
-        circle_mask = np.zeros(roi.shape, dtype=np.uint8)
-        cv2.circle(circle_mask, (center, center), center, thickness = -1, color=(255,255,255))
-        roi = np.minimum(roi, circle_mask)
 
         return roi
 
