@@ -257,7 +257,8 @@ class Eye:
         # is reduced by this factor back to the output_diameter.
         self.resolution_factor = 3
         self.retina_diameter   = int(self.resolution_factor * output_diameter)
-        # Argument fovea_scale  ... represents "zoom" aka distance from the object/image.
+        # Argument fovea_scale  ... proportion of the image (ROI) which will be covered (seen) by
+        # high-res fovea (parvo pathway)
         self.fovea_scale       = 0.177
         assert(output_diameter // 2 * 2 == output_diameter) # Diameter must be an even number.
         assert(self.retina_diameter // 2 * 2 == self.retina_diameter) # (Resolution Factor X Diameter) must be an even number.
@@ -313,15 +314,20 @@ class Eye:
         else:
           self.magno_enc = None
 
-        # output variables:
+        ## output variables:
         self.dimensions = (output_diameter, output_diameter,)
         self.size       = np.prod(self.dimensions)
         self.image      = None # the current input RGB image
-        self.roi        = np.zeros(self.dimensions) # self.image cropped to region of interest
+        self.roi        = np.zeros(self.dimensions) # self.image cropped to region of interest, what encoder processes ("sees")
         self.parvo_img  = None # output visualization of parvo/magno cells
         self.magno_img  = None
         self.parvo_sdr  = SDR(self.dimensions) # parvo/magno cellular representation (SDR)
         self.magno_sdr  = SDR(self.dimensions)
+
+        ## motor-control variables (must be user specified)
+        self.position   = (0,0) # can use self.center_view(), self.random_view()
+        self.scale      = 1.0 # represents "zoom" aka distance from the object/image #FIXME broken for != 1.0
+        self.orientation= 0 # angle between image/object and camera, in deg
 
 
     def new_image(self, image):
@@ -415,11 +421,6 @@ class Eye:
         # Rescale the ROI to remove the scaling effect.
         roi.resize( (self.retina_diameter, self.retina_diameter, 3))
 
-        # Mask out areas the eye can't see by drawing a circle boarder.
-        center = int(roi.shape[0] / 2)
-        circle_mask = np.zeros(roi.shape, dtype=np.uint8)
-        cv2.circle(circle_mask, (center, center), center, thickness = -1, color=(255,255,255))
-        roi = np.minimum(roi, circle_mask)
         return roi
 
 
@@ -514,6 +515,13 @@ class Eye:
         roi[center-2, center+2] = np.full(3, 255) - roi[center-2, center+2]
         roi[center-2, center-2] = np.full(3, 255) - roi[center-2, center-2]
         roi[center+2, center-2] = np.full(3, 255) - roi[center+2, center-2]
+
+        # Mask out areas the eye can't see by drawing a circle boarder.
+        center = int(roi.shape[0] / 2)
+        circle_mask = np.zeros(roi.shape, dtype=np.uint8)
+        cv2.circle(circle_mask, (center, center), center, thickness = -1, color=(255,255,255))
+        roi = np.minimum(roi, circle_mask)
+
         return roi
 
 
@@ -599,7 +607,7 @@ if __name__ == '__main__':
             eye.reset()
             print("Loading image %s"%img_path)
             eye.new_image(img_path)
-            #eye.fovea_scale = 0.0177 #TODO find which value?
+            eye.fovea_scale = 0.177 #TODO find which value?
             #eye.center_view()
             eye.position=(400,400)
             for i in range(10):
