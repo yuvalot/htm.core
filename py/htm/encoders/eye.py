@@ -337,6 +337,9 @@ class Eye:
             If String, will load image from file path.
             If numpy.ndarray, will attempt to cast to correct data type and
                 dimensions.
+
+        For demo, run: 
+        python py/htm/encoders/eye.py py/tests/encoders/ronja_the_cat.jpg
         """
         # Load image if needed.
         if isinstance(image, str):
