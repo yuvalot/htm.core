@@ -278,7 +278,8 @@ class Eye:
         self.retina = cv2.bioinspired.Retina_create(
             inputSize            = (self.retina_diameter, self.retina_diameter),
             colorMode            = color,
-            colorSamplingMethod  = cv2.bioinspired.RETINA_COLOR_BAYER,)
+            colorSamplingMethod  = cv2.bioinspired.RETINA_COLOR_BAYER,
+            useRetinaLogSampling = True,)
 
         print(self.retina.printSetup())
         print()
@@ -466,6 +467,7 @@ class Eye:
                                M = M,
                                flags = cv2.WARP_FILL_OUTLIERS)
           parvo = cv2.resize(parvo,  dsize=(self.output_diameter, self.output_diameter), interpolation = cv2.INTER_CUBIC)
+          self.parvo_img = parvo
 
         if self.magno_enc is not None:
           magno = cv2.logPolar(magno,
@@ -473,9 +475,7 @@ class Eye:
                                M = M,
                                flags = cv2.WARP_FILL_OUTLIERS)
           magno = cv2.resize(magno, dsize=(self.output_diameter, self.output_diameter), interpolation = cv2.INTER_CUBIC)
-
-        self.parvo_img = parvo
-        self.magno_img = magno
+          self.magno_img = magno
 
         # Encode images into SDRs.
         if self.parvo_enc is not None:
@@ -530,9 +530,11 @@ class Eye:
     def plot(self, window_name='Eye', delay=1000):
         roi = self.make_roi_pretty()
         cv2.imshow('Region Of Interest', roi)
+
         if self.sparsityParvo > 0: # parvo enabled
           if self.color:
             cv2.imshow('Parvocellular', self.parvo_img[:,:,::-1])
+            cv2.imshow('Parvo retinal representation', self.retina.getParvo()[:,:,::-1])
           else:
             cv2.imshow('Parvocellular', self.parvo_img)
           idx = self.parvo_sdr.dense.astype(np.uint8).reshape(self.output_diameter, self.output_diameter)*255
