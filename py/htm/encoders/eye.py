@@ -523,6 +523,9 @@ class Eye:
         roi[center-2, center-2] = np.full(3, 255) - roi[center-2, center-2]
         roi[center+2, center-2] = np.full(3, 255) - roi[center+2, center-2]
 
+        # Draw a red circle where fovea (=high resolution parvocellular vision) boundary is
+        cv2.circle(roi, (center, center), radius=int(self.retina_diameter*self.fovea_scale), color=(255,0,0), thickness=3)
+
         return roi
 
 
