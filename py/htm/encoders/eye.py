@@ -331,7 +331,7 @@ class Eye:
         self.orientation= 0 # angle between image/object and camera, in deg
 
 
-    def new_image(self, image):
+    def _new_image(self, image):
         """
         Argument image ...
             If String, will load image from file path.
@@ -362,6 +362,7 @@ class Eye:
         self.center_view()
         self.roi = None
         assert(min(self.image.shape[:2]) >= self.retina_diameter)
+        return self.image
 
 
     def center_view(self):
@@ -444,13 +445,16 @@ class Eye:
         return roi
 
 
-    def compute(self, position=None, rotation=None, scale=None):
+    def compute(self, img, position=None, rotation=None, scale=None):
         """
+        Argument img - image to load. String/data, see _new_image()
         Arguments position, rotation, scale: optional, if not None, the self.xxx is overriden
           with the provided value.
         Returns tuple (SDR parvo, SDR magno) 
         """
+        self.image = self._new_image(img)
         assert(self.image is not None)
+
         # set position
         if position is not None:
           self.position = position
@@ -508,7 +512,7 @@ class Eye:
         return (self.parvo_sdr, self.magno_sdr)
 
 
-    def make_roi_pretty(self, roi=None):
+    def _make_roi_pretty(self, roi):
         """
         Makes the eye's view look more presentable.
         - Adds 5 dots to the center of the image to show where the fovea is.
@@ -516,8 +520,6 @@ class Eye:
         Returns an RGB image.
         See _crop_roi()
         """
-        if roi is None:
-            roi = self.roi
         assert(roi is not None)
 
         # Invert 5 pixels in the center to show where the fovea is located.
@@ -546,7 +548,7 @@ class Eye:
 
 
     def plot(self, window_name='Eye', delay=1000):
-        roi = self.make_roi_pretty()
+        roi = self._make_roi_pretty(self.roi)
         cv2.imshow('Region Of Interest', roi)
         cv2.imshow('Whole image', self.image)
 
@@ -628,14 +630,12 @@ if __name__ == '__main__':
                   color=True)
         for img_path in images:
             eye.reset()
-            print("Loading image %s"%img_path)
-            eye.new_image(img_path)
             eye.fovea_scale = 0.077 #TODO find which value?
             #eye.center_view()
             eye.position=(400,400)
             for i in range(10):
                 pos,rot,sc = eye.small_random_movement()
-                (sdrParvo, sdrMagno) = eye.compute(pos,rot,sc) #TODO derive from Encoder
+                (sdrParvo, sdrMagno) = eye.compute(img_path, pos,rot,sc) #TODO derive from Encoder
                 eye.plot(delay=5000)
             print("Sparsity parvo: {}".format(len(eye.parvo_sdr.sparse)/np.product(eye.dimensions)))
             print("Sparsity magno: {}".format(len(eye.magno_sdr.sparse)/np.product(eye.dimensions)))
