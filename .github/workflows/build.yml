@@ -157,12 +157,17 @@ jobs:
   build-debug:
     name: Build and test in Debug mode
     #currently cannot run on Linux & Debug due to a bug in YAML parser: issue #218
-    runs-on: macOS-latest
+    runs-on: ubuntu-18.04
     steps:
     - uses: actions/checkout@v1
 
     - name: Install dependencies (Debug)
+      env:
+        CC: gcc-8
+        CXX: g++-8
       run: |
+        sudo apt-get update
+        sudo apt-get -y install gcc-8 g++-8
         echo "built type: ${CMAKE_BUILD_TYPE}"
         mkdir -p build/scripts
         cd build/scripts
