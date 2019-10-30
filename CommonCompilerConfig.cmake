@@ -254,16 +254,6 @@ else()
 
 
 	#
-	# Determine stdlib settings
-	#
-	set(stdlib_cxx)
-
-	if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
-	  set(stdlib_cxx ${stdlib_cxx} -stdlib=libc++)
-	endif()
-
-
-	#
 	# compiler specific settings and warnings here
 	#
 	set(internal_compiler_warning_flags)
@@ -276,8 +266,6 @@ else()
 
 
 	# LLVM Clang / Gnu GCC
-	set(cxx_flags_unoptimized ${cxx_flags_unoptimized} ${stdlib_cxx})
-
 	set(cxx_flags_unoptimized ${cxx_flags_unoptimized} -fdiagnostics-show-option)
 	set (internal_compiler_warning_flags ${internal_compiler_warning_flags} -Werror -Wextra -Wreturn-type -Wunused -Wno-unused-variable -Wno-unused-parameter -Wno-missing-field-initializers)
 
