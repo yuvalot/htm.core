@@ -64,7 +64,8 @@
 ##############################################################
 
 include(CheckCXXCompilerFlag)
-set(CMAKE_CXX_VISIBILITY_PRESET hidden)
+#set(CMAKE_CXX_VISIBILITY_PRESET hidden)
+set(CMAKE_CXX_VISIBILITY_INLINES_HIDDEN ON)
 
 # Identify platform name.
 if(NOT PLATFORM)
