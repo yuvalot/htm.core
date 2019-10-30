@@ -64,7 +64,7 @@
 ##############################################################
 
 include(CheckCXXCompilerFlag)
-
+set(CMAKE_CXX_VISIBILITY_PRESET hidden)
 
 # Identify platform name.
 if(NOT PLATFORM)
@@ -259,10 +259,6 @@ else()
 	set(internal_compiler_warning_flags)
 	set(cxx_flags_unoptimized)
 	set(linker_flags_unoptimized)
-
-	# Hide all symbols in DLLs except the ones with explicit visibility;
-        # see https://gcc.gnu.org/wiki/Visibility
-        set(cxx_flags_unoptimized ${cxx_flags_unoptimized} -fvisibility-inlines-hidden )
 
 
 	# LLVM Clang / Gnu GCC
