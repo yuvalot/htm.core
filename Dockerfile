@@ -5,7 +5,7 @@
 ## To run a build using this file locally, do: 
 # docker run --privileged --rm -it multiarch/qemu-user-static:register
 # docker build -t htm-arm64-docker --build-arg arch=arm64 .
-# docker run -it htm-arm64-docker
+# docker run -it htm-arm64-docker /bin/sh
 
 #target compile arch
 ARG arch=arm64
@@ -53,13 +53,13 @@ RUN python -m pip install \
 RUN rm -rf build/ && \
     mkdir -p build/scripts && \
     cd build/scripts && \
-    cmake ../.. -DCMAKE_BUILD_TYPE=Release -DBINDING_BUILD=Python3 && \
+    cmake ../.. -DCMAKE_BUILD_TYPE=Release -DBINDING_BUILD=Python3 -DNTA_LIBC_MUSL=1 && \
     make -j4 && make install
 
 RUN python setup.py install --force
 
 # Test
-RUN python setup.py test 
+#RUN python setup.py test 
 
 ## Stage 2: create release packages (for PyPI, GH Releases)
 RUN python setup.py bdist_wheel

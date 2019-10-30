@@ -205,7 +205,7 @@ jobs:
 
     - name: Tests
       run: |
-        sudo docker run -it htm-arm64-docker
+        sudo docker run -it htm-arm64-docker /bin/sh
         uname -a && echo "\nHello from ARM64 htm.core build!\n"
         python setup.py test
         exit
