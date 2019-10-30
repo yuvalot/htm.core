@@ -335,7 +335,11 @@ target_link_libraries(${src_executable_hotgym}
 #          link with ${src_lib_shared} rather than ${core_library}
                   
 target_compile_options( ${src_executable_hotgym} PUBLIC ${INTERNAL_CXX_FLAGS})
-target_compile_definitions(${src_executable_hotgym} PRIVATE ${COMMON_COMPILER_DEFINITIONS} -DNTA_LIBC_MUSL=${NTA_LIBC_MUSL})
+if(${NTA_LIBC_MUSL})
+  target_compile_definitions(${src_executable_hotgym} PRIVATE ${COMMON_COMPILER_DEFINITIONS} -DNTA_LIBC_MUSL=${NTA_LIBC_MUSL})
+else()
+  target_compile_definitions(${src_executable_hotgym} PRIVATE ${COMMON_COMPILER_DEFINITIONS})
+endif()
 target_include_directories(${src_executable_hotgym} PRIVATE 
 		${CORE_LIB_INCLUDES} 
 		${EXTERNAL_INCLUDES}
@@ -359,7 +363,11 @@ else()
     ${COMMON_OS_LIBS}
   )
   target_compile_options( ${src_dyn_executable_hotgym} PUBLIC ${INTERNAL_CXX_FLAGS})
-  target_compile_definitions(${src_dyn_executable_hotgym} PRIVATE ${COMMON_COMPILER_DEFINITIONS} -DNTA_LIBC_MUSL=${NTA_LIBC_MUSL})
+  if(${NTA_LIBC_MUSL})
+    target_compile_definitions(${src_dyn_executable_hotgym} PRIVATE ${COMMON_COMPILER_DEFINITIONS} -DNTA_LIBC_MUSL=${NTA_LIBC_MUSL})
+  else()
+    target_compile_definitions(${src_dyn_executable_hotgym} PRIVATE ${COMMON_COMPILER_DEFINITIONS})
+  endif()
   target_include_directories(${src_dyn_executable_hotgym} PRIVATE 
 		${CORE_LIB_INCLUDES} 
 		${EXTERNAL_INCLUDES}
