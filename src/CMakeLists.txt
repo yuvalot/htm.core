@@ -251,7 +251,7 @@ add_library(${src_lib_static} STATIC $<TARGET_OBJECTS:${src_objlib}>)
 if(MSVC)
   set_property(TARGET ${src_lib_static} PROPERTY LINK_LIBRARIES ${INTERNAL_LINKER_FLAGS})
 elseif(${NTA_LIBC_MUSL})
-  message("Doing static build with MUSL libc")
+  message("Doing static build with MUSL libc ${COMMON_COMPILER_DEFINITIONS}")
   target_link_libraries(${src_lib_static} -static)
 endif()
 #
@@ -335,11 +335,7 @@ target_link_libraries(${src_executable_hotgym}
 #          link with ${src_lib_shared} rather than ${core_library}
                   
 target_compile_options( ${src_executable_hotgym} PUBLIC ${INTERNAL_CXX_FLAGS})
-if(${NTA_LIBC_MUSL})
-  target_compile_definitions(${src_executable_hotgym} PRIVATE ${COMMON_COMPILER_DEFINITIONS} -DNTA_LIBC_MUSL=${NTA_LIBC_MUSL})
-else()
-  target_compile_definitions(${src_executable_hotgym} PRIVATE ${COMMON_COMPILER_DEFINITIONS})
-endif()
+target_compile_definitions(${src_executable_hotgym} PRIVATE ${COMMON_COMPILER_DEFINITIONS})
 target_include_directories(${src_executable_hotgym} PRIVATE 
 		${CORE_LIB_INCLUDES} 
 		${EXTERNAL_INCLUDES}
@@ -363,11 +359,7 @@ else()
     ${COMMON_OS_LIBS}
   )
   target_compile_options( ${src_dyn_executable_hotgym} PUBLIC ${INTERNAL_CXX_FLAGS})
-  if(${NTA_LIBC_MUSL})
-    target_compile_definitions(${src_dyn_executable_hotgym} PRIVATE ${COMMON_COMPILER_DEFINITIONS} -DNTA_LIBC_MUSL=${NTA_LIBC_MUSL})
-  else()
-    target_compile_definitions(${src_dyn_executable_hotgym} PRIVATE ${COMMON_COMPILER_DEFINITIONS})
-  endif()
+  target_compile_definitions(${src_dyn_executable_hotgym} PRIVATE ${COMMON_COMPILER_DEFINITIONS})
   target_include_directories(${src_dyn_executable_hotgym} PRIVATE 
 		${CORE_LIB_INCLUDES} 
 		${EXTERNAL_INCLUDES}
