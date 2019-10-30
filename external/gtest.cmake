@@ -54,7 +54,7 @@ set(BUILD_GMOCK   OFF CACHE BOOL "prevents building gmock"   FORCE)
 add_subdirectory(${googletest_SOURCE_DIR} ${googletest_BINARY_DIR})
 
 if(MSVC)
-  set(gtest_LIBRARIES ${googletest_BINARY_DIR}/googletest/$<$<CONFIG:Release>:Release>$<$<CONFIG:Debug>:Debug>/${CMAKE_STATIC_LIBRARY_PREFIX}gtest$<$<CONFIG:Debug>:d>${CMAKE_STATIC_LIBRARY_SUFFIX})
+	set(gtest_LIBRARIES ${EP_BASE}/lib/$<$<CONFIG:Release>:Release>$<$<CONFIG:Debug>:Debug>/${CMAKE_STATIC_LIBRARY_PREFIX}gtest$<$<CONFIG:Debug>:d>${CMAKE_STATIC_LIBRARY_SUFFIX})
 else()
   if("${CMAKE_BUILD_TYPE}" STREQUAL "Debug")
     set(DEBUG_POSTFIX d)
