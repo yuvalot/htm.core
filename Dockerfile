@@ -54,7 +54,8 @@ RUN python -m pip install \
 #        --build /usr/local/src/htm.core/pip-build \
 #        --no-clean \
         -r requirements.txt
-RUN mkdir -p build/scripts && \
+RUN rm -rf build/ && \
+    mkdir -p build/scripts && \
     cd build/scripts && \
     cmake ../.. -DCMAKE_BUILD_TYPE=Release -DBINDING_BUILD=Python3 && \
     make -j4 && make install
