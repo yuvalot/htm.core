@@ -38,11 +38,7 @@ ADD . /usr/local/src/htm.core
 WORKDIR /usr/local/src/htm.core
 
 # Setup py env
-#! RUN python3 -m venv pyenv && . pyenv/bin/activate && python --version
-
 RUN ln -s /usr/bin/python3 /usr/local/bin/python && python --version 
-
-RUN python -m pip install --upgrade setuptools pip wheel
 
 # Install
 RUN python -m pip uninstall -y htm.core
@@ -63,8 +59,7 @@ RUN rm -rf build/ && \
 RUN python setup.py install --force
 
 # Test
-#RUN python setup.py test #Note, if you get weird import errors here, 
-# do `git clean -xdf` in your host system, and rerun the docker
+RUN python setup.py test 
 
 ## Stage 2: create release packages (for PyPI, GH Releases)
 RUN python setup.py bdist_wheel
