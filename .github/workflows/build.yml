@@ -258,10 +258,7 @@ jobs:
 
     - name: Tests
       run: |
-        sudo docker run htm-amd64-docker /bin/sh
-        uname -a && echo "\nHello from amd64 htm.core build!\n"
-        python setup.py test
-        exit
+        sudo docker run htm-amd64-docker python3 setup.py test
 
     - name: Copy files from docker
       run: |
