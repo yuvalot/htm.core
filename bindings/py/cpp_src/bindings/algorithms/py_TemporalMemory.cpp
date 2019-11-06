@@ -372,7 +372,12 @@ R"()");
           "Anomaly score updated with each TM::compute() call. "
         );
 
-	py_HTM.def("setAnomalyMode", &HTM_t::setAnomalyMode);
+	py_HTM.def("setAnomalyMode", [](HTM_t &self, TemporalMemory::ANMode mode){
+	  self.setAnomalyMode(mode);
+			}, 
+	  "set anomaly mode used by TM.anomaly",
+	  py::arg("mode") = TemporalMemory::ANMode::RAW
+			);
 
         py_HTM.def("__str__",
             [](HTM_t &self) {
