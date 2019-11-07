@@ -40,10 +40,12 @@ using namespace htm;
  *  helper to transform (Real) data to categories (UInt) for Classifier/Predictor
  **/
 UInt realToCategory_(const Real r) {
-  return static_cast<UInt>((r+1.0f /*map sin(x):[-1,1] map it to [0,2]*/)*1000); //precision on 3 dec places
+  return static_cast<UInt>((r+1.0f /*map sin(x):[-1,1] map it to [0,2]*/)*100); //precision on 2 dec places
 }
 Real categoryToReal_(const UInt bin) {
-  return static_cast<Real>((bin/1000.0f)-1.0f);
+  const Real rl =  static_cast<Real>((bin/100.0f)-1.0f);
+  std::cout << "RL =" << bin << std::endl;
+  return rl;
 }
 
 // work-load
@@ -166,7 +168,10 @@ EPOCHS = 10; // make test faster in Debug
 
     //Classifier, Predictor
     tCls.start();
-    pred.learn(e, outTM, { realToCategory_(data) }); //FIXME fails with bad_alloc if label is too large! PDF should use map, instead of a vector
+    const auto label = realToCategory_(data);
+    pred.learn(e, outTM, { label }); //FIXME fails with bad_alloc if label is too large! PDF should use map, instead of a vector
+    const auto recovered = categoryToReal_(argmax(pred.infer(outTM)[0]));
+    NTA_CHECK(label == recovered);
     tCls.stop();
 
 

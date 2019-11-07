@@ -82,6 +82,8 @@ void Classifier::learn(const SDR &pattern, const vector<UInt> &categoryIdxList)
 
   // Check if this is a new category & resize the weights table to hold it.
   const size_t maxCategoryIdx = *max_element(categoryIdxList.cbegin(), categoryIdxList.cend());
+  NTA_CHECK(maxCategoryIdx < 1000) << "TODO for now we only support limited number of labels (<1000).";
+
   if( maxCategoryIdx >= numCategories_ ) {
     numCategories_ = maxCategoryIdx + 1;
     for( auto & vec : weights_ ) {

@@ -180,8 +180,8 @@ class TemporalMemoryBindingsTest(unittest.TestCase):
 
     modes = [ANMode.RAW, ANMode.LIKELIHOOD, ANMode.LOGLIKELIHOOD]
     for mod in modes: #this block test convergence of TM and anomaly score for select mode
-      #FIXME why not visible from bidngings? tm.setAnomalyMode(mod)
-      #print("testing {}".format(mod))
+      tm.setAnomalyMode(mod)
+      print("testing {}".format(mod))
       inp = SDR([2048]).randomize(0.05) #starting SDR with 5% bits ON
 
       #learn TM a bit, anomaly should be low
