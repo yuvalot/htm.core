@@ -49,9 +49,7 @@ set(CORE_LIB_INCLUDES  ${CORE_LIB_INCLUDES} PARENT_SCOPE)
 # Create Version.hpp
 # Extract current git sha and record in htm/Version.hpp.in
 #
-execute_process(COMMAND git rev-parse HEAD
-                OUTPUT_VARIABLE HTM_CORE_VERSION
-                OUTPUT_STRIP_TRAILING_WHITESPACE)
+set(HTM_CORE_VERSION ${VERSION})
 configure_file(
   "${PROJECT_SOURCE_DIR}/htm/Version.hpp.in"
   "${PROJECT_BINARY_DIR}/Version.hpp")
@@ -89,6 +87,8 @@ set(encoders_files
     htm/encoders/ScalarEncoder.hpp
     htm/encoders/RandomDistributedScalarEncoder.hpp
     htm/encoders/RandomDistributedScalarEncoder.cpp
+    htm/encoders/SimHashDocumentEncoder.hpp
+    htm/encoders/SimHashDocumentEncoder.cpp
 )
     
 set(engine_files
@@ -98,8 +98,6 @@ set(engine_files
     htm/engine/Link.hpp
     htm/engine/Network.cpp
     htm/engine/Network.hpp
-    htm/engine/NuPIC.cpp
-    htm/engine/NuPIC.hpp
     htm/engine/Output.cpp
     htm/engine/Output.hpp
     htm/engine/Region.cpp
@@ -112,8 +110,6 @@ set(engine_files
     htm/engine/RegisteredRegionImplCpp.hpp
     htm/engine/Spec.cpp
     htm/engine/Spec.hpp
-    htm/engine/YAMLUtils.cpp
-    htm/engine/YAMLUtils.hpp
     htm/engine/Watcher.cpp
     htm/engine/Watcher.hpp
 )
@@ -127,8 +123,6 @@ set(ntypes_files
     htm/ntypes/BasicType.hpp
     htm/ntypes/Collection.hpp
     htm/ntypes/Dimensions.hpp
-    htm/ntypes/Scalar.cpp
-    htm/ntypes/Scalar.hpp
     htm/ntypes/Value.cpp
     htm/ntypes/Value.hpp
 )
@@ -139,10 +133,6 @@ set(os_files
     htm/os/Env.cpp
     htm/os/Env.hpp
     htm/os/ImportFilesystem.hpp
-    htm/os/OS.cpp
-    htm/os/OS.hpp
-    htm/os/OSUnix.cpp
-    htm/os/OSWin.cpp
     htm/os/Path.cpp
     htm/os/Path.hpp
     htm/os/Timer.cpp
@@ -177,10 +167,6 @@ set(types_files
 set(utils_files
     htm/utils/GroupBy.hpp
     htm/utils/Log.hpp
-    htm/utils/LoggingException.cpp
-    htm/utils/LoggingException.hpp
-    htm/utils/LogItem.cpp
-    htm/utils/LogItem.hpp
     htm/utils/MovingAverage.cpp
     htm/utils/MovingAverage.hpp
     htm/utils/Random.cpp
@@ -189,8 +175,6 @@ set(utils_files
     htm/utils/VectorHelpers.hpp
     htm/utils/SdrMetrics.cpp
     htm/utils/SdrMetrics.hpp
-    htm/utils/StlIo.cpp
-    htm/utils/StlIo.hpp
     htm/utils/Topology.cpp
     htm/utils/Topology.hpp
 )
@@ -240,9 +224,10 @@ if(MSVC)
   set_property(TARGET ${src_objlib} PROPERTY LINK_LIBRARIES ${INTERNAL_LINKER_FLAGS})
 endif()
 target_compile_definitions(${src_objlib} PRIVATE ${COMMON_COMPILER_DEFINITIONS})
+target_compile_definitions(${src_objlib} PRIVATE ${yaml_DEFINE})
 target_include_directories(${src_objlib} PRIVATE 
 		${CORE_LIB_INCLUDES} 
-		${EXTERNAL_INCLUDES}
+		SYSTEM ${EXTERNAL_INCLUDES}
 		)
 
 if(${HTM_IWYU})
@@ -267,7 +252,7 @@ endif()
 #
 set(src_combined_htmcore_source_archives
     ${src_lib_static}
-    ${yaml-cpp_LIBRARIES}
+    ${yaml_LIBRARIES}
     ${Boost_LIBRARIES}
     ${common_LIBRARIES}
     )
@@ -287,7 +272,7 @@ else()
 	# Note that these libraries must already exist (from depenancies)
 	set(all_object_locations)
 	set(src_externLibs
-            ${yaml-cpp_LIBRARIES}
+            ${yaml_LIBRARIES}
             ${Boost_LIBRARIES}
             ${common_LIBRARIES}
             )
@@ -400,12 +385,15 @@ add_custom_target(mnist
 #
 install(TARGETS
         ${core_library}
-        ${src_executable_hotgym}
-        ${src_executable_mnistsp}
-	RUNTIME DESTINATION bin
         LIBRARY DESTINATION lib
         ARCHIVE DESTINATION lib)
-
+        
+install(TARGETS
+        ${src_executable_hotgym}
+        ${src_executable_mnistsp}
+        RUNTIME DESTINATION bin
+        LIBRARY DESTINATION lib
+        ARCHIVE DESTINATION lib)
 if(MSVC)
 else()	
   install(TARGETS
@@ -418,24 +406,54 @@ endif()
 
 # Version.hpp is also used by the htm.bindings release/deployment system
 install(FILES ${PROJECT_BINARY_DIR}/Version.hpp
-        DESTINATION include/htm)
+      DESTINATION include)
 
-install(DIRECTORY ${PROJECT_SOURCE_DIR} DESTINATION include
-	  MESSAGE_NEVER
-	  FILES_MATCHING PATTERN "htm/*/*.h*"
-	  PATTERN "htm/*/*.hpp.in" EXCLUDE)
+install(DIRECTORY ${PROJECT_SOURCE_DIR}/htm
+      MESSAGE_NEVER
+      DESTINATION include/
+      FILES_MATCHING PATTERN "*.h*"
+      PATTERN "*.hpp.in" EXCLUDE)
 
 
 install(DIRECTORY "${REPOSITORY_DIR}/external/common/include/"
+      MESSAGE_NEVER
+      DESTINATION include)
+      
+# include the python wheel if it exists.
+# run "python3 setup.py install --user"
+# and "python3 setup.py bdist_wheel"
+# prior to this to create the whl file.
+install(DIRECTORY "${CMAKE_INSTALL_PREFIX}/distr/dist/"
 	  MESSAGE_NEVER
-	  DESTINATION include)
+	  DESTINATION py
+	  FILES_MATCHING PATTERN "*.whl")
 
-          
+# copy requirements.txt into dist/ 
+install(FILES ${REPOSITORY_DIR}/requirements.txt
+        DESTINATION distr/dist)
+
+
+############### PACKAGE ###########################
 #
 # `make package` results in
-# htm_cpp-${HTM_CORE_VERSION}-${PLATFORM}${BITNESS}${PLATFORM_SUFFIX}.tar.gz binary release
+# htm_cpp-${VERSION}-${PLATFORM}${BITNESS}${PLATFORM_SUFFIX}.tar.gz binary release
 #
+#   TODO:  The version numbers need to be automatically incremented.
+message(STATUS "Packaging version: ${VERSION} in CPACK")
+set(CPACK_PACKAGE_NAME "htm.core")
+set(CPACK_PACKAGE_VENDOR "https://github.com/htm-community/htm.core")
+set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "htm.core - Community implementation of Numenta's algorthms.")
+set(CPACK_PACKAGE_VERSION ${VERSION})
+set(CPACK_PACKAGE_VERSION_MAJOR ${MAJOR})
+set(CPACK_PACKAGE_VERSION_MINOR ${MINOR})
+set(CPACK_PACKAGE_VERSION_PATCH ${PATCH})
+set(CPACK_PACKAGE_INSTALL_DIRECTORY "htm.core")
 
-set(CPACK_GENERATOR "TGZ")
-set(CPACK_PACKAGE_FILE_NAME "htm_cpp-${HTM_CORE_VERSION}-${PLATFORM}${BITNESS}${PLATFORM_SUFFIX}")
+if(MSVC)
+	set(CPACK_GENERATOR "ZIP")
+else()
+	set(CPACK_GENERATOR "TGZ")
+endif()
+set(CPACK_RESOURCE_FILE_LICENSE "${REPOSITORY_DIR}/LICENSE.txt")
+set(CPACK_PACKAGE_FILE_NAME "htm_core-${VERSION}-${PLATFORM}${BITNESS}${PLATFORM_SUFFIX}")
 include(CPack)

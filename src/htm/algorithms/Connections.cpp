@@ -122,10 +122,10 @@ Synapse Connections::createSynapse(Segment segment,
     synapse = destroyedSynapses_.back();
     destroyedSynapses_.pop_back();
   } else {
-    NTA_CHECK(synapses_.size() < std::numeric_limits<Synapse>::max()) << "Add synapse failed: Range of Synapse (data-type) insufficient size."
+    NTA_ASSERT(synapses_.size() < std::numeric_limits<Synapse>::max()) << "Add synapse failed: Range of Synapse (data-type) insufficient size."
 	    << synapses_.size() << " < " << (size_t)std::numeric_limits<Synapse>::max();
     synapse = static_cast<Synapse>(synapses_.size());
-    synapses_.push_back(SynapseData());
+    synapses_.emplace_back(SynapseData());
   }
 
   // Fill in the new synapse's data
@@ -375,13 +375,9 @@ void Connections::reset()
   currentUpdates_.clear();
 }
 
+vector<SynapseIdx> Connections::computeActivity(const vector<CellIdx> &activePresynapticCells, const bool learn) {
 
-void Connections::computeActivity(
-    vector<SynapseIdx> &numActiveConnectedSynapsesForSegment,
-    const vector<CellIdx> &activePresynapticCells,
-    bool learn)
-{
-  NTA_ASSERT(numActiveConnectedSynapsesForSegment.size() == segments_.size());
+  vector<SynapseIdx> numActiveConnectedSynapsesForSegment(segments_.size(), 0);
   if(learn) iteration_++;
 
   if( timeseries_ ) {
@@ -399,26 +395,25 @@ void Connections::computeActivity(
       }
     }
   }
+  return numActiveConnectedSynapsesForSegment;
 }
 
-void Connections::computeActivity(
-    vector<SynapseIdx> &numActiveConnectedSynapsesForSegment,
+
+vector<SynapseIdx> Connections::computeActivity(
     vector<SynapseIdx> &numActivePotentialSynapsesForSegment,
     const vector<CellIdx> &activePresynapticCells,
-    bool learn) {
-  NTA_ASSERT(numActiveConnectedSynapsesForSegment.size() == segments_.size());
+    const bool learn) {
   NTA_ASSERT(numActivePotentialSynapsesForSegment.size() == segments_.size());
 
   // Iterate through all connected synapses.
-  computeActivity(
-      numActiveConnectedSynapsesForSegment,
-      activePresynapticCells,
-      learn );
+  const vector<SynapseIdx>& numActiveConnectedSynapsesForSegment = computeActivity( activePresynapticCells, learn );
+  NTA_ASSERT(numActiveConnectedSynapsesForSegment.size() == segments_.size());
 
   // Iterate through all potential synapses.
   std::copy( numActiveConnectedSynapsesForSegment.begin(),
              numActiveConnectedSynapsesForSegment.end(),
              numActivePotentialSynapsesForSegment.begin());
+
   for (const auto& cell : activePresynapticCells) {
     if (potentialSegmentsForPresynapticCell_.count(cell)) {
       for(const auto& segment : potentialSegmentsForPresynapticCell_.at(cell)) {
@@ -426,6 +421,7 @@ void Connections::computeActivity(
       }
     }
   }
+  return numActiveConnectedSynapsesForSegment;
 }
 
 
@@ -479,7 +475,7 @@ void Connections::adaptSegment(const Segment segment,
   synapseCompetition(segment, 8, 11); //FIXME derive these numbers
 
   //destroy segment if it has too few synapses left -> will never be able to connect again
-  if(pruneZeroSynapses and synapses.size() < connectedThreshold_) {
+  if(pruneZeroSynapses and synapses.size() < connectedThreshold_) { //FIXME this is incorrect! connectedThreshold_ is if > then syn = connected. We need stimulusThreshold_ from TM.
     destroySegment(segment);
     prunedSegs_++; //statistics
   }
