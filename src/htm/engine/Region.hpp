@@ -423,13 +423,13 @@ public:
   bool isInitialized() const { return initialized_; }
 
   // Used by RegionImpl to get inputs/outputs
-  Output *getOutput(const std::string &name) const;
+  std::shared_ptr<Output> getOutput(const std::string &name) const;
 
-  Input *getInput(const std::string &name) const;
+  std::shared_ptr<Input> getInput(const std::string &name) const;
 
-  const std::map<std::string, Input *> &getInputs() const;
+  const std::map<std::string, std::shared_ptr<Input>> &getInputs() const;
 
-  const std::map<std::string, Output *> &getOutputs() const;
+  const std::map<std::string, std::shared_ptr<Output>> &getOutputs() const;
 
   void clearInputs();
 
@@ -466,11 +466,6 @@ public:
 
   void removeAllIncomingLinks();
 
-  // TODO: sort our phases api. Users should never call Region::setPhases
-  // and it is here for serialization only.
-  void setPhases(std::set<UInt32> &phases);
-
-  std::set<UInt32> &getPhases();
 
 
   // These must be implemented for serialization.
@@ -480,8 +475,7 @@ public:
   void save_ar(Archive& ar) const {
     ar(cereal::make_nvp("name", name_),
        cereal::make_nvp("nodeType", type_),
-       cereal::make_nvp("initialized", initialized_),
-       cereal::make_nvp("phases", phases_));
+       cereal::make_nvp("initialized", initialized_));
     ar(cereal::make_nvp("dim", getDimensions()));
 
     std::map<std::string, Dimensions> outDims;
@@ -511,7 +505,6 @@ public:
     ar(cereal::make_nvp("name", name_));
     ar(cereal::make_nvp("nodeType", type_));
     ar(cereal::make_nvp("initialized", init));
-    ar(cereal::make_nvp("phases", phases_));
     ar(cereal::make_nvp("dim", dim));
 
     std::map<std::string, Dimensions> outDims;
@@ -560,13 +553,11 @@ private:
   std::string type_;
   std::shared_ptr<Spec> spec_;
 
-  typedef std::map<std::string, Output *> OutputMap;
-  typedef std::map<std::string, Input *> InputMap;
+  typedef std::map<std::string, std::shared_ptr<Output>> OutputMap;
+  typedef std::map<std::string, std::shared_ptr<Input>> InputMap;
 
   OutputMap outputs_;
   InputMap inputs_;
-  // used for serialization only
-  std::set<UInt32> phases_;
   bool initialized_;
 
   // Region contains a backpointer to network_ only to be able
