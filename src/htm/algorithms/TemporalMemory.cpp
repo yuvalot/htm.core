@@ -211,19 +211,11 @@ void TemporalMemory::growSynapses_(
     }
   }
 
-  const size_t nActual = std::min(static_cast<size_t>(nDesiredNewSynapses), candidates.size());
-
-  // Check if we're going to surpass the maximum number of synapses.
-  Int overrun = static_cast<Int>(connections.numSynapses(segment) + nActual - maxSynapsesPerSegment_);
-  if (overrun > 0) {
-    connections.destroyMinPermanenceSynapses(segment, static_cast<Int>(overrun), prevWinnerCells);
-  }
-
-  // Recalculate in case we weren't able to destroy as many synapses as needed.
-  const size_t nActualWithMax = std::min(nActual, static_cast<size_t>(maxSynapsesPerSegment_) - connections.numSynapses(segment));
-
+  const size_t nActual = std::min(static_cast<size_t>(nDesiredNewSynapses) + (size_t)connections.numSynapses(segment), (size_t)maxSynapsesPerSegment_); //even with the new additions, synapses fit to segment's limit
   // Pick nActual cells randomly.
-  for (const auto syn : rng_.sample(candidates, static_cast<UInt>(nActualWithMax))) {
+  rng_.shuffle(candidates.begin(), candidates.end());
+  for (const auto syn : candidates) {
+    if( connections.numSynapses(segment) == nActual) break;
     connections.createSynapse(segment, syn, initialPermanence_); //TODO createSynapse consider creating a vector of new synapses at once?
   }
 }
