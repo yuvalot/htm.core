@@ -95,12 +95,11 @@ struct SynapseData: public Serializable {
  * The cell that this segment is on.
  */
 struct SegmentData {
-  SegmentData(const CellIdx cell, Segment id, UInt32 lastUsed = 0) : cell(cell), numConnected(0), lastUsed(lastUsed), id(id) {} //default constructor
+  SegmentData(const CellIdx cell, Segment id) : cell(cell), numConnected(0), id(id) {} //default constructor
 
   std::vector<Synapse> synapses;
   CellIdx cell; //mother cell that this segment originates from
   SynapseIdx numConnected; //number of permanences from `synapses` that are >= synPermConnected, ie connected synapses
-  UInt32 lastUsed = 0; //last used time (iteration). Used for segment pruning by "least recently used" (LRU) in `createSegment`
   Segment id; 
 };
 
@@ -234,8 +233,7 @@ public:
    * @param cell Cell to create segment on.
    *
    * @param maxSegmetsPerCell Optional. Enforce limit on maximum number of segments that can be
-   * created on a Cell. If the limit is exceeded, call `destroySegment` to remove least used segments 
-   * (ordered by LRU `SegmentData.lastUsed`). Default value is numeric_limits::max() of the data-type, 
+   * created on a Cell. Default value is numeric_limits::max() of the data-type, 
    * so effectively disabled. 
    *
    * @retval Unique ID of the created segment `seg`. Use `dataForSegment(seg)` to obtain the segment's data. 

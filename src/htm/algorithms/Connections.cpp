@@ -75,19 +75,7 @@ Segment Connections::createSegment(const CellIdx cell,
 
   //limit number of segmets per cell. If exceeded, remove the least recently used ones.
   NTA_ASSERT(maxSegmentsPerCell > 0);
-  while (numSegments(cell) >= maxSegmentsPerCell) {
-    const auto& destroyCandidates = segmentsForCell(cell);
-    const auto compareSegmentsByLRU = [&](const Segment a, const Segment b) {
-	if(dataForSegment(a).lastUsed == dataForSegment(b).lastUsed) {
-	  return a < b; //needed for deterministic sort
-        } 
-	else return dataForSegment(a).lastUsed < dataForSegment(b).lastUsed; //sort segments by access time
-      };
-    const auto leastRecentlyUsedSegment = std::min_element(destroyCandidates.cbegin(), 
-        destroyCandidates.cend(), compareSegmentsByLRU);
-
-    destroySegment(*leastRecentlyUsedSegment);
-  }
+  NTA_CHECK(numSegments(cell) <= maxSegmentsPerCell) << "Segment exceeded max allowed limit of segments on cell " << maxSegmentsPerCell;
 
   //proceed to create a new segment
   Segment segment;
@@ -98,7 +86,7 @@ Segment Connections::createSegment(const CellIdx cell,
     NTA_CHECK(segments_.size() < std::numeric_limits<Segment>::max()) << "Add segment failed: Range of Segment (data-type) insufficinet size."
 	    << (size_t)segments_.size() << " < " << (size_t)std::numeric_limits<Segment>::max();
     segment = static_cast<Segment>(segments_.size());
-    const SegmentData& segmentData = SegmentData(cell, iteration_, nextSegmentOrdinal_++);
+    const SegmentData& segmentData = SegmentData(cell, iteration_);
     segments_.push_back(segmentData);
   }
 
@@ -443,7 +431,7 @@ void Connections::adaptSegment(const Segment segment,
   }
 
   const auto& synapses = synapsesForSegment(segment);
-  for( size_t i = 0; i <  synapses.size(); i++) {
+  for( size_t i = 0; i <  synapses.size(); i++) { //TODO use presynaptic cells vector here
       const auto synapse = synapses[i];
       const SynapseData &synapseData = dataForSynapse(synapse);
 
