@@ -185,37 +185,17 @@ void TemporalMemory::growSynapses_(
 			 const Segment& segment,
                          const SynapseIdx nDesiredNewSynapses,
                          const vector<CellIdx> &prevWinnerCells) {
-  // It's possible to optimize this, swapping candidates to the end as
-  // they're used. But this is awkward to mimic in other
-  // implementations, especially because it requires iterating over
-  // the existing synapses in a particular order.
-
+  
   vector<CellIdx> candidates(prevWinnerCells.begin(), prevWinnerCells.end());
   NTA_ASSERT(std::is_sorted(candidates.begin(), candidates.end()));
 
-  // Skip cells that are already synapsed on by this segment
-  // Biological motivation (?):
-  // There are structural constraints on the shapes of axons & synapses 
-  // which prevent a large number duplicate of connections.
-  //
-  // It's important to prevent cells from growing duplicate synapses onto a segment, 
-  // because otherwise a strong input would be sampled many times and grow many synapses.
-  // That would give such input a stronger connection. 
-  // Synapses are supposed to have binary effects (0 or 1) but duplicate synapses give 
-  // them (synapses 0/1) varying levels of strength.
-  for (const Synapse& synapse : connections.synapsesForSegment(segment)) {
-    const CellIdx presynapticCell = connections.dataForSynapse(synapse).presynapticCell;
-    const auto already = std::lower_bound(candidates.cbegin(), candidates.cend(), presynapticCell);
-    if (already != candidates.cend() && *already == presynapticCell) {
-      candidates.erase(already);
-    }
-  }
-
   const size_t nActual = std::min(static_cast<size_t>(nDesiredNewSynapses) + (size_t)connections.numSynapses(segment), (size_t)maxSynapsesPerSegment_); //even with the new additions, synapses fit to segment's limit
+
   // Pick nActual cells randomly.
   rng_.shuffle(candidates.begin(), candidates.end());
   for (const auto syn : candidates) {
-    if( connections.numSynapses(segment) == nActual) break;
+    // #COND: this loop finishes two folds: a) we ran out of candidates (above), b) we grew the desired number of new synapses (below)
+    if(connections.numSynapses(segment) == nActual) break;
     connections.createSynapse(segment, syn, initialPermanence_); //TODO createSynapse consider creating a vector of new synapses at once?
   }
 }
