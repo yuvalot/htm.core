@@ -130,7 +130,7 @@ void TemporalMemory::initialize(
   externalPredictiveInputs_ = externalPredictiveInputs;
 
   // Initialize member variables
-  connections = Connections(static_cast<CellIdx>(numberOfColumns() * cellsPerColumn_), connectedPermanence_);
+  connections_ = Connections(static_cast<CellIdx>(numberOfColumns() * cellsPerColumn_), connectedPermanence_);
   rng_ = Random(seed);
 
   maxSegmentsPerCell_ = maxSegmentsPerCell;
@@ -196,7 +196,7 @@ void TemporalMemory::growSynapses_(
   for (const auto syn : candidates) {
     // #COND: this loop finishes two folds: a) we ran out of candidates (above), b) we grew the desired number of new synapses (below)
     if(connections.numSynapses(segment) == nActual) break;
-    connections.createSynapse(segment, syn, initialPermanence_); //TODO createSynapse consider creating a vector of new synapses at once?
+    connections_.createSynapse(segment, syn, initialPermanence_); //TODO createSynapse consider creating a vector of new synapses at once?
   }
 }
 
@@ -217,7 +217,7 @@ void TemporalMemory::activatePredictedColumn_(
     // This cell might have multiple active segments.
     do {
       if (learn) { 
-        connections.adaptSegment(*activeSegment, prevActiveCells,
+        connections_.adaptSegment(*activeSegment, prevActiveCells,
                      permanenceIncrement_, permanenceDecrement_, true);
 
         const Int32 nGrowDesired =
@@ -265,7 +265,7 @@ void TemporalMemory::burstColumn_(
   if (learn) {
     if (bestMatchingSegment != columnMatchingSegmentsEnd) {
       // Learn on the best matching segment.
-      connections.adaptSegment(*bestMatchingSegment, prevActiveCells,
+      connections_.adaptSegment(*bestMatchingSegment, prevActiveCells,
                    permanenceIncrement_, permanenceDecrement_, true);
 
       const Int32 nGrowDesired = maxNewSynapseCount_ - numActivePotentialSynapsesForSegment_[*bestMatchingSegment];
@@ -281,7 +281,7 @@ void TemporalMemory::burstColumn_(
           std::min(static_cast<UInt32>(maxNewSynapseCount_), static_cast<UInt32>(prevWinnerCells.size()));
       if (nGrowExact > 0) {
         const Segment segment =
-            connections.createSegment(winnerCell, maxSegmentsPerCell_);
+            connections_.createSegment(winnerCell, maxSegmentsPerCell_);
 
         growSynapses_(segment, nGrowExact, prevWinnerCells);
         NTA_ASSERT(connections.numSynapses(segment) == nGrowExact);
@@ -298,7 +298,7 @@ void TemporalMemory::punishPredictedColumn_(
   if (predictedSegmentDecrement_ > 0.0) {
     for (auto matchingSegment = columnMatchingSegmentsBegin;
          matchingSegment != columnMatchingSegmentsEnd; matchingSegment++) {
-      connections.adaptSegment(*matchingSegment, prevActiveCells,
+      connections_.adaptSegment(*matchingSegment, prevActiveCells,
                    -predictedSegmentDecrement_, 0.0, true);
     }
   }
@@ -419,7 +419,7 @@ void TemporalMemory::activateDendrites(const bool learn,
   const size_t length = connections.segmentFlatListLength();
 
   numActivePotentialSynapsesForSegment_.assign(length, 0);
-  numActiveConnectedSynapsesForSegment_ = connections.computeActivity(
+  numActiveConnectedSynapsesForSegment_ = connections_.computeActivity(
                               numActivePotentialSynapsesForSegment_,
                               activeCells_,
 			      learn);
@@ -436,7 +436,7 @@ void TemporalMemory::activateDendrites(const bool learn,
   // Update segment bookkeeping.
   if (learn) {
     for (const auto segment : activeSegments_) {
-      connections.dataForSegment(segment).lastUsed = connections.iteration(); //TODO the destroySegments based on LRU is expensive. Better random? or "energy" based on sum permanences?
+      connections_.dataForSegment(segment).lastUsed = connections.iteration(); //TODO the destroySegments based on LRU is expensive. Better random? or "energy" based on sum permanences?
     }
   }
 
