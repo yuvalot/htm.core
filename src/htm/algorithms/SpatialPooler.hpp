@@ -66,17 +66,18 @@ public:
 
   SpatialPooler();
   SpatialPooler(const vector<UInt> inputDimensions, const vector<UInt> columnDimensions,
-                UInt potentialRadius = 16u, Real potentialPct = 0.5f,
-                bool globalInhibition = true, 
+    UInt potentialRadius = 16u, 
+    Real potentialPct = 0.5f,
+    bool globalInhibition = true, 
 		Real localAreaDensity = 0.05f, //5%
-                UInt stimulusThreshold = 0u, 
+    UInt stimulusThreshold = 0u, 
 		Real synPermInactiveDec = 0.008f,
-                Real synPermActiveInc = 0.05f, 
+    Real synPermActiveInc = 0.05f, 
 		Real synPermConnected = 0.1f,
-                Real minPctOverlapDutyCycles = 0.001f,
-                UInt dutyCyclePeriod = 1000u, 
+    Real minPctOverlapDutyCycles = 0.001f,
+    UInt dutyCyclePeriod = 1000u, 
 		Real boostStrength = 0.0f,
-                Int seed = 1, 
+    Int seed = 1, 
 		UInt spVerbosity = 0u, 
 		bool wrapAround = true);
 
@@ -708,10 +709,12 @@ public:
 
   @param column integer of column index.
 
-  @param permanence real array to store permanence values for the selected
-  column.
+  @param threshold : only output synapses with `permanence >= threshold`.
+         This can be used to get connected synapses. 
+
+  @return vector with Permanence values for given column, 
   */
-  void getPermanence(UInt column, Real permanence[]) const;
+  vector<Real> getPermanence(const UInt column, const Permanence threshold = 0.0f) const;
   /**
   Sets the permanence values for a given column. 'permanence' size
   must match the number of inputs.
@@ -722,16 +725,6 @@ public:
   */
   void setPermanence(UInt column, const Real permanence[]);
 
-  /**
-  Returns the connected synapses for a given column.
-  'connectedSynapses' size must match the number of inputs.
-
-  @param column integer of column index.
-
-  @param connectedSynapses integer array to store the connected synapses for a
-  given column.
-  */
-  void getConnectedSynapses(UInt column, UInt connectedSynapses[]) const;
 
   /**
   Returns the number of connected synapses for all columns.
@@ -1183,7 +1176,8 @@ protected:
   Random rng_;
 
 public:
-  const Connections &connections = connections_;
+  const Connections& connections = connections_; //for inspection of details in connections. Const, so users cannot break the SP internals.
+  const Connections& getConnections() const { return connections_; } // as above, but for use in pybind11
 };
 
 std::ostream & operator<<(std::ostream & out, const SpatialPooler &sp);
