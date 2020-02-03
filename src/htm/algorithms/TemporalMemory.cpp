@@ -195,7 +195,7 @@ void TemporalMemory::growSynapses_(
   rng_.shuffle(candidates.begin(), candidates.end());
   for (const auto syn : candidates) {
     // #COND: this loop finishes two folds: a) we ran out of candidates (above), b) we grew the desired number of new synapses (below)
-    if(connections.numSynapses(segment) == nActual) break;
+    if(connections.numSynapses(segment) == nActual) break; //this break is also used because conn.createSynapse() can "exit early" if a syn already exists, this IF handles that case too.
     connections_.createSynapse(segment, syn, initialPermanence_); //TODO createSynapse consider creating a vector of new synapses at once?
   }
 }
