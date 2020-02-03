@@ -813,14 +813,14 @@ TEST(TemporalMemoryTest, RecycleWeakestSynapseToMakeRoomForNewSynapse) {
   // A: Create a weak synapse. This synapse should be destroyed in the experiment. 
   // Make sure it's not so weak that permanenceDecrement destroys it on a single 
   // step. (0.11 < 3x0.05 => in 3 steps it should be gone)
-  tm.connections.createSynapse(matchingSegment, 0, 0.11f);
+  tm.createSynapse(matchingSegment, 0, 0.11f);
 
   // B: Create a synapse that will match. ('1' is in the active columns, 0 above is not)
-  tm.connections.createSynapse(matchingSegment, 1, 0.20f);
+  tm.createSynapse(matchingSegment, 1, 0.20f);
 
   // C: Create a synapse with a high permanence. (31 is also not in the active cols, 
   // but here permanence is so high that it would not be removed)
-  tm.connections.createSynapse(matchingSegment, 31, 0.6f);
+  tm.createSynapse(matchingSegment, 31, 0.6f);
 
   for(int i=0; i< 3; i++) {
   // Activate a synapse on the segment, making it "matching". (B matches, as it's presyn cell '1'
