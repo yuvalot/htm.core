@@ -83,6 +83,8 @@ set(algorithm_files
 
 set(encoders_files 
     htm/encoders/BaseEncoder.hpp
+    htm/encoders/DateEncoder.cpp
+    htm/encoders/DateEncoder.hpp
     htm/encoders/ScalarEncoder.cpp
     htm/encoders/ScalarEncoder.hpp
     htm/encoders/RandomDistributedScalarEncoder.hpp
@@ -98,8 +100,6 @@ set(engine_files
     htm/engine/Link.hpp
     htm/engine/Network.cpp
     htm/engine/Network.hpp
-    htm/engine/NuPIC.cpp
-    htm/engine/NuPIC.hpp
     htm/engine/Output.cpp
     htm/engine/Output.hpp
     htm/engine/Region.cpp
@@ -112,8 +112,6 @@ set(engine_files
     htm/engine/RegisteredRegionImplCpp.hpp
     htm/engine/Spec.cpp
     htm/engine/Spec.hpp
-    htm/engine/YAMLUtils.cpp
-    htm/engine/YAMLUtils.hpp
     htm/engine/Watcher.cpp
     htm/engine/Watcher.hpp
 )
@@ -127,8 +125,6 @@ set(ntypes_files
     htm/ntypes/BasicType.hpp
     htm/ntypes/Collection.hpp
     htm/ntypes/Dimensions.hpp
-    htm/ntypes/Scalar.cpp
-    htm/ntypes/Scalar.hpp
     htm/ntypes/Value.cpp
     htm/ntypes/Value.hpp
 )
@@ -146,8 +142,14 @@ set(os_files
 )
 
 set(regions_files
+    htm/regions/DateEncoderRegion.cpp
+    htm/regions/DateEncoderRegion.hpp    
+    htm/regions/ClassifierRegion.cpp
+    htm/regions/ClassifierRegion.hpp
     htm/regions/ScalarSensor.cpp
-    htm/regions/ScalarSensor.hpp
+    htm/regions/ScalarSensor.hpp    
+    htm/regions/RDSERegion.cpp
+    htm/regions/RDSERegion.hpp
     htm/regions/SPRegion.cpp
     htm/regions/SPRegion.hpp
     htm/regions/TestNode.cpp
@@ -173,10 +175,6 @@ set(types_files
 set(utils_files
     htm/utils/GroupBy.hpp
     htm/utils/Log.hpp
-    htm/utils/LoggingException.cpp
-    htm/utils/LoggingException.hpp
-    htm/utils/LogItem.cpp
-    htm/utils/LogItem.hpp
     htm/utils/MovingAverage.cpp
     htm/utils/MovingAverage.hpp
     htm/utils/Random.cpp
@@ -193,6 +191,7 @@ set(examples_files
     examples/hotgym/Hotgym.cpp # contains conflicting main()
     examples/hotgym/HelloSPTP.cpp
     examples/hotgym/HelloSPTP.hpp
+    examples/napi_sine/napi_sine.cpp
     examples/mnist/MNIST_SP.cpp
 )
 
@@ -234,6 +233,7 @@ if(MSVC)
   set_property(TARGET ${src_objlib} PROPERTY LINK_LIBRARIES ${INTERNAL_LINKER_FLAGS})
 endif()
 target_compile_definitions(${src_objlib} PRIVATE ${COMMON_COMPILER_DEFINITIONS})
+target_compile_definitions(${src_objlib} PRIVATE ${yaml_DEFINE})
 target_include_directories(${src_objlib} PRIVATE 
 		${CORE_LIB_INCLUDES} 
 		SYSTEM ${EXTERNAL_INCLUDES}
@@ -261,7 +261,7 @@ endif()
 #
 set(src_combined_htmcore_source_archives
     ${src_lib_static}
-    ${yaml-cpp_LIBRARIES}
+    ${yaml_LIBRARIES}
     ${Boost_LIBRARIES}
     ${common_LIBRARIES}
     )
@@ -281,7 +281,7 @@ else()
 	# Note that these libraries must already exist (from depenancies)
 	set(all_object_locations)
 	set(src_externLibs
-            ${yaml-cpp_LIBRARIES}
+            ${yaml_LIBRARIES}
             ${Boost_LIBRARIES}
             ${common_LIBRARIES}
             )
@@ -363,6 +363,30 @@ else()
 		${EXTERNAL_INCLUDES}
 		)
 endif()
+
+#########################################################
+## NetworkAPI version of benchmark_sine
+
+set(src_executable_napi_sine napi_sine)
+add_executable(${src_executable_napi_sine} examples/napi_sine/napi_sine.cpp)
+# link with the static library
+target_link_libraries(${src_executable_napi_sine} 
+    ${INTERNAL_LINKER_FLAGS}
+    ${core_library}
+    ${COMMON_OS_LIBS}
+)                  
+target_compile_options( ${src_executable_napi_sine} PUBLIC ${INTERNAL_CXX_FLAGS})
+target_compile_definitions(${src_executable_napi_sine} PRIVATE ${COMMON_COMPILER_DEFINITIONS})
+target_include_directories(${src_executable_napi_sine} PRIVATE 
+		${CORE_LIB_INCLUDES} 
+		${EXTERNAL_INCLUDES}
+		)
+add_custom_target(sine_napi_run
+          COMMAND ${src_executable_napi_sine}
+          DEPENDS ${src_executable_napi_sine}
+          COMMENT "Executing ${src_executable_napi_sine}"
+          VERBATIM)
+
 #########################################################
 ## MNIST Spatial Pooler Example
 #
@@ -399,6 +423,7 @@ install(TARGETS
         
 install(TARGETS
         ${src_executable_hotgym}
+        ${src_executable_napi_sine}
         ${src_executable_mnistsp}
         RUNTIME DESTINATION bin
         LIBRARY DESTINATION lib

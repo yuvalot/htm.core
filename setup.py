@@ -27,7 +27,10 @@ import json
 
 from setuptools import Command, find_packages, setup
 from setuptools.command.test import test as BaseTestCommand
-from distutils.core import Extension
+# see https://stackoverflow.com/questions/44323474/distutils-core-vs-setuptools-with-c-extension
+from setuptools import Extension
+from pathlib import Path
+from sys import version_info
 
 # NOTE:  To debug the python bindings in a debugger, use the procedure
 #        described here: https://pythonextensionpatterns.readthedocs.io/en/latest/debugging/debug_in_ide.html
@@ -263,6 +266,11 @@ def generateExtensions(platform, build_type):
   and then create the extension libraries in Repository/build/Release/distr/src/nupic/bindings.
   Note: for Windows it will force a X64 build.
   """
+  
+  # Make sure that .py code gets copied during any build so it is included in .whl
+  if version_info >= (3, 4):
+    Path(os.path.join(PY_BINDINGS, 'cpp_src', 'CMakeLists.txt')).touch()
+  
   cwd = os.getcwd()
   scriptsDir = os.path.join(REPO_DIR, "build", "scripts")
   try:
@@ -289,7 +297,6 @@ def configure(platform, build_type):
   cwd = os.getcwd()
   
   print("Python version: {}\n".format(sys.version))
-  from sys import version_info
   if version_info > (3, 0):
     # Build a Python 3.x library
     PY_VER = "-DBINDING_BUILD=Python3"
@@ -376,8 +383,7 @@ if __name__ == "__main__":
   os.chdir(DISTR_DIR)
 
   setup(
-    # See https://docs.python.org/2/distutils/apiref.html for descriptions of arguments.
-    #     https://docs.python.org/2/distutils/setupscript.html
+    # See https://setuptools.readthedocs.io/en/latest/setuptools.html
     #     https://opensourceforu.com/2010/OS/extending-python-via-shared-libraries
     #     https://docs.python.org/3/library/ctypes.html
     #     https://docs.python.org/2/library/imp.html

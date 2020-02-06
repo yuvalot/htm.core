@@ -36,6 +36,7 @@
 #include <iterator>
 #include <string>
 #include <vector>
+#include <set>
 
 
 #include <htm/algorithms/TemporalMemory.hpp>
@@ -129,7 +130,7 @@ void TemporalMemory::initialize(
   externalPredictiveInputs_ = externalPredictiveInputs;
 
   // Initialize member variables
-  connections = Connections(static_cast<CellIdx>(numberOfColumns() * cellsPerColumn_), connectedPermanence_);
+  connections_ = Connections(static_cast<CellIdx>(numberOfColumns() * cellsPerColumn_), connectedPermanence_);
   rng_ = Random(seed);
 
   maxSegmentsPerCell_ = maxSegmentsPerCell;
@@ -140,43 +141,22 @@ void TemporalMemory::initialize(
   reset();
 }
 
+CellIdx TemporalMemory::getLeastUsedCell_(const CellIdx column) {
+  if(cellsPerColumn_ == 1) return column;
 
-static CellIdx getLeastUsedCell(Random &rng, //TODO this method is quite expensive, is it required?
-		                const UInt column, //TODO remove static methods, use private instead
-                                const Connections &connections,
-                                const UInt cellsPerColumn) {
-  const CellIdx start = column * cellsPerColumn;
-  const CellIdx end = start + cellsPerColumn;
+  vector<CellIdx> cells = cellsForColumn(column);
 
-  size_t minNumSegments = std::numeric_limits<CellIdx>::max();
-  UInt32 numTiedCells = 0u;
-  //for all cells in a mini-column
-  for (CellIdx cell = start; cell < end; cell++) {
-    const size_t numSegments = connections.numSegments(cell);
-    //..find a cell with least segments
-    if (numSegments < minNumSegments) {
-      minNumSegments = numSegments;
-      numTiedCells = 1u;
-    //..and how many of the cells have only these min segments? number of weakest
-    } else if (numSegments == minNumSegments) {
-      numTiedCells++;
-    }
-  }
+  //TODO: decide if we need to choose randomly from the "least used" cells, or if 1st is fine. 
+  //In that case the line below is not needed, and this method can become const, deterministic results in tests need to be updated
+  //un/comment line below: 
+  rng_.shuffle(cells.begin(), cells.end()); //as min_element selects 1st minimal element, and we want to randomly choose 1 from the minimals.
 
-  //randomly select one of the tie-d cells from the losers
-  const UInt32 tieWinnerIndex = rng.getUInt32(numTiedCells);
-  UInt32 tieIndex = 0;
-  for (CellIdx cell = start; cell < end; cell++) {
-    if (connections.numSegments(cell) == minNumSegments) {
-      if (tieIndex == tieWinnerIndex) {
-        return cell;
-      } else {
-        tieIndex++;
-      }
-    }
-  }
-
-  NTA_THROW << "getLeastUsedCell failed to find a cell";
+  const auto compareByNumSegments = [&](const CellIdx a, const CellIdx b) {
+    if(connections.numSegments(a) == connections.numSegments(b)) 
+      return a < b; //TODO rm? 
+    else return connections.numSegments(a) < connections.numSegments(b);
+  };
+  return *std::min_element(cells.begin(), cells.end(), compareByNumSegments);
 }
 
 
@@ -184,46 +164,27 @@ void TemporalMemory::growSynapses_(
 			 const Segment& segment,
                          const SynapseIdx nDesiredNewSynapses,
                          const vector<CellIdx> &prevWinnerCells) {
-  // It's possible to optimize this, swapping candidates to the end as
-  // they're used. But this is awkward to mimic in other
-  // implementations, especially because it requires iterating over
-  // the existing synapses in a particular order.
-
+  
   vector<CellIdx> candidates(prevWinnerCells.begin(), prevWinnerCells.end());
   NTA_ASSERT(std::is_sorted(candidates.begin(), candidates.end()));
 
-  // Skip cells that are already synapsed on by this segment
-  // Biological motivation (?):
-  // There are structural constraints on the shapes of axons & synapses 
-  // which prevent a large number duplicate of connections.
-  //
-  // It's important to prevent cells from growing duplicate synapses onto a segment, 
-  // because otherwise a strong input would be sampled many times and grow many synapses.
-  // That would give such input a stronger connection. 
-  // Synapses are supposed to have binary effects (0 or 1) but duplicate synapses give 
-  // them (synapses 0/1) varying levels of strength.
-  for (const Synapse& synapse : connections.synapsesForSegment(segment)) {
-    const CellIdx presynapticCell = connections.dataForSynapse(synapse).presynapticCell;
-    const auto already = std::lower_bound(candidates.cbegin(), candidates.cend(), presynapticCell);
-    if (already != candidates.cend() && *already == presynapticCell) {
-      candidates.erase(already);
-    }
-  }
-
+  //figure the number of new synapses to grow
   const size_t nActual = std::min(static_cast<size_t>(nDesiredNewSynapses), candidates.size());
-
-  // Check if we're going to surpass the maximum number of synapses.
+  // ..Check if we're going to surpass the maximum number of synapses.
   Int overrun = static_cast<Int>(connections.numSynapses(segment) + nActual - maxSynapsesPerSegment_);
   if (overrun > 0) {
-    connections.destroyMinPermanenceSynapses(segment, static_cast<Int>(overrun), prevWinnerCells);
+    connections_.destroyMinPermanenceSynapses(segment, static_cast<Int>(overrun), prevWinnerCells);
   }
-
-  // Recalculate in case we weren't able to destroy as many synapses as needed.
+  // ..Recalculate in case we weren't able to destroy as many synapses as needed.
   const size_t nActualWithMax = std::min(nActual, static_cast<size_t>(maxSynapsesPerSegment_) - connections.numSynapses(segment));
 
   // Pick nActual cells randomly.
-  for (const auto syn : rng_.sample(candidates, static_cast<UInt>(nActualWithMax))) {
-    connections.createSynapse(segment, syn, initialPermanence_); //TODO createSynapse consider creating a vector of new synapses at once?
+  rng_.shuffle(candidates.begin(), candidates.end());
+  const size_t nDesired = connections.numSynapses(segment) + nActualWithMax; //num synapses on seg after this function (+-), see #COND
+  for (const auto syn : candidates) {
+    // #COND: this loop finishes two folds: a) we ran out of candidates (above), b) we grew the desired number of new synapses (below)
+    if(connections.numSynapses(segment) == nDesired) break;
+    connections_.createSynapse(segment, syn, initialPermanence_); //TODO createSynapse consider creating a vector of new synapses at once?
   }
 }
 
@@ -244,7 +205,7 @@ void TemporalMemory::activatePredictedColumn_(
     // This cell might have multiple active segments.
     do {
       if (learn) { 
-        connections.adaptSegment(*activeSegment, prevActiveCells,
+        connections_.adaptSegment(*activeSegment, prevActiveCells,
                      permanenceIncrement_, permanenceDecrement_, true);
 
         const Int32 nGrowDesired =
@@ -267,12 +228,10 @@ void TemporalMemory::burstColumn_(
             const SDR &prevActiveCells,
             const vector<CellIdx> &prevWinnerCells,
             const bool learn) {
-  // Calculate the active cells.
-  const CellIdx start = column * cellsPerColumn_;
-  const CellIdx end = start + cellsPerColumn_;
-  for (CellIdx cell = start; cell < end; cell++) {
-    activeCells_.push_back(cell);
-  }
+
+  // Calculate the active cells: active become ALL the cells in this mini-column
+  const auto newCells = cellsForColumn(column);
+  activeCells_.insert(activeCells_.end(), newCells.begin(), newCells.end());
 
   const auto bestMatchingSegment =
       std::max_element(columnMatchingSegmentsBegin, columnMatchingSegmentsEnd,
@@ -284,7 +243,7 @@ void TemporalMemory::burstColumn_(
   const CellIdx winnerCell =
       (bestMatchingSegment != columnMatchingSegmentsEnd)
           ? connections.cellForSegment(*bestMatchingSegment)
-          : getLeastUsedCell(rng_, column, connections, cellsPerColumn_); //TODO replace (with random?) this is extremely costly, removing makes TM 6x faster!
+          : getLeastUsedCell_(column); //TODO replace (with random?) this is extremely costly, removing makes TM 6x faster!
 
   winnerCells_.push_back(winnerCell);
 
@@ -292,7 +251,7 @@ void TemporalMemory::burstColumn_(
   if (learn) {
     if (bestMatchingSegment != columnMatchingSegmentsEnd) {
       // Learn on the best matching segment.
-      connections.adaptSegment(*bestMatchingSegment, prevActiveCells,
+      connections_.adaptSegment(*bestMatchingSegment, prevActiveCells,
                    permanenceIncrement_, permanenceDecrement_, true);
 
       const Int32 nGrowDesired = maxNewSynapseCount_ - numActivePotentialSynapsesForSegment_[*bestMatchingSegment];
@@ -308,7 +267,7 @@ void TemporalMemory::burstColumn_(
           std::min(static_cast<UInt32>(maxNewSynapseCount_), static_cast<UInt32>(prevWinnerCells.size()));
       if (nGrowExact > 0) {
         const Segment segment =
-            connections.createSegment(winnerCell, maxSegmentsPerCell_);
+            connections_.createSegment(winnerCell, maxSegmentsPerCell_);
 
         growSynapses_(segment, nGrowExact, prevWinnerCells);
         NTA_ASSERT(connections.numSynapses(segment) == nGrowExact);
@@ -325,7 +284,7 @@ void TemporalMemory::punishPredictedColumn_(
   if (predictedSegmentDecrement_ > 0.0) {
     for (auto matchingSegment = columnMatchingSegmentsBegin;
          matchingSegment != columnMatchingSegmentsEnd; matchingSegment++) {
-      connections.adaptSegment(*matchingSegment, prevActiveCells,
+      connections_.adaptSegment(*matchingSegment, prevActiveCells,
                    -predictedSegmentDecrement_, 0.0, true);
     }
   }
@@ -377,7 +336,7 @@ void TemporalMemory::activateCells(const SDR &activeColumns, const bool learn) {
 
     // for column in activeColumns (the 'sparse' above):
     //   get its active segments ( >= connectedThr)
-    //   get its matching segs   ( >= mmm
+    //   get its matching segs   ( >= TODO
     std::tie(column, 
              activeColumnsBegin, activeColumnsEnd, 
              columnActiveSegmentsBegin, columnActiveSegmentsEnd, 
@@ -446,7 +405,7 @@ void TemporalMemory::activateDendrites(const bool learn,
   const size_t length = connections.segmentFlatListLength();
 
   numActivePotentialSynapsesForSegment_.assign(length, 0);
-  numActiveConnectedSynapsesForSegment_ = connections.computeActivity(
+  numActiveConnectedSynapsesForSegment_ = connections_.computeActivity(
                               numActivePotentialSynapsesForSegment_,
                               activeCells_,
 			      learn);
@@ -463,7 +422,7 @@ void TemporalMemory::activateDendrites(const bool learn,
   // Update segment bookkeeping.
   if (learn) {
     for (const auto segment : activeSegments_) {
-      connections.dataForSegment(segment).lastUsed = connections.iteration(); //TODO the destroySegments based on LRU is expensive. Better random? or "energy" based on sum permanences?
+      connections_.dataForSegment(segment).lastUsed = connections.iteration(); //TODO the destroySegments based on LRU is expensive. Better random? or "energy" based on sum permanences?
     }
   }
 
@@ -487,43 +446,49 @@ void TemporalMemory::compute(const SDR &activeColumns,
 {
   activateDendrites(learn, externalPredictiveInputsActive, externalPredictiveInputsWinners);
 
+  calculateAnomalyScore_(activeColumns);
+
+  activateCells(activeColumns, learn);
+}
+
+void TemporalMemory::calculateAnomalyScore_(const SDR &activeColumns){
+
   // Update Anomaly Metric.  The anomaly is the percent of active columns that
   // were not predicted. 
   // Must be computed here, between `activateDendrites()` and `activateCells()`.
   switch(tmAnomaly_.mode_) {
 
-    case ANMode::DISABLED: {
-      tmAnomaly_.anomaly_ = 0.5f; 
+	case ANMode::DISABLED: {
+	  tmAnomaly_.anomaly_ = 0.5f;
 			   } break;
 
-    case ANMode::RAW: {
-      tmAnomaly_.anomaly_ = computeRawAnomalyScore(
-                             activeColumns,
-                             cellsToColumns( getPredictiveCells() ));
-		      } break;
+	case ANMode::RAW: {
+	  tmAnomaly_.anomaly_ = computeRawAnomalyScore(
+							 activeColumns,
+							 cellsToColumns( getPredictiveCells() ));
+			  } break;
 
-    case ANMode::LIKELIHOOD: {
-      const Real raw = computeRawAnomalyScore(
-                         activeColumns,
-                         cellsToColumns( getPredictiveCells() ));
-      tmAnomaly_.anomaly_ = tmAnomaly_.anomalyLikelihood_.anomalyProbability(raw);
-			     } break;
+	case ANMode::LIKELIHOOD: {
+	  const Real raw = computeRawAnomalyScore(
+						 activeColumns,
+						 cellsToColumns( getPredictiveCells() ));
+	  tmAnomaly_.anomaly_ = tmAnomaly_.anomalyLikelihood_.anomalyProbability(raw);
+				 } break;
 
-    case ANMode::LOGLIKELIHOOD: {
-      const Real raw = computeRawAnomalyScore(
-                         activeColumns,
-                         cellsToColumns( getPredictiveCells() ));
-      const Real like = tmAnomaly_.anomalyLikelihood_.anomalyProbability(raw);
-      const Real log  = tmAnomaly_.anomalyLikelihood_.computeLogLikelihood(like);
-      tmAnomaly_.anomaly_ = log;
+	case ANMode::LOGLIKELIHOOD: {
+	  const Real raw = computeRawAnomalyScore(
+						 activeColumns,
+						 cellsToColumns( getPredictiveCells() ));
+	  const Real like = tmAnomaly_.anomalyLikelihood_.anomalyProbability(raw);
+	  const Real log  = tmAnomaly_.anomalyLikelihood_.computeLogLikelihood(like);
+	  tmAnomaly_.anomaly_ = log;
 				} break;
   // TODO: Update mean & standard deviation of anomaly here.
   };
   NTA_ASSERT(tmAnomaly_.anomaly_ >= 0.0f and tmAnomaly_.anomaly_ <= 1.0f) << "TM.anomaly is out-of-bounds!";
 
-  activateCells(activeColumns, learn);
-}
 
+}
 
 void TemporalMemory::compute(const SDR &activeColumns, const bool learn) {
   SDR externalPredictiveInputsActive({ externalPredictiveInputs_ });
@@ -572,7 +537,7 @@ SDR TemporalMemory::cellsToColumns(const SDR& cells) const {
 }
 
 
-vector<CellIdx> TemporalMemory::cellsForColumn(CellIdx column) { 
+vector<CellIdx> TemporalMemory::cellsForColumn(const CellIdx column) const { 
   const CellIdx start = cellsPerColumn_ * column;
   const CellIdx end = start + cellsPerColumn_;
 
@@ -603,16 +568,15 @@ SDR TemporalMemory::getPredictiveCells() const {
   correctDims.push_back(static_cast<CellIdx>(getCellsPerColumn()));
   SDR predictive(correctDims);
 
-  auto& predictiveCells = predictive.getSparse();
+  std::set<CellIdx> uniqueCells;
+  //uniqueCells.reserve(activeSegments_.size());
 
-  for (auto segment = activeSegments_.cbegin(); segment != activeSegments_.cend();
-       segment++) {
-    const CellIdx cell = connections.cellForSegment(*segment);
-    if (segment == activeSegments_.begin() || cell != predictiveCells.back()) {
-      predictiveCells.push_back(cell);
-    }
+  for (const auto segment : activeSegments_) {
+    const CellIdx cell = connections.cellForSegment(segment);
+    uniqueCells.insert(cell); //set keeps the cells unique
   }
 
+  vector<CellIdx> predictiveCells(uniqueCells.begin(), uniqueCells.end());
   predictive.setSparse(predictiveCells);
   return predictive;
 }

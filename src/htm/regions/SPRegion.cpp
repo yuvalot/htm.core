@@ -30,7 +30,6 @@
 #include <htm/engine/Spec.hpp>
 #include <htm/ntypes/Array.hpp>
 #include <htm/ntypes/ArrayBase.hpp>
-#include <htm/ntypes/Value.hpp>
 #include <htm/regions/SPRegion.hpp>
 #include <htm/utils/Log.hpp>
 
@@ -44,7 +43,7 @@ SPRegion::SPRegion(const ValueMap &values, Region *region)
   // parameters out of the map and set aside so we can pass them to the SpatialPooler
   // algorithm when we create it during initialization().
   args_.columnCount = values.getScalarT<UInt32>("columnCount", 0);
-  args_.potentialRadius = values.getScalarT<UInt32>("potentialRadius", 0);
+  args_.potentialRadius = values.getScalarT<UInt32>("potentialRadius", 16u);
   args_.potentialPct = values.getScalarT<Real32>("potentialPct", 0.5);
   args_.globalInhibition = values.getScalarT<bool>("globalInhibition", true);
   args_.localAreaDensity = values.getScalarT<Real32>("localAreaDensity", 0.05f);
@@ -85,7 +84,7 @@ SPRegion::~SPRegion() {}
 
 void SPRegion::initialize() {
   // Output buffers should already have been created diring initialize or deserialize.
-  Output *out = getOutput("bottomUpOut");
+  std::shared_ptr<Output> out = getOutput("bottomUpOut");
   Array &outputBuffer = out->getData();
   NTA_CHECK(outputBuffer.getType() == NTA_BasicType_SDR);
   UInt32 columnCount = (UInt32)outputBuffer.getCount();
@@ -99,7 +98,7 @@ void SPRegion::initialize() {
   //
   // If there are more than one input link (FAN-IN), the input buffer will be the
   // concatination of all incomming buffers.  
-  Input *in = getInput("bottomUpIn");
+  std::shared_ptr<Input> in = getInput("bottomUpIn");
   NTA_CHECK(in != nullptr);
   if (!in->hasIncomingLinks())
      NTA_THROW << "SPRegion::initialize - No input links were configured for this SP region.\n";
@@ -159,7 +158,7 @@ void SPRegion::compute() {
   // Call SpatialPooler compute
   sp_->compute(inputBuffer.getSDR(), args_.learningMode, outputBuffer.getSDR());
 
-
+  // trace facility
   NTA_DEBUG << "compute " << *getOutput("bottomUpOut") << "\n";
 
 }
@@ -236,7 +235,7 @@ Spec *SPRegion::createSpec() {
                     NTA_BasicType_UInt32,             // type
                     1,                                // elementCount
                     "",                               // constraints
-                    "0",                              // defaultValue
+                    "16",                              // defaultValue
                     ParameterSpec::ReadWriteAccess)); // access
 
   ns->parameters.add(
@@ -275,7 +274,7 @@ Spec *SPRegion::createSpec() {
           NTA_BasicType_Bool,               // type
           1,                                // elementCount
           "bool",                           // constraints
-          "false",                          // defaultValue
+          "true",                          // defaultValue
           ParameterSpec::ReadWriteAccess)); // access
 
   ns->parameters.add(
@@ -426,7 +425,7 @@ Spec *SPRegion::createSpec() {
           NTA_BasicType_Int32,           // type
           1,                             // elementCount
           "",                            // constraints
-          "-1",                          // defaultValue
+          "1",                          // defaultValue
           ParameterSpec::CreateAccess)); // access
 
   ns->parameters.add(
