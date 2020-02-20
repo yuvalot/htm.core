@@ -299,15 +299,20 @@ void SpatialPooler::setPotential(UInt column, const UInt potential[]) {
   }
 }
 
-void SpatialPooler::getPermanence(UInt column, Real permanences[]) const {
+vector<Real> SpatialPooler::getPermanence(const UInt column, 
+				          const Permanence threshold) const {
   NTA_ASSERT(column < numColumns_);
-  std::fill( permanences, permanences + numInputs_, 0.0f );
   const auto &synapses = connections_.synapsesForSegment( column );
-  for( const auto &syn : synapses ) {
+  vector<Real> permanences(numInputs_, 0.0f);
+  for( const auto syn : synapses ) {
     const auto &synData = connections_.dataForSynapse( syn );
-    permanences[ synData.presynapticCell ] = synData.permanence;
+    if( synData.permanence >= threshold) { // there must be >= for default case 0.0 where we want all permanences
+      permanences[ synData.presynapticCell ] = synData.permanence;
+    }
   }
+  return permanences;
 }
+
 
 void SpatialPooler::setPermanence(UInt column, const Real permanences[]) {
   NTA_ASSERT(column < numColumns_);
@@ -338,18 +343,6 @@ void SpatialPooler::setPermanence(UInt column, const Real permanences[]) {
 #endif
 }
 
-void SpatialPooler::getConnectedSynapses(UInt column,
-                                         UInt connectedSynapses[]) const {
-  NTA_ASSERT(column < numColumns_);
-  std::fill( connectedSynapses, connectedSynapses + numInputs_, 0 );
-
-  const auto &synapses = connections_.synapsesForSegment( column );
-  for( const auto &syn : synapses ) {
-    const auto &synData = connections_.dataForSynapse( syn );
-    if( synData.permanence >= synPermConnected_ - htm::Epsilon )
-      connectedSynapses[ synData.presynapticCell ] = 1;
-  }
-}
 
 void SpatialPooler::getConnectedCounts(UInt connectedCounts[]) const {
   for(UInt seg = 0; seg < numColumns_; seg++) { //in SP each column = 1 cell with 1 segment only.
@@ -358,7 +351,6 @@ void SpatialPooler::getConnectedCounts(UInt connectedCounts[]) const {
   }
 }
 
-const vector<SynapseIdx> &SpatialPooler::getOverlaps() const { return overlaps_; }
 
 const vector<Real> &SpatialPooler::getBoostedOverlaps() const {
   return boostedOverlaps_;
@@ -430,7 +422,6 @@ void SpatialPooler::initialize(
   activeDutyCycles_.assign(numColumns_, 0);
   minOverlapDutyCycles_.assign(numColumns_, 0.0);
   boostFactors_.assign(numColumns_, 1.0); //1 is neutral value for boosting
-  overlaps_.resize(numColumns_);
   boostedOverlaps_.resize(numColumns_);
 
   inhibitionRadius_ = 0;
@@ -459,16 +450,16 @@ void SpatialPooler::initialize(
 }
 
 
-void SpatialPooler::compute(const SDR &input, const bool learn, SDR &active) {
+const vector<SynapseIdx> SpatialPooler::compute(const SDR &input, const bool learn, SDR &active) {
   input.reshape(  inputDimensions_ );
   active.reshape( columnDimensions_ );
   
   updateBookeepingVars_(learn);
-  calculateOverlap_(input, overlaps_, learn);
 
   //boosting
   //must be done before inhibition
-  boostOverlaps_(overlaps_, boostedOverlaps_); //TODO consider removal, @1
+  const auto& overlaps = connections_.computeActivity(input.getSparse(), learn);
+  boostOverlaps_(overlaps, boostedOverlaps_); //TODO consider removal, @1
 
   //inhibition
   //update inhibition radius if it's time, only changes in local inh
@@ -487,9 +478,11 @@ void SpatialPooler::compute(const SDR &input, const bool learn, SDR &active) {
   if (learn) {
     adaptSynapses_(input, active);
     //boosting
-    bumpUpWeakColumns_(); //TODO suggest removal, low impact, long time
+    bumpUpWeakColumns_(overlaps); //TODO suggest removal, low impact, long time
     updateBoostFactors_(active); //helper for @1, computed after inh
   }
+
+  return overlaps;
 }
 
 
@@ -653,8 +646,8 @@ Real SpatialPooler::avgConnectedSpanForColumnND_(UInt column) const {
 
   const UInt numDimensions = (UInt)inputDimensions_.size();
 
-  vector<UInt> connectedDense( numInputs_, 0 );
-  getConnectedSynapses( column, connectedDense.data() );
+  //get connected synapses
+  const auto& connectedDense = getPermanence( column, synPermConnected_ + htm::Epsilon );
 
   vector<UInt> maxCoord(numDimensions, 0);
   vector<UInt> minCoord(numDimensions, *max_element(inputDimensions_.begin(),
@@ -662,7 +655,7 @@ Real SpatialPooler::avgConnectedSpanForColumnND_(UInt column) const {
   const CoordinateConverterND conv(inputDimensions_);
   bool all_zero = true;
   for(UInt i = 0; i < numInputs_; i++) {
-    if( connectedDense[i] == 0 )
+    if( connectedDense[i] < synPermConnected_ ) // 0.0 for empty == not-conected values
       continue;
     all_zero = false;
     vector<UInt> columnCoord;
@@ -692,7 +685,7 @@ void SpatialPooler::adaptSynapses_(const SDR &input,
 }
 
 
-void SpatialPooler::bumpUpWeakColumns_() {
+void SpatialPooler::bumpUpWeakColumns_(const std::vector<SynapseIdx>& overlaps) {
   for (UInt i = 0; i < numColumns_; i++) {
     // skip columns (segments) that are already performing OK
     if (overlapDutyCycles_[i] >= minOverlapDutyCycles_[i]) {
@@ -705,7 +698,7 @@ void SpatialPooler::bumpUpWeakColumns_() {
   //do updates:
 
   // update overlap duty cycles (each round)
-  updateDutyCyclesOverlaps_(overlaps_);
+  updateDutyCyclesOverlaps_(overlaps);
 
   //update minOverlapDutyCycles_ (on update round only) 
   if (isUpdateRound_()) {
@@ -821,13 +814,6 @@ void SpatialPooler::updateBookeepingVars_(bool learn) {
 }
 
 
-void SpatialPooler::calculateOverlap_(const SDR &input,
-                                      vector<SynapseIdx> &overlaps,
-				      const bool learn) {
-  connections_.computeActivity(overlaps, input.getSparse(), learn); //TODO remove method calculateOverlap_(), //TODO rm overlaps_ member
-}
-
-
 void SpatialPooler::inhibitColumns_(const vector<Real> &overlaps,
                                     vector<CellIdx> &activeColumns) const {
   const Real density = localAreaDensity_;
@@ -909,16 +895,27 @@ void SpatialPooler::inhibitColumnsLocal_(const vector<Real> &overlaps,
 
 
       if (wrapAround_) {
+         numNeighbors = 0;  // In wrapAround, number of neighbors to be considered is solely a function of the inhibition radius, 
+	 // ... the number of dimensions, and of the size of each of those dimenion
+         UInt predN = 1;
+	 const UInt diam = 2*inhibitionRadius_ + 1; //the inh radius can change, that's why we recompute here
+         for (const auto dim : columnDimensions_) {
+           predN *= std::min(diam, dim);
+         }
+         predN -= 1;
+         numNeighbors = predN;
+         const UInt numActive_wrap = static_cast<UInt>(0.5f + (density * (numNeighbors + 1)));
+
         for(auto neighbor: WrappingNeighborhood(column, inhibitionRadius_,columnDimensions_)) { //TODO if we don't change inh radius (changes only every isUpdateRound()),
 		// then these values can be cached -> faster local inh
           if (neighbor == column) {
             continue;
           }
-          numNeighbors++;
 
           const Real difference = overlaps[neighbor] - overlaps[column];
           if (difference > 0 || (difference == 0 && activeColumnsDense[neighbor])) {
             numBigger++;
+	    if (numBigger >= numActive_wrap) { break; }
           }
 	}
       } else {

@@ -38,9 +38,16 @@ using namespace htm;
 
 
 // work-load
-Real64 BenchmarkHotgym::run(UInt EPOCHS, bool useSPlocal, bool useSPglobal, bool useTM, const UInt COLS, const UInt DIM_INPUT, const UInt CELLS) {
+Real64 BenchmarkHotgym::run(UInt EPOCHS, bool useSPlocal, bool useSPglobal, bool useTM, const UInt COLS, const UInt DIM_INPUT, const UInt CELLS)
+{
 #ifndef NDEBUG
-  EPOCHS = 2; // make test faster in Debug
+EPOCHS = 2; // make test faster in Debug
+#endif
+
+#if defined __aarch64__ || defined __arm__
+#undef _ARCH_DETERMINISTIC
+#else
+#define _ARCH_DETERMINISTIC
 #endif
 
   if(useTM ) {
@@ -114,7 +121,7 @@ Real64 BenchmarkHotgym::run(UInt EPOCHS, bool useSPlocal, bool useSPglobal, bool
     input.addNoise(0.01f, rnd); //change 1% of the SDR for each iteration, this makes a random sequence, but seemingly stable
     tRng.stop();
 
-    //SP (global x local)
+    //SP (global and local)
     if(useSPlocal) {
     tSPloc.start();
     spLocal.compute(input, true, outSPlocal);
@@ -147,7 +154,7 @@ Real64 BenchmarkHotgym::run(UInt EPOCHS, bool useSPlocal, bool useSPglobal, bool
       avgAnomOld_ = avgAnom10.getCurrentAvg(); //update
     }
     tAnLikelihood.start();
-    anLikelihood.anomalyProbability(an); //FIXME AnLikelihood is 0.0, probably not working correctly
+    anLikely = anLikelihood.anomalyProbability(an); 
     tAnLikelihood.stop();
 
 
@@ -166,13 +173,14 @@ Real64 BenchmarkHotgym::run(UInt EPOCHS, bool useSPlocal, bool useSPglobal, bool
 	   << "\n";
 
       // output values
-      cout << "Epoch = " << e << endl;
+      cout << "Epoch = " << e+1 << endl;
       cout << "Anomaly = " << an << endl;
       cout << "Anomaly (avg) = " << avgAnom10.getCurrentAvg() << endl;
       cout << "Anomaly (Likelihood) = " << anLikely << endl;
-      cout << "SP (g)= " << outSP << endl;
-      cout << "SP (l)= " << outSPlocal <<endl;
-      cout << "TM= " << outTM << endl;
+      cout << "input = " << input << endl;
+      if(useSPlocal) cout << "SP (g)= " << outSP << endl;
+      if(useSPlocal) cout << "SP (l)= " << outSPlocal <<endl;
+      if(useTM) cout << "TM= " << outTM << endl;
 
       //timers
       cout << "==============TIMERS============" << endl;
@@ -199,36 +207,40 @@ Real64 BenchmarkHotgym::run(UInt EPOCHS, bool useSPlocal, bool useSPglobal, bool
 
       SDR goldSPlocal({COLS});
       const SDR_sparse_t deterministicSPlocal{
-        12, 13, 71, 72, 75, 78, 82, 85, 131, 171, 182, 186, 189, 194, 201, 263, 277, 287, 308, 319, 323, 337, 339, 365, 407, 423, 429, 432, 434, 445, 493, 494, 502, 508, 523, 542, 554, 559, 585, 586, 610, 611, 612, 644, 645, 647, 691, 698, 699, 701, 702, 707, 777, 809, 810, 811, 833, 839, 841, 920, 923, 928, 929, 935, 955, 1003, 1005, 1073, 1076, 1094, 1095, 1114,1115, 1133, 1134, 1184, 1203, 1214, 1232, 1233, 1244, 1253, 1268, 1278, 1291, 1294, 1306, 1309, 1331, 1402, 1410, 1427, 1434, 1442, 1463, 1508, 1512, 1514, 1515, 1518, 1561, 1564, 1590, 1623, 1626, 1630, 1647, 1651, 1691, 1694, 1729, 1745, 1746, 1760, 1797, 1804, 1805, 1812, 1827, 1858, 1860, 1861, 1862, 1918, 1956, 1961, 1965, 1971, 1975, 1994, 2012
+        12, 13, 71, 72, 75, 78, 82, 85, 131, 171, 182, 186, 189, 194, 201, 263, 277, 287, 308, 319, 323, 337, 339, 365, 407, 429, 432, 434, 443, 445, 493, 494, 502, 508, 523, 542, 554, 559, 585, 586, 610, 611, 612, 644, 645, 647, 691, 698, 699, 701, 702, 707, 777, 809, 810, 811, 833, 839, 841, 920, 923, 928, 929, 935, 955, 1003, 1005, 1073, 1076, 1094, 1095, 1114, 1115, 1133, 1134, 1184, 1203, 1232, 1233, 1244, 1253, 1268, 1278, 1291, 1294, 1306, 1309, 1331, 1402, 1410, 1427, 1434, 1442, 1463, 1508, 1512, 1514, 1515, 1518, 1561, 1564, 1623, 1626, 1630, 1640, 1647, 1691, 1694, 1729, 1745, 1746, 1760, 1797, 1804, 1805, 1812, 1827, 1831, 1858, 1861, 1862, 1918, 1956, 1961, 1965, 1971, 1975, 1994, 2012
       };
       goldSPlocal.setSparse(deterministicSPlocal);
 
       SDR goldTM({COLS});
       const SDR_sparse_t deterministicTM{
-        62, 77, 85, 322, 340, 432, 952, 1120, 1488, 1502, 1512, 1518, 1547, 1627, 1633, 1668, 1727, 1729, 1797, 1803, 1805, 1812, 1858, 1859, 1896, 1918, 1923, 1925, 1929, 1931, 1939, 1941, 1942, 1944, 1950, 1953, 1955, 1956, 1965, 1966, 1967, 1968, 1974, 1980, 1987, 1996, 2006, 2008, 2011, 2027, 2030, 2042, 2046
+      87, 93, 102, 282, 303, 308, 337, 340, 502, 542, 952, 1115, 1502, 1518, 1626, 1691, 1694, 1711, 1727, 1760, 1775, 1781, 1804, 1805, 1827, 1831, 1832, 1844, 1851, 1858, 1859, 1918, 1929, 1931, 1941, 1943, 1945, 1952, 1953, 1955, 1956, 1958, 1960, 1961, 1965, 1973, 1975, 1976, 1979, 1980, 1984, 1985, 1986, 1987, 1994, 1996, 1998, 2002, 2006, 2013, 2042
       };
       goldTM.setSparse(deterministicTM);
 
-      const float goldAn    = 0.627451f;
-      const float goldAnAvg = 0.407265f;
+      const float goldAn    = 0.715686f; //Note: this value is for a (randomly picked) datapoint, it does not have to improve (decrease) with better algorithms
+      const float goldAnAvg = 0.412719f; // ...the averaged value, on the other hand, should improve/decrease. 
 
-      if(EPOCHS == 5000) { //these hand-written values are only valid for EPOCHS = 5000 (default), but not for debug and custom runs. 
+#ifdef _ARCH_DETERMINISTIC
+      if(e+1 == 5000) {
+        //these hand-written values are only valid for EPOCHS = 5000 (default), but not for debug and custom runs.
         NTA_CHECK(input == goldEnc) << "Deterministic output of Encoder failed!\n" << input << "should be:\n" << goldEnc;
         if(useSPglobal) { NTA_CHECK(outSPglobal == goldSP) << "Deterministic output of SP (g) failed!\n" << outSP << "should be:\n" << goldSP; }
         if(useSPlocal) {  NTA_CHECK(outSPlocal == goldSPlocal) << "Deterministic output of SP (l) failed!\n" << outSPlocal << "should be:\n" << goldSPlocal; }
         if(useTM) {       NTA_CHECK(outTM == goldTM) << "Deterministic output of TM failed!\n" << outTM << "should be:\n" << goldTM; }
         NTA_CHECK(static_cast<UInt>(an *10000.0f) == static_cast<UInt>(goldAn *10000.0f)) //compare to 4 decimal places
-		               << "Deterministic output of Anomaly failed! " << an << "should be: " << goldAn;
-	NTA_CHECK(static_cast<UInt>(avgAnom10.getCurrentAvg() * 10000.0f) == static_cast<UInt>(goldAnAvg * 10000.0f)) 
-		<< "Deterministic average anom score failed:" << avgAnom10.getCurrentAvg() << " should be: " << goldAnAvg;
+                  << "Deterministic output of Anomaly failed! " << an << "should be: " << goldAn;
+        NTA_CHECK(static_cast<UInt>(avgAnom10.getCurrentAvg() * 10000.0f) == static_cast<UInt>(goldAnAvg * 10000.0f))
+                  << "Deterministic average anom score failed:" << avgAnom10.getCurrentAvg() << " should be: " << goldAnAvg;
+        std::cout << "outputs match\n";
       }
+#endif
 
       // check runtime speed
       const size_t timeTotal = (size_t)floor(tAll.getElapsed());
       cout << "Total elapsed time = " << timeTotal << " seconds" << endl;
       if(EPOCHS >= 100) { //show only relevant values, ie don't run in valgrind (ndebug, epochs=5) run
-#ifndef _MSC_VER
-        const size_t CI_avg_time = (size_t)floor(20*Timer::getSpeed()); //sec
+#ifdef NTA_OS_LINUX
+        const size_t CI_avg_time = (size_t)floor(99*Timer::getSpeed()); //sec //FIXME the CI speed broken for docker linux
         NTA_CHECK(timeTotal <= CI_avg_time) << //we'll see how stable the time result in CI is, if usable
           "HelloSPTP test slower than expected! (" << timeTotal << ",should be "<< CI_avg_time << "), speed coef.= " << Timer::getSpeed();
 #endif

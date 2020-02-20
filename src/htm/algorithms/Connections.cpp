@@ -40,9 +40,7 @@ Connections::Connections(const CellIdx numCells,
 void Connections::initialize(CellIdx numCells, Permanence connectedThreshold, bool timeseries) {
   cells_ = vector<CellData>(numCells);
   segments_.clear();
-  destroyedSegments_.clear();
   synapses_.clear();
-  destroyedSynapses_.clear();
   potentialSynapsesForPresynapticCell_.clear();
   connectedSynapsesForPresynapticCell_.clear();
   potentialSegmentsForPresynapticCell_.clear();
@@ -90,17 +88,11 @@ Segment Connections::createSegment(const CellIdx cell,
   }
 
   //proceed to create a new segment
-  Segment segment;
-  if (!destroyedSegments_.empty() ) { //reuse old, destroyed segs
-    segment = destroyedSegments_.back();
-    destroyedSegments_.pop_back();
-  } else { //create a new segment
-    NTA_CHECK(segments_.size() < std::numeric_limits<Segment>::max()) << "Add segment failed: Range of Segment (data-type) insufficinet size."
+  NTA_CHECK(segments_.size() < std::numeric_limits<Segment>::max()) << "Add segment failed: Range of Segment (data-type) insufficinet size."
 	    << (size_t)segments_.size() << " < " << (size_t)std::numeric_limits<Segment>::max();
-    segment = static_cast<Segment>(segments_.size());
-    const SegmentData& segmentData = SegmentData(cell, iteration_, nextSegmentOrdinal_++);
-    segments_.push_back(segmentData);
-  }
+  const Segment segment = static_cast<Segment>(segments_.size());
+  const SegmentData& segmentData = SegmentData(cell, iteration_, nextSegmentOrdinal_++);
+  segments_.push_back(segmentData);
 
   CellData &cellData = cells_[cell];
   cellData.segments.push_back(segment); //assign the new segment to its mother-cell
@@ -116,17 +108,31 @@ Segment Connections::createSegment(const CellIdx cell,
 Synapse Connections::createSynapse(Segment segment,
                                    CellIdx presynapticCell,
                                    Permanence permanence) {
+
+  // Skip cells that are already synapsed on by this segment
+  // Biological motivation (?):
+  // There are structural constraints on the shapes of axons & synapses
+  // which prevent a large number duplicate of connections.
+  //
+  // It's important to prevent cells from growing duplicate synapses onto a segment,
+  // because otherwise a strong input would be sampled many times and grow many synapses.
+  // That would give such input a stronger connection.
+  // Synapses are supposed to have binary effects (0 or 1) but duplicate synapses give
+  // them (synapses 0/1) varying levels of strength.
+  for (const Synapse& syn : synapsesForSegment(segment)) {
+    const CellIdx existingPresynapticCell = dataForSynapse(syn).presynapticCell; //TODO 1; add way to get all presynaptic cells for segment (fast)
+    if (presynapticCell == existingPresynapticCell) {
+      return syn; //synapse (connecting to this presyn cell) already exists on the segment; don't create a new one, exit early and return the existing
+    }
+  } //else: the new synapse is not duplicit, so keep creating it. 
+
+
+
   // Get an index into the synapses_ list, for the new synapse to reside at.
-  Synapse synapse;
-  if (!destroyedSynapses_.empty() ) {
-    synapse = destroyedSynapses_.back();
-    destroyedSynapses_.pop_back();
-  } else {
-    NTA_CHECK(synapses_.size() < std::numeric_limits<Synapse>::max()) << "Add synapse failed: Range of Synapse (data-type) insufficient size."
+  NTA_ASSERT(synapses_.size() < std::numeric_limits<Synapse>::max()) << "Add synapse failed: Range of Synapse (data-type) insufficient size."
 	    << synapses_.size() << " < " << (size_t)std::numeric_limits<Synapse>::max();
-    synapse = static_cast<Synapse>(synapses_.size());
-    synapses_.push_back(SynapseData());
-  }
+  const Synapse synapse = static_cast<Synapse>(synapses_.size()); //TODO work on cache locality. Have all Synapse, SynapseData on Segment in continuous mem block ?
+  synapses_.emplace_back(SynapseData());
 
   // Fill in the new synapse's data
   SynapseData &synapseData    = synapses_[synapse];
@@ -154,6 +160,7 @@ Synapse Connections::createSynapse(Segment segment,
 }
 
 bool Connections::segmentExists_(const Segment segment) const {
+  NTA_CHECK(segment < segments_.size());
   const SegmentData &segmentData = segments_[segment];
   const vector<Segment> &segmentsOnCell = cells_[segmentData.cell].segments;
   return (std::find(segmentsOnCell.cbegin(), segmentsOnCell.cend(), segment) !=
@@ -211,7 +218,7 @@ void Connections::destroySegment(const Segment segment) {
   NTA_ASSERT(*segmentOnCell == segment);
 
   cellData.segments.erase(segmentOnCell);
-  destroyedSegments_.push_back(segment);
+  destroyedSegments_++;
 }
 
 
@@ -261,8 +268,7 @@ void Connections::destroySynapse(const Synapse synapse) {
   NTA_ASSERT(*synapseOnSegment == synapse);
 
   segmentData.synapses.erase(synapseOnSegment);
-
-  destroyedSynapses_.push_back(synapse);
+  destroyedSynapses_++;
 }
 
 
@@ -329,19 +335,6 @@ SegmentIdx Connections::idxOnCellForSegment(const Segment segment) const {
 }
 
 
-void Connections::mapSegmentsToCells(const Segment *segments_begin,
-                                     const Segment *segments_end,
-                                     CellIdx *cells_begin) const {
-  CellIdx *out = cells_begin;
-
-  for (auto segment = segments_begin; segment != segments_end;
-       ++segment, ++out) {
-    NTA_ASSERT(segmentExists_(*segment));
-    *out = segments_[*segment].cell;
-  }
-}
-
-
 bool Connections::compareSegments(const Segment a, const Segment b) const {
   const SegmentData &aData = segments_[a];
   const SegmentData &bData = segments_[b];
@@ -354,11 +347,18 @@ bool Connections::compareSegments(const Segment a, const Segment b) const {
 
 
 vector<Synapse> Connections::synapsesForPresynapticCell(const CellIdx presynapticCell) const {
-  const auto& potential = potentialSynapsesForPresynapticCell_.at(presynapticCell);
-  const auto& connected = connectedSynapsesForPresynapticCell_.at(presynapticCell);
+  vector<Synapse> all;
 
-  vector<Synapse> all( potential.cbegin(), potential.cend());
-  all.insert( all.cend(), connected.cbegin(), connected.cend());
+  if (potentialSynapsesForPresynapticCell_.count(presynapticCell)) {
+    const auto& potential = potentialSynapsesForPresynapticCell_.at(presynapticCell);
+    all.assign(potential.cbegin(), potential.cend());
+  }
+
+  if (connectedSynapsesForPresynapticCell_.count(presynapticCell)) {
+    const auto& connected = connectedSynapsesForPresynapticCell_.at(presynapticCell);
+    all.insert( all.cend(), connected.cbegin(), connected.cend());
+  }
+
   return all;
 }
 
@@ -372,13 +372,9 @@ void Connections::reset()
   currentUpdates_.clear();
 }
 
+vector<SynapseIdx> Connections::computeActivity(const vector<CellIdx> &activePresynapticCells, const bool learn) {
 
-void Connections::computeActivity(
-    vector<SynapseIdx> &numActiveConnectedSynapsesForSegment,
-    const vector<CellIdx> &activePresynapticCells,
-    bool learn)
-{
-  NTA_ASSERT(numActiveConnectedSynapsesForSegment.size() == segments_.size()) << "The output vector size must match "<< segments_.size();
+  vector<SynapseIdx> numActiveConnectedSynapsesForSegment(segments_.size(), 0);
   if(learn) iteration_++;
 
   if( timeseries_ ) {
@@ -396,26 +392,25 @@ void Connections::computeActivity(
       }
     }
   }
+  return numActiveConnectedSynapsesForSegment;
 }
 
-void Connections::computeActivity(
-    vector<SynapseIdx> &numActiveConnectedSynapsesForSegment,
+
+vector<SynapseIdx> Connections::computeActivity(
     vector<SynapseIdx> &numActivePotentialSynapsesForSegment,
     const vector<CellIdx> &activePresynapticCells,
-    bool learn) {
-  NTA_ASSERT(numActiveConnectedSynapsesForSegment.size() == segments_.size());
+    const bool learn) {
   NTA_ASSERT(numActivePotentialSynapsesForSegment.size() == segments_.size());
 
   // Iterate through all connected synapses.
-  computeActivity(
-      numActiveConnectedSynapsesForSegment,
-      activePresynapticCells,
-      learn );
+  const vector<SynapseIdx>& numActiveConnectedSynapsesForSegment = computeActivity( activePresynapticCells, learn );
+  NTA_ASSERT(numActiveConnectedSynapsesForSegment.size() == segments_.size());
 
   // Iterate through all potential synapses.
   std::copy( numActiveConnectedSynapsesForSegment.begin(),
              numActiveConnectedSynapsesForSegment.end(),
              numActivePotentialSynapsesForSegment.begin());
+
   for (const auto& cell : activePresynapticCells) {
     if (potentialSegmentsForPresynapticCell_.count(cell)) {
       for(const auto& segment : potentialSegmentsForPresynapticCell_.at(cell)) {
@@ -423,6 +418,7 @@ void Connections::computeActivity(
       }
     }
   }
+  return numActiveConnectedSynapsesForSegment;
 }
 
 
@@ -473,7 +469,7 @@ void Connections::adaptSegment(const Segment segment,
   }
 
   //destroy segment if it has too few synapses left -> will never be able to connect again
-  if(pruneZeroSynapses and synapses.size() < connectedThreshold_) {
+  if(pruneZeroSynapses and synapses.size() < connectedThreshold_) { //FIXME this is incorrect! connectedThreshold_ is if > then syn = connected. We need stimulusThreshold_ from TM.
     destroySegment(segment);
     prunedSegs_++; //statistics
   }
@@ -603,7 +599,6 @@ void Connections::destroyMinPermanenceSynapses(
                               const vector<CellIdx> &excludeCells)
 {
   NTA_ASSERT( nDestroy >= 0 );
-  if( nDestroy <= 0 ) return; // Nothing to do.
 
   // Don't destroy any cells that are in excludeCells.
   vector<Synapse> destroyCandidates;
@@ -700,8 +695,6 @@ std::ostream& operator<< (std::ostream& stream, const Connections& self)
          << "%) Saturated (" <<   (Real) synapsesSaturated / self.numSynapses() << "%)" << std::endl;
   stream << "    Synapses pruned (" << (Real) self.prunedSyns_ / self.numSynapses() 
 	 << "%) Segments pruned (" << (Real) self.prunedSegs_ / self.numSegments() << "%)" << std::endl;
-  stream << "    Buffer for destroyed synapses: " << self.destroyedSynapses_.size() << " \t buffer for destr. segments: "
-	 << self.destroyedSegments_.size() << std::endl; 
 
   return stream;
 }
