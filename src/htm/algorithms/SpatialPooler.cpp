@@ -151,7 +151,11 @@ void SpatialPooler::setStimulusThreshold(UInt stimulusThreshold) {
 UInt SpatialPooler::getInhibitionRadius() const { return inhibitionRadius_; }
 
 void SpatialPooler::setInhibitionRadius(UInt inhibitionRadius) {
+  if (inhibitionRadius_ != inhibitionRadius) {
   inhibitionRadius_ = inhibitionRadius;
+  calculateWrapAroundNeighbors();
+  mapAllNeighbors();
+  }
 }
 
 UInt SpatialPooler::getDutyCyclePeriod() const { return dutyCyclePeriod_; }
@@ -807,7 +811,10 @@ void SpatialPooler::updateBoostFactorsLocal_() {
 	    const UInt neighbor = neighborMap_[mapOffset + j];
 //	     std::cout << "N: " << neighbor << " -- ";
         localActivityDensity += activeDutyCycles_[neighbor];
+//	numNeighbors += 1;
+//	std::cout << "numneigh: " <<numNeighbors << " -- ";
       }
+       numNeighbors++; // this function counts the column itself as a neighbor
     } else {
       for(auto neighbor: Neighborhood(i, inhibitionRadius_, columnDimensions_)) {
         localActivityDensity += activeDutyCycles_[neighbor];
