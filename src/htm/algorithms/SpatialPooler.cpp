@@ -459,7 +459,7 @@ const vector<SynapseIdx> SpatialPooler::compute(const SDR &input, const bool lea
   //boosting
   //must be done before inhibition
   const auto& overlaps = connections_.computeActivity(input.getSparse(), learn);
-  boostOverlaps_(overlaps, boostedOverlaps_); //TODO consider removal, @1
+  boostOverlaps_(overlaps, boostedOverlaps_); // @1
 
   //inhibition
   //update inhibition radius if it's time, only changes in local inh

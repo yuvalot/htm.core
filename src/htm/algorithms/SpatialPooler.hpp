@@ -1039,7 +1039,7 @@ public:
     Updates the duty cycles for each column. The OVERLAP duty cycle is a moving
     average of the number of inputs which overlapped with the each column.
 
-    @param overlaps_       an int vector containing the overlap score for each
+    @param overlaps       an int vector containing the overlap score for each
     column. The overlap score for a column is defined as the number of synapses in
     a "connected state" (connected synapses) that are connected to input bits
     which are turned on.
@@ -1181,7 +1181,6 @@ protected:
 public:
   const Connections& connections = connections_; //for inspection of details in connections. Const, so users cannot break the SP internals.
   const Connections& getConnections() const { return connections_; } // as above, but for use in pybind11
-  std::vector<SynapseIdx> overlaps_; //TODO only used for 1 test: SPTest.inhibitColumnsLocal(), otherwise can be removed
 };
 
 std::ostream & operator<<(std::ostream & out, const SpatialPooler &sp);
