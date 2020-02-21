@@ -912,7 +912,7 @@ TEST(SpatialPoolerTest, testBumpUpWeakColumns) {
   for (UInt i = 0; i < numColumns; i++) {
     const auto& perm = sp.getPermanence(i);
     for(UInt z = 0; z < numInputs; z++)
-      ASSERT_FLOAT_EQ( truePermArr[i][z], perm[z] );
+      ASSERT_NEAR( truePermArr[i][z], perm[z], 0.0001f );
   }
 }
 
@@ -1276,7 +1276,7 @@ TEST(SpatialPoolerTest, testInhibitColumnsLocal) {
     sp.setInhibitionRadius(inhibitionRadius);
     sp.inhibitColumnsLocal_(overlaps, density, active);
 
-    ASSERT_TRUE(active.size() == 4);
+    ASSERT_EQ(active.size(), (Size)4);
     ASSERT_TRUE(check_vector_eq(trueActive3, active));
   }
 
