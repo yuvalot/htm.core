@@ -134,7 +134,7 @@ TEST(RESTapiTest, example) {
   // request "Hello World" to see if we are able to connect to the server.
   auto res = client.Get("/hi");
   ASSERT_TRUE(res) << "No response from server.";
-  ASSERT_EQ(res->status,200) << "Unexpected status returned: "+res->status;
+  ASSERT_EQ(res->status,200) << "Unexpected status returned: " << res->status << std::endl;
   EXPECT_STREQ(res->body.c_str(), "Hello World!\n") << "Response to GET /hi request";
 
   // Configure a NetworkAPI example
@@ -150,13 +150,6 @@ TEST(RESTapiTest, example) {
        {addLink:   {src: "sp.bottomUpOut", dest: "tm.bottomUpIn"}}
     ]})";
 
-  try {
-    ValueMap vm;
-    vm.parse(config);
-  } catch (Exception &e) {
-    std::string err = e.getMessage();
-    ASSERT_TRUE(false) << "Config did not parse: " << err << std::endl;
-  }
 
   res = client.Post("/network", config, "application/json");
   ASSERT_TRUE(res && res->status/100 == 2 && res->body.size() == 5) << "Failed Response to POST /network request.";
