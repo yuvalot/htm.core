@@ -12,8 +12,8 @@
 //
 // The expected protocol for the NetworkAPI application is as follows:
 //
-//  To Create a new Network class object as a resource:
 //  POST /network?id=<previous id>
+//       Create a new Network class object as a resource identified by id.
 //       The <previous id> can be 0 if there is no previous id.
 //       The body of the POST is JSON formatted configuration string
 //       Returns a new id for the created resouce or an Error message.
