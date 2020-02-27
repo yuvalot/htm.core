@@ -110,6 +110,8 @@ set(engine_files
     htm/engine/RegionImplFactory.hpp
     htm/engine/RegisteredRegionImpl.hpp
     htm/engine/RegisteredRegionImplCpp.hpp
+	htm/engine/RESTapi.hpp
+	htm/engine/RESTapi.cpp
     htm/engine/Spec.cpp
     htm/engine/Spec.hpp
     htm/engine/Watcher.cpp
@@ -193,7 +195,11 @@ set(examples_files
     examples/hotgym/HelloSPTP.hpp
     examples/napi_sine/napi_sine.cpp
     examples/mnist/MNIST_SP.cpp
+    examples/rest/server_core.hpp
+    examples/rest/server.cpp
+    examples/rest/client.cpp
 )
+
 
 #set up file tabs in Visual Studio
 source_group("algorithms" FILES ${algorithm_files})
@@ -411,6 +417,39 @@ add_custom_target(mnist
                   COMMENT "Executing ${src_executable_mnistsp}"
                   VERBATIM)
 
+###########################################################
+## REST server and client examples
+#
+  set(src_executable_rest_server server)
+  add_executable(${src_executable_rest_server} examples/rest/server.cpp)
+  target_link_libraries(${src_executable_rest_server} 
+          ${INTERNAL_LINKER_FLAGS}
+          ${core_library}
+          ${COMMON_OS_LIBS}
+  )
+  target_compile_options(${src_executable_rest_server} PUBLIC ${INTERNAL_CXX_FLAGS})
+  target_compile_definitions(${src_executable_rest_server} PRIVATE ${COMMON_COMPILER_DEFINITIONS})
+  target_include_directories(${src_executable_rest_server} PRIVATE 
+        ${CORE_LIB_INCLUDES} 
+        examples/rest
+        ${EXTERNAL_INCLUDES}
+        )
+    
+  set(src_executable_rest_client client)
+  add_executable(${src_executable_rest_client} examples/rest/client.cpp)
+  target_link_libraries(${src_executable_rest_client} 
+          ${INTERNAL_LINKER_FLAGS}
+          ${core_library}
+          ${COMMON_OS_LIBS}
+  )
+  target_compile_options(${src_executable_rest_client} PUBLIC ${INTERNAL_CXX_FLAGS})
+  target_compile_definitions(${src_executable_rest_client} PRIVATE ${COMMON_COMPILER_DEFINITIONS})
+  target_include_directories(${src_executable_rest_client} PRIVATE 
+        ${CORE_LIB_INCLUDES} 
+        ${EXTERNAL_INCLUDES}
+        )
+  # Pass MNIST data directory to client.cpp
+  target_compile_definitions(${src_executable_rest_client} PRIVATE MNIST_DATA_LOCATION=${mnist_SOURCE_DIR})
 
 ############ INSTALL ######################################
 #
@@ -425,6 +464,8 @@ install(TARGETS
         ${src_executable_hotgym}
         ${src_executable_napi_sine}
         ${src_executable_mnistsp}
+        ${src_executable_rest_server}
+        ${src_executable_rest_client}
         RUNTIME DESTINATION bin
         LIBRARY DESTINATION lib
         ARCHIVE DESTINATION lib)

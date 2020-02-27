@@ -67,7 +67,7 @@ std::vector<std::string> split(const std::string &str, char delim) {
     previous = current + 1;
     current = str.find(delim, previous);
   }
-  std::string itm = trim(str.substr(previous, current - previous));
+  std::string itm = trim(str.substr(previous));
   cont.push_back(itm);
   return cont;
 }

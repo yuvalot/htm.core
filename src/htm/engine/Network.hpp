@@ -77,6 +77,32 @@ public:
    */
   ~Network();
 
+   /**
+   * An alternate way to configure the network.
+   * Pass in an yaml or JSON string that defines all regions and links.
+   * Syntax:
+   *      network:
+   *         - registerRegion:
+   *             type: <region type>
+   *             path: <path to shared lib to link to>
+   *             class: <classname to load>
+   *
+   *         - addRegion:
+   *             name: <region name>
+   *             type: <region type>
+   *             params: <list of parameters>  (optional)
+   *             phase:  <optonal phase number> (optional)
+   *
+   *         - addLink:
+   *             src: <Name of the source region "." Output name>
+   *             dest: <Name of the destination region "." Input name>
+   *             propagationDelay: <iterations to delay> (optional, default=0)
+   *
+   *  On errors it throws an exception.
+   */
+  void configure(const std::string &yaml);
+
+
   /**
    * Initialize all elements of a network so that it can run.
    *
@@ -163,7 +189,9 @@ public:
   std::shared_ptr<Region> addRegion(const std::string &name,
   					                        const std::string &nodeType,
                                     const std::string &nodeParams);
-
+  std::shared_ptr<Region> addRegion(const std::string &name, 
+                                    const std::string &nodeType,
+                                    ValueMap& vm);
   /**
     * Add a region in a network from deserialized region
     *

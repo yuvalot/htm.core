@@ -35,6 +35,7 @@ Implementation of the Network class
 #include <htm/os/Path.hpp>
 #include <htm/ntypes/BasicType.hpp>
 #include <htm/utils/Log.hpp>
+#include <htm/ntypes/Value.hpp>
 
 namespace htm {
 
@@ -95,8 +96,58 @@ Network::~Network() {
   // They are in a map of Shared_ptr so regions are deleted when it goes out of scope.
 }
 
-std::shared_ptr<Region> Network::addRegion(const std::string &name, const std::string &nodeType,
-                           const std::string &nodeParams) {
+
+void Network::configure(const std::string &yaml) {
+  ValueMap vm;
+  vm.parse(yaml);
+
+  NTA_CHECK(vm.isMap() && vm.contains("network")) << "Expected yaml string to start with 'network:'.";
+  Value &v1 = vm["network"];
+  NTA_CHECK(v1.isSequence()) << "Expected a sequence of entries starting with a command.";
+  for (size_t i = 0; i < v1.size(); i++) {
+    NTA_CHECK(v1[i].isMap()) << "Expcted a command";
+    for (auto cmd : v1[i]) {
+      if (cmd.first == "registerRegion") {
+        std::string type = cmd.second["type"].str();
+        std::string path = cmd.second["path"].str();
+        std::string classname = cmd.second["classname"].str();
+        // TODO:  
+        NTA_THROW << "For now you can only use the built-in C++ regions with the REST API.";
+      } else if (cmd.first == "addRegion") {
+        std::string name = cmd.second["name"].str();
+        std::string type = cmd.second["type"].str();
+        ValueMap params;
+        if (cmd.second.contains("params")) params = cmd.second["params"];
+        addRegion(name, type, params);
+
+        UInt32 phase = 0;
+        if (cmd.second.contains("phase")) {
+          phase = cmd.second["phase"].as<int>();
+          std::set<UInt32> phases;
+          phases.insert(phase);
+          setPhases(name, phases);
+        }
+      } else if (cmd.first == "addLink") {
+        std::string src = cmd.second["src"].str();
+        std::string dest = cmd.second["dest"].str();
+        std::vector<std::string> vsrc = split(src, '.');
+        std::vector<std::string> vdest = split(dest, '.');
+        int propagationDelay = 0;
+        if (cmd.second.contains("propagationDelay"))
+          propagationDelay = cmd.second["propagationDelay"].as<int>();
+        NTA_CHECK(vsrc.size() == 2) << "Expecting source domain name '.' output name.";
+        NTA_CHECK(vdest.size() == 2) << "Expecting destination domain name '.' input name.";
+
+        link(vsrc[0], vdest[0], "", "", vsrc[1], vdest[1], propagationDelay);
+      }
+    }
+  }
+}
+
+
+std::shared_ptr<Region> Network::addRegion(const std::string &name, 
+                                           const std::string &nodeType,
+                                           const std::string &nodeParams) {
   if (regions_.find(name) != regions_.end())
     NTA_THROW << "Region with name '" << name << "' already exists in network";
   std::shared_ptr<Region> r = std::make_shared<Region>(name, nodeType, nodeParams, this);
@@ -107,6 +158,20 @@ std::shared_ptr<Region> Network::addRegion(const std::string &name, const std::s
   setDefaultPhase_(r.get());
   return r;
 }
+
+std::shared_ptr<Region> Network::addRegion(const std::string &name, 
+                                           const std::string &nodeType,
+                                           ValueMap& vm) {
+  if (regions_.find(name) != regions_.end())
+    NTA_THROW << "Region with name '" << name << "' already exists in network";
+  std::shared_ptr<Region> r = std::make_shared<Region>(name, nodeType, vm, this);
+  regions_[name] = r;
+  initialized_ = false;
+
+  setDefaultPhase_(r.get());
+  return r;
+}
+
 
 std::shared_ptr<Region> Network::addRegion(std::shared_ptr<Region>& r) {
   NTA_CHECK(r != nullptr);

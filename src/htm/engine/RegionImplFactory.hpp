@@ -52,7 +52,7 @@ public:
 
   // Create a RegionImpl of a specific type; caller gets ownership.
   RegionImpl *createRegionImpl(const std::string nodeType,
-                               const std::string nodeParams, Region *region);
+                               ValueMap vm, Region *region);
 
   // Create a RegionImpl from serialized state; caller gets ownership.
   RegionImpl *deserializeRegionImpl(const std::string nodeType,

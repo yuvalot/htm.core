@@ -1,4 +1,4 @@
-﻿<img src="http://numenta.org/87b23beb8a4b7dea7d88099bfb28d182.svg" alt="NuPIC Logo" width=100/>
+<img src="http://numenta.org/87b23beb8a4b7dea7d88099bfb28d182.svg" alt="NuPIC Logo" width=100/>
 
 # htm.core
 
@@ -320,10 +320,11 @@ distribution packages as listed and rename them as indicated. Copy these to
 | pybind11.tar.gz        | https://github.com/pybind/pybind11/archive/v2.4.2.tar.gz |
 | cereal.tar.gz          | https://github.com/USCiLab/cereal/archive/v1.2.2.tar.gz |
 | digestpp.zip           | https://github.com/kerukuro/digestpp/archive/36fa6ca2b85808bd171b13b65a345130dbe1d774.zip |
+| cpp-httplib.zip(*node4)| https://github.com/yhirose/cpp-httplib/archive/v0.5.5.zip |
 
  * note1: Version 0.2.2 of libyaml is broken so use the master for the repository.
  * note3: Boost is not required for any compiler that supports C++17 with `std::filesystem` (MSVC2017, gcc-8, clang-9).
- * note4: Data used for demo. Not required to run but the build expects it.
+ * note4: Used for examples. Not required to run but the build expects it.
 
 ## Testing
 
@@ -401,6 +402,7 @@ Libraries that are incorporated into htm.core have the following licenses:
 | pybind11 | https://github.com/pybind/pybind11 | https://github.com/pybind/pybind11/blob/master/LICENSE |
 | cereal | https://uscilab.github.io/cereal/ | https://opensource.org/licenses/BSD-3-Clause |
 | digestpp | https://github.com/kerukuro/digestpp | released into public domain |
+| cpp-httplib | https://github.com/yhirose/cpp-httplib | https://github.com/yhirose/cpp-httplib/blob/master/LICENSE |
 
 
  * note3: Boost is not used if built with any compiler that supports C++17 with `std::filesystem` (MSVC2017, gcc-8, clang-9).

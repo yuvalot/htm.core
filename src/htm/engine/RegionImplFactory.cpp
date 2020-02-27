@@ -113,12 +113,10 @@ void RegionImplFactory::addRegionType(const std::string nodeType, RegisteredRegi
 
 
 RegionImpl *RegionImplFactory::createRegionImpl(const std::string nodeType,
-                                                const std::string nodeParams,
+                                                ValueMap vm,
                                                 Region *region) {
 
   RegionImpl *impl = nullptr;
-  ValueMap vm;
-  vm.parse(nodeParams);
 
   if (regionTypeMap.find(nodeType) != regionTypeMap.end()) {
     impl = regionTypeMap[nodeType]->createRegionImpl(vm, region);
