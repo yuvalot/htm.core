@@ -14,7 +14,7 @@
 //
 //  POST /network?id=<previous id>
 //       Create a new Network class object as a resource identified by id.
-//       The <previous id> can be 0 if there is no previous id.
+//       The id field is optional. If given a new network object will replace that id.
 //       The body of the POST is JSON formatted configuration string
 //       Returns a new id for the created resouce or an Error message.
 //  PUT  /network/<id>/param/<region name '.' param name>?data=<url encoded JSON data>
@@ -70,17 +70,13 @@ public:
     //  POST /network?id=<previous id>
     //  Configure a Network resource (with JSON configuration in POST body) ==> token
     //  Note: the id parameter is optional.  If given it will re-use (replace) a previous id.
-    svr.Post("/network", [&](const Request &req, Response &res, const ContentReader &content_reader) {
-        content_reader([&](const char *data, size_t data_length) {
-          res.body.append(data, data_length);
-          return true;
-        });
+    svr.Post("/network", [&](const Request &req, Response &res) {
       std::string id;
       auto itr = req.params.find("id");
       if (itr != req.params.end())
         id = itr->second;
       RESTapi *interface = RESTapi::getInstance();
-      std::string token = interface->create_network_request(id, res.body);
+      std::string token = interface->create_network_request(id, req.body);
       res.set_content(token+"\n", "text/plain");
     });
     

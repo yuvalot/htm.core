@@ -93,8 +93,10 @@ static std::string log(const Request &req, const Response &res) {
     snprintf(buf, sizeof(buf), "%c%s=%s", (it == req.params.begin()) ? '?' : '&', x.first.c_str(), x.second.c_str());
     query += buf;
   }
-  snprintf(buf, sizeof(buf), "%s\n", query.c_str());
-  s += buf;
+  s += query + "\n";
+  s += dump_headers(req.headers);
+  if (!req.body.empty())
+    s += "body: " + req.body + "\n";
   s += "--------------------------------\n";
   snprintf(buf, sizeof(buf), "%d %s\n", res.status, res.version.c_str());
   s += buf;
@@ -128,7 +130,7 @@ TEST(RESTapiTest, example) {
   const httplib::Params noParams;
   char message[1000];
 
-  httplib::Client client("localhost", port);
+  httplib::Client client("127.0.0.1", port);
   client.set_timeout_sec(30);
 
   // request "Hello World" to see if we are able to connect to the server.

@@ -9,7 +9,8 @@
 // A client for the NetworkAPI REST interface.
 // Before running this client example, start the example server in the background.
 // USAGE:  client [host [port]] 
-//         The default host is "localhost", default port is 8050.
+//         The default host is "127.0.0.1", default port is 8050.
+//         (Note: on Windows, a host of "localhost" may cause delays in resolving ip address).
 //
 // What should happen:
 //  1) client sends a "/hi" message to the server.  The server replys with "Hello World\n".
@@ -66,7 +67,7 @@
 
 #define CA_CERT_FILE "./ca-bundle.crt"
 #define DEFAULT_PORT 8050
-#define DEFAULT_HOST "localhost"
+#define DEFAULT_HOST "127.0.0.1"
 #define EPOCHS 5  // The number of iterations
 
 static bool verbose = true; // turn this on to print extra stuff for debugging.
