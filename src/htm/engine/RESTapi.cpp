@@ -84,7 +84,10 @@ std::string RESTapi::create_network_request(const std::string &old_id, const std
   }
 }
 
-std::string RESTapi::put_input_request(const std::string &id, const std::string &input, const std::string &data) {
+std::string RESTapi::put_input_request(const std::string &id, 
+                                       const std::string &region_name,
+                                       const std::string &input_name, 
+                                       const std::string &data) {
   try {
     auto itr = resource_.find(id);
     NTA_CHECK(itr != resource_.end()) << "Context for resource '" + id + "' not found.";
@@ -93,9 +96,7 @@ std::string RESTapi::put_input_request(const std::string &id, const std::string 
     Array a;
     a.fromJSON(data);
 
-    std::vector<std::string> names = split(input);
-    NTA_CHECK(names.size() == 2) << "Expected input argument of request to be 'region'.'input'.";
-    itr->second.net->getRegion(names[0])->setInputData(names[1], a);
+    itr->second.net->getRegion(region_name)->setInputData(input_name, a);
 
     return "OK";
   }
@@ -104,15 +105,15 @@ std::string RESTapi::put_input_request(const std::string &id, const std::string 
   }
 }
 
-std::string RESTapi::get_input_request(const std::string &id, const std::string &input) {
+std::string RESTapi::get_input_request(const std::string &id, 
+                                       const std::string &region_name,
+                                       const std::string &input_name) {
   try {
     auto itr = resource_.find(id);
     NTA_CHECK(itr != resource_.end()) << "Context for resource '" + id + "' not found.";
     itr->second.t = time(0);
 
-    std::vector<std::string> names = split(input);
-    NTA_CHECK(names.size() == 2) << "Expected input argument of request to be 'region'.'input'.";
-    const Array &b = itr->second.net->getRegion(names[0])->getInputData(names[1]);
+    const Array &b = itr->second.net->getRegion(region_name)->getInputData(input_name);
 
     std::string response = b.toJSON();
     return response;
@@ -121,35 +122,34 @@ std::string RESTapi::get_input_request(const std::string &id, const std::string 
   }
 }
 
-std::string RESTapi::get_output_request(const std::string &id, const std::string &output_name) {
+std::string RESTapi::get_output_request(const std::string &id, 
+                                        const std::string &region_name,
+                                        const std::string &output_name) {
   try {
     auto itr = resource_.find(id);
     NTA_CHECK(itr != resource_.end()) << "Context for resource '" + id + "' not found.";
     itr->second.t = time(0);
 
     std::string response;
-    if (!output_name.empty()) {
-      std::vector<std::string> names = split(output_name, '.');
-      NTA_CHECK(names.size() == 2) << "Expected output name argument of request to be 'region'.'output name'.";
-      const Array &b = itr->second.net->getRegion(names[0])->getOutputData(names[1]);
-      response = b.toJSON();
-    }
+    const Array &b = itr->second.net->getRegion(region_name)->getOutputData(output_name);
+    response = b.toJSON();
+    
     return response;
   } catch (Exception &e) {
     return std::string("ERROR: ") + e.getMessage();
   }
 }
 
-std::string RESTapi::put_param_request(const std::string &id, const std::string &param, const std::string &data) {
+std::string RESTapi::put_param_request(const std::string &id, 
+                                       const std::string &region_name,
+                                       const std::string &param_name, 
+                                       const std::string &data) {
   try {
     auto itr = resource_.find(id);
     NTA_CHECK(itr != resource_.end()) << "Context for resource '" + id + "' not found.";
     itr->second.t = time(0);
 
-    std::vector<std::string> names = split(param, '.');
-    NTA_CHECK(names.size() == 2) << "Expected set param argument of request to be 'region'.'param'.  Found '" + param+"'.";
-
-    itr->second.net->getRegion(names[0])->setParameterJSON(names[1], data);
+    itr->second.net->getRegion(region_name)->setParameterJSON(param_name, data);
 
     return "OK";
   } catch (Exception &e) {
@@ -157,19 +157,17 @@ std::string RESTapi::put_param_request(const std::string &id, const std::string 
   }
 }
 
-std::string RESTapi::get_param_request(const std::string &id, const std::string &param) {
+std::string RESTapi::get_param_request(const std::string &id, 
+                                       const std::string &region_name,
+                                       const std::string &param_name) {
   try {
     auto itr = resource_.find(id);
     NTA_CHECK(itr != resource_.end()) << "Context for resource '" + id + "' not found.";
     itr->second.t = time(0);
 
     std::string response;
-    if (!param.empty()) {
-      std::vector<std::string> names = split(param, '.');
-      NTA_CHECK(names.size() == 2) << "Expected get param argument of request to be 'region'.'param name'.";
-
-      response = itr->second.net->getRegion(names[0])->getParameterJSON(names[1]);
-    }
+    response = itr->second.net->getRegion(region_name)->getParameterJSON(param_name);
+    
     return response;
   } catch (Exception &e) {
     return std::string("ERROR: ") + e.getMessage();
@@ -190,6 +188,25 @@ std::string RESTapi::run_request(const std::string &id, const std::string &itera
     return "OK";
   }
   catch (Exception &e) {
+    return std::string("ERROR: ") + e.getMessage();
+  }
+}
+
+std::string RESTapi::command_request(const std::string& id, 
+                                     const std::string& region_name,
+                                     const std::string& command) {
+  try {
+    auto itr = resource_.find(id);
+    NTA_CHECK(itr != resource_.end()) << "Context for resource '" + id + "' not found.";
+    itr->second.t = time(0);
+
+    std::string response;
+    std::vector<std::string> args;
+    args = split(command, ' ');
+    response = itr->second.net->getRegion(region_name)->executeCommand(args);
+
+    return response;
+  } catch (Exception &e) {
     return std::string("ERROR: ") + e.getMessage();
   }
 }

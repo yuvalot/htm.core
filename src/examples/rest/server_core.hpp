@@ -10,6 +10,14 @@
 // as a stand-alone REST web server executable or incorporated in another program
 // (such as a unit test) running under a separate thread.
 //
+// The key structure for the resources are as follows:
+//   /network/<id>
+//   /network/<id>/region/<name>
+//   /network/<id>/region/<name>/param/<name>
+//   /network/<id>/region/<name>/input/<name>
+//   /network/<id>/region/<name>/output/<name>
+//   /network/<id>/link/<name>
+//
 // The expected protocol for the NetworkAPI application is as follows:
 //
 //  POST /network?id=<previous id>
@@ -17,18 +25,22 @@
 //       The id field is optional. If given a new network object will replace that id.
 //       The body of the POST is JSON formatted configuration string
 //       Returns a new id for the created resouce or an Error message.
-//  PUT  /network/<id>/param/<region name '.' param name>?data=<url encoded JSON data>
-//       Set the value of a region parameter. The <data> could also be in the body.
-//  GET  /network/<id>/param/<region name '.' param name>
-//       Get the value of a region parameter.
-//  PUT  /network/<id>/input/<region name '.' input name>?data=<url encoded JSON data>
+//  PUT  /network/<id>/region/<region name/param/<param name>?data=<JSON encoded data>
+//       Set the value of a region's parameter. The <data> could also be in the body.
+//  GET  /network/<id>/region/<region name>/param/<param name>
+//       Get the value of a region's parameter.
+//  PUT  /network/<id>/region/<region name>/input/<input name>?data=<JSON encoded array>
 //       Set the value of a region's input. The <data> could also be in the body.
-//  GET  /network/<id>/input/<region name '.' input name>
-//       Get the value of a region's input.
-//  GET  /network/<id>/output/<region name '.' output name>
-//       Get the value of a region's output.
+//  GET  /network/<id>/region/<region name>/input/<input name>
+//       Get the value of a region's input. Returns a JSON encoded array.
+//  GET  /network/<id>/region/<region name>/output/<output name>
+//       Get the value of a region's output. Returns a JSON encoded array.
 //  GET  /network/<id>/run?iterations=<iterations>
 //       Execute all regions in phase order. Repeat <iterations> times.
+//  GET  /network/<id>/region/<region name>/command?data=<command>
+//       Execute a predefined command on a region. <command> must start with the
+//       command name followed by the arguments.
+//       The data could also be in the body.
 //
 //  GET  /hi
 //       Respond with "Hello World\n" as a way to check client to server connection.
@@ -80,80 +92,77 @@ public:
       res.set_content(token+"\n", "text/plain");
     });
     
-    //  PUT  /network/<id>/param/<region name '.' param name>?data=<url encoded JSON data>
+    //  PUT  /network/<id>/region/<region name>/param/<param name>?data=<JSON encoded data>
     // Set the value of a ReadWrite Parameter on a Region.  Alternatively, the data could be in the body.
-    svr.Put("/network/.*/param/.*", [&](const Request &req, Response &res, const ContentReader &content_reader) {
-      content_reader([&](const char *data, size_t data_length) {
-        res.body.append(data, data_length);
-        return true;
-      });
+    svr.Put("/network/.*/region/.*/param/.*", [&](const Request &req, Response &res) {
       std::vector<std::string> flds = split(req.path, '/');
       std::string id = flds[2];
-      std::string name = flds[4];
+      std::string region_name = flds[4];
+      std::string param_name = flds[6];
       std::string data = res.body;
       auto ix = req.params.find("data");
       if (ix != req.params.end())
         data = ix->second;
       
       RESTapi *interface = RESTapi::getInstance();
-      std::string result = interface->put_param_request(id, name, data);
+      std::string result = interface->put_param_request(id, region_name, param_name, data);
       res.set_content(result + "\n", "text/plain");
     });
 
-    //  GET  /network/<id>/param/<region name '.' param name>
+    //  GET  /network/<id>/region/<region name>/param/<param name>
     //     Get the value of a Parameter on a Region.
-    svr.Get("/network/.*/param/.*", [](const Request &req, Response &res) {
+    svr.Get("/network/.*/region/.*/param/.*", [](const Request &req, Response &res) {
       std::vector<std::string> flds = split(req.path, '/');
       std::string id = flds[2];
-      std::string name = flds[4];
+      std::string region_name = flds[4];
+      std::string param_name = flds[6];
 
       RESTapi *interface = RESTapi::getInstance();
-      std::string result = interface->get_param_request(id, name);
+      std::string result = interface->get_param_request(id, region_name, param_name);
       res.set_content(result + "\n", "text/plain");
     });
 
-    //  PUT  /network/<id>/input/<region name '.' input name>?data=<url encoded JSON data>
+    //  PUT  /network/<id>/region/<region name>/input/<input name>?data=<url encoded JSON data>
     //       Set the value of a region's input. The <data> could also be in the body.
     //  The data is a JSON encoded Array object which includes the type specifier;
-    svr.Put("/network/.*/input/.*", [&](const Request &req, Response &res, const ContentReader &content_reader) {
-      content_reader([&](const char *data, size_t data_length) {
-        res.body.append(data, data_length);
-        return true;
-      });
+    svr.Put("/network/.*/region/.*/input/.*", [](const Request &req, Response &res) {
       std::vector<std::string> flds = split(req.path, '/');
-      std::string id = flds[21];
-      std::string name = flds[4];
+      std::string id = flds[2];
+      std::string region_name = flds[4];
+      std::string input_name = flds[6];
       std::string data = res.body;
       auto ix = req.params.find("data");
       if (ix != req.params.end())
         data = ix->second;
 
       RESTapi *interface = RESTapi::getInstance();
-      std::string result = interface->put_input_request(id, name, data);
+      std::string result = interface->put_input_request(id, region_name, input_name, data);
       res.set_content(result + "\n", "text/plain");
     });
 
-    //  GET  /network/<id>/input/<region name '.' input name>
-    //       Get the value of a region's input. (a JSON ecoded Array object)
-    svr.Get("/network/.*/input/.*", [](const Request &req, Response &res) {
+    //  GET  /network/<id>/region/<region name>/input/<input name>
+    //       Get the value of a region's input. Returns a JSON ecoded Array object.
+    svr.Get("/network/.*/region/.*/input/.*", [](const Request &req, Response &res) {
       std::vector<std::string> flds = split(req.path, '/');
       std::string id = flds[2];
-      std::string name = flds[4];
+      std::string region_name = flds[4];
+      std::string input_name = flds[6];
 
       RESTapi *interface = RESTapi::getInstance();
-      std::string result = interface->get_input_request(id, name);
+      std::string result = interface->get_input_request(id, region_name, input_name);
       res.set_content(result + "\n", "text/plain");
     });
 
-    //  GET  /network/<id>/output/<region name '.' input name>
-    // Get a specific Output of a region (an Array object)
-    svr.Get("/network/.*/output/.*", [](const Request &req, Response &res) {
+    //  GET  /network/<id>/region/<region name>/output/<output name>
+    // Get a specific Output of a region. Returns a JSON encoded Array object.
+    svr.Get("/network/.*/region/.*/output/.*", [](const Request &req, Response &res) {
       std::vector<std::string> flds = split(req.path, '/');
       std::string id = flds[2];
-      std::string name = flds[4];
+      std::string region_name = flds[4];
+      std::string output_name = flds[6];
 
       RESTapi *interface = RESTapi::getInstance();
-      std::string result = interface->get_output_request(id, name);
+      std::string result = interface->get_output_request(id, region_name, output_name);
       res.set_content(result + "\n", "text/plain");
     });
 
@@ -173,6 +182,25 @@ public:
       std::string result = interface->run_request(id, iterations);
       res.set_content(result+"\n", "text/plain");
     });
+
+    //  GET  /network/<id>/region/<region name>/command?data=<command>
+    //       Execute a predefined command on a region. <command> must start with the
+    //       command name followed by the arguments.
+    //       The data could also be in the body.
+    svr.Get("/network/.*/region/.*/command", [](const Request &req, Response &res) {
+      std::vector<std::string> flds = split(req.path, '/');
+      std::string id = flds[2];
+      std::string region_name = flds[4];
+      std::string command = req.body;
+      auto ix = req.params.find("data");
+      if (ix != req.params.end())
+        command = ix->second;
+
+      RESTapi *interface = RESTapi::getInstance();
+      std::string result = interface->command_request(id, region_name, command);
+      res.set_content(result + "\n", "text/plain");
+    });
+
 
 
     //  GET /stop  

@@ -92,12 +92,14 @@ public:
    * Handler for a PUT "input" request message.
    * This will pass the attached data to the specified region's input.
    *
-   * @param input       The name of the region, ".", followed by the input name
-   *                    for the input that is to receive the data.  If blank, data is ignored.
-   *                    For example;  If "encoder" is the name of your encoder
-   *                                  configured in the Network class then
-   *                                  "encoder.values" will send it to the
-   *                                  "values" input of the encoder.
+   * @param region_name The name of the region for the parameter that is to receive the data.
+   *                    For example if "encoder" is the name assigned to your ScalarSensor region in
+   *                    the Network's configuration, enter "encoder".
+   *
+   * @param input_name  The name of the input that is to receive the data.
+   *                    Give the name of a input as defined by the region Spec for
+   *                    the region you are configuring.
+   *                    For example;  For a ScalarSensor region, such a parameter is "values".
    *
    * @param data        The serialized data itself in JSON format. The following is expected:
    *                      {type: <type>, data: [ <array of elements comma seprated> ]}
@@ -114,22 +116,25 @@ public:
    * @retval            If success returns "OK".
    *                    Otherwise returns error message starting with "ERROR: ".
    */
-  std::string put_input_request(const std::string &id,
-                          const std::string &data,
-                          const std::string &input);
+  std::string put_input_request(const std::string &id, 
+                                const std::string &region_name, 
+                                const std::string &input_name,
+                                const std::string &data);
 
 
   /**
    * @b Description:
-   * Handler for a PUT "input" request message.
-   * This will pass the attached data to the specified region's input.
+   * Handler for a GET "input" request message.
+   * This will return the data from the specified region's input.
    *
-   * @param input       The name of the region, ".", followed by the input name
-   *                    for the input that is to receive the data.  If blank, data is ignored.
-   *                    For example;  If "encoder" is the name of your encoder
-   *                                  configured in the Network class then
-   *                                  "encoder.values" will send it to the
-   *                                  "values" input of the encoder.
+   * @param region_name The name of the region for the parameter that is to get the data from.
+   *                    For example if "encoder" is the name assigned to your ScalarSensor region in
+   *                    the Network's configuration, enter "encoder".
+   *
+   * @param input_name  The name of the input that is to receive the data.
+   *                    Give the name of a input as defined by the region Spec for
+   *                    the region you are configuring.
+   *                    For example;  For a ScalarSensor region, such a parameter is "values".
    *
    * @param id          Identifier for the resource context (a Network class instance).
    *                    Client should pass the id returned by the previous "configure"
@@ -144,7 +149,9 @@ public:
    *                    The data portion is a comma separated sequence, even if only one element.
    *                    Otherwise returns error message starting with "ERROR: ".
    */
-  std::string get_input_request(const std::string &id, const std::string &input);
+  std::string get_input_request(const std::string &id, 
+                                const std::string &region_name, 
+                                const std::string &input_name);
 
 
 
@@ -158,10 +165,14 @@ public:
    *            request message.
    *
    *
-   * @param output      The name of the region, ".", followed by the output name
-   *                    for the output that is to be returned in the response message.
-   *                    For example; if "tm" is the name of the TMRegion region and you want the
-   *                                 active cells, use an output name of "tm.activeCells".
+   * @param region_name The name of the region for the parameter that is to receive the data.
+   *                    For example if "tm" is the name assigned to your TMRegion region in
+   *                    the Network's configuration, enter "tm".
+   *
+   * @param output_name The name of the output that is to get data from.
+   *                    Give the name of an output as defined by the region Spec for
+   *                    the region you are configuring.
+   *                    For example;  For a TMRegion region, such a parameter is "activeCells".
    *
    * @retval            If success returns the requested data which is an Array object.
    *                    The JSON serialized data format:
@@ -172,7 +183,9 @@ public:
    *                    The data portion is a comma separated sequence, even if only one element.
    *                    Otherwise returns error message starting with "ERROR: ".
    */
-  std::string get_output_request(const std::string &id, const std::string &output);
+  std::string get_output_request(const std::string &id, 
+                                 const std::string &region_name, 
+                                 const std::string &output_name);
 
 
   /**
@@ -184,12 +197,13 @@ public:
    *                    Client should pass the id returned by the previous "configure"
    *                    request message.
    *
-   * @param name       The name of the region, ".", followed by the parameter name
-   *                    for the parameter that is to receive the data.  Must be a ReadWrite parameter.
-   *                    For example;  If "sp" is the name of your SP region
-   *                                  configured in the Network class then
-   *                                  "sp.potentialRadius" will send it to the
-   *                                  "potentialRadius" parameter of the SP with the name "sp".
+   * @param region_name The name of the region for the parameter that is to receive the data.  
+   *                    For example if "sp" the name assigned to your SPRegion region in
+   *                    the configuration, enter "sp".
+   * @param param_name  The name of the parameter that is to receive the data.
+   *                    Give the name of a parameter as defined by the region Spec for
+   *                    the region you are configuring. Must be a ReadWrite parameter.
+   *                    For example;  For an SPRegion region, such a parameter is "potentialRadius".
    *
    * @param data        The serialized data itself in JSON format. The following is expected:
    *                      {type: <type>, data: [ <array of elements comma seprated> ]}
@@ -202,7 +216,10 @@ public:
    * @retval            If success returns "OK".
    *                    Otherwise returns error message starting with "ERROR: ".
    */
-  std::string put_param_request(const std::string &id, const std::string &name, const std::string &data);
+  std::string put_param_request(const std::string &id, 
+                                const std::string &region_name, 
+                                const std::string &param_name,
+                                const std::string &data);
 
 
   /**
@@ -215,16 +232,20 @@ public:
    *            request message.
    *
    *
-   * @param param      The name of the region, ".", followed by the parameter name
-   *                    for the parameter that is to be returned in the response message.
-   *                    For example; if "tm" is the name of the TMRegion region and you want the
-   *                                 value of the "cellsPerColumn" paramter from it, 
-   *                                 use an param name of "tm.cellsPerColumn".
+   * @param region_name The name of the region for the parameter that is to receive the data.
+   *                    For example if "sp" the name assigned to your SPRegion region in
+   *                    the configuration, enter "sp".
+   * @param param_name  The name of the parameter that is to receive the data.
+   *                    Give the name of a parameter as defined by the region Spec for
+   *                    the region you are configuring. Can be a ReadWrite, ReadOnly, or Create parameter.
+   *                    For example;  For an TMRegion region, such a parameter is "cellsPerColumn".
    *
    * @retval            If success returns the requested data in JSON format.
    *                    Otherwise returns error message starting with "ERROR: ".
    */
-  std::string get_param_request(const std::string &id, const std::string &output);
+  std::string get_param_request(const std::string &id, 
+                                const std::string &region_name, 
+                                const std::string &param_name);
 
   /**
    * @b Description:
@@ -243,6 +264,25 @@ public:
    */
   std::string run_request(const std::string &id, 
                           const std::string &iterations);
+
+  /**
+   * @b Description:
+   * Execute a command on a region.
+   * Only commands defined in the Spec may be executed.
+   *
+   * @param id  Identifier for the resource context (a Network class instance).
+   *            Client should pass the id returned by the previous "configure"
+   *            request message.
+   *
+   * @param region_name  The name of the region.
+   *
+   * @param command   The command string.
+   *
+   * @retval            Result of the command execution.
+   *                    Otherwise returns error message starting with "ERROR: ".
+   */
+  std::string command_request(const std::string &id, const std::string &region_name, const std::string& command);
+
 
 
 private:

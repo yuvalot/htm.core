@@ -35,37 +35,13 @@
 //
 // Setting the verbose variable to true will show messages coming and going.
 //
-// Here are all of the messages understood by the server.
-//  POST /network?id=<previous id>
-//       Creates a new Network class object as a resource:
-//       The id field is optional. If given a new network object will replace that id.
-//       The body of the POST is JSON formatted configuration string
-//       Returns a new id for the created resouce or an Error message.
-//  PUT  /network/<id>/param/<region name '.' param name>?data=<url encoded JSON data>
-//       Set the value of a region parameter. The <data> could also be in the body.
-//  GET  /network/<id>/param/<region name '.' param name>
-//       Get the value of a region parameter.
-//  PUT  /network/<id>/input/<region name '.' input name>?data=<url encoded JSON data>
-//       Set the value of a region's input. The <data> could also be in the body.
-//  GET  /network/<id>/input/<region name '.' input name>
-//       Get the value of a region's input.
-//  GET  /network/<id>/output/<region name '.' output name>
-//       Get the value of a region's output.
-//  GET  /network/<id>/run?iterations=<iterations>
-//       Execute all regions in phase order. Repeat <iterations> times.
-//       If not given, iterations defaults to 1;
-//
-//  GET  /hi
-//       Respond with "Hello World\n" as a way to check client to server connection.
-//  GET  /stop
-//       Stop the server.  All resources are released.
 
 
 #include <httplib.h>
 #include <iostream>
 #include <cstring>
 
-#define CA_CERT_FILE "./ca-bundle.crt"
+//#define CA_CERT_FILE "./ca-bundle.crt"
 #define DEFAULT_PORT 8050
 #define DEFAULT_HOST "127.0.0.1"
 #define EPOCHS 5  // The number of iterations
@@ -150,7 +126,7 @@ int main(int argc, char **argv) {
     double s = std::sin(x);
 
     // Send set parameter message to feed "sensedValue" parameter data into RDSE encoder for this iteration.
-    std::snprintf(message, sizeof(message), "/network/%s/param/encoder.sensedValue?data=%-5.02f", id.c_str(), s);
+    std::snprintf(message, sizeof(message), "/network/%s/region/encoder/param/sensedValue?data=%-5.02f", id.c_str(), s);
     VERBOSE << "PUT " << message << std::endl;
     res = client.Put(message, noParams);
     if (!res) {
@@ -174,8 +150,8 @@ int main(int argc, char **argv) {
     VERBOSE << res->body << std::endl;
   }
 
-  // Retreive the final anomaly score from the TM object, 'tm.anomaly'.
-  std::snprintf(message, sizeof(message), "/network/%s/output/tm.anomaly", id.c_str());
+  // Retreive the final anomaly score from the TM object's 'anomaly' output.
+  std::snprintf(message, sizeof(message), "/network/%s/region/tm/output/anomaly", id.c_str());
   VERBOSE << "GET " << message << std::endl;
   res = client.Get(message);
   if (!res || res->body.substr(0, 6) == "ERROR:") {

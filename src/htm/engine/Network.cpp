@@ -133,8 +133,8 @@ void Network::configure(const std::string &yaml) {
         std::vector<std::string> vsrc = split(src, '.');
         std::vector<std::string> vdest = split(dest, '.');
         int propagationDelay = 0;
-        if (cmd.second.contains("propagationDelay"))
-          propagationDelay = cmd.second["propagationDelay"].as<int>();
+        if (cmd.second.contains("delay"))
+          propagationDelay = cmd.second["delay"].as<int>();
         NTA_CHECK(vsrc.size() == 2) << "Expecting source domain name '.' output name.";
         NTA_CHECK(vdest.size() == 2) << "Expecting destination domain name '.' input name.";
 

@@ -141,6 +141,8 @@ make -j install
 | Unit Tests             | `build/Release/bin/unit_tests`       |
 | Hotgym Dataset Example | `build/Release/bin/benchmark_hotgym` |
 | MNIST Dataset Example  | `build/Release/bin/mnist_sp`         |
+| REST Server Example    | `build/Release/bin/server`           |
+| REST Client Example    | `build/Release/bin/client`           |
 
  * A debug library can be created by adding `-DCMAKE_BUILD_TYPE=Debug` to the cmake command above.
    + The debug library will be put in `build/Debug`.
@@ -387,6 +389,23 @@ In Python:
 python py/htm/examples/mnist.py
 ```
 
+### REST example
+
+The REST interface for NetworkAPI provides a way to access the underlining htm.core library
+using a REST client.  The examples provide both a full REST web server that can process the web
+requests that allow the user to create a Network object resource and perform htm operations on it.
+Message layout details can be found in [NetworkAPI REST docs](docs/NetworkAPI REST.md).
+To run:
+```
+   ./build/Release/bin/server [port [network_interface]]
+```
+
+A REST client, implemented in C++ is also provided as an example of how to use the REST web server.
+To run:  first start the server.
+```
+   ./build/Release/bin/client [host [port]]
+```
+The default host is 127.0.0.1 (the local host) and the port is 8050.
 
 ## License
 
