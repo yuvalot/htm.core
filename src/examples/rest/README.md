@@ -30,3 +30,4 @@ To run the client,
 	 port defaults to 8050
 	 
 	 
+For more details on how to build a client see [NetworkAPI_REST.md](../../docs/NetworkAPI_REST.md)

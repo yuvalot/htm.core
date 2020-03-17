@@ -420,7 +420,7 @@ add_custom_target(mnist
 ###########################################################
 ## REST server and client examples
 #
-  set(src_executable_rest_server server)
+  set(src_executable_rest_server rest_server)
   add_executable(${src_executable_rest_server} examples/rest/server.cpp)
   target_link_libraries(${src_executable_rest_server} 
           ${INTERNAL_LINKER_FLAGS}
@@ -435,7 +435,7 @@ add_custom_target(mnist
         ${EXTERNAL_INCLUDES}
         )
     
-  set(src_executable_rest_client client)
+  set(src_executable_rest_client rest_client)
   add_executable(${src_executable_rest_client} examples/rest/client.cpp)
   target_link_libraries(${src_executable_rest_client} 
           ${INTERNAL_LINKER_FLAGS}

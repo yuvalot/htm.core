@@ -35,6 +35,7 @@ in C++ library.
    This is a priority for the `NetworkAPI`.
    The algorithms APIs on the other hand have deviated from their original API (but their logic is the same as Numenta's).
    If you are porting your code to this codebase, please review the [API Changelog](API_CHANGELOG.md).
+ * REST interface for `NetworkAPI` with a REST server.
 
 ## Installation
 
@@ -141,8 +142,8 @@ make -j install
 | Unit Tests             | `build/Release/bin/unit_tests`       |
 | Hotgym Dataset Example | `build/Release/bin/benchmark_hotgym` |
 | MNIST Dataset Example  | `build/Release/bin/mnist_sp`         |
-| REST Server Example    | `build/Release/bin/server`           |
-| REST Client Example    | `build/Release/bin/client`           |
+| REST Server Example    | `build/Release/bin/rest_server`      |
+| REST Client Example    | `build/Release/bin/rest_client`      |
 
  * A debug library can be created by adding `-DCMAKE_BUILD_TYPE=Debug` to the cmake command above.
    + The debug library will be put in `build/Debug`.
@@ -394,7 +395,7 @@ python py/htm/examples/mnist.py
 The REST interface for NetworkAPI provides a way to access the underlining htm.core library
 using a REST client.  The examples provide both a full REST web server that can process the web
 requests that allow the user to create a Network object resource and perform htm operations on it.
-Message layout details can be found in [NetworkAPI REST docs](docs/NetworkAPI REST.md).
+Message layout details can be found in [NetworkAPI REST docs](docs/NetworkAPI_REST.md).
 To run:
 ```
    ./build/Release/bin/server [port [network_interface]]
