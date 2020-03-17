@@ -240,6 +240,12 @@ namespace htm
     }
 
 
+    // Serialization and Deserialization using YAML parser
+    void fromYAML(const std::string& data);      //handles both YAML and JSON syntax
+    void fromJSON(const std::string &data) { return fromYAML(data); }
+    std::string toJSON() const;
+
+
     // ascii text representation
     //    [ type count ( item item item ...) ... ]
     std::string toString() const;

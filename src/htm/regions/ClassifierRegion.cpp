@@ -79,7 +79,7 @@ namespace htm {
     inputs: {
       bucket:  { description: "The quantized value of the current sample, one from each encoder if more than one, for the learn step",
                            type: Real64,  count: 0},  
-      pattern: { description:  "activeCells from TM",  
+      pattern: { description:  "An SDR output bit pattern for a sample.  Usually the output of the SP or TM. For example: activeCells from TM",  
                            type: SDR, count: 0} 
     }, 
     outputs: {

@@ -79,7 +79,7 @@ void Classifier::learn(const SDR &pattern, const vector<UInt> &categoryIdxList)
       weights_.push_back( initialEmptyWeights );
     }
   }
-  NTA_CHECK(pattern.size > 0) << "No Data pased to Classifier. Pattern is empty.";
+  NTA_CHECK(pattern.size > 0) << "No Data passed to Classifier. Pattern is empty.";
   NTA_ASSERT(pattern.size == dimensions_) << "Input SDR does not match previously seen size!";
 
   // Check if this is a new category & resize the weights table to hold it.

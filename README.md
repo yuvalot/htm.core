@@ -1,4 +1,4 @@
-﻿<img src="http://numenta.org/87b23beb8a4b7dea7d88099bfb28d182.svg" alt="NuPIC Logo" width=100/>
+<img src="http://numenta.org/87b23beb8a4b7dea7d88099bfb28d182.svg" alt="NuPIC Logo" width=100/>
 
 # htm.core
 
@@ -35,6 +35,7 @@ in C++ library.
    This is a priority for the `NetworkAPI`.
    The algorithms APIs on the other hand have deviated from their original API (but their logic is the same as Numenta's).
    If you are porting your code to this codebase, please review the [API Changelog](API_CHANGELOG.md).
+ * REST interface for `NetworkAPI` with a REST server.
 
 ## Installation
 
@@ -141,6 +142,8 @@ make -j install
 | Unit Tests             | `build/Release/bin/unit_tests`       |
 | Hotgym Dataset Example | `build/Release/bin/benchmark_hotgym` |
 | MNIST Dataset Example  | `build/Release/bin/mnist_sp`         |
+| REST Server Example    | `build/Release/bin/rest_server`      |
+| REST Client Example    | `build/Release/bin/rest_client`      |
 
  * A debug library can be created by adding `-DCMAKE_BUILD_TYPE=Debug` to the cmake command above.
    + The debug library will be put in `build/Debug`.
@@ -313,17 +316,18 @@ distribution packages as listed and rename them as indicated. Copy these to
 | Name to give it        | Where to obtain it |
 | :--------------------- | :----------------- |
 | libyaml.zip   (*node1) | https://github.com/yaml/libyaml/archive/master.zip |
-| boost.tar.gz  (*note3) | https://dl.bintray.com/boostorg/release/1.69.0/source/boost_1_69_0.tar.gz | 
+| boost.tar.gz  (*note3) | https://dl.bintray.com/boostorg/release/1.72.0/source/boost_1_72_0.tar.gz | 
 | eigen.tar.bz2          | http://bitbucket.org/eigen/eigen/get/3.3.7.tar.bz2 |
 | googletest.tar.gz      | https://github.com/abseil/googletest/archive/release-1.8.1.tar.gz |
 | mnist.zip     (*note4) | https://github.com/wichtounet/mnist/archive/master.zip |
 | pybind11.tar.gz        | https://github.com/pybind/pybind11/archive/v2.4.2.tar.gz |
 | cereal.tar.gz          | https://github.com/USCiLab/cereal/archive/v1.2.2.tar.gz |
 | digestpp.zip           | https://github.com/kerukuro/digestpp/archive/36fa6ca2b85808bd171b13b65a345130dbe1d774.zip |
+| cpp-httplib.zip(*node4)| https://github.com/yhirose/cpp-httplib/archive/v0.5.5.zip |
 
  * note1: Version 0.2.2 of libyaml is broken so use the master for the repository.
  * note3: Boost is not required for any compiler that supports C++17 with `std::filesystem` (MSVC2017, gcc-8, clang-9).
- * note4: Data used for demo. Not required to run but the build expects it.
+ * note4: Used for examples. Not required to run but the build expects it.
 
 ## Testing
 
@@ -386,6 +390,23 @@ In Python:
 python py/htm/examples/mnist.py
 ```
 
+### REST example
+
+The REST interface for NetworkAPI provides a way to access the underlining htm.core library
+using a REST client.  The examples provide both a full REST web server that can process the web
+requests that allow the user to create a Network object resource and perform htm operations on it.
+Message layout details can be found in [NetworkAPI REST docs](docs/NetworkAPI_REST.md).
+To run:
+```
+   ./build/Release/bin/server [port [network_interface]]
+```
+
+A REST client, implemented in C++ is also provided as an example of how to use the REST web server.
+To run:  first start the server.
+```
+   ./build/Release/bin/client [host [port]]
+```
+The default host is 127.0.0.1 (the local host) and the port is 8050.
 
 ## License
 
@@ -401,6 +422,7 @@ Libraries that are incorporated into htm.core have the following licenses:
 | pybind11 | https://github.com/pybind/pybind11 | https://github.com/pybind/pybind11/blob/master/LICENSE |
 | cereal | https://uscilab.github.io/cereal/ | https://opensource.org/licenses/BSD-3-Clause |
 | digestpp | https://github.com/kerukuro/digestpp | released into public domain |
+| cpp-httplib | https://github.com/yhirose/cpp-httplib | https://github.com/yhirose/cpp-httplib/blob/master/LICENSE |
 
 
  * note3: Boost is not used if built with any compiler that supports C++17 with `std::filesystem` (MSVC2017, gcc-8, clang-9).

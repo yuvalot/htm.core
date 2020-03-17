@@ -52,7 +52,7 @@
 #define VERBOSE if(verbose)std::cerr << "[          ] "
 static bool verbose = false;  // turn this on to print extra stuff for debugging the test.
 
-const UInt EXPECTED_SPEC_COUNT =  9u;  // The number of parameters expected in the ScalarSensor Spec
+const UInt EXPECTED_SPEC_COUNT =  11u;  // The number of parameters expected in the ScalarSensor Spec
 
 using namespace htm;
 namespace testing 
@@ -70,7 +70,7 @@ namespace testing
     VERBOSE << *ns << std::endl;
 
     std::shared_ptr<Region> region1 = net.addRegion("region1", "ScalarSensor", "{n: 100, w: 10}"); 
-    std::set<std::string> excluded = {"n", "w", "resolution", "radius"};
+    std::set<std::string> excluded = {"n", "w", "size", "activeBits", "resolution", "radius"};
     checkGetSetAgainstSpec(region1, EXPECTED_SPEC_COUNT, excluded, verbose);
     checkInputOutputsAgainstSpec(region1, verbose);
   }

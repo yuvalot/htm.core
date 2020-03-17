@@ -20,11 +20,13 @@
  */
 
 #include <gtest/gtest.h>
+#include <htm/ntypes/Array.hpp>
+#include <htm/ntypes/BasicType.hpp>
 #include <htm/ntypes/Value.hpp>
 
 #include <map>
-#include <vector>
 #include <sstream>
+#include <vector>
 
 namespace testing {
 
@@ -145,7 +147,6 @@ TEST(ValueTest, asArray) {
   EXPECT_ANY_THROW(vm.as<UInt32>());    // not a scaler
   EXPECT_ANY_THROW(vm[5].as<UInt32>()); // not a sequence
 }
-
 
 TEST(ValueTest, asMap) {
   ValueMap vm;
@@ -330,7 +331,7 @@ TEST(ValueTest, deletes) {
   EXPECT_ANY_THROW(vm[0][3].as<int>());
 
   vm[0][2].remove();
-  //std::cout << "[0][2] removed: " << vm << "\n";
+  // std::cout << "[0][2] removed: " << vm << "\n";
   EXPECT_TRUE(vm.check());
   EXPECT_EQ(vm[0].size(), 2u);
   EXPECT_TRUE(vm[0][1].isScalar());
@@ -368,6 +369,86 @@ TEST(ValueTest, deletes) {
 
   vm.remove();
   EXPECT_TRUE(vm.isEmpty());
+}
+
+// Utility routine to test Array to Value
+template <typename T> 
+static std::string vectorToJSON(const std::vector<T>& data) {
+  Array a(data);
+  Value vm;
+  std::string typeName = BasicType::getName(a.getType());
+  vm["type"] = typeName;
+  Value& vm2 = vm["data"];
+  T *p = (T *)a.getBuffer();
+  for (size_t i = 0; i < a.getCount(); i++) {
+    vm2[i] = p[i];  // a numeric index on vm2 creates a sequence.
+  }
+  return vm.to_json();
+}
+
+TEST(ValueTest, from_Array) {
+  // What I want to test is converting an Array object to a Value object.
+  // I want to do that for each data type.
+  // So I am using the templated function above.  This will create a
+  // test Array object from a vector.  Then convert it to a VM.
+  // To confirm that it worked, I convert the VM to a JSON string and compare
+  // with expected results.
+  {
+    std::vector<Byte> data = {1, 2, 3, 4};
+    std::string j = vectorToJSON(data);
+    EXPECT_STREQ(j.c_str(), "{type: \"Byte\", data: [1, 2, 3, 4]}");
+  }
+  {
+    std::vector<Int16> data = {1, 2, 3, 4};
+    std::string j = vectorToJSON(data);
+    EXPECT_STREQ(j.c_str(), "{type: \"Int16\", data: [1, 2, 3, 4]}");
+  }
+  {
+    std::vector<UInt16> data = {1, 2, 3, 4};
+    std::string j = vectorToJSON(data);
+    EXPECT_STREQ(j.c_str(), "{type: \"UInt16\", data: [1, 2, 3, 4]}");
+  }
+  {
+    std::vector<Int32> data = {1, 2, 3, 4};
+    std::string j = vectorToJSON(data);
+    EXPECT_STREQ(j.c_str(), "{type: \"Int32\", data: [1, 2, 3, 4]}");
+  }
+  {
+    std::vector<UInt32> data = {1, 2, 3, 4};
+    std::string j = vectorToJSON(data);
+    EXPECT_STREQ(j.c_str(), "{type: \"UInt32\", data: [1, 2, 3, 4]}");
+  }
+  {
+    std::vector<Int64> data = {1, 2, 3, 4};
+    std::string j = vectorToJSON(data);
+    EXPECT_STREQ(j.c_str(), "{type: \"Int64\", data: [1, 2, 3, 4]}");
+  }
+  {
+    std::vector<UInt64> data = {1, 2, 3, 4};
+    std::string j = vectorToJSON(data);
+    EXPECT_STREQ(j.c_str(), "{type: \"UInt64\", data: [1, 2, 3, 4]}");
+  }
+  {
+    std::vector<Real32> data = {1, 2, 3, 4};
+    std::string j = vectorToJSON(data);
+    EXPECT_STREQ(j.c_str(), "{type: \"Real32\", data: [1.000000, 2.000000, 3.000000, 4.000000]}");
+  }
+  {
+    std::vector<Real64> data = {1, 2, 3, 4};
+    std::string j = vectorToJSON(data);
+    EXPECT_STREQ(j.c_str(), "{type: \"Real64\", data: [1.000000, 2.000000, 3.000000, 4.000000]}");
+  }
+  {
+    SDR sdr({4});
+    sdr.setDense(SDR_dense_t({1, 0, 1, 0}));
+    std::string j = vectorToJSON(sdr.getDense());
+    EXPECT_STREQ(j.c_str(), "{type: \"Byte\", data: [1, 0, 1, 0]}");
+  }
+  {
+    std::vector<std::string> data = {"A", "B", "C", "D"};
+    std::string j = vectorToJSON(data);
+    EXPECT_STREQ(j.c_str(), "{type: \"String\", data: [\"A\", \"B\", \"C\", \"D\"]}");
+  }
 }
 
 } // namespace testing
