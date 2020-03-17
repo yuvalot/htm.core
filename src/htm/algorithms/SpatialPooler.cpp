@@ -509,12 +509,13 @@ UInt SpatialPooler::calculateWrapAroundNeighbors_() const {
 
 void SpatialPooler::mapAllNeighbors() {
 	neighborMap_.clear();
-	neighborMap_.reserve(wrapAroundNeighbors_ * numColumns_);
-	for(UInt column=0; column<numColumns_;column++) {
-		for(auto neighbor: WrappingNeighborhood(column, inhibitionRadius_,columnDimensions_)) { 
-			neighborMap_.push_back(neighbor);
+	neighborMap_.reserve(numColumns_);
+	for(UInt column=0; column < numColumns_; column++) {
+		vector<CellIdx> neighbors; //of the current column
+		for(const auto neighbor: WrappingNeighborhood(column, inhibitionRadius_, columnDimensions_)) { 
+			neighbors.push_back(neighbor);
 		}
-		if(neighborMap_.size() != (column+1)*(wrapAroundNeighbors_+1)) { std::cout << "error NE - siz " << neighborMap_.size() << ", id " << (column+1)*wrapAroundNeighbors_ << "  \n"; }
+		neighborMap_[column] = neighbors;
 	}
 }
 
@@ -794,7 +795,7 @@ void applyBoosting_(const UInt i,
 void SpatialPooler::updateBoostFactorsGlobal_() {
   const Real targetDensity = localAreaDensity_;
   
-  for (UInt i = 0; i < numColumns_; ++i) { 
+  for (UInt i = 0; i < numColumns_; ++i) {
     applyBoosting_(i, targetDensity, activeDutyCycles_, boostStrength_, boostFactors_);
   }
 }
@@ -802,20 +803,18 @@ void SpatialPooler::updateBoostFactorsGlobal_() {
 
 void SpatialPooler::updateBoostFactorsLocal_() {
  if (wrapAround_) {
+  // In wrapAround, number of neighbors to be considered is solely a function of the inhibition radius,
+  // the number of dimensions, and of the size of each of those dimenions
+  const UInt numNeighbors = wrapAroundNeighbors_ + 1; // +1 bcs this function counts the column itself as a neighbor
+
   for (UInt i = 0; i < numColumns_; ++i) {
-    UInt numNeighbors = 0u;
     Real localActivityDensity = 0.0f;
 
-       numNeighbors = 0;  // In wrapAround, number of neighbors to be considered is solely a function of the inhibition radius, the number of dimensions, and of the size of each of those dimenions
-       numNeighbors = wrapAroundNeighbors_;
-       const UInt column = i; 
-       const UInt mapOffset = column * (numNeighbors+1);
+       const auto& hood = neighborMap_.at(i); //hood is vector<>
 //     for(auto neighbor: WrappingNeighborhood(i, inhibitionRadius_, columnDimensions_)) P
-       for (UInt j=0;j<(numNeighbors+1);j++) {
-         const UInt neighbor = neighborMap_[mapOffset + j]; //TODO make this a key-value map to avoid all the coding around
+       for (const auto neighbor : hood) {
          localActivityDensity += activeDutyCycles_[neighbor];
        }
-       numNeighbors++; // this function counts the column itself as a neighbor
     const Real targetDensity = localActivityDensity / numNeighbors;
     applyBoosting_(i, targetDensity, activeDutyCycles_, boostStrength_, boostFactors_);
     }
@@ -915,34 +914,25 @@ void SpatialPooler::inhibitColumnsLocal_(const vector<Real> &overlaps,
       continue;
     }
 
-    UInt numNeighbors = 0;
     UInt numBigger = 0;
-
-
-        numNeighbors = 0;  // In wrapAround, number of neighbors to be cons     idered is solely a function of the inhibition radius, the number of dimensi     ons, and of the size of each of those dimenion
-        numNeighbors = wrapAroundNeighbors_;
-
-        const UInt numActive_wrap = static_cast<UInt>(0.5f + (density * (numNeighbors + 1)));
-	 
-	const UInt mapOffset = column * (numNeighbors+1);
-
-//        for(auto neighbor: WrappingNeighborhood(column, inhibitionRadius_,columnDimensions_)) P //TODO if we don't change inh radius (changes only every isUpdateRound()),
-		// then these values can be cached -> faster local inh
-          for (UInt j=0;j<(numNeighbors+1);j++) {
-		  const UInt neighbor = neighborMap_[mapOffset + j];
-//		  std::cout << "N: " << neighbor << " -- ";
+    // In wrapAround, number of neighbors to be considered is solely a function of the inhibition radius, 
+    // the number of dimensions, and of the size of each of those dimenion
+    const UInt numNeighbors = wrapAroundNeighbors_;
+    const UInt numActive = static_cast<UInt>(0.5f + (density * (numNeighbors + 1))); 
+    
+    const auto& hood = neighborMap_.at(column);
+    //for(auto neighbor: WrappingNeighborhood(column, inhibitionRadius_,columnDimensions_)) P 
+    for (const auto neighbor: hood) {
           if (neighbor == column) {
             continue;
           }
-//          numNeighbors++;
 
           const Real difference = overlaps[neighbor] - overlaps[column];
           if (difference > 0 || (difference == 0 && activeColumnsDense[neighbor])) {
             numBigger++;
-	    if (numBigger >= numActive_wrap) { break; }
+	    if (numBigger >= numActive) { break; }
           }
 	}
-      const UInt numActive = static_cast<UInt>(0.5f + (density * (numNeighbors + 1)));
       if (numBigger < numActive) {
         activeColumns.push_back(column);
         activeColumnsDense[column] = true;

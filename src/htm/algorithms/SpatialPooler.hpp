@@ -24,6 +24,7 @@
 
 #include <iostream>
 #include <vector>
+#include <unordered_map>
 #include <iomanip> // std::setprecision
 #include <htm/algorithms/Connections.hpp>
 #include <htm/types/Types.hpp>
@@ -1145,7 +1146,6 @@ protected:
   UInt stimulusThreshold_;
   UInt inhibitionRadius_;
   UInt wrapAroundNeighbors_;
-  vector<UInt> neighborMap_;
   UInt dutyCyclePeriod_;
   Real boostStrength_;
   UInt iterationNum_;
@@ -1183,6 +1183,8 @@ protected:
 public:
   const Connections& connections = connections_; //for inspection of details in connections. Const, so users cannot break the SP internals.
   const Connections& getConnections() const { return connections_; } // as above, but for use in pybind11
+private:
+  std::unordered_map<UInt, std::vector<UInt>> neighborMap_; // col -> vector neighbors
 };
 
 std::ostream & operator<<(std::ostream & out, const SpatialPooler &sp);
