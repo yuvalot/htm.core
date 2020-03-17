@@ -37,6 +37,7 @@
 #include <htm/os/Timer.hpp>
 #include <htm/types/Serializable.hpp>
 #include <htm/types/Types.hpp>
+#include <htm/ntypes/Value.hpp>
 
 namespace htm {
 
@@ -142,6 +143,7 @@ public:
   Real32 getParameterReal32(const std::string &name) const;
   Real64 getParameterReal64(const std::string &name) const;
   bool getParameterBool(const std::string &name) const;
+  std::string getParameterJSON(const std::string &name) const;
 
   /**
    * Set the parameter value of a specific type.
@@ -159,6 +161,7 @@ public:
   void setParameterReal32(const std::string &name, Real32 value);
   void setParameterReal64(const std::string &name, Real64 value);
   void setParameterBool(const std::string &name, bool value);
+  void setParameterJSON(const std::string &name, const std::string& value);
 
   /**
    * Get the parameter as an @c Array value.
@@ -410,9 +413,8 @@ public:
   // Internal methods.
 
   // New region from parameter spec
-  Region(std::string name, const std::string &type,
-         const std::string &nodeParams, Network *network = nullptr);
-
+  Region(const std::string &name, const std::string &type, const std::string &nodeParams, Network *network = nullptr);
+  Region(const std::string &name, const std::string &node, ValueMap &vm, Network *network = nullptr);
   Region(Network *network); // An empty region for deserialization.
   Region(); // A default constructor for region for deserialization.
 

@@ -24,38 +24,51 @@ Methods related to inputs and outputs are in Region_io.cpp
 */
 
 #include <iostream>
+#include <memory>
 #include <set>
 #include <stdexcept>
 #include <string>
-#include <memory>
 
 #include <htm/engine/Input.hpp>
-#include <htm/engine/Output.hpp>
 #include <htm/engine/Link.hpp>
+#include <htm/engine/Output.hpp>
 #include <htm/engine/Region.hpp>
 #include <htm/engine/RegionImpl.hpp>
 #include <htm/engine/RegionImplFactory.hpp>
 #include <htm/engine/Spec.hpp>
-#include <htm/utils/Log.hpp>
 #include <htm/ntypes/Array.hpp>
 #include <htm/ntypes/BasicType.hpp>
-
+#include <htm/utils/Log.hpp>
 
 namespace htm {
 
 class GenericRegisteredRegionImpl;
 
 // Create region from parameter spec
-Region::Region(std::string name, const std::string &nodeType,
-               const std::string &nodeParams, Network *network)
-    : name_(std::move(name)), type_(nodeType), initialized_(false),
-      network_(network), profilingEnabled_(false) {
+Region::Region(const std::string &name, const std::string &nodeType, const std::string &nodeParams, Network *network)
+    : name_(std::move(name)), type_(nodeType), initialized_(false), network_(network), profilingEnabled_(false) {
+  ValueMap vm;
+  vm.parse(nodeParams);
   // Set region spec and input/outputs before creating the RegionImpl so that the
   // Impl has access to the region info in its constructor.
   RegionImplFactory &factory = RegionImplFactory::getInstance();
   spec_ = factory.getSpec(nodeType);
   createInputsAndOutputs_();
-  impl_.reset(factory.createRegionImpl(nodeType, nodeParams, this));
+  impl_.reset(factory.createRegionImpl(nodeType, vm, this));
+}
+Region::Region(const std::string &name, const std::string &nodeType, ValueMap &vm, Network *network) {
+  name_ = name;
+  type_ = nodeType;
+  initialized_ = false;
+  network_ = network;
+  profilingEnabled_ = false;
+
+  // Set region spec and input/outputs before creating the RegionImpl so that the
+  // Impl has access to the region info in its constructor.
+  RegionImplFactory &factory = RegionImplFactory::getInstance();
+  spec_ = factory.getSpec(nodeType);
+  createInputsAndOutputs_();
+  impl_.reset(factory.createRegionImpl(nodeType, vm, this));
   
   //std::cerr << "Region created " << getName() << "=" << nodeType << "\n";
   //auto outputs = getOutputs();
@@ -269,7 +282,6 @@ void Region::setOutputDimensions(std::string name, const Dimensions& dim) {
   return out->setDimensions(dim);
 }
 
-
 // This is for backward compatability with API
 // Normally Output dimensions are set by setting parameters known to the implementation.
 // This sets a global dimension.
@@ -378,10 +390,6 @@ bool Region::operator==(const Region &o) const {
   return true;
 }
 
-
-
-
-
 // Internal methods called by RegionImpl.
 bool Region::hasOutput(const std::string &name) const {
   auto out = getOutput(name);
@@ -482,38 +490,99 @@ void Region::setParameterReal64(const std::string &name, Real64 value) {
   impl_->setParameterReal64(name, (Int64)-1, value);
 }
 
-void Region::setParameterBool(const std::string &name, bool value) {
-  impl_->setParameterBool(name, (Int64)-1, value);
+void Region::setParameterBool(const std::string &name, bool value) { 
+impl_->setParameterBool(name, (Int64)-1, value); 
+}
+
+void Region::setParameterJSON(const std::string &name, const std::string &value) {
+  try {
+    Value vm;
+    vm.parse(value);
+
+    NTA_BasicType type = spec_->parameters.getByName(name).dataType;
+    switch (type) {
+    case NTA_BasicType_Int32:
+      setParameterInt32(name, vm.as<Int32>());
+      break;
+    case NTA_BasicType_UInt32:
+      setParameterUInt32(name, vm.as<UInt32>());
+      break;
+    case NTA_BasicType_Int64:
+      setParameterInt64(name, vm.as<Int64>());
+      break;
+    case NTA_BasicType_UInt64:
+      setParameterUInt64(name, vm.as<UInt64>());
+      break;
+    case NTA_BasicType_Real32:
+      setParameterReal32(name, vm.as<Real32>());
+      break;
+    case NTA_BasicType_Real64:
+      setParameterReal64(name, vm.as<Real64>());
+      break;
+    case NTA_BasicType_Bool:
+      setParameterBool(name, vm.as<bool>());
+      break;
+
+    default:
+      NTA_THROW << "Unknow parameter type '" + std::string(BasicType::getName(type)) + "'";
+      break;
+    }
+  } catch (Exception &e) {
+    NTA_THROW << "Error setting parameter "+ getName() + "." + name+ "; " +e.getMessage();
+  }
 }
 
 // getParameter
 
-Int32 Region::getParameterInt32(const std::string &name) const {
-  return impl_->getParameterInt32(name, (Int64)-1);
-}
+Int32 Region::getParameterInt32(const std::string &name) const { return impl_->getParameterInt32(name, (Int64)-1); }
 
-Int64 Region::getParameterInt64(const std::string &name) const {
-  return impl_->getParameterInt64(name, (Int64)-1);
-}
+Int64 Region::getParameterInt64(const std::string &name) const { return impl_->getParameterInt64(name, (Int64)-1); }
 
-UInt32 Region::getParameterUInt32(const std::string &name) const {
-  return impl_->getParameterUInt32(name, (Int64)-1);
-}
+UInt32 Region::getParameterUInt32(const std::string &name) const { return impl_->getParameterUInt32(name, (Int64)-1); }
 
-UInt64 Region::getParameterUInt64(const std::string &name) const {
-  return impl_->getParameterUInt64(name, (Int64)-1);
-}
+UInt64 Region::getParameterUInt64(const std::string &name) const { return impl_->getParameterUInt64(name, (Int64)-1); }
 
-Real32 Region::getParameterReal32(const std::string &name) const {
-  return impl_->getParameterReal32(name, (Int64)-1);
-}
+Real32 Region::getParameterReal32(const std::string &name) const { return impl_->getParameterReal32(name, (Int64)-1); }
 
-Real64 Region::getParameterReal64(const std::string &name) const {
-  return impl_->getParameterReal64(name, (Int64)-1);
-}
+Real64 Region::getParameterReal64(const std::string &name) const { return impl_->getParameterReal64(name, (Int64)-1); }
 
-bool Region::getParameterBool(const std::string &name) const {
-  return impl_->getParameterBool(name, (Int64)-1);
+bool Region::getParameterBool(const std::string &name) const { return impl_->getParameterBool(name, (Int64)-1); }
+
+std::string Region::getParameterJSON(const std::string &name) const {
+  Value vm;
+  try {
+    NTA_BasicType type = spec_->parameters.getByName(name).dataType;
+    switch (type) {
+    case NTA_BasicType_Int32:
+      vm = getParameterInt32(name);
+      break;
+    case NTA_BasicType_UInt32:
+      vm = getParameterUInt32(name);
+      break;
+    case NTA_BasicType_Int64:
+      vm = getParameterInt64(name);
+      break;
+    case NTA_BasicType_UInt64:
+      vm = getParameterUInt64(name);
+      break;
+    case NTA_BasicType_Real32:
+      vm = getParameterReal32(name);
+      break;
+    case NTA_BasicType_Real64:
+      vm = getParameterReal64(name);
+      break;
+    case NTA_BasicType_Bool:
+      vm = getParameterBool(name);
+      break;
+
+    default:
+      NTA_THROW << "Unknow parameter type '" + std::string(BasicType::getName(type)) + "'";
+      break;
+    }
+  } catch (Exception &e) {
+    NTA_THROW << "Error setting parameter " + getName() + "." + name + "; " + e.getMessage();
+  }
+  return vm.to_json();
 }
 
 // array parameters

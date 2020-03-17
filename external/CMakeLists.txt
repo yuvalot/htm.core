@@ -126,3 +126,7 @@ include(cereal.cmake)
 # digestpp hash digest repo
 include(digestpp.cmake)
 
+#################
+# cpp-httplib webserver and client
+include(cpp-httplib.cmake)
+

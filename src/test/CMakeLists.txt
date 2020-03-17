@@ -58,6 +58,7 @@ set(engine_tests
 	   unit/engine/InputTest.cpp
 	   unit/engine/LinkTest.cpp
 	   unit/engine/NetworkTest.cpp
+	   unit/engine/RESTapiTest.cpp
 	   unit/engine/WatcherTest.cpp
 	   )
 	   
@@ -153,6 +154,7 @@ target_link_libraries(${unit_tests_executable}
 )
 target_include_directories(${unit_tests_executable} PRIVATE 
 	${gtest_INCLUDE_DIRS}
+	examples/rest
 	${CORE_LIB_INCLUDES}
 	${EXTERNAL_INCLUDES})
 target_compile_definitions(${unit_tests_executable} PRIVATE ${COMMON_COMPILER_DEFINITIONS})

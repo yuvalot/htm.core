@@ -32,8 +32,8 @@ namespace htm {
 
 ScalarSensor::ScalarSensor(const ValueMap &params, Region *region)
     : RegionImpl(region) {
-  params_.size = params.getScalarT<UInt32>("n", 0);
-  params_.activeBits = params.getScalarT<UInt32>("w", 0);
+  params_.size = params.getScalarT<UInt32>("size", params.getScalarT<UInt32>("n", 0));
+  params_.activeBits = params.getScalarT<UInt32>("activeBits", params.getScalarT<UInt32>("w", 0));
   params_.resolution = params.getScalarT<Real64>("resolution", 0.0);
   params_.radius = params.getScalarT<Real64>("radius", 0.0);
   params_.minimum = params.getScalarT<Real64>("minValue", -1.0);
@@ -130,16 +130,28 @@ ScalarSensor::~ScalarSensor() {}
                                    "-1", // defaultValue
                                    ParameterSpec::ReadWriteAccess));
 
-  ns->parameters.add("n", ParameterSpec("The length of the encoding. Size of buffer",
+  ns->parameters.add("size", 
+                     ParameterSpec("The length of the encoding. Size of buffer",
                                         NTA_BasicType_UInt32,
                                         1,   // elementCount
                                         "",  // constraints
                                         "0", // defaultValue
                                         ParameterSpec::CreateAccess));
+  ns->parameters.add("n", 
+                     ParameterSpec("Old name for the 'size' parameter.", NTA_BasicType_UInt32,
+                                        1,   // elementCount
+                                        "",  // constraints
+                                        "0", // defaultValue
+                                        ParameterSpec::CreateAccess));
 
-  ns->parameters.add("w",
-                     ParameterSpec("The number of active bits in the encoding. i.e. how sparse",
-                                   NTA_BasicType_UInt32,
+  ns->parameters.add("activeBits", 
+                     ParameterSpec("The number of active bits in the encoding. i.e. how sparse", NTA_BasicType_UInt32,
+                                   1,   // elementCount
+                                   "",  // constraints
+                                   "0", // defaultValue
+                                   ParameterSpec::CreateAccess));
+  ns->parameters.add("w", 
+                     ParameterSpec("Old name for the 'activeBits' parameter", NTA_BasicType_UInt32,
                                    1,   // elementCount
                                    "",  // constraints
                                    "0", // defaultValue
@@ -247,10 +259,10 @@ bool ScalarSensor::getParameterBool(const std::string& name, Int64 index) {
 }
 
 UInt32 ScalarSensor::getParameterUInt32(const std::string &name, Int64 index) {
-  if (name == "n") {
+  if (name == "n" || name == "size") {
     return (UInt32)encoder_->size;
   }
-  else if (name == "w") {
+  else if (name == "w" || name == "activeBits") {
     return encoder_->parameters.activeBits;
   } else {
     return RegionImpl::getParameterUInt32(name, index);
