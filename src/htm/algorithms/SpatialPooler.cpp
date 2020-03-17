@@ -151,10 +151,13 @@ void SpatialPooler::setStimulusThreshold(UInt stimulusThreshold) {
 UInt SpatialPooler::getInhibitionRadius() const { return inhibitionRadius_; }
 
 void SpatialPooler::setInhibitionRadius(UInt inhibitionRadius) {
+  NTA_ASSERT(inhibitionRadius > 0);
   if (inhibitionRadius_ != inhibitionRadius) {
-  inhibitionRadius_ = inhibitionRadius;
-  calculateWrapAroundNeighbors();
-  mapAllNeighbors();
+    inhibitionRadius_ = inhibitionRadius;
+    if (wrapAround_) {
+      wrapAroundNeighbors_ = calculateWrapAroundNeighbors_();
+      mapAllNeighbors();
+    }
   }
 }
 
@@ -446,8 +449,10 @@ void SpatialPooler::initialize(
   }
 
   updateInhibitionRadius_();
-  calculateWrapAroundNeighbors();
-  mapAllNeighbors();
+  if(wrapAround) {
+    wrapAroundNeighbors_ = calculateWrapAroundNeighbors_();
+    mapAllNeighbors();
+  }
 
   if (spVerbosity_ > 0) {
     printParameters();
@@ -466,8 +471,6 @@ const vector<SynapseIdx> SpatialPooler::compute(const SDR &input, const bool lea
   boostOverlaps_(overlaps, boostedOverlaps_);
 
   auto &activeVector = active.getSparse();
-//  if (!wrapAroundNeighborsisset) 
-//		calculateWrapAroundNeighbors();
   inhibitColumns_(boostedOverlaps_, activeVector);
   // Notify the active SDR that its internal data vector has changed.  Always
   // call SDR's setter methods even if when modifying the SDR's own data
@@ -481,12 +484,7 @@ const vector<SynapseIdx> SpatialPooler::compute(const SDR &input, const bool lea
     bumpUpWeakColumns_();
     updateBoostFactors_();
     if (isUpdateRound_()) {
-      const UInt old_inhibitionRadius_ = inhibitionRadius_;
       updateInhibitionRadius_();
-      if (inhibitionRadius_ != old_inhibitionRadius_) { 
-	      calculateWrapAroundNeighbors();
-	      mapAllNeighbors();
-      }
       updateMinDutyCycles_();
     }
   }
@@ -494,14 +492,19 @@ const vector<SynapseIdx> SpatialPooler::compute(const SDR &input, const bool lea
   return overlaps;
 }
 
-void SpatialPooler::calculateWrapAroundNeighbors() {
-      wrapAroundNeighbors_ = 1;
-      for (UInt i = 0; i<columnDimensions_.size();i++) {
-	   UInt diam = 2*inhibitionRadius_ + 1;
-	   wrapAroundNeighbors_ *= std::min(diam, columnDimensions_[i]);
+/**
+ *  calculate number for neighbors for wrapping neighborhoods (wrapAround == true)
+ *  this is a performance optimization as this number does not change in runtime
+ **/
+UInt SpatialPooler::calculateWrapAroundNeighbors_() const {
+      NTA_ASSERT(wrapAround_ == true);
+      UInt wrapAroundNeighbors = 1;
+      for (UInt i = 0; i<columnDimensions_.size(); i++) {
+	   const UInt diam = 2*inhibitionRadius_ + 1; //TODO inhibitionRadius_ should be nD, same as columnDimensions already are. 
+	   wrapAroundNeighbors *= std::min(diam, columnDimensions_[i]);
       }
-      wrapAroundNeighbors_ -= 1;
-      return;
+      wrapAroundNeighbors -= 1;
+      return wrapAroundNeighbors;
 }
 
 void SpatialPooler::mapAllNeighbors() {
@@ -615,7 +618,8 @@ void SpatialPooler::updateInhibitionRadius_() {
   const Real diameter = connectedSpan * columnsPerInput;
   Real radius = (diameter - 1) / 2.0f;
   radius = max((Real)1.0, radius);
-  inhibitionRadius_ = UInt(round(radius));
+
+  setInhibitionRadius(static_cast<UInt>(round(radius)));
 }
 
 
@@ -797,28 +801,25 @@ void SpatialPooler::updateBoostFactorsGlobal_() {
 
 
 void SpatialPooler::updateBoostFactorsLocal_() {
-if (wrapAround_) {
+ if (wrapAround_) {
   for (UInt i = 0; i < numColumns_; ++i) {
     UInt numNeighbors = 0u;
     Real localActivityDensity = 0.0f;
 
-       numNeighbors = 0;  // In wrapAround, number of neighbors to be cons     idered is solely a function of the inhibition radius, the number of dimensi     ons, and of the size of each of those dimenion
+       numNeighbors = 0;  // In wrapAround, number of neighbors to be considered is solely a function of the inhibition radius, the number of dimensions, and of the size of each of those dimenions
        numNeighbors = wrapAroundNeighbors_;
        const UInt column = i; 
        const UInt mapOffset = column * (numNeighbors+1);
 //     for(auto neighbor: WrappingNeighborhood(i, inhibitionRadius_, columnDimensions_)) P
        for (UInt j=0;j<(numNeighbors+1);j++) {
-	    const UInt neighbor = neighborMap_[mapOffset + j];
-//	     std::cout << "N: " << neighbor << " -- ";
-        localActivityDensity += activeDutyCycles_[neighbor];
-//	numNeighbors += 1;
-//	std::cout << "numneigh: " <<numNeighbors << " -- ";
-      }
+         const UInt neighbor = neighborMap_[mapOffset + j]; //TODO make this a key-value map to avoid all the coding around
+         localActivityDensity += activeDutyCycles_[neighbor];
+       }
        numNeighbors++; // this function counts the column itself as a neighbor
     const Real targetDensity = localActivityDensity / numNeighbors;
     applyBoosting_(i, targetDensity, activeDutyCycles_, boostStrength_, boostFactors_);
     }
-    } else {
+ } else { //non-wrap around //TODO remove, if wrapAround performance is consistently good?
   for (UInt i = 0; i < numColumns_; ++i) {
     UInt numNeighbors = 0u;
     Real localActivityDensity = 0.0f;

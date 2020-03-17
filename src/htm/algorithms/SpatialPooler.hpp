@@ -1108,7 +1108,7 @@ public:
   */
   bool isUpdateRound_() const;
 
-  void calculateWrapAroundNeighbors();
+  UInt calculateWrapAroundNeighbors_() const;
   void mapAllNeighbors();
 
   //-------------------------------------------------------------------
