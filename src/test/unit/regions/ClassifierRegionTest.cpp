@@ -100,7 +100,7 @@ TEST(ClassifierRegionTest, asCategoryDecoder) {
   enum classifier_categories { A, B, C };
   Network net;
 
-  std::shared_ptr<Region> encoder = net.addRegion("encoder", "RDSERegion", "{size: 400, seed: 42, category: true, activeBits: 40}");
+  std::shared_ptr<Region> encoder = net.addRegion("encoder", "RDSEEncoderRegion", "{size: 400, seed: 42, category: true, activeBits: 40}");
   std::shared_ptr<Region> sp = net.addRegion("sp", "SPRegion", "{columnCount: 1000, globalInhibition: true}");
   std::shared_ptr<Region> classifier = net.addRegion("classifier", "ClassifierRegion", "{learn: true}");
 
@@ -143,7 +143,7 @@ TEST(ClassifierRegionTest, asCategoryDecoder) {
 TEST(ClassifierRegionTest, asRealDecoder) {
   Network net;
 
-  std::shared_ptr<Region> encoder = net.addRegion("encoder", "RDSERegion", "{size: 400, radius: 0.1, seed: 42, activeBits: 40}");
+  std::shared_ptr<Region> encoder = net.addRegion("encoder", "RDSEEncoderRegion", "{size: 400, radius: 0.1, seed: 42, activeBits: 40}");
   std::shared_ptr<Region> sp = net.addRegion("sp", "SPRegion", "{columnCount: 1000, globalInhibition: true}");
   std::shared_ptr<Region> classifier = net.addRegion("classifier", "ClassifierRegion", "{learn: true}");
 
@@ -199,7 +199,7 @@ TEST(ClassifierRegionTest, testSerialization) {
   Network net2;
 
   VERBOSE << "  Setup network" << std::endl;
-  std::shared_ptr<Region> encoder1 = net1.addRegion("encoder", "RDSERegion", "{size: 1000, seed: 42, category: true, activeBits: 40}");
+  std::shared_ptr<Region> encoder1 = net1.addRegion("encoder", "RDSEEncoderRegion", "{size: 1000, seed: 42, category: true, activeBits: 40}");
   std::shared_ptr<Region> sp1 = net1.addRegion("sp", "SPRegion", "{columnCount: 200, globalInhibition: true}");
   std::shared_ptr<Region> tm1 = net1.addRegion("tm", "TMRegion", "");
   std::shared_ptr<Region> classifier1 = net1.addRegion("classifier", "ClassifierRegion", "{learn: true}");

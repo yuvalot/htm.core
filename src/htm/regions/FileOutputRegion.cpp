@@ -16,7 +16,8 @@
  * --------------------------------------------------------------------- */
 
 /** @file
- * Implementation for VectorFileEffector class
+ * Implementation for FileOutputRegion class
+ *     (was VectorFileEffector)
  */
 
 #include <iostream>
@@ -29,12 +30,12 @@
 #include <htm/engine/Input.hpp>
 #include <htm/engine/Region.hpp>
 #include <htm/engine/Spec.hpp>
-#include <htm/regions/VectorFileEffector.hpp>
+#include <htm/regions/FileOutputRegion.hpp>
 #include <htm/utils/Log.hpp>
 
 namespace htm {
 
-VectorFileEffector::VectorFileEffector(const ValueMap &params, Region* region)
+FileOutputRegion::FileOutputRegion(const ValueMap &params, Region* region)
     : RegionImpl(region), dataIn_(NTA_BasicType_Real32), filename_(""),
       outFile_(nullptr) {
   if (params.contains("outputFile")) {
@@ -45,28 +46,28 @@ VectorFileEffector::VectorFileEffector(const ValueMap &params, Region* region)
     filename_ = "";
 }
 
-VectorFileEffector::VectorFileEffector(ArWrapper& wrapper, Region* region)
+FileOutputRegion::FileOutputRegion(ArWrapper& wrapper, Region* region)
     : RegionImpl(region), dataIn_(NTA_BasicType_Real32), filename_(""),
       outFile_(nullptr) {
   cereal_adapter_load(wrapper);
 }
 
 
-VectorFileEffector::~VectorFileEffector() { closeFile(); }
+FileOutputRegion::~FileOutputRegion() { closeFile(); }
 
-void VectorFileEffector::initialize() {
+void FileOutputRegion::initialize() {
   NTA_CHECK(region_ != nullptr);
   // We have no outputs or parameters; just need our input.
   std::shared_ptr<Input> in = region_->getInput("dataIn");
-  NTA_ASSERT(in) << "VectorFileEffector::init - 'dataIn' input not configured\n";
+  NTA_ASSERT(in) << "FileOutputRegion::init - 'dataIn' input not configured\n";
 
   if (!in->hasIncomingLinks() || in->getData().getCount() == 0) {
-    NTA_THROW << "VectorFileEffector::init - no input Data found\n";
+    NTA_THROW << "FileOutputRegion::init - no input Data found\n";
   }
   dataIn_ = in->getData();
 }
 
-void VectorFileEffector::compute() {
+void FileOutputRegion::compute() {
   // trace facility
   NTA_DEBUG << "compute " << *region_->getInput("dataIn") << "\n";
   dataIn_ = region_->getInput("dataIn")->getData();
@@ -78,13 +79,13 @@ void VectorFileEffector::compute() {
   // Don't write if there is no open file.
   if (outFile_ == nullptr) {
     NTA_WARN
-        << "VectorFileEffector (Warning) compute() called, but there is no open file";
+        << "FileOutputRegion (Warning) compute() called, but there is no open file";
     return;
   }
 
   // Ensure we can write to it
   if (outFile_->fail()) {
-    NTA_THROW << "VectorFileEffector: There was an error writing to the file "
+    NTA_THROW << "FileOutputRegion: There was an error writing to the file "
               << filename_.c_str() << "\n";
   }
 
@@ -101,7 +102,7 @@ void VectorFileEffector::compute() {
   outFile << "\n";
 }
 
-void VectorFileEffector::closeFile() {
+void FileOutputRegion::closeFile() {
   if (outFile_) {
     outFile_->close();
     outFile_ = nullptr;
@@ -109,7 +110,7 @@ void VectorFileEffector::closeFile() {
   }
 }
 
-void VectorFileEffector::openFile(const std::string &filename) {
+void FileOutputRegion::openFile(const std::string &filename) {
 
   if (outFile_ && !outFile_->fail())
     closeFile();
@@ -122,13 +123,13 @@ void VectorFileEffector::openFile(const std::string &filename) {
     delete outFile_;
     outFile_ = nullptr;
     NTA_THROW
-        << "VectorFileEffector::openFile -- unable to create or open file: "
+        << "FileOutputRegion::openFile -- unable to create or open file: "
         << filename.c_str();
   }
   filename_ = filename;
 }
 
-void VectorFileEffector::setParameterString(const std::string &paramName,
+void FileOutputRegion::setParameterString(const std::string &paramName,
                                             Int64 index, const std::string &s) {
 
   if (paramName == "outputFile") {
@@ -138,21 +139,21 @@ void VectorFileEffector::setParameterString(const std::string &paramName,
       closeFile();
     openFile(s);
   } else {
-    NTA_THROW << "VectorFileEffector -- Unknown string parameter " << paramName;
+    NTA_THROW << "FileOutputRegion -- Unknown string parameter " << paramName;
   }
 }
 
-std::string VectorFileEffector::getParameterString(const std::string &paramName,
+std::string FileOutputRegion::getParameterString(const std::string &paramName,
                                                    Int64 index) {
   if (paramName == "outputFile") {
     return filename_;
   } else {
-    NTA_THROW << "VectorFileEffector -- unknown parameter " << paramName;
+    NTA_THROW << "FileOutputRegion -- unknown parameter " << paramName;
   }
 }
 
 std::string
-VectorFileEffector::executeCommand(const std::vector<std::string> &args,
+FileOutputRegion::executeCommand(const std::vector<std::string> &args,
                                    Int64 index) {
   NTA_CHECK(args.size() > 0);
   // Process the flushFile command
@@ -181,11 +182,11 @@ VectorFileEffector::executeCommand(const std::vector<std::string> &args,
   return "";
 }
 
-Spec *VectorFileEffector::createSpec() {
+Spec *FileOutputRegion::createSpec() {
 
   auto ns = new Spec;
   ns->description =
-      "VectorFileEffector is a node that simply writes its "
+      "FileOutputRegion is a node that simply writes its "
       "input vectors to a text file. The target filename is specified "
       "using the 'outputFile' parameter at run time. On each "
       "compute, the current input vector is written (but not flushed) "
@@ -223,16 +224,16 @@ Spec *VectorFileEffector::createSpec() {
 }
 
 size_t
-VectorFileEffector::getNodeOutputElementCount(const std::string &outputName) const {
+FileOutputRegion::getNodeOutputElementCount(const std::string &outputName) const {
   NTA_THROW
-      << "VectorFileEffector::getNodeOutputElementCount -- unknown output '"
+      << "FileOutputRegion::getNodeOutputElementCount -- unknown output '"
       << outputName << "'";
 }
 
 
-bool VectorFileEffector::operator==(const RegionImpl &o) const {
-  if (o.getType() != "VectorFileEffector") return false;
-  VectorFileEffector& other = (VectorFileEffector&)o;
+bool FileOutputRegion::operator==(const RegionImpl &o) const {
+  if (o.getType() != "FileOutputRegion") return false;
+  FileOutputRegion& other = (FileOutputRegion&)o;
   if (filename_ != other.filename_) return false;
 
   return true;

@@ -38,7 +38,7 @@ using namespace htm;
 
 
 // work-load
-Real64 BenchmarkHotgym::run(UInt EPOCHS, bool useSPlocal, bool useSPglobal, bool useTM, const UInt COLS, const UInt DIM_INPUT, const UInt CELLS)
+Real64 BenchmarkHelloSPTP::run(UInt EPOCHS, bool useSPlocal, bool useSPglobal, bool useTM, const UInt COLS, const UInt DIM_INPUT, const UInt CELLS)
 {
 #ifndef NDEBUG
 EPOCHS = 2; // make test faster in Debug
