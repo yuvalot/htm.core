@@ -136,7 +136,8 @@ UInt indexFromCoordinates(const vector<UInt> &coordinates,
 // NEIGHBORHOOD
 // ============================================================================
 
-Neighborhood::Neighborhood(UInt centerIndex, UInt radius,
+Neighborhood::Neighborhood(const UInt centerIndex, 
+                           const UInt radius,
                            const vector<UInt> &dimensions)
     : centerPosition_(coordinatesFromIndex(centerIndex, dimensions)),
       dimensions_(dimensions), radius_(radius) {}
@@ -210,7 +211,8 @@ Neighborhood::Iterator Neighborhood::end() const { return {*this, true}; }
 // WRAPPING NEIGHBORHOOD
 // ============================================================================
 
-WrappingNeighborhood::WrappingNeighborhood(UInt centerIndex, UInt radius,
+WrappingNeighborhood::WrappingNeighborhood(const UInt centerIndex, 
+                                           const UInt radius,
                                            const vector<UInt> &dimensions)
     : centerPosition_(coordinatesFromIndex(centerIndex, dimensions)),
       dimensions_(dimensions), radius_(radius) {}

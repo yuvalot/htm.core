@@ -192,7 +192,8 @@ UInt indexFromCoordinates(const std::vector<UInt> &coordinates,
  */
 class Neighborhood {
 public:
-  Neighborhood(UInt centerIndex, UInt radius,
+  Neighborhood(const UInt centerIndex, 
+               const UInt radius,
                const std::vector<UInt> &dimensions);
 
   class Iterator {
@@ -241,7 +242,8 @@ private:
  */
 class WrappingNeighborhood {
 public:
-  WrappingNeighborhood(UInt centerIndex, UInt radius,
+  WrappingNeighborhood(const UInt centerIndex, 
+                       const UInt radius,
                        const std::vector<UInt> &dimensions);
 
   class Iterator {
