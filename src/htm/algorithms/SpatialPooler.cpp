@@ -486,27 +486,17 @@ const vector<SynapseIdx> SpatialPooler::compute(const SDR &input, const bool lea
 }
 
 
-unordered_map<CellIdx, vector<CellIdx>> SpatialPooler::mapAllNeighbors() const {
+unordered_map<CellIdx, vector<CellIdx>> SpatialPooler::mapAllNeighbors() const { //TODO  move the cache logic to Neighbor class
 	std::unordered_map<CellIdx, vector<CellIdx>> neighborMap; 
 	neighborMap.reserve(numColumns_);
-  
-  if (wrapAround_) {
 
-	  for(UInt column=0; column < numColumns_; column++) {
+	for(UInt column=0; column < numColumns_; column++) {
 		  vector<CellIdx> neighbors; //of the current column
-      for(const auto neighbor: WrappingNeighborhood(column, inhibitionRadius_, columnDimensions_)) { 
+      for(const auto neighbor: Neighborhood(column, inhibitionRadius_, columnDimensions_, wrapAround_)) { 
 			  neighbors.push_back(neighbor);
 		  }
+      neighbors.shrink_to_fit();
 		  neighborMap[column] = neighbors;
-    }
-  } else {
-    for(UInt column=0; column < numColumns_; column++) {
-		  vector<CellIdx> neighbors; //of the current column
-      for(const auto neighbor: Neighborhood(column, inhibitionRadius_, columnDimensions_)) { 
-			  neighbors.push_back(neighbor);
-		  }
-	    neighborMap[column] = neighbors;
-    }
   }
   return neighborMap;
 }
@@ -548,18 +538,11 @@ vector<UInt> SpatialPooler::initMapPotential_(UInt column, bool wrapAround) {
   const UInt centerInput = initMapColumn_(column);
 
   vector<UInt> columnInputs;
-  if (wrapAround) {
-    for (UInt input : WrappingNeighborhood(centerInput, potentialRadius_, inputDimensions_)) {
+  for (UInt input : Neighborhood(centerInput, potentialRadius_, inputDimensions_, wrapAround)) {
       columnInputs.push_back(input);
-    }
-  } else {
-    for (UInt input :
-         Neighborhood(centerInput, potentialRadius_, inputDimensions_)) {
-      columnInputs.push_back(input);
-    }
   }
 
-  const UInt numPotential = (UInt)round(columnInputs.size() * potentialPct_);
+  const UInt numPotential = static_cast<UInt>(round(columnInputs.size() * potentialPct_));
   const auto selectedInputs = rng_.sample<UInt>(columnInputs, numPotential);
   const vector<UInt> potential = VectorHelpers::sparseToBinary<UInt>(selectedInputs, numInputs_);
   return potential;
@@ -640,16 +623,9 @@ void SpatialPooler::updateMinDutyCyclesLocal_() {
   for (UInt i = 0; i < numColumns_; i++) {
     Real maxActiveDuty = 0.0f;
     Real maxOverlapDuty = 0.0f;
-    if (wrapAround_) {
-     for(auto column : WrappingNeighborhood(i, inhibitionRadius_, columnDimensions_)) {
+    for(const auto column : Neighborhood(i, inhibitionRadius_, columnDimensions_, wrapAround_)) {
       maxActiveDuty = max(maxActiveDuty, activeDutyCycles_[column]);
       maxOverlapDuty = max(maxOverlapDuty, overlapDutyCycles_[column]);
-     }
-    } else {
-     for(auto column: Neighborhood(i, inhibitionRadius_, columnDimensions_)) {
-      maxActiveDuty = max(maxActiveDuty, activeDutyCycles_[column]);
-      maxOverlapDuty = max(maxOverlapDuty, overlapDutyCycles_[column]);
-      }
     }
 
     minOverlapDutyCycles_[i] = maxOverlapDuty * minPctOverlapDutyCycles_;
@@ -794,14 +770,14 @@ void SpatialPooler::updateBoostFactorsGlobal_() {
 
 
 void SpatialPooler::updateBoostFactorsLocal_() {
- if (wrapAround_) {
+ if (wrapAround_) { //TODO merge the two IFs? for a small perf penalty?
   
   for (UInt i = 0; i < numColumns_; ++i) {
     Real localActivityDensity = 0.0f;
 
     const auto& hood = neighborMap_.at(i); //hood is vector<> of cached neighborhood values
     
-    //for(auto neighbor: WrappingNeighborhood(i, inhibitionRadius_, columnDimensions_)) P
+    //for(auto neighbor: Neighborhood(i, inhibitionRadius_, columnDimensions_, wrapAround_)) {
     for (const auto neighbor : hood) {
       localActivityDensity += activeDutyCycles_[neighbor];
     }
@@ -907,7 +883,7 @@ vector<CellIdx> SpatialPooler::inhibitColumnsLocal_(const vector<Real> &overlaps
   if (wrapAround_) {
 
   for (UInt column = 0; column < numColumns_; column++) {
-    if (overlaps[column] < stimulusThreshold_) {
+    if (overlaps[column] < stimulusThreshold_) { //TODO make connections.computeActivity() already drop sub-threshold columns
       continue;
     }
 
@@ -920,7 +896,7 @@ vector<CellIdx> SpatialPooler::inhibitColumnsLocal_(const vector<Real> &overlaps
     const UInt numActive = static_cast<UInt>(0.5f + (density * (numNeighbors + 1)));
     NTA_ASSERT(numActive > 0);
     
-    //for(auto neighbor: WrappingNeighborhood(column, inhibitionRadius_,columnDimensions_)) P 
+    //for(auto neighbor: Neighborhood(column, inhibitionRadius_,columnDimensions_, wrapAround_)) { 
     for (const auto neighbor: hood) {
           if (neighbor == column) {
             continue;

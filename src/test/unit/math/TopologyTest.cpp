@@ -223,7 +223,7 @@ void expectWrappingNeighborhoodIndices(const vector<UInt> &centerCoords,
   const UInt centerIndex = indexFromCoordinates(centerCoords, dimensions);
 
   unsigned int i = 0u;
-  for (UInt index : WrappingNeighborhood(centerIndex, radius, dimensions)) {
+  for (UInt index : Neighborhood(centerIndex, radius, dimensions, /*wrap*/true)) {
     EXPECT_EQ(expected[i], index);
     i++;
   }
@@ -238,7 +238,7 @@ void expectWrappingNeighborhoodCoords(const vector<UInt> &centerCoords,
   const UInt centerIndex = indexFromCoordinates(centerCoords, dimensions);
 
   unsigned int i = 0u;
-  for (UInt index : WrappingNeighborhood(centerIndex, radius, dimensions)) {
+  for (UInt index : Neighborhood(centerIndex, radius, dimensions, true)) {
     EXPECT_EQ(indexFromCoordinates(expected[i], dimensions), index);
     i++;
   }

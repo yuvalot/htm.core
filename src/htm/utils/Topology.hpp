@@ -184,6 +184,11 @@ UInt indexFromCoordinates(const std::vector<UInt> &coordinates,
  *
  * @param dimensions
  * The dimensions of the world outside this neighborhood.
+ * 
+ * @param wrap default false; 
+ * If set to true: Like the Neighborhood class, except that the neighborhood isn't
+ * truncated when it's near an edge. It wraps around to the other side. (former
+ * WrappingNeighborhood class).
  *
  * @returns
  * An object which supports C++ range-based for loops. Each iteration of
@@ -194,7 +199,8 @@ class Neighborhood {
 public:
   Neighborhood(const UInt centerIndex, 
                const UInt radius,
-               const std::vector<UInt> &dimensions);
+               const std::vector<UInt> &dimensions, 
+               const bool wrap = false);
 
   class Iterator {
   public:
@@ -218,57 +224,9 @@ private:
   const std::vector<UInt> centerPosition_;
   const std::vector<UInt> &dimensions_;
   const UInt radius_;
+  const bool wrap_;
 };
 
-/**
- * Like the Neighborhood class, except that the neighborhood isn't
- * truncated when it's near an edge. It wraps around to the other side.
- *
- * @param centerIndex
- * The center of this neighborhood. The coordinates are expressed as a
- * single index by using the dimensions as a mixed radix definition. For
- * example, in dimensions 42x10, the point [1, 4] is index 1*10 + 4 = 14.
- *
- * @param radius
- * The radius of this neighborhood about the centerIndex.
- *
- * @param dimensions
- * The dimensions of the world outside this neighborhood.
- *
- * @returns
- * An object which supports C++ range-based for loops. Each iteration of
- * the loop returns a point in the neighborhood. Each point is expressed
- * as a single index.
- */
-class WrappingNeighborhood {
-public:
-  WrappingNeighborhood(const UInt centerIndex, 
-                       const UInt radius,
-                       const std::vector<UInt> &dimensions);
-
-  class Iterator {
-  public:
-    Iterator(const WrappingNeighborhood &neighborhood, bool end);
-    bool operator!=(const Iterator &other) const;
-    UInt operator*() const;
-    const Iterator &operator++();
-
-  private:
-    void advance_();
-
-    const WrappingNeighborhood &neighborhood_;
-    std::vector<Int> offset_;
-    bool finished_;
-  };
-
-  Iterator begin() const;
-  Iterator end() const;
-
-private:
-  const std::vector<UInt> centerPosition_;
-  const std::vector<UInt> &dimensions_;
-  const UInt radius_;
-};
 
 } // end namespace htm
 
