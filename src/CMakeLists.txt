@@ -324,9 +324,9 @@ add_subdirectory(test)
 ########### EXAMPLES ##############################################
 ## Example custom executable
 #
-## Setup benchmark_hello
+## Setup hello
 #
-set(src_executable_hello benchmark_hello)
+set(src_executable_hello hello)
 add_executable(${src_executable_hello} examples/hello/hello.cpp examples/hello/HelloSPTP.hpp examples/hello/HelloSPTP.cpp)
 # link with the static library
 target_link_libraries(${src_executable_hello} 
@@ -344,11 +344,12 @@ target_include_directories(${src_executable_hello} PRIVATE
 		${CORE_LIB_INCLUDES} 
 		${EXTERNAL_INCLUDES}
 		)
-add_custom_target(hello
-          COMMAND ${src_executable_hello}
-          DEPENDS ${src_executable_hello}
-          COMMENT "Executing ${src_executable_hello}"
-          VERBATIM)
+
+###add_custom_target(benchmark_hello
+###          COMMAND ${src_executable_hello}
+###          DEPENDS ${src_executable_hello}
+###          COMMENT "Executing ${src_executable_hello}"
+###          VERBATIM)
 
 #########################################################
 ## Dynamicly linked version of hello
@@ -371,7 +372,7 @@ else()
 endif()
 
 #########################################################
-## NetworkAPI version of benchmark_hello
+## NetworkAPI version of hello
 
 set(src_executable_napi_hello napi_hello)
 add_executable(${src_executable_napi_hello} examples/napi_hello/napi_hello.cpp)
@@ -387,11 +388,6 @@ target_include_directories(${src_executable_napi_hello} PRIVATE
 		${CORE_LIB_INCLUDES} 
 		${EXTERNAL_INCLUDES}
 		)
-add_custom_target(hello_napi_run
-          COMMAND ${src_executable_napi_hello}
-          DEPENDS ${src_executable_napi_hello}
-          COMMENT "Executing ${src_executable_napi_hello}"
-          VERBATIM)
 
 #########################################################
 ## MNIST Spatial Pooler Example
@@ -411,11 +407,6 @@ target_link_libraries(${src_executable_mnistsp}
         ${CORE_LIB_INCLUDES} 
         ${EXTERNAL_INCLUDES}
         )
-add_custom_target(mnist
-                  COMMAND ${src_executable_mnistsp}
-                  DEPENDS ${src_executable_mnistsp}
-                  COMMENT "Executing ${src_executable_mnistsp}"
-                  VERBATIM)
 
 ###########################################################
 ## REST server and client examples
@@ -448,8 +439,6 @@ add_custom_target(mnist
         ${CORE_LIB_INCLUDES} 
         ${EXTERNAL_INCLUDES}
         )
-  # Pass MNIST data directory to client.cpp
-  target_compile_definitions(${src_executable_rest_client} PRIVATE MNIST_DATA_LOCATION=${mnist_SOURCE_DIR})
 
 ############ INSTALL ######################################
 #
@@ -461,8 +450,8 @@ install(TARGETS
         ARCHIVE DESTINATION lib)
         
 install(TARGETS
-        ${src_executable_hotgym}
-        ${src_executable_napi_sine}
+        ${src_executable_hello}
+        ${src_executable_napi_hello}
         ${src_executable_mnistsp}
         ${src_executable_rest_server}
         ${src_executable_rest_client}
@@ -472,7 +461,7 @@ install(TARGETS
 if(MSVC)
 else()	
   install(TARGETS
-        ${src_dyn_executable_hotgym}
+        ${src_dyn_executable_hello}
         ${src_lib_shared}
         RUNTIME DESTINATION bin
         LIBRARY DESTINATION lib
