@@ -492,7 +492,7 @@ unordered_map<CellIdx, vector<CellIdx>> SpatialPooler::mapAllNeighbors() const {
 
 	for(UInt column=0; column < numColumns_; column++) {
 		  vector<CellIdx> neighbors; //of the current column
-      for(const auto neighbor: Neighborhood(column, inhibitionRadius_, columnDimensions_, wrapAround_)) { 
+      for(const auto neighbor: Neighborhood(column, inhibitionRadius_, columnDimensions_, wrapAround_, false /*skip center*/)) { 
 			  neighbors.push_back(neighbor);
 		  }
       neighbors.shrink_to_fit();
@@ -538,7 +538,7 @@ vector<UInt> SpatialPooler::initMapPotential_(UInt column, bool wrapAround) {
   const UInt centerInput = initMapColumn_(column);
 
   vector<UInt> columnInputs;
-  for (UInt input : Neighborhood(centerInput, potentialRadius_, inputDimensions_, wrapAround)) {
+  for (UInt input : Neighborhood(centerInput, potentialRadius_, inputDimensions_, wrapAround, false /*=include center*/)) {
       columnInputs.push_back(input);
   }
 
@@ -887,53 +887,49 @@ vector<CellIdx> SpatialPooler::inhibitColumnsLocal_(const vector<Real> &overlaps
     const UInt numActive = static_cast<UInt>(0.5f + (density * (numNeighbors + 1)));
     NTA_ASSERT(numActive > 0);
     
-    //for(auto neighbor: Neighborhood(column, inhibitionRadius_,columnDimensions_, wrapAround_)) { 
+    //for(auto neighbor: Neighborhood(column, inhibitionRadius_,columnDimensions_, wrapAround_, false /*skip center*/)) { 
     for (const auto neighbor: hood) {
-          if (neighbor == column) {
-            continue;
-          }
+      if(column == neighbor) continue; //TODO avoid this!
+      NTA_ASSERT(neighbor != column);
 
-          const Real difference = overlaps[neighbor] - overlaps[column];
-          if (difference > 0 || (difference == 0 && activeColumnsDense[neighbor])) {
-            numBigger++;
-	    if (numBigger >= numActive) { break; }
-          }
-	}
-      if (numBigger < numActive) {
-        activeColumns.push_back(column);
-        activeColumnsDense[column] = true;
+      const Real difference = overlaps[neighbor] - overlaps[column];
+      if (difference > 0 || (difference == 0 && activeColumnsDense[neighbor])) {
+        numBigger++;
+	      if (numBigger >= numActive) { break; }
       }
+	  }
+    if (numBigger < numActive) {
+      activeColumns.push_back(column);
+      activeColumnsDense[column] = true;
+    }
   }
 
   } else {
-    for (UInt column = 0; column < numColumns_; column++) {
-    if (overlaps[column] < stimulusThreshold_) {
-      continue;
-    }
+  for (UInt column = 0; column < numColumns_; column++) {
+    if (overlaps[column] < stimulusThreshold_) continue;
 
     UInt numNeighbors = 0;
     UInt numBigger = 0;
+    const auto& hood = neighborMap_.at(column);
 
+    for(auto neighbor: hood) {
+      if(column == neighbor) continue; //TODO avoid this skip
+      NTA_ASSERT(neighbor != column);
+      numNeighbors++;
 
-        for(auto neighbor: Neighborhood(column, inhibitionRadius_, columnDimensions_)) {
-          if (neighbor == column) {
-            continue;
-          }
-          numNeighbors++;
-
-          const Real difference = overlaps[neighbor] - overlaps[column];
-          if (difference > 0 || (difference == 0 && activeColumnsDense[neighbor])) {
-            numBigger++;
-          }
+      const Real difference = overlaps[neighbor] - overlaps[column];
+      if (difference > 0 || (difference == 0 && activeColumnsDense[neighbor])) {
+        numBigger++;
       }
-      const UInt numActive = static_cast<UInt>(0.5f + (density * (numNeighbors + 1)));
-      // const UInt numActive = static_cast<UInt>(ceil(density * (numNeighbors + 1)));
-      NTA_ASSERT(numActive > 0);
+    }
+    const UInt numActive = static_cast<UInt>(0.5f + (density * (numNeighbors + 1)));
+    // const UInt numActive = static_cast<UInt>(ceil(density * (numNeighbors + 1)));
+    NTA_ASSERT(numActive > 0);
 
-      if (numBigger < numActive) {
-        activeColumns.push_back(column);
-        activeColumnsDense[column] = true;
-      }
+    if (numBigger < numActive) {
+      activeColumns.push_back(column);
+      activeColumnsDense[column] = true;
+    }
   }
   }
   activeColumns.shrink_to_fit();
