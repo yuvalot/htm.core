@@ -130,9 +130,10 @@ UInt indexFromCoordinates(const vector<UInt> &coordinates,
 Neighborhood::Neighborhood(const UInt centerIndex, 
                            const UInt radius,
                            const vector<UInt> &dimensions, 
-                           const bool wrap)
+                           const bool wrap,
+                           const bool skipCenter)
     : centerPosition_(coordinatesFromIndex(centerIndex, dimensions)),
-      dimensions_(dimensions), radius_(radius), wrap_(wrap) {
+      dimensions_(dimensions), radius_(radius), wrap_(wrap), skipCenter_(skipCenter), center_(centerIndex) {
         if(wrap == false) {
           NTA_WARN << "Neighborhood uses wrap=false which runs considerably slower with local inhibition!";
         }
@@ -154,8 +155,10 @@ bool Neighborhood::Iterator::operator!=(const Iterator &other) const {
   return finished_ != other.finished_;
 }
 
-UInt Neighborhood::Iterator::operator*() const {
+UInt Neighborhood::Iterator::operator*() {
   UInt index = 0;
+  
+  NTA_ASSERT(neighborhood_.dimensions_.size() == offset_.size() and offset_.size() == neighborhood_.centerPosition_.size()); 
   for (size_t i = 0; i < neighborhood_.dimensions_.size(); i++) {
     Int coordinate = neighborhood_.centerPosition_[i] + offset_[i];
 
@@ -175,6 +178,11 @@ UInt Neighborhood::Iterator::operator*() const {
 
     index *= neighborhood_.dimensions_[i];
     index += coordinate;
+  }
+
+  if(neighborhood_.skipCenter_ and index == neighborhood_.center_) { 
+    advance_();
+    return this->operator*();
   }
 
   return index;

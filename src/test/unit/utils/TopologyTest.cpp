@@ -370,4 +370,27 @@ TEST(TopologyTest, WrappingNeighborhoodDimensionOne) {
       /*radius*/ 1,
       /*expected*/ {{4, 0, 0}, {5, 0, 0}, {6, 0, 0}});
 }
+
+TEST(TopologyTest, NeighborhoodSkipCenter) {
+const UInt center = 2;
+const UInt radius = 3;
+const vector<UInt> dims = {10, 15};
+
+bool skipCenter = true;
+for(const auto i: Neighborhood(center, radius, dims, /*wrap*/ false, /*skip center=*/ skipCenter )) {
+  ASSERT_NE(center, i) << "Center should be skipped!";
+}
+
+skipCenter = false;
+bool centerFound_ = false;
+for(const auto i: Neighborhood(center, radius, dims, /*wrap*/ false, /*skip center=*/ skipCenter )) {
+  if(i == center) {
+    centerFound_ = true;
+    break;
+  }
+}
+ASSERT_TRUE(centerFound_) << "Center was not included in hood!";
+
+}
+
 } // namespace

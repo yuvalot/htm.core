@@ -189,6 +189,9 @@ UInt indexFromCoordinates(const std::vector<UInt> &coordinates,
  * If set to true: Like the Neighborhood class, except that the neighborhood isn't
  * truncated when it's near an edge. It wraps around to the other side. (former
  * WrappingNeighborhood class).
+ * 
+ * @param skipSelf (default false) skips centerIndex from the list of neighbors. 
+ * Used eg. in SpatialPooler to avoid (an extra) IF in a heated loop. 
  *
  * @returns
  * An object which supports C++ range-based for loops. Each iteration of
@@ -200,13 +203,14 @@ public:
   Neighborhood(const UInt centerIndex, 
                const UInt radius,
                const std::vector<UInt> &dimensions, 
-               const bool wrap = false);
+               const bool wrap = false, 
+               const bool skipCenter = false);
 
   class Iterator {
   public:
     Iterator(const Neighborhood &neighborhood, bool end);
     bool operator!=(const Iterator &other) const;
-    UInt operator*() const;
+    UInt operator*();
     const Iterator &operator++();
 
   private:
@@ -225,6 +229,8 @@ private:
   const std::vector<UInt> &dimensions_;
   const UInt radius_;
   const bool wrap_;
+  const bool skipCenter_;
+  const UInt center_; //the idx of self/center column
 };
 
 
