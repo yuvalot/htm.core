@@ -62,11 +62,6 @@ set(engine_tests
 	   unit/engine/WatcherTest.cpp
 	   )
 	   
-
-set(math_tests
-	   unit/math/TopologyTest.cpp
-	   )
-	   
 set(ntypes_tests
 	   unit/ntypes/ArrayTest.cpp
 	   unit/ntypes/BasicTypeTest.cpp
@@ -90,8 +85,8 @@ set(regions_tests
 	   unit/regions/ScalarSensorTest.cpp
 	   unit/regions/RDSERegionTest.cpp
 	   unit/regions/SPRegionTest.cpp
-       unit/regions/TMRegionTest.cpp
-       unit/regions/VectorFileTest.cpp
+           unit/regions/TMRegionTest.cpp
+           unit/regions/VectorFileTest.cpp
 	   )
 
 	   
@@ -106,6 +101,7 @@ set(utils_tests
 	   unit/utils/RandomTest.cpp
 	   unit/utils/VectorHelpersTest.cpp
 	   unit/utils/SdrMetricsTest.cpp
+	   unit/utils/TopologyTest.cpp
 	   )
 
 set(examples_files
