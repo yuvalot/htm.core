@@ -416,7 +416,7 @@ void SpatialPooler::initialize(
   dutyCyclePeriod_ = dutyCyclePeriod;
   boostStrength_ = boostStrength;
   spVerbosity_ = spVerbosity;
-  wrapAround_ = wrapAround;
+  wrapAround_ = wrapAround; //TODO consider keeping only wrapping version if results are the same (seems no difference), as wrap=true is much faster now for local inh. 
   updatePeriod_ = 50u;
   initConnectedPct_ = 0.5f; //FIXME make SP's param, and much lower 0.01 https://discourse.numenta.org/t/spatial-pooler-implementation-for-mnist-dataset/2317/25?u=breznak 
   iterationNum_ = 0u;
@@ -623,7 +623,9 @@ void SpatialPooler::updateMinDutyCyclesLocal_() {
   for (UInt i = 0; i < numColumns_; i++) {
     Real maxActiveDuty = 0.0f;
     Real maxOverlapDuty = 0.0f;
-    for(const auto column : Neighborhood(i, inhibitionRadius_, columnDimensions_, wrapAround_)) {
+    const auto hood = neighborMap_[i];
+    //for(const auto column : Neighborhood(i, inhibitionRadius_, columnDimensions_, wrapAround_)) {
+    for(const auto column : hood) {
       maxActiveDuty = max(maxActiveDuty, activeDutyCycles_[column]);
       maxOverlapDuty = max(maxOverlapDuty, overlapDutyCycles_[column]);
     }
@@ -869,7 +871,7 @@ vector<CellIdx> SpatialPooler::inhibitColumnsLocal_(const vector<Real> &overlaps
   vector<bool> activeColumnsDense(numColumns_, false);
   
   
-  if (wrapAround_) {
+  if (wrapAround_) { //TODO merge if not too big performance penalty
 
   for (UInt column = 0; column < numColumns_; column++) {
     if (overlaps[column] < stimulusThreshold_) { //TODO make connections.computeActivity() already drop sub-threshold columns
