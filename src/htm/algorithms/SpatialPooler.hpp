@@ -1109,7 +1109,6 @@ public:
   */
   bool isUpdateRound_() const;
 
-  UInt calculateWrapAroundNeighbors_() const;
   void mapAllNeighbors();
 
   //-------------------------------------------------------------------
@@ -1145,7 +1144,6 @@ protected:
   Real localAreaDensity_;
   UInt stimulusThreshold_;
   UInt inhibitionRadius_;
-  UInt wrapAroundNeighbors_;
   UInt dutyCyclePeriod_;
   Real boostStrength_;
   UInt iterationNum_;

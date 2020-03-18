@@ -155,7 +155,6 @@ void SpatialPooler::setInhibitionRadius(UInt inhibitionRadius) {
   if (inhibitionRadius_ != inhibitionRadius) {
     inhibitionRadius_ = inhibitionRadius;
     if (wrapAround_) {
-      wrapAroundNeighbors_ = calculateWrapAroundNeighbors_();
       mapAllNeighbors();
     }
   }
@@ -450,7 +449,6 @@ void SpatialPooler::initialize(
 
   updateInhibitionRadius_();
   if(wrapAround) {
-    wrapAroundNeighbors_ = calculateWrapAroundNeighbors_();
     mapAllNeighbors();
   }
 
@@ -492,20 +490,6 @@ const vector<SynapseIdx> SpatialPooler::compute(const SDR &input, const bool lea
   return overlaps;
 }
 
-/**
- *  calculate number for neighbors for wrapping neighborhoods (wrapAround == true)
- *  this is a performance optimization as this number does not change in runtime
- **/
-UInt SpatialPooler::calculateWrapAroundNeighbors_() const {
-      NTA_ASSERT(wrapAround_ == true);
-      UInt wrapAroundNeighbors = 1;
-      for (UInt i = 0; i<columnDimensions_.size(); i++) {
-	   const UInt diam = 2*inhibitionRadius_ + 1; //TODO inhibitionRadius_ should be nD, same as columnDimensions already are. 
-	   wrapAroundNeighbors *= std::min(diam, columnDimensions_[i]);
-      }
-      wrapAroundNeighbors -= 1;
-      return wrapAroundNeighbors;
-}
 
 void SpatialPooler::mapAllNeighbors() {
 	neighborMap_.clear();
@@ -803,15 +787,16 @@ void SpatialPooler::updateBoostFactorsGlobal_() {
 
 void SpatialPooler::updateBoostFactorsLocal_() {
  if (wrapAround_) {
-  // In wrapAround, number of neighbors to be considered is solely a function of the inhibition radius,
-  // the number of dimensions, and of the size of each of those dimenions
-  const UInt numNeighbors = wrapAroundNeighbors_ + 1; // +1 bcs this function counts the column itself as a neighbor
-
+  
   for (UInt i = 0; i < numColumns_; ++i) {
     Real localActivityDensity = 0.0f;
 
-       const auto& hood = neighborMap_.at(i); //hood is vector<>
-//     for(auto neighbor: WrappingNeighborhood(i, inhibitionRadius_, columnDimensions_)) P
+    const auto& hood = neighborMap_.at(i); //hood is vector<>
+    // In wrapAround, number of neighbors to be considered is solely a function of the inhibition radius,
+    // the number of dimensions, and of the size of each of those dimenions
+    const UInt numNeighbors = hood.size(); 
+    
+       //for(auto neighbor: WrappingNeighborhood(i, inhibitionRadius_, columnDimensions_)) P
        for (const auto neighbor : hood) {
          localActivityDensity += activeDutyCycles_[neighbor];
        }
@@ -915,12 +900,12 @@ void SpatialPooler::inhibitColumnsLocal_(const vector<Real> &overlaps,
     }
 
     UInt numBigger = 0;
+    const auto& hood = neighborMap_.at(column);
     // In wrapAround, number of neighbors to be considered is solely a function of the inhibition radius, 
     // the number of dimensions, and of the size of each of those dimenion
-    const UInt numNeighbors = wrapAroundNeighbors_;
+    const UInt numNeighbors = hood.size()-1; // -1 bcs "hood" includes the column itself (center)
     const UInt numActive = static_cast<UInt>(0.5f + (density * (numNeighbors + 1))); 
     
-    const auto& hood = neighborMap_.at(column);
     //for(auto neighbor: WrappingNeighborhood(column, inhibitionRadius_,columnDimensions_)) P 
     for (const auto neighbor: hood) {
           if (neighbor == column) {
