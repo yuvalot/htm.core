@@ -16,10 +16,11 @@
  * --------------------------------------------------------------------- */
 
 /** @file
- * Implementation of the ScalarSensor Region
+ * Implementation of the ScalarEncoderRegion
+ *      (was ScalarSensor)
  */
 
-#include <htm/regions/ScalarSensor.hpp>
+#include <htm/regions/ScalarEncoderRegion.hpp>
 
 #include <htm/engine/Input.hpp>
 #include <htm/engine/Output.hpp>
@@ -30,7 +31,7 @@
 
 namespace htm {
 
-ScalarSensor::ScalarSensor(const ValueMap &params, Region *region)
+ScalarEncoderRegion::ScalarEncoderRegion(const ValueMap &params, Region *region)
     : RegionImpl(region) {
   params_.size = params.getScalarT<UInt32>("size", params.getScalarT<UInt32>("n", 0));
   params_.activeBits = params.getScalarT<UInt32>("activeBits", params.getScalarT<UInt32>("w", 0));
@@ -47,12 +48,12 @@ ScalarSensor::ScalarSensor(const ValueMap &params, Region *region)
   sensedValue_ = params.getScalarT<Real64>("sensedValue", -1.0);
 }
 
-ScalarSensor::ScalarSensor(ArWrapper &wrapper, Region *region):RegionImpl(region) {
+ScalarEncoderRegion::ScalarEncoderRegion(ArWrapper &wrapper, Region *region):RegionImpl(region) {
   cereal_adapter_load(wrapper);
 }
 
 
-void ScalarSensor::initialize() {
+void ScalarEncoderRegion::initialize() {
   // Normally a region will create the algorithm here, at the point
   // when the dimensions and parameters are known. But in this case
   // it is the encoder that determines the dimensions so it must be
@@ -64,7 +65,7 @@ void ScalarSensor::initialize() {
 }
 
 
-Dimensions ScalarSensor::askImplForOutputDimensions(const std::string &name) {
+Dimensions ScalarEncoderRegion::askImplForOutputDimensions(const std::string &name) {
 
   if (name == "encoded") {
     // just in case parameters changed since instantiation, we call the
@@ -93,12 +94,12 @@ Dimensions ScalarSensor::askImplForOutputDimensions(const std::string &name) {
   return RegionImpl::askImplForOutputDimensions(name);
 }
 
-std::string ScalarSensor::executeCommand(const std::vector<std::string> &args,
+std::string ScalarEncoderRegion::executeCommand(const std::vector<std::string> &args,
                                          Int64 index) {
-  NTA_THROW << "ScalarSensor::executeCommand -- commands not supported";
+  NTA_THROW << "ScalarEncoderRegion::executeCommand -- commands not supported";
 }
 
-void ScalarSensor::compute()
+void ScalarEncoderRegion::compute()
 {
   if (hasInput("values")) {
     Array &a = getInput("values")->getData();
@@ -115,9 +116,9 @@ void ScalarSensor::compute()
   NTA_DEBUG << "compute " << getOutput("encoded") << std::endl;
 }
 
-ScalarSensor::~ScalarSensor() {}
+ScalarEncoderRegion::~ScalarEncoderRegion() {}
 
-/* static */ Spec *ScalarSensor::createSpec() {
+/* static */ Spec *ScalarEncoderRegion::createSpec() {
   auto ns = new Spec;
 
   ns->singleNodeOnly = true;
@@ -233,7 +234,7 @@ ScalarSensor::~ScalarSensor() {}
   return ns;
 }
 
-Real64 ScalarSensor::getParameterReal64(const std::string &name, Int64 index) {
+Real64 ScalarEncoderRegion::getParameterReal64(const std::string &name, Int64 index) {
   if (name == "sensedValue") {
     return sensedValue_;
   } else if (name == "resolution") return encoder_->parameters.resolution;
@@ -248,7 +249,7 @@ Real64 ScalarSensor::getParameterReal64(const std::string &name, Int64 index) {
   }
 }
 
-bool ScalarSensor::getParameterBool(const std::string& name, Int64 index) {
+bool ScalarEncoderRegion::getParameterBool(const std::string& name, Int64 index) {
   if (name == "periodic") 
     return encoder_->parameters.periodic;
   if (name == "clipInput")
@@ -258,7 +259,7 @@ bool ScalarSensor::getParameterBool(const std::string& name, Int64 index) {
   }
 }
 
-UInt32 ScalarSensor::getParameterUInt32(const std::string &name, Int64 index) {
+UInt32 ScalarEncoderRegion::getParameterUInt32(const std::string &name, Int64 index) {
   if (name == "n" || name == "size") {
     return (UInt32)encoder_->size;
   }
@@ -270,7 +271,7 @@ UInt32 ScalarSensor::getParameterUInt32(const std::string &name, Int64 index) {
 }
 
 
-void ScalarSensor::setParameterReal64(const std::string &name, Int64 index, Real64 value) {
+void ScalarEncoderRegion::setParameterReal64(const std::string &name, Int64 index, Real64 value) {
   if (name == "sensedValue") {
     sensedValue_ = value;
   } else {
@@ -278,9 +279,9 @@ void ScalarSensor::setParameterReal64(const std::string &name, Int64 index, Real
   }
 }
 
-bool ScalarSensor::operator==(const RegionImpl &o) const {
-  if (o.getType() != "ScalarSensor") return false;
-  ScalarSensor& other = (ScalarSensor&)o;
+bool ScalarEncoderRegion::operator==(const RegionImpl &o) const {
+  if (o.getType() != "ScalarEncoderRegion") return false;
+  ScalarEncoderRegion &other = (ScalarEncoderRegion &)o;
   if (params_.minimum != other.params_.minimum) return false;
   if (params_.maximum != other.params_.maximum) return false;
   if (params_.clipInput != other.params_.clipInput) return false;

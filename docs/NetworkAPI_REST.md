@@ -123,7 +123,7 @@ JSON syntax:
 ```  
 JSON example:
    {network: [
-       {addRegion: {name: "encoder", type: "RDSERegion", params: {size: 1000, sparsity: 0.2, radius: 0.03, seed: 2019, noise: 0.01}}},
+       {addRegion: {name: "encoder", type: "RDSEEncoderRegion", params: {size: 1000, sparsity: 0.2, radius: 0.03, seed: 2019, noise: 0.01}}},
        {addRegion: {name: "sp", type: "SPRegion", params: {columnCount: 2048, globalInhibition: true}}},
        {addRegion: {name: "tm", type: "TMRegion", params: {cellsPerColumn: 8, orColumnOutputs: true}}},
        {addLink:   {src: "encoder.encoded", dest: "sp.bottomUpIn"}},

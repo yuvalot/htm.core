@@ -112,6 +112,14 @@ This is obsolete. Use getRegion('name') instead.
 
 * Region:  `GetInput()` and `GetOutput()` now return std::shared_ptr's rather than raw pointers.
 
+* Name changes: 
+  | Original                    | New                     |
+  | :-------------------------- | :---------------------  |
+  | RDSERegion                  | RESEEncoderRegion       |
+  | ScalarSensor                | ScalarEncoderRegion     |
+  | VectorFileEffector          | FileOutputRegion        |
+  | VectorFileSensor            | FileInputRegion         |
+
 
 ## Python API Changes
 

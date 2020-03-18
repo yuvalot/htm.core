@@ -33,10 +33,10 @@
 // Built-in Region implementations
 #include <htm/regions/TestNode.hpp>
 #include <htm/regions/DateEncoderRegion.hpp>
-#include <htm/regions/ScalarSensor.hpp>
-#include <htm/regions/RDSERegion.hpp>
-#include <htm/regions/VectorFileEffector.hpp>
-#include <htm/regions/VectorFileSensor.hpp>
+#include <htm/regions/ScalarEncoderRegion.hpp>
+#include <htm/regions/RDSEEncoderRegion.hpp>
+#include <htm/regions/FileOutputRegion.hpp>
+#include <htm/regions/FileInputRegion.hpp>
 #include <htm/regions/SPRegion.hpp>
 #include <htm/regions/TMRegion.hpp>
 #include <htm/regions/ClassifierRegion.hpp>
@@ -90,14 +90,20 @@ RegionImplFactory &RegionImplFactory::getInstance() {
     // Create internal C++ regions
 
 	  instance.addRegionType("DateEncoderRegion", new RegisteredRegionImplCpp<DateEncoderRegion>());
-    instance.addRegionType("ScalarSensor", new RegisteredRegionImplCpp<ScalarSensor>());
-    instance.addRegionType("RDSERegion", new RegisteredRegionImplCpp<RDSERegion>());
+    instance.addRegionType("ScalarEncoderRegion", new RegisteredRegionImplCpp<ScalarEncoderRegion>());
+    instance.addRegionType("RDSEEncoderRegion", new RegisteredRegionImplCpp<RDSEEncoderRegion>());
     instance.addRegionType("TestNode",           new RegisteredRegionImplCpp<TestNode>());
-    instance.addRegionType("VectorFileEffector", new RegisteredRegionImplCpp<VectorFileEffector>());
-    instance.addRegionType("VectorFileSensor",   new RegisteredRegionImplCpp<VectorFileSensor>());
+    instance.addRegionType("FileOutputRegion", new RegisteredRegionImplCpp<FileOutputRegion>());
+    instance.addRegionType("FileInputRegion",   new RegisteredRegionImplCpp<FileInputRegion>());
     instance.addRegionType("SPRegion",           new RegisteredRegionImplCpp<SPRegion>());
     instance.addRegionType("TMRegion",           new RegisteredRegionImplCpp<TMRegion>());
     instance.addRegionType("ClassifierRegion",   new RegisteredRegionImplCpp<ClassifierRegion>());
+
+    // Renamed Regions
+    instance.addRegionType("ScalarSensor", new RegisteredRegionImplCpp<ScalarEncoderRegion>());
+    instance.addRegionType("RDSERegion", new RegisteredRegionImplCpp<RDSEEncoderRegion>());
+    instance.addRegionType("VectorFileEffector", new RegisteredRegionImplCpp<FileOutputRegion>());
+    instance.addRegionType("VectorFileSensor", new RegisteredRegionImplCpp<FileInputRegion>());
   }
 
   return instance;

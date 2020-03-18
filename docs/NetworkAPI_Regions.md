@@ -3,18 +3,18 @@
 There are a number of predefined C++ region implementations that are included in the htm.core library. These do not need to be registered.  There are Python implemented regions and user written C++ regions that can act as plugins. These will need to be registered so they can be loaded at run-time.
 
 The C++ region implementations that are included in the htm.core library are:
-- ScalarSensor  - encodes numeric and category data
-- RDSERegion   - encodes numeric and category data using a hash
+- ScalarEncoderRegion  - encodes numeric and category data
+- RDSEEncoderRegion   - encodes numeric and category data using a hash
 - DateEncoderRegion   - encodes date and/or time data
 - SPRegion      - HTM Spatial Pooler implementation
 - TMRegion      - HTM Temporal Memory implementation
-- VectorFileEffector - Writes data to a file
-- VectorFileSensor  - Reads data from a file
+- FileOutputRegion  - Writes data to a file
+- FileInputRegion   - Reads data from a file
 - ClassifierRegion  - An SDR classifier
 
 
-## ScalarSensor
-A ScalarSensor region encapsulates the ScalarEncoder algorithm, an SDR encoder for numeric or category values. As a network runs, the client will specify new encoder inputs by setting the "sensedValue" parameter or connect a data stream to its 'values' input. An assignment to the 'sensedValue' parameter will override the input stream. On each compute cycle, the ScalarSensor will encode its input into the output. The algorithom determines the number of buckets and then encodes input such that the input results in the required number of bits in the resulting pattern such that there are no overlapping bits for values in a bucket.   See HTM School videos for more insite into how this works.
+## ScalarEncoderRegion
+A ScalarEncoderRegion encapsulates the ScalarEncoder algorithm, an SDR encoder for numeric or category values. As a network runs, the client will specify new encoder inputs by setting the "sensedValue" parameter or connect a data stream to its 'values' input. An assignment to the 'sensedValue' parameter will override the input stream. On each compute cycle, the ScalarSensor will encode its input into the output. The algorithom determines the number of buckets and then encodes input such that the input results in the required number of bits in the resulting pattern such that there are no overlapping bits for values in a bucket.   See HTM School videos for more insite into how this works.
 
 These four (4) members define the total number of bits in the output pattern:
 - size (or n),
@@ -67,8 +67,8 @@ Note that the output is an array of boolean values in a pattern and is output in
 
 
 
-## RDSERegion
-A RDSERegion region encoder encapsulates the RandomDistributedScalarEncoder(RDSE) algorithm, an SDR encoder for numeric or category values. This is similar to the ScalarSensor region encoder except that the minimum and maximum values do not need to be known and it generates a hash that is encoded thus giving a better spread of values.
+## RDSEEncoderRegion
+A RDSEEncoderRegion region encoder encapsulates the RandomDistributedScalarEncoder(RDSE) algorithm, an SDR encoder for numeric or category values. This is similar to the ScalarSensor region encoder except that the minimum and maximum values do not need to be known and it generates a hash that is encoded thus giving a better spread of values.
 
 As a network runs, the client will specify new encoder inputs by setting the "sensedValue" parameter or connect a data stream to its 'values' input. An assignment to the 'sensedValue' parameter will override the input stream if both are given. On each compute cycle, the ScalarSensor will encode its input into the output. The algorithom hashes the input and the hashed value determines the number of buckets. It then encodes this hashed value such that the input results in the required number of bits in the resulting pattern such that there are no overlapping bits for values in a bucket. 
 
@@ -370,9 +370,9 @@ The TMRegion region implements the temporal memory algorithm as
 
 
 
-## VectorFileEffector
-VectorFileEffector is a region that takes its input stream and
-writes it sequentially to a file.
+## FileOutputRegion
+FileOutputRegion is a region that takes its input stream and
+writes it sequentially to a file. Note: this originally was VectorFileEffector.
 The current input is written (but not flushed) to the file
 each time the effector is executed.
 The file format for the file is a space-separated list of numbers, with
@@ -408,10 +408,11 @@ one vector per line:
 </table>
 
 
-## VectorFileSensor
-VectorFileSensor is a basic sensor region for reading files containing vectors.
+## FileInputRegion
+FileInputRegion is a basic sensor region for reading files containing vectors.
+Note: this originally was VectorFileSensor.
       
-VectorFileSensor reads in a text file containing lists of numbers
+FileInputRegion reads in a text file containing lists of numbers
 and outputs these vectors in sequence. The output is updated
 each time the sensor's compute() method is called. If
 repeatCount is > 1, then each vector is repeated that many times

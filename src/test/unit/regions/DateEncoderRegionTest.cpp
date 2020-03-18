@@ -142,8 +142,8 @@ TEST(DateEncoderRegionTest, testSpecAndParameters)
 	{
     // This is a minimal end-to-end test containing an DateEncoderRegion region.
     // To make sure we can feed data from some other region to our DateEncoderRegion,
-    // this test will hook up the VectorFileSensor to our DateEncoderRegion and then
-    // connect that to an SPRegion and then on to a VectorFileEffector to capture the results.
+    // this test will hook up the FileInputRegion to our DateEncoderRegion and then
+    // connect that to an SPRegion and then on to a FileOutputRegion to capture the results.
     //
     std::string test_input_file = "TestOutputDir/DateEncoderRegionTestInput.csv";
 
@@ -164,7 +164,7 @@ TEST(DateEncoderRegionTest, testSpecAndParameters)
     std::string params = "{timeOfDay_width: 5, holiday_width: 2, holiday_dates: \"[[1,1]]\", verbose: " +
                                std::string((verbose) ? "true" : "false") + "}";
       
-    std::shared_ptr<Region> reader = net.addRegion("filereader", "VectorFileSensor", "{activeOutputCount: 1}");
+    std::shared_ptr<Region> reader = net.addRegion("filereader", "FileInputRegion", "{activeOutputCount: 1}");
     std::shared_ptr<Region> encoder = net.addRegion("dateEncoder", "DateEncoderRegion", params);
     std::shared_ptr<Region> sp = net.addRegion("sp", "SPRegion", "{columnCount: 200}");
 
@@ -189,7 +189,7 @@ TEST(DateEncoderRegionTest, testSpecAndParameters)
 
 	  VERBOSE << "Checking data after first iteration..." << std::endl;
     Array r1OutputArray = reader->getOutputData("dataOut");
-    VERBOSE << "  VectorFileSensor Output" << r1OutputArray << std::endl;
+    VERBOSE << "  FileInputRegion Output" << r1OutputArray << std::endl;
     EXPECT_TRUE(r1OutputArray.getType() == NTA_BasicType_Real32)
             << "actual type is " << BasicType::getName(r1OutputArray.getType());
     VERBOSE << "  " << std::endl;
