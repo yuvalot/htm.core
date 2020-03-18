@@ -894,7 +894,10 @@ vector<CellIdx> SpatialPooler::inhibitColumnsLocal_(const vector<Real> &overlaps
                                                     const Real density) const {
   NTA_ASSERT(overlaps.size() == numColumns_);
   vector<CellIdx> activeColumns;
-  //TODO reserve for numDesired
+  //optimization: reserve for numDesired approximation
+  const UInt approxNumDesired = static_cast<UInt>(density * numColumns_); //note: this is just a heuristic, not precise number. It can be used for global inh, 
+  //..but here the density is requested for inhibition radius. The guess is it correlates to the global somehow. 
+  activeColumns.reserve(approxNumDesired); 
 
   // Tie-breaking: when overlaps are equal, columns that have already been
   // selected are treated as "bigger".
@@ -966,6 +969,7 @@ vector<CellIdx> SpatialPooler::inhibitColumnsLocal_(const vector<Real> &overlaps
       }
   }
   }
+  activeColumns.shrink_to_fit();
   return activeColumns;
 }
 
