@@ -154,9 +154,7 @@ void SpatialPooler::setInhibitionRadius(UInt inhibitionRadius) {
   NTA_ASSERT(inhibitionRadius > 0);
   if (inhibitionRadius_ != inhibitionRadius) {
     inhibitionRadius_ = inhibitionRadius;
-    if (wrapAround_) {
-      mapAllNeighbors();
-    }
+    neighborMap_ = mapAllNeighbors();
   }
 }
 
@@ -448,9 +446,7 @@ void SpatialPooler::initialize(
   }
 
   updateInhibitionRadius_();
-  if(wrapAround) {
-    mapAllNeighbors();
-  }
+  neighborMap_ = mapAllNeighbors();
 
   if (spVerbosity_ > 0) {
     printParameters();
@@ -491,16 +487,29 @@ const vector<SynapseIdx> SpatialPooler::compute(const SDR &input, const bool lea
 }
 
 
-void SpatialPooler::mapAllNeighbors() {
-	neighborMap_.clear();
-	neighborMap_.reserve(numColumns_);
-	for(UInt column=0; column < numColumns_; column++) {
-		vector<CellIdx> neighbors; //of the current column
-		for(const auto neighbor: WrappingNeighborhood(column, inhibitionRadius_, columnDimensions_)) { 
-			neighbors.push_back(neighbor);
-		}
-		neighborMap_[column] = neighbors;
-	}
+unordered_map<CellIdx, vector<CellIdx>> SpatialPooler::mapAllNeighbors() const {
+	std::unordered_map<CellIdx, vector<CellIdx>> neighborMap; 
+	neighborMap.reserve(numColumns_);
+  
+  if (wrapAround_) {
+
+	  for(UInt column=0; column < numColumns_; column++) {
+		  vector<CellIdx> neighbors; //of the current column
+      for(const auto neighbor: WrappingNeighborhood(column, inhibitionRadius_, columnDimensions_)) { 
+			  neighbors.push_back(neighbor);
+		  }
+		  neighborMap[column] = neighbors;
+    }
+  } else {
+    for(UInt column=0; column < numColumns_; column++) {
+		  vector<CellIdx> neighbors; //of the current column
+      for(const auto neighbor: Neighborhood(column, inhibitionRadius_, columnDimensions_)) { 
+			  neighbors.push_back(neighbor);
+		  }
+	    neighborMap[column] = neighbors;
+    }
+  }
+  return neighborMap;
 }
 
 
@@ -791,15 +800,15 @@ void SpatialPooler::updateBoostFactorsLocal_() {
   for (UInt i = 0; i < numColumns_; ++i) {
     Real localActivityDensity = 0.0f;
 
-    const auto& hood = neighborMap_.at(i); //hood is vector<>
+    const auto& hood = neighborMap_.at(i); //hood is vector<> of cached neighborhood values
+    
+    //for(auto neighbor: WrappingNeighborhood(i, inhibitionRadius_, columnDimensions_)) P
+    for (const auto neighbor : hood) {
+      localActivityDensity += activeDutyCycles_[neighbor];
+    }
     // In wrapAround, number of neighbors to be considered is solely a function of the inhibition radius,
     // the number of dimensions, and of the size of each of those dimenions
     const UInt numNeighbors = hood.size(); 
-    
-       //for(auto neighbor: WrappingNeighborhood(i, inhibitionRadius_, columnDimensions_)) P
-       for (const auto neighbor : hood) {
-         localActivityDensity += activeDutyCycles_[neighbor];
-       }
     const Real targetDensity = localActivityDensity / numNeighbors;
     applyBoosting_(i, targetDensity, activeDutyCycles_, boostStrength_, boostFactors_);
     }
@@ -807,12 +816,12 @@ void SpatialPooler::updateBoostFactorsLocal_() {
   for (UInt i = 0; i < numColumns_; ++i) {
     UInt numNeighbors = 0u;
     Real localActivityDensity = 0.0f;
+    const auto& hood = neighborMap_.at(i); //hood is vector<> of cached neighborhood values
 
-
-      for(auto neighbor: Neighborhood(i, inhibitionRadius_, columnDimensions_)) {
-        localActivityDensity += activeDutyCycles_[neighbor];
-        numNeighbors += 1;
-      }
+    for(const auto neighbor: hood) {
+      localActivityDensity += activeDutyCycles_[neighbor];
+      numNeighbors += 1;
+    }
     const Real targetDensity = localActivityDensity / numNeighbors;
     applyBoosting_(i, targetDensity, activeDutyCycles_, boostStrength_, boostFactors_);
   }
