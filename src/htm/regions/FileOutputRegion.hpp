@@ -16,13 +16,14 @@
  * --------------------------------------------------------------------- */
 
 /** @file
- * Declarations for VectorFileEffector class
+ * Declarations for FileOutputRegion class
+ *    (was VectorFileEffector)
  */
 
 //----------------------------------------------------------------------
 
-#ifndef NTA_VECTOR_FILE_EFFECTOR_HPP
-#define NTA_VECTOR_FILE_EFFECTOR_HPP
+#ifndef NTA_FILE_OUTPUT_REGION_HPP
+#define NTA_FILE_OUTPUT_REGION_HPP
 
 //----------------------------------------------------------------------
 
@@ -54,7 +55,7 @@ namespace htm {
  *  nodeSpec.
  *
  */
-class VectorFileEffector : public RegionImpl, Serializable {
+class FileOutputRegion : public RegionImpl, Serializable {
 public:
   static Spec *createSpec();
   size_t getNodeOutputElementCount(const std::string &outputName) const override;
@@ -64,11 +65,11 @@ public:
 
   void initialize() override;
 
-  VectorFileEffector(const ValueMap &params, Region *region);
+  FileOutputRegion(const ValueMap &params, Region *region);
 
-  VectorFileEffector(ArWrapper& wrapper, Region *region);
+  FileOutputRegion(ArWrapper& wrapper, Region *region);
 
-  virtual ~VectorFileEffector();
+  virtual ~FileOutputRegion();
 
 
 	CerealAdapter;  // see Serializable.hpp
@@ -89,7 +90,7 @@ public:
   }	
 
   bool operator==(const RegionImpl &other) const override;
-  inline bool operator!=(const VectorFileEffector &other) const {
+  inline bool operator!=(const FileOutputRegion &other) const {
     return !operator==(other);
   }
 
@@ -108,8 +109,8 @@ private:
     std::ofstream *outFile_;        // Handle to current file
 
   /// Disable unsupported default constructors
-  VectorFileEffector(const VectorFileEffector &);
-  VectorFileEffector &operator=(const VectorFileEffector &);
+  FileOutputRegion(const FileOutputRegion &);
+  FileOutputRegion &operator=(const FileOutputRegion &);
 
 }; // end class VectorFileEffector
 
@@ -117,4 +118,4 @@ private:
 
 } // namespace htm
 
-#endif // NTA_VECTOR_FILE_EFFECTOR_HPP
+#endif // NTA_FILE_OUTPUT_REGION_HPP

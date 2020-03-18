@@ -35,7 +35,7 @@
 namespace htm {
 /**
  *  VectorFile is a simple container class for lists of numerical vectors. Its
- * only purpose is to support the needs of the VectorFileSensor. Key features of
+ * only purpose is to support the needs of the FileInputRegion. Key features of
  *  interest are its ability to read in different text file formats and its
  *  ability to dynamically scale its outputs.
  */
@@ -52,7 +52,7 @@ public:
   /// and will be appended to the end of the list
   /// appendFile will NOT change the scaling vectors as long as the
   /// expectedElementCount is the same as previously stored vectors. The
-  /// The fileFormat number corresponds to the file formats in VectorFileSensor:
+  /// The fileFormat number corresponds to the file formats in FileInputRegion:
   ///           0        # Reads in unlabeled file with first number = element count
   ///           1        # Reads in a labeled file with first number = element count
   ///           2        # Reads in unlabeled file without element count

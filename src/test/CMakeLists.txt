@@ -87,8 +87,8 @@ set(regions_tests
 	   unit/regions/RegionTestUtilities.hpp
 	   unit/regions/DateEncoderRegionTest.cpp
 	   unit/regions/ClassifierRegionTest.cpp
-	   unit/regions/ScalarSensorTest.cpp
-	   unit/regions/RDSERegionTest.cpp
+	   unit/regions/ScalarEncoderRegionTest.cpp
+	   unit/regions/RDSEEncoderRegionTest.cpp
 	   unit/regions/SPRegionTest.cpp
        unit/regions/TMRegionTest.cpp
        unit/regions/VectorFileTest.cpp
@@ -109,9 +109,9 @@ set(utils_tests
 	   )
 
 set(examples_files
-	   # examples/hotgym/Hotgym.cpp # contains conflicting main()
-           ../examples/hotgym/HelloSPTP.cpp
-           ../examples/hotgym/HelloSPTP.hpp
+	   # examples/hello/hello.cpp # contains conflicting main()
+           ../examples/hello/HelloSPTP.cpp
+           ../examples/hello/HelloSPTP.hpp
 	   # examples/mnist/MNIST_SP.cpp
 )
 	   

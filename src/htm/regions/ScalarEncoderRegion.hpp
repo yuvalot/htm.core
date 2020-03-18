@@ -16,7 +16,8 @@
  * --------------------------------------------------------------------- */
 
 /** @file
- * Defines the ScalarSensor
+ * Defines the ScalarEncoderRegion
+ *    (was ScalarSensor)
  */
 
 #ifndef NTA_SCALAR_SENSOR_HPP
@@ -35,17 +36,17 @@ namespace htm {
  * A network region that encapsulates the ScalarEncoder.
  *
  * @b Description
- * A ScalarSensor encapsulates ScalarEncoders, connecting them to the Network
+ * A ScalarEncoderRegion encapsulates ScalarEncoders, connecting them to the Network
  * API. As a network runs, the client will specify new encoder inputs by
- * setting the "sensedValue" parameter. On each compute, the ScalarSensor will
+ * setting the "sensedValue" parameter. On each compute, the ScalarEncoderRegion will
  * encode its "sensedValue" to output.
  */
-class ScalarSensor : public RegionImpl, Serializable {
+class ScalarEncoderRegion : public RegionImpl, Serializable {
 public:
-  ScalarSensor(const ValueMap &params, Region *region);
-  ScalarSensor(ArWrapper& wrapper, Region *region);
+  ScalarEncoderRegion(const ValueMap &params, Region *region);
+  ScalarEncoderRegion(ArWrapper& wrapper, Region *region);
 
-  virtual ~ScalarSensor() override;
+  virtual ~ScalarEncoderRegion() override;
 
   static Spec *createSpec();
 
@@ -101,7 +102,7 @@ public:
 
 
   bool operator==(const RegionImpl &other) const override;
-  inline bool operator!=(const ScalarSensor &other) const {
+  inline bool operator!=(const ScalarEncoderRegion &other) const {
     return !operator==(other);
   }
 

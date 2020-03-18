@@ -18,7 +18,7 @@
  * --------------------------------------------------------------------- */
 
 /** @file
- * Defines RDSERegion, a Region implementation for the RandomDistributedScalarEncoder.
+ * Defines RDSEEncoderRegion, a Region implementation for the RandomDistributedScalarEncoder.
  */
 
 #ifndef NTA_RDSEREGION_HPP
@@ -42,12 +42,12 @@ namespace htm {
  * setting the "sensedValue" parameter or connecting a link which provides values for "sensedValue". 
  * On each compute, the ScalarSensor will encode its "sensedValue" to output.
  */
-class RDSERegion : public RegionImpl, Serializable {
+class RDSEEncoderRegion : public RegionImpl, Serializable {
 public:
-  RDSERegion(const ValueMap &params, Region *region);
-  RDSERegion(ArWrapper &wrapper, Region *region);
+  RDSEEncoderRegion(const ValueMap &params, Region *region);
+  RDSEEncoderRegion(ArWrapper &wrapper, Region *region);
 
-  virtual ~RDSERegion() override;
+  virtual ~RDSEEncoderRegion() override;
 
   static Spec *createSpec();
 
@@ -88,7 +88,7 @@ public:
 
 
   bool operator==(const RegionImpl &other) const override;
-  inline bool operator!=(const RDSERegion &other) const {
+  inline bool operator!=(const RDSEEncoderRegion &other) const {
     return !operator==(other);
   }
 

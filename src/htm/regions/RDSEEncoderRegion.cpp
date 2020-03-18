@@ -18,10 +18,11 @@
  * --------------------------------------------------------------------- */
 
 /** @file
- * Implementation of the ScalarSensor Region
+ * Implementation of the RDSEEncoderRegion Region
+ *      (was RDSERegion)
  */
 
-#include <htm/regions/RDSERegion.hpp>
+#include <htm/regions/RDSEEncoderRegion.hpp>
 
 #include <htm/engine/Input.hpp>
 #include <htm/engine/Output.hpp>
@@ -36,10 +37,10 @@
 namespace htm {
 
 
-/* static */ Spec *RDSERegion::createSpec() {
+/* static */ Spec *RDSEEncoderRegion::createSpec() {
   Spec *ns = new Spec();
   ns->parseSpec(R"(
-  {name: "RDSERegion",
+  {name: "RDSEEncoderRegion",
       parameters: {
           size:        {type: UInt32, default: "0"},
           activeBits:  {type: UInt32, default: "0"},
@@ -66,7 +67,7 @@ namespace htm {
 }
 
 
-RDSERegion::RDSERegion(const ValueMap &par, Region *region) : RegionImpl(region) {
+RDSEEncoderRegion::RDSEEncoderRegion(const ValueMap &par, Region *region) : RegionImpl(region) {
   rnd_ = Random(42);
   spec_.reset(createSpec());
   ValueMap params = ValidateParameters(par, spec_.get());
@@ -85,15 +86,15 @@ RDSERegion::RDSERegion(const ValueMap &par, Region *region) : RegionImpl(region)
   noise_ = params.getScalarT<Real32>("noise");
 }
 
-RDSERegion::RDSERegion(ArWrapper &wrapper, Region *region)
+RDSEEncoderRegion::RDSEEncoderRegion(ArWrapper &wrapper, Region *region)
     : RegionImpl(region) {
   cereal_adapter_load(wrapper);
 }
-RDSERegion::~RDSERegion() {}
+RDSEEncoderRegion::~RDSEEncoderRegion() {}
 
-void RDSERegion::initialize() { }
+void RDSEEncoderRegion::initialize() { }
 
-Dimensions RDSERegion::askImplForOutputDimensions(const std::string &name) {
+Dimensions RDSEEncoderRegion::askImplForOutputDimensions(const std::string &name) {
   if (name == "encoded") {
     // get the dimensions determined by the encoder (comes from parameters.size).
     Dimensions encoderDim(encoder_->dimensions); // get dimensions from encoder
@@ -101,14 +102,14 @@ Dimensions RDSERegion::askImplForOutputDimensions(const std::string &name) {
   }  return RegionImpl::askImplForOutputDimensions(name);
 }
 
-void RDSERegion::compute() {
+void RDSEEncoderRegion::compute() {
   if (hasInput("values")) {
     Array &a = getInput("values")->getData();
     sensedValue_ = ((Real64 *)(a.getBuffer()))[0];
   }
   if (!std::isfinite(sensedValue_))
     sensedValue_ = 0;  // prevents an exception in case of nan or inf
-  //std::cout << "RDSERegion compute() sensedValue=" << sensedValue_ << std::endl;
+  //std::cout << "RDSEEncoderRegion compute() sensedValue=" << sensedValue_ << std::endl;
 
   SDR &output = getOutput("encoded")->getData().getSDR();
   encoder_->encode((Real64)sensedValue_, output);
@@ -124,27 +125,27 @@ void RDSERegion::compute() {
   if (encoder_->parameters.radius != 0.0f) {
     Real64 *buf = (Real64 *)getOutput("bucket")->getData().getBuffer();
     buf[0] = sensedValue_ - std::fmod(sensedValue_, encoder_->parameters.radius);
-    //std::cout << "RDSERegion compute() bucket=" << buf[0] << std::endl;
+    //std::cout << "RDSEEncoderRegion compute() bucket=" << buf[0] << std::endl;
   }
   
 }
 
 
-void RDSERegion::setParameterReal64(const std::string &name, Int64 index, Real64 value) {
+void RDSEEncoderRegion::setParameterReal64(const std::string &name, Int64 index, Real64 value) {
   if (name == "sensedValue")  sensedValue_ = value;
   else  RegionImpl::setParameterReal64(name, index, value);
 }
-void RDSERegion::setParameterReal32(const std::string &name, Int64 index, Real32 value) {
+void RDSEEncoderRegion::setParameterReal32(const std::string &name, Int64 index, Real32 value) {
   if (name == "noise") noise_ = value;
   else RegionImpl::setParameterReal32(name, index, value);
 }
 
-Real64 RDSERegion::getParameterReal64(const std::string &name, Int64 index) {
+Real64 RDSEEncoderRegion::getParameterReal64(const std::string &name, Int64 index) {
   if (name == "sensedValue") { return sensedValue_;}
   else return RegionImpl::getParameterReal64(name, index);
 }
 
-Real32 RDSERegion::getParameterReal32(const std::string &name, Int64 index) {
+Real32 RDSEEncoderRegion::getParameterReal32(const std::string &name, Int64 index) {
   if (name == "resolution")    return encoder_->parameters.resolution;
   else if (name == "noise")    return noise_;
   else if (name == "radius")   return encoder_->parameters.radius;
@@ -152,21 +153,21 @@ Real32 RDSERegion::getParameterReal32(const std::string &name, Int64 index) {
   else return RegionImpl::getParameterReal32(name, index);
 }
 
-UInt32 RDSERegion::getParameterUInt32(const std::string &name, Int64 index) {
+UInt32 RDSEEncoderRegion::getParameterUInt32(const std::string &name, Int64 index) {
   if (name == "size")            return encoder_->parameters.size;
   else if (name == "activeBits") return encoder_->parameters.activeBits;
   else if (name == "seed")       return encoder_->parameters.seed;
   else return RegionImpl::getParameterUInt32(name, index);
 }
 
-bool RDSERegion::getParameterBool(const std::string &name, Int64 index) {
+bool RDSEEncoderRegion::getParameterBool(const std::string &name, Int64 index) {
   if (name == "category") return encoder_->parameters.category;
   else  return RegionImpl::getParameterBool(name, index);
 }
 
-bool RDSERegion::operator==(const RegionImpl &other) const {
-  if (other.getType() != "RDSERegion") return false;
-  const RDSERegion &o = reinterpret_cast<const RDSERegion&>(other);
+bool RDSEEncoderRegion::operator==(const RegionImpl &other) const {
+  if (other.getType() != "RDSEEncoderRegion") return false;
+  const RDSEEncoderRegion &o = reinterpret_cast<const RDSEEncoderRegion&>(other);
   if (encoder_->parameters.size != o.encoder_->parameters.size) 
     return false;
   if (encoder_->parameters.activeBits != o.encoder_->parameters.activeBits)
