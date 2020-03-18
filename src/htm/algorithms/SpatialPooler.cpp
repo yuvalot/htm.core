@@ -770,37 +770,26 @@ void SpatialPooler::updateBoostFactorsGlobal_() {
 
 
 void SpatialPooler::updateBoostFactorsLocal_() {
- if (wrapAround_) { //TODO merge the two IFs? for a small perf penalty?
-  
   for (UInt i = 0; i < numColumns_; ++i) {
     Real localActivityDensity = 0.0f;
 
     const auto& hood = neighborMap_.at(i); //hood is vector<> of cached neighborhood values
+    UInt numNeighbors = 0;
     
     //for(auto neighbor: Neighborhood(i, inhibitionRadius_, columnDimensions_, wrapAround_)) {
     for (const auto neighbor : hood) {
       localActivityDensity += activeDutyCycles_[neighbor];
+      if(!wrapAround_) numNeighbors++; //update only for non-wrap, for wrap we compute it instantly
     }
-    // In wrapAround, number of neighbors to be considered is solely a function of the inhibition radius,
-    // the number of dimensions, and of the size of each of those dimenions
-    const UInt numNeighbors = hood.size(); 
+    if(wrapAround_) {
+      //optimization: In wrapAround, number of neighbors to be considered is solely a function of the inhibition radius,
+      // the number of dimensions, and of the size of each of those dimenions
+      numNeighbors = hood.size();
+    }
+    NTA_ASSERT(numNeighbors > 0);
     const Real targetDensity = localActivityDensity / numNeighbors;
     applyBoosting_(i, targetDensity, activeDutyCycles_, boostStrength_, boostFactors_);
     }
- } else { //non-wrap around //TODO remove, if wrapAround performance is consistently good?
-  for (UInt i = 0; i < numColumns_; ++i) {
-    UInt numNeighbors = 0u;
-    Real localActivityDensity = 0.0f;
-    const auto& hood = neighborMap_.at(i); //hood is vector<> of cached neighborhood values
-
-    for(const auto neighbor: hood) {
-      localActivityDensity += activeDutyCycles_[neighbor];
-      numNeighbors += 1;
-    }
-    const Real targetDensity = localActivityDensity / numNeighbors;
-    applyBoosting_(i, targetDensity, activeDutyCycles_, boostStrength_, boostFactors_);
-  }
-}
 }
 
 
