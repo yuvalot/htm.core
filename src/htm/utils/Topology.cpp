@@ -132,7 +132,11 @@ Neighborhood::Neighborhood(const UInt centerIndex,
                            const vector<UInt> &dimensions, 
                            const bool wrap)
     : centerPosition_(coordinatesFromIndex(centerIndex, dimensions)),
-      dimensions_(dimensions), radius_(radius), wrap_(wrap) {}
+      dimensions_(dimensions), radius_(radius), wrap_(wrap) {
+        if(wrap == false) {
+          NTA_WARN << "Neighborhood uses wrap=false which runs considerably slower with local inhibition!";
+        }
+      }
 
 Neighborhood::Iterator::Iterator(const Neighborhood &neighborhood, bool end)
     : neighborhood_(neighborhood),
