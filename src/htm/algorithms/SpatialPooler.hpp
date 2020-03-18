@@ -858,11 +858,11 @@ public:
      in a "connected state" (connected synapses) that are connected to input
      bits which are turned on.
 
-      @param activeColumns an int array containing the indices of the active
-     columns.
+      @return activeColumns
+      a sparse SDR vector containing the indices of the active columns.
+      Internally delegates to local/global inhibition functions.
   */
-  void inhibitColumns_(const vector<Real> &overlaps,
-                       vector<CellIdx> &activeColumns) const;
+  std::vector<CellIdx> inhibitColumns_(const vector<Real> &overlaps) const;
 
   /**
      Perform global inhibition.
@@ -882,11 +882,10 @@ public:
      @param density
      a real number of the fraction of columns to survive inhibition.
 
-     @param activeColumns
-     an int array containing the indices of the active columns.
+     @return activeColumns
+     an (sprase SDR) vector containing the indices of the active columns.
   */
-  void inhibitColumnsGlobal_(const vector<Real> &overlaps, Real density,
-                             vector<UInt> &activeColumns) const;
+  std::vector<CellIdx> inhibitColumnsGlobal_(const vector<Real> &overlaps, const Real density) const;
 
   /**
      Performs local inhibition.
@@ -911,11 +910,10 @@ public:
      local fashion, the exact fraction of surviving columns is likely to
      vary.
 
-     @param activeColumns
-     an int array containing the indices of the active columns.
+     @return activeColumns
+     an (sparse SDR) vector containing the indices of the active columns.
   */
-  void inhibitColumnsLocal_(const vector<Real> &overlaps, Real density,
-                            vector<UInt> &activeColumns) const;
+  std::vector<CellIdx> inhibitColumnsLocal_(const vector<Real> &overlaps, const Real density) const;
 
   /**
       The primary method in charge of learning.

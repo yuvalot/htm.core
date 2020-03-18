@@ -1096,16 +1096,16 @@ TEST(SpatialPoolerTest, testInhibitColumns) {
   Real overlapsArray[10] = {10, 21, 34, 4, 18, 3, 12, 5, 7, 1};
 
   overlapsReal.assign(&overlapsArray[0], &overlapsArray[numColumns]);
-  sp.inhibitColumnsGlobal_(overlapsReal, density, activeColumnsGlobal);
+  activeColumnsGlobal = sp.inhibitColumnsGlobal_(overlapsReal, density);
   overlapsReal.assign(&overlapsArray[0], &overlapsArray[numColumns]);
-  sp.inhibitColumnsLocal_(overlapsReal, density, activeColumnsLocal);
+  activeColumnsLocal = sp.inhibitColumnsLocal_(overlapsReal, density);
 
   sp.setInhibitionRadius(5);
   sp.setGlobalInhibition(true);
   sp.setLocalAreaDensity(density);
 
   overlaps.assign(&overlapsArray[0], &overlapsArray[numColumns]);
-  sp.inhibitColumns_(overlaps, activeColumns);
+  activeColumns = sp.inhibitColumns_(overlaps);
 
   ASSERT_TRUE(check_vector_eq(activeColumns, activeColumnsGlobal));
   ASSERT_TRUE(!check_vector_eq(activeColumns, activeColumnsLocal));
@@ -1114,7 +1114,7 @@ TEST(SpatialPoolerTest, testInhibitColumns) {
   sp.setInhibitionRadius(numColumns + 1);
 
   overlaps.assign(&overlapsArray[0], &overlapsArray[numColumns]);
-  sp.inhibitColumns_(overlaps, activeColumns);
+  activeColumns = sp.inhibitColumns_(overlaps);
 
   ASSERT_TRUE(check_vector_eq(activeColumns, activeColumnsGlobal));
   ASSERT_TRUE(!check_vector_eq(activeColumns, activeColumnsLocal));
@@ -1125,12 +1125,12 @@ TEST(SpatialPoolerTest, testInhibitColumns) {
   sp.setInhibitionRadius(inhibitionRadius);
 
   overlapsReal.assign(&overlapsArray[0], &overlapsArray[numColumns]);
-  sp.inhibitColumnsGlobal_(overlapsReal, density, activeColumnsGlobal);
+  activeColumnsGlobal = sp.inhibitColumnsGlobal_(overlapsReal, density);
   overlapsReal.assign(&overlapsArray[0], &overlapsArray[numColumns]);
-  sp.inhibitColumnsLocal_(overlapsReal, density, activeColumnsLocal);
+  activeColumnsLocal = sp.inhibitColumnsLocal_(overlapsReal, density);
 
   overlaps.assign(&overlapsArray[0], &overlapsArray[numColumns]);
-  sp.inhibitColumns_(overlaps, activeColumns);
+  activeColumns = sp.inhibitColumns_(overlaps);
 
   ASSERT_TRUE(!check_vector_eq(activeColumns, activeColumnsGlobal));
   ASSERT_TRUE(check_vector_eq(activeColumns, activeColumnsLocal));
@@ -1151,7 +1151,7 @@ TEST(SpatialPoolerTest, testInhibitColumnsGlobal) {
   density = 0.3f;
   Real overlapsArray[10] = {1, 2, 1, 4, 8, 3, 12, 5, 4, 1};
   overlaps.assign(&overlapsArray[0], &overlapsArray[numColumns]);
-  sp.inhibitColumnsGlobal_(overlaps, density, activeColumns);
+  activeColumns = sp.inhibitColumnsGlobal_(overlaps, density);
   UInt trueActiveArray1[3] = {4, 6, 7};
 
   trueActive.assign(numColumns, 0);
@@ -1170,7 +1170,7 @@ TEST(SpatialPoolerTest, testInhibitColumnsGlobal) {
   density = 0.5f;
   Real overlapsArray2[10] = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
   overlaps.assign(&overlapsArray2[0], &overlapsArray2[numColumns]);
-  sp.inhibitColumnsGlobal_(overlaps, density, activeColumns);
+  activeColumns = sp.inhibitColumnsGlobal_(overlaps, density);
   UInt trueActiveArray2[5] = {5, 6, 7, 8, 9};
 
   for (auto &elem : trueActiveArray2) {
@@ -1180,7 +1180,6 @@ TEST(SpatialPoolerTest, testInhibitColumnsGlobal) {
   for (auto &activeColumn : activeColumns) {
     active[activeColumn] = 1;
   }
-
   ASSERT_TRUE(check_vector_eq(trueActive, active));
 }
 
@@ -1253,7 +1252,7 @@ TEST(SpatialPoolerTest, testInhibitColumnsLocal) {
     overlaps.assign(&overlapsArray1[0], &overlapsArray1[10]);
     UInt trueActive[5] = {1, 2, 5, 6, 9};
     sp.setInhibitionRadius(inhibitionRadius);
-    sp.inhibitColumnsLocal_(overlaps, density, active);
+    active = sp.inhibitColumnsLocal_(overlaps, density);
     ASSERT_EQ(5ul, active.size());
     ASSERT_TRUE(check_vector_eq(trueActive, active));
 
@@ -1264,8 +1263,8 @@ TEST(SpatialPoolerTest, testInhibitColumnsLocal) {
     inhibitionRadius = 3;
     density = 0.5;
     sp.setInhibitionRadius(inhibitionRadius);
-    sp.inhibitColumnsLocal_(overlaps, density, active);
-    ASSERT_TRUE(active.size() == 6);
+    active = sp.inhibitColumnsLocal_(overlaps, density);
+    ASSERT_EQ(active.size(), (size_t)6);
     ASSERT_TRUE(check_vector_eq(trueActive2, active));
 
     // Test arbitration
@@ -1277,9 +1276,10 @@ TEST(SpatialPoolerTest, testInhibitColumnsLocal) {
     inhibitionRadius = 3;
     density = 0.25;
     sp.setInhibitionRadius(inhibitionRadius);
-    sp.inhibitColumnsLocal_(overlaps, density, active);
+    active = sp.inhibitColumnsLocal_(overlaps, density);
 
-    ASSERT_TRUE(active.size() == 4);
+    for (auto a : active) std::cout << a << "\n";
+    ASSERT_EQ(active.size(), (size_t)4);
     ASSERT_TRUE(check_vector_eq(trueActive3, active));
   }
 
@@ -1317,7 +1317,7 @@ TEST(SpatialPoolerTest, testInhibitColumnsLocal) {
     overlaps.assign(&overlapsArray1[0], &overlapsArray1[10]);
     UInt trueActive[6] = {1, 2, 5, 6, 8, 9};
     sp.setInhibitionRadius(inhibitionRadius);
-    sp.inhibitColumnsLocal_(overlaps, density, active);
+    active = sp.inhibitColumnsLocal_(overlaps, density);
     ASSERT_EQ(6ul, active.size());
     ASSERT_TRUE(check_vector_eq(trueActive, active));
 
@@ -1328,7 +1328,7 @@ TEST(SpatialPoolerTest, testInhibitColumnsLocal) {
     inhibitionRadius = 3;
     density = 0.5;
     sp.setInhibitionRadius(inhibitionRadius);
-    sp.inhibitColumnsLocal_(overlaps, density, active);
+    active = sp.inhibitColumnsLocal_(overlaps, density);
     ASSERT_TRUE(active.size() == 6);
     ASSERT_TRUE(check_vector_eq(trueActive2, active));
 
@@ -1341,7 +1341,7 @@ TEST(SpatialPoolerTest, testInhibitColumnsLocal) {
     inhibitionRadius = 3;
     density = 0.25;
     sp.setInhibitionRadius(inhibitionRadius);
-    sp.inhibitColumnsLocal_(overlaps, density, active);
+    active = sp.inhibitColumnsLocal_(overlaps, density);
 
     ASSERT_TRUE(active.size() == 4ul);
     ASSERT_TRUE(check_vector_eq(trueActive3, active));

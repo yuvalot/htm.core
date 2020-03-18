@@ -464,8 +464,7 @@ const vector<SynapseIdx> SpatialPooler::compute(const SDR &input, const bool lea
 
   boostOverlaps_(overlaps, boostedOverlaps_);
 
-  auto &activeVector = active.getSparse();
-  inhibitColumns_(boostedOverlaps_, activeVector);
+  auto activeVector = inhibitColumns_(boostedOverlaps_);
   // Notify the active SDR that its internal data vector has changed.  Always
   // call SDR's setter methods even if when modifying the SDR's own data
   // inplace.
@@ -837,35 +836,31 @@ void SpatialPooler::updateBookeepingVars_(bool learn) {
 }
 
 
-void SpatialPooler::inhibitColumns_(const vector<Real> &overlaps,
-                                    vector<CellIdx> &activeColumns) const {
+vector<CellIdx> SpatialPooler::inhibitColumns_(const vector<Real> &overlaps) const {
   const Real density = localAreaDensity_;
+  NTA_ASSERT(!overlaps.empty());
+  NTA_ASSERT(density > 0.0f && density <= 1.0f);
 
   if (globalInhibition_ ||
       inhibitionRadius_ >
           *max_element(columnDimensions_.begin(), columnDimensions_.end())) {
-    inhibitColumnsGlobal_(overlaps, density, activeColumns);
+    return inhibitColumnsGlobal_(overlaps, density);
   } else {
-    inhibitColumnsLocal_(overlaps, density, activeColumns);
+    return inhibitColumnsLocal_(overlaps, density);
   }
 }
 
 
-void SpatialPooler::inhibitColumnsGlobal_(const vector<Real> &overlaps,
-                                          Real density,
-                                          vector<UInt> &activeColumns) const {
-  NTA_ASSERT(!overlaps.empty());
-  NTA_ASSERT(density > 0.0f && density <= 1.0f);
-
-  activeColumns.clear();
-  const UInt numDesired = (UInt)(density * numColumns_);
+vector<CellIdx> SpatialPooler::inhibitColumnsGlobal_(const vector<Real> &overlaps,
+                                          const Real density) const {
+  const UInt numDesired = static_cast<UInt>((density * numColumns_));
   NTA_CHECK(numDesired > 0) << "Not enough columns (" << numColumns_ << ") "
                             << "for desired density (" << density << ").";
   // Sort the columns by the amount of overlap.  First make a list of all of the
   // column indexes.
-  activeColumns.reserve(numColumns_);
-  for(UInt i = 0; i < numColumns_; i++)
-    activeColumns.push_back(i);
+  vector<CellIdx> activeColumns(numColumns_);
+  std::iota(activeColumns.begin(), activeColumns.end(), 0); //fill with sequence 0,1,..N
+
   // Compare the column indexes by their overlap.
   auto compare = [&overlaps](const UInt &a, const UInt &b) -> bool
     {return (overlaps[a] == overlaps[b]) ? a > b : overlaps[a] > overlaps[b];};  //for determinism if overlaps match (tieBreaker does not solve that),
@@ -886,15 +881,20 @@ void SpatialPooler::inhibitColumnsGlobal_(const vector<Real> &overlaps,
   std::sort(activeColumns.begin(), activeColumns.end(), compare);
   // Remove sub-threshold winners
   while( !activeColumns.empty() &&
-         overlaps[activeColumns.back()] < stimulusThreshold_)
+         overlaps[activeColumns.back()] < stimulusThreshold_) {
       activeColumns.pop_back();
+  }
+  
+  activeColumns.shrink_to_fit();
+  return activeColumns;
 }
 
 
-void SpatialPooler::inhibitColumnsLocal_(const vector<Real> &overlaps,
-                                         Real density,
-                                         vector<UInt> &activeColumns) const {
-  activeColumns.clear();
+vector<CellIdx> SpatialPooler::inhibitColumnsLocal_(const vector<Real> &overlaps,
+                                                    const Real density) const {
+  NTA_ASSERT(overlaps.size() == numColumns_);
+  vector<CellIdx> activeColumns;
+  //TODO reserve for numDesired
 
   // Tie-breaking: when overlaps are equal, columns that have already been
   // selected are treated as "bigger".
@@ -913,7 +913,9 @@ void SpatialPooler::inhibitColumnsLocal_(const vector<Real> &overlaps,
     // In wrapAround, number of neighbors to be considered is solely a function of the inhibition radius, 
     // the number of dimensions, and of the size of each of those dimenion
     const UInt numNeighbors = hood.size()-1; // -1 bcs "hood" includes the column itself (center)
-    const UInt numActive = static_cast<UInt>(0.5f + (density * (numNeighbors + 1))); 
+    //const UInt numActive = static_cast<UInt>(ceil(density * (numNeighbors + 1)));
+    const UInt numActive = static_cast<UInt>(0.5f + (density * (numNeighbors + 1)));
+    NTA_ASSERT(numActive > 0);
     
     //for(auto neighbor: WrappingNeighborhood(column, inhibitionRadius_,columnDimensions_)) P 
     for (const auto neighbor: hood) {
@@ -955,12 +957,16 @@ void SpatialPooler::inhibitColumnsLocal_(const vector<Real> &overlaps,
           }
       }
       const UInt numActive = static_cast<UInt>(0.5f + (density * (numNeighbors + 1)));
+      // const UInt numActive = static_cast<UInt>(ceil(density * (numNeighbors + 1)));
+      NTA_ASSERT(numActive > 0);
+
       if (numBigger < numActive) {
         activeColumns.push_back(column);
         activeColumnsDense[column] = true;
       }
   }
   }
+  return activeColumns;
 }
 
 
