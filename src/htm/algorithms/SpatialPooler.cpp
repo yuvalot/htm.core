@@ -869,7 +869,7 @@ vector<CellIdx> SpatialPooler::inhibitColumnsLocal_(const vector<Real> &overlaps
 
   // Tie-breaking: when overlaps are equal, columns that have already been
   // selected are treated as "bigger".
-  vector<bool> activeColumnsDense(numColumns_, false);
+  vector<bool> alreadyUsedColumn(numColumns_, false); // in tie we prefer already used columns
   
   
   if (wrapAround_) { //TODO merge if not too big performance penalty
@@ -879,29 +879,31 @@ vector<CellIdx> SpatialPooler::inhibitColumnsLocal_(const vector<Real> &overlaps
       continue;
     }
 
-    UInt numBigger = 0;
+    UInt otherBigger = 0; //how many neighbor columns are bigger/better than this column 'column'. 
+    //..aka. how many times this column lost. 
+
     const auto& hood = neighborMap_.at(column);
     // In wrapAround, number of neighbors to be considered is solely a function of the inhibition radius, 
     // the number of dimensions, and of the size of each of those dimenion
-    const UInt numNeighbors = hood.size()-1; // -1 bcs "hood" includes the column itself (center)
-    //const UInt numActive = static_cast<UInt>(ceil(density * (numNeighbors + 1)));
-    const UInt numActive = static_cast<UInt>(0.5f + (density * (numNeighbors + 1)));
-    NTA_ASSERT(numActive > 0);
+    const UInt numNeighbors = hood.size(); // -1 if "hood" includes the column itself (center); See #also2
+    //const UInt numDesiredLocalActive = static_cast<UInt>(ceil(density * (numNeighbors + 1)));
+    const UInt numDesiredLocalActive = static_cast<UInt>(0.5f + (density * (numNeighbors + 1)));
+    NTA_ASSERT(numDesiredLocalActive > 0);
     
     //for(auto neighbor: Neighborhood(column, inhibitionRadius_,columnDimensions_, wrapAround_, false /*skip center*/)) { 
     for (const auto neighbor: hood) {
       if(column == neighbor) continue; //TODO avoid this!
       NTA_ASSERT(neighbor != column);
 
-      const Real difference = overlaps[neighbor] - overlaps[column];
-      if (difference > 0 || (difference == 0 && activeColumnsDense[neighbor])) {
-        numBigger++;
-	      if (numBigger >= numActive) { break; }
+      if (overlaps[neighbor] > overlaps[column] || ( (overlaps[neighbor] == overlaps[column]) && alreadyUsedColumn[neighbor])) { //this column lost to a neighbor
+        otherBigger++;
+	      if (otherBigger >= numDesiredLocalActive) { break; }
       }
 	  }
-    if (numBigger < numActive) {
+
+    if (otherBigger < numDesiredLocalActive) { //successful column, add it
       activeColumns.push_back(column);
-      activeColumnsDense[column] = true;
+      alreadyUsedColumn[column] = true;
     }
   }
 
@@ -909,27 +911,26 @@ vector<CellIdx> SpatialPooler::inhibitColumnsLocal_(const vector<Real> &overlaps
   for (UInt column = 0; column < numColumns_; column++) {
     if (overlaps[column] < stimulusThreshold_) continue;
 
-    UInt numNeighbors = 0;
-    UInt numBigger = 0;
+    UInt otherBigger = 0;
     const auto& hood = neighborMap_.at(column);
+    const UInt numNeighbors = hood.size();
 
     for(auto neighbor: hood) {
       if(column == neighbor) continue; //TODO avoid this skip
       NTA_ASSERT(neighbor != column);
-      numNeighbors++;
 
       const Real difference = overlaps[neighbor] - overlaps[column];
-      if (difference > 0 || (difference == 0 && activeColumnsDense[neighbor])) {
-        numBigger++;
+      if (overlaps[neighbor] > overlaps[column] || ((overlaps[neighbor] == overlaps[column]) && alreadyUsedColumn[neighbor])) {
+        otherBigger++;
       }
     }
-    const UInt numActive = static_cast<UInt>(0.5f + (density * (numNeighbors + 1)));
-    // const UInt numActive = static_cast<UInt>(ceil(density * (numNeighbors + 1)));
-    NTA_ASSERT(numActive > 0);
+    const UInt numDesiredLocalActive = static_cast<UInt>(0.5f + (density * (numNeighbors + 1)));
+    // const UInt numDesiredLocalActive = static_cast<UInt>(ceil(density * (numNeighbors + 1)));
+    NTA_ASSERT(numDesiredLocalActive > 0);
 
-    if (numBigger < numActive) {
+    if (otherBigger < numDesiredLocalActive) {
       activeColumns.push_back(column);
-      activeColumnsDense[column] = true;
+      alreadyUsedColumn[column] = true;
     }
   }
   }
