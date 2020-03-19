@@ -626,10 +626,8 @@ void SpatialPooler::updateMinDutyCyclesLocal_() {
     const auto& hood = neighborMap_[i];
     //for(const auto column : Neighborhood(i, inhibitionRadius_, columnDimensions_, wrapAround_, /*skip center=*/false)) {
     for(const auto column : hood) {
-      maxActiveDuty = max(maxActiveDuty, activeDutyCycles_[column]);
       maxOverlapDuty = max(maxOverlapDuty, overlapDutyCycles_[column]);
     }
-
     minOverlapDutyCycles_[i] = maxOverlapDuty * minPctOverlapDutyCycles_;
   }
 }
