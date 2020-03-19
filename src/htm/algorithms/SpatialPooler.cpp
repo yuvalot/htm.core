@@ -871,9 +871,6 @@ vector<CellIdx> SpatialPooler::inhibitColumnsLocal_(const vector<Real> &overlaps
   // selected are treated as "bigger".
   vector<bool> alreadyUsedColumn(numColumns_, false); // in tie we prefer already used columns
   
-  
-  if (wrapAround_) { //TODO merge if not too big performance penalty
-
   for (UInt column = 0; column < numColumns_; column++) {
     if (overlaps[column] < stimulusThreshold_) { //TODO make connections.computeActivity() already drop sub-threshold columns
       continue;
@@ -882,10 +879,10 @@ vector<CellIdx> SpatialPooler::inhibitColumnsLocal_(const vector<Real> &overlaps
     UInt otherBigger = 0; //how many neighbor columns are bigger/better than this column 'column'. 
     //..aka. how many times this column lost. 
 
-    const auto& hood = neighborMap_.at(column);
+    const auto& hood = neighborMap_[column];
     // In wrapAround, number of neighbors to be considered is solely a function of the inhibition radius, 
     // the number of dimensions, and of the size of each of those dimenion
-    const UInt numNeighbors = hood.size(); // -1 if "hood" includes the column itself (center); See #also2
+    const UInt numNeighbors = hood.size(); // -1 if "hood" includes the column itself (center); See #also2 //TODO add check for w / w/o center
     //const UInt numDesiredLocalActive = static_cast<UInt>(ceil(density * (numNeighbors + 1)));
     const UInt numDesiredLocalActive = static_cast<UInt>(0.5f + (density * (numNeighbors + 1)));
     NTA_ASSERT(numDesiredLocalActive > 0);
@@ -905,34 +902,6 @@ vector<CellIdx> SpatialPooler::inhibitColumnsLocal_(const vector<Real> &overlaps
       activeColumns.push_back(column);
       alreadyUsedColumn[column] = true;
     }
-  }
-
-  } else {
-  for (UInt column = 0; column < numColumns_; column++) {
-    if (overlaps[column] < stimulusThreshold_) continue;
-
-    UInt otherBigger = 0;
-    const auto& hood = neighborMap_.at(column);
-    const UInt numNeighbors = hood.size();
-
-    for(auto neighbor: hood) {
-      if(column == neighbor) continue; //TODO avoid this skip
-      NTA_ASSERT(neighbor != column);
-
-      const Real difference = overlaps[neighbor] - overlaps[column];
-      if (overlaps[neighbor] > overlaps[column] || ((overlaps[neighbor] == overlaps[column]) && alreadyUsedColumn[neighbor])) {
-        otherBigger++;
-      }
-    }
-    const UInt numDesiredLocalActive = static_cast<UInt>(0.5f + (density * (numNeighbors + 1)));
-    // const UInt numDesiredLocalActive = static_cast<UInt>(ceil(density * (numNeighbors + 1)));
-    NTA_ASSERT(numDesiredLocalActive > 0);
-
-    if (otherBigger < numDesiredLocalActive) {
-      activeColumns.push_back(column);
-      alreadyUsedColumn[column] = true;
-    }
-  }
   }
   activeColumns.shrink_to_fit();
   return activeColumns;
