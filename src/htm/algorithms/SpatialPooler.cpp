@@ -495,6 +495,7 @@ unordered_map<CellIdx, vector<CellIdx>> SpatialPooler::mapAllNeighbors() const {
       for(const auto neighbor: Neighborhood(column, inhibitionRadius_, columnDimensions_, wrapAround_, false /*skip center*/)) { 
 			  neighbors.push_back(neighbor);
 		  }
+      std::sort(neighbors.begin(), neighbors.end()); //sort for better cache locality
       neighbors.shrink_to_fit();
 		  neighborMap[column] = neighbors;
   }
