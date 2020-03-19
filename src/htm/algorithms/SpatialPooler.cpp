@@ -772,24 +772,27 @@ void SpatialPooler::updateBoostFactorsGlobal_() {
 void SpatialPooler::updateBoostFactorsLocal_() {
   for (UInt i = 0; i < numColumns_; ++i) {
     Real localActivityDensity = 0.0f;
-
-    const auto& hood = neighborMap_.at(i); //hood is vector<> of cached neighborhood values
-    UInt numNeighbors = 0;
     
+    const auto& hood = neighborMap_[i]; //hood is vector<> of cached neighborhood values
+    const bool centerIncluded = std::find(hood.cbegin(), hood.cend(), i) != hood.cend(); //TODO avoid this once hood w/o center works for SP! 
+    //optimization: In wrapAround, number of neighbors to be considered is solely a function of the inhibition radius,
+    // the number of dimensions, and of the size of each of those dimenions. 
+    // Or in non-wrap, if we use cached hood, we obtain the value the same as hood.size()
+    const UInt numNeighbors = hood.size() + (centerIncluded ? 0 : 1);
+    NTA_ASSERT(numNeighbors > 0);
+    if (! centerIncluded) {
+      //start by adding the center ('i') which is not included in the hood
+      localActivityDensity += activeDutyCycles_[i]; //include the center, which is 'i' (not included in hood)
+    }
+
     //for(auto neighbor: Neighborhood(i, inhibitionRadius_, columnDimensions_, wrapAround_)) {
     for (const auto neighbor : hood) {
       localActivityDensity += activeDutyCycles_[neighbor];
-      if(!wrapAround_) numNeighbors++; //update only for non-wrap, for wrap we compute it instantly
+      //numNeighbors++;
     }
-    if(wrapAround_) {
-      //optimization: In wrapAround, number of neighbors to be considered is solely a function of the inhibition radius,
-      // the number of dimensions, and of the size of each of those dimenions
-      numNeighbors = hood.size();
-    }
-    NTA_ASSERT(numNeighbors > 0);
     const Real targetDensity = localActivityDensity / numNeighbors;
     applyBoosting_(i, targetDensity, activeDutyCycles_, boostStrength_, boostFactors_);
-    }
+  }
 }
 
 
