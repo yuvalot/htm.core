@@ -971,6 +971,7 @@ TEST(SpatialPoolerTest, testUpdateBoostFactors) {
   sp.setActiveDutyCycles(initActiveDutyCycles1);
   sp.updateBoostFactors_();
   sp.getBoostFactors(resultBoostFactors1.data());
+  ASSERT_EQ(resultBoostFactors1.size(), trueBoostFactors1.size());
   ASSERT_TRUE(check_vector_eq(trueBoostFactors1, resultBoostFactors1));
 
   Real32 initActiveDutyCycles2[] = {0.1f, 0.3f, 0.02f, 0.04f, 0.7f, 0.12f};
@@ -984,7 +985,7 @@ TEST(SpatialPoolerTest, testUpdateBoostFactors) {
   sp.setActiveDutyCycles(initActiveDutyCycles2);
   sp.updateBoostFactors_();
   sp.getBoostFactors(resultBoostFactors2.data());
-
+  ASSERT_EQ(resultBoostFactors2.size(), trueBoostFactors2.size());
   ASSERT_TRUE(check_vector_eq(trueBoostFactors2, resultBoostFactors2));
 
   Real32 initActiveDutyCycles3[] = {0.1f, 0.3f, 0.02f, 0.04f, 0.7f, 0.12f};
@@ -1000,7 +1001,7 @@ TEST(SpatialPoolerTest, testUpdateBoostFactors) {
   sp.setActiveDutyCycles(initActiveDutyCycles3);
   sp.updateBoostFactors_();
   sp.getBoostFactors(resultBoostFactors3.data());
-
+  ASSERT_EQ(resultBoostFactors3.size(), trueBoostFactors3.size());
   ASSERT_TRUE(check_vector_eq(trueBoostFactors3, resultBoostFactors3));
 
   Real32 initActiveDutyCycles4[] = {0.1f, 0.3f, 0.02f, 0.04f, 0.7f, 0.12f};
@@ -1016,7 +1017,7 @@ TEST(SpatialPoolerTest, testUpdateBoostFactors) {
   sp.updateBoostFactors_();
   sp.getBoostFactors(resultBoostFactors4.data());
 
-  ASSERT_TRUE(check_vector_eq(trueBoostFactors3, resultBoostFactors3));
+  ASSERT_TRUE(check_vector_eq(trueBoostFactors4, resultBoostFactors4));
 }
 
 
