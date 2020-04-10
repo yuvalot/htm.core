@@ -41,7 +41,6 @@ namespace htm {
 class RegionImpl;
 class Region;
 class Spec;
-class ValueMap;
 class RegisteredRegionImpl;
 
 class RegionImplFactory {
@@ -53,7 +52,7 @@ public:
 
   // Create a RegionImpl of a specific type; caller gets ownership.
   RegionImpl *createRegionImpl(const std::string nodeType,
-                               const std::string nodeParams, Region *region);
+                               ValueMap vm, Region *region);
 
   // Create a RegionImpl from serialized state; caller gets ownership.
   RegionImpl *deserializeRegionImpl(const std::string nodeType,
@@ -84,8 +83,10 @@ private:
 
 
   // Mappings for region nodeTypes that map to Class and module
-  std::map<const std::string, std::shared_ptr<RegisteredRegionImpl> > regionTypeMap;
-  std::map<const std::string, std::shared_ptr<Spec> > regionSpecMap;
+  // The registrations apply accross all RegionImplFactory instances in a process.
+  // (i.e. for all Networks). Each process must perform its own registrations.
+  static std::map<const std::string, std::shared_ptr<RegisteredRegionImpl> > regionTypeMap;
+  static std::map<const std::string, std::shared_ptr<Spec> > regionSpecMap;
   void addRegionType(const std::string nodeType, RegisteredRegionImpl* wrapper);
 
 };

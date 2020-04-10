@@ -63,9 +63,9 @@ TEST(HelloRegionTest, demo) {
 
   std::string params = "{activeOutputCount: "+std::to_string(data_cols)+"}";
 
-  // Add VectorFileSensor region to network
+  // Add FileInputRegion region to network
   std::shared_ptr<Region> region =
-      net.addRegion("region", "VectorFileSensor", params);
+      net.addRegion("region", "FileInputRegion", params);
 
 
   // Load data
@@ -89,7 +89,7 @@ TEST(HelloRegionTest, demo) {
   const Real32 *buffer = (const Real32 *)outputArray.getBuffer();
   for (size_t i = 0; i < outputArray.getCount(); i++)
     EXPECT_FLOAT_EQ(buffer[i], testdata[0][i]);
-  // At this point we have consumed the first buffer from VectorFileSensor.
+  // At this point we have consumed the first buffer from FileInputRegion.
 
   // Serialize
   Network net2;

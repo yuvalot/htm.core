@@ -34,14 +34,14 @@ void setupSampleConnections(Connections &connections) {
   // - 1 connected synapse: active
   // - 2 matching synapses
   const Segment segment1_1 = connections.createSegment(10);
-  connections.createSynapse(segment1_1, 150, 0.85f);
+  connections.createSynapse(segment1_1, 150, 0.85f); //connected
   connections.createSynapse(segment1_1, 151, 0.15f);
 
   // Cell with 2 segments.
   // Segment with:
   // - 2 connected synapses: 2 active
   // - 3 matching synapses: 3 active
-  const Segment segment2_1 = connections.createSegment(20);
+  const Segment segment2_1 = connections.createSegment(20, 2/* max number of segments per cell*/);
   connections.createSynapse(segment2_1, 80, 0.85f);
   connections.createSynapse(segment2_1, 81, 0.85f);
   Synapse synapse = connections.createSynapse(segment2_1, 82, 0.85f);
@@ -51,7 +51,7 @@ void setupSampleConnections(Connections &connections) {
   // - 2 connected synapses: 1 active, 1 inactive
   // - 3 matching synapses: 2 active, 1 inactive
   // - 1 non-matching synapse: 1 active
-  const Segment segment2_2 = connections.createSegment(20);
+  const Segment segment2_2 = connections.createSegment(20, 2);
   connections.createSynapse(segment2_2, 50, 0.85f);
   connections.createSynapse(segment2_2, 51, 0.85f);
   connections.createSynapse(segment2_2, 52, 0.15f);
@@ -67,12 +67,9 @@ void setupSampleConnections(Connections &connections) {
 void computeSampleActivity(Connections &connections) {
   vector<UInt32> input = {50, 52, 53, 80, 81, 82, 150, 151};
 
-  vector<SynapseIdx> numActiveConnectedSynapsesForSegment(
-      connections.segmentFlatListLength(), 0);
   vector<SynapseIdx> numActivePotentialSynapsesForSegment(
       connections.segmentFlatListLength(), 0);
-  connections.computeActivity(numActiveConnectedSynapsesForSegment,
-                              numActivePotentialSynapsesForSegment, input);
+  vector<SynapseIdx> numActiveConnectedSynapsesForSegment = connections.computeActivity(numActivePotentialSynapsesForSegment, input);
 }
 
 /**
@@ -123,6 +120,20 @@ TEST(ConnectionsTest, testCreateSynapse) {
   SynapseData synapseData2 = connections.dataForSynapse(synapses[1]);
   ASSERT_EQ(synapseData2.presynapticCell, 150ul);
   ASSERT_NEAR((Permanence)0.48, synapseData2.permanence, htm::Epsilon);
+  //TODO add tests for failures
+}
+
+
+TEST(ConnectionsTest, testCreateSynapseAvoidDuplicitPresynapticConnections) {
+  Connections connections(1024);
+  UInt32 cell = 10;
+  Segment segment = connections.createSegment(cell);
+
+  connections.createSynapse(segment, 50, 0.34f);
+  connections.createSynapse(segment, 51, 0.34f);
+  const size_t numSynapses = connections.synapsesForSegment(segment).size(); //created 2 synapses above
+  connections.createSynapse(segment, 50, 0.48f); //attempt to create already existing synapse (to presyn cell "50") -> skips as no duplication should happen
+  ASSERT_EQ(connections.synapsesForSegment(segment).size(), numSynapses) << "Duplicit synapses should not be created!";
 }
 
 /**
@@ -149,11 +160,9 @@ TEST(ConnectionsTest, testDestroySegment) {
   ASSERT_EQ(3ul, connections.numSegments());
   ASSERT_EQ(0ul, connections.numSynapses());
 
-  vector<SynapseIdx> numActiveConnectedSynapsesForSegment(
-      connections.segmentFlatListLength(), 0);
   vector<SynapseIdx> numActivePotentialSynapsesForSegment(
       connections.segmentFlatListLength(), 0);
-  connections.computeActivity(numActiveConnectedSynapsesForSegment,
+  vector<SynapseIdx> numActiveConnectedSynapsesForSegment = connections.computeActivity(
                               numActivePotentialSynapsesForSegment,
                               {80, 81, 82});
 
@@ -180,11 +189,9 @@ TEST(ConnectionsTest, testDestroySynapse) {
   ASSERT_EQ(2ul, connections.numSynapses());
   ASSERT_EQ(2ul, connections.synapsesForSegment(segment).size());
 
-  vector<SynapseIdx> numActiveConnectedSynapsesForSegment(
-      connections.segmentFlatListLength(), 0);
   vector<SynapseIdx> numActivePotentialSynapsesForSegment(
       connections.segmentFlatListLength(), 0);
-  connections.computeActivity(numActiveConnectedSynapsesForSegment,
+  vector<SynapseIdx> numActiveConnectedSynapsesForSegment = connections.computeActivity(
                               numActivePotentialSynapsesForSegment,
                               {80, 81, 82});
 
@@ -338,11 +345,9 @@ TEST(ConnectionsTest, testComputeActivity) {
 
   vector<UInt32> input = {50, 52, 53, 80, 81, 82, 150, 151};
 
-  vector<SynapseIdx> numActiveConnectedSynapsesForSegment(
-      connections.segmentFlatListLength(), 0);
   vector<SynapseIdx> numActivePotentialSynapsesForSegment(
       connections.segmentFlatListLength(), 0);
-  connections.computeActivity(numActiveConnectedSynapsesForSegment,
+  vector<SynapseIdx> numActiveConnectedSynapsesForSegment = connections.computeActivity(
                               numActivePotentialSynapsesForSegment, input);
 
   ASSERT_EQ(1ul, numActiveConnectedSynapsesForSegment[segment1_1]);
@@ -653,9 +658,9 @@ TEST(ConnectionsTest, testBumpSegment) {
 }
 
 /**
- * Test the mapSegmentsToCells method.
+ * Test the mapping semgnets to cells by cellForSegment() method.
  */
-TEST(ConnectionsTest, testMapSegmentsToCells) {
+TEST(ConnectionsTest, testCellForSegment) {
   Connections connections(1024);
 
   const Segment segment1 = connections.createSegment(42);
@@ -663,12 +668,12 @@ TEST(ConnectionsTest, testMapSegmentsToCells) {
   const Segment segment3 = connections.createSegment(43);
 
   const vector<Segment> segments = {segment1, segment2, segment3, segment1};
-  vector<CellIdx> cells(segments.size());
-
-  connections.mapSegmentsToCells(
-      segments.data(), segments.data() + segments.size(), cells.data());
-
   const vector<CellIdx> expected = {42, 42, 43, 42};
+  vector<CellIdx> cells;
+
+  for(auto seg : segments) {
+    cells.push_back(connections.cellForSegment(seg));
+  }
   ASSERT_EQ(expected, cells);
 }
 
@@ -843,7 +848,7 @@ TEST(ConnectionsTest, testTimeseries) {
   presyn.randomize( 0.5f );
   vector<SynapseIdx> output( 1u );
   for( int i = 0; i < 10; i++ ) {
-    C.computeActivity( output, presyn.getSparse() );
+    output = C.computeActivity( presyn.getSparse() );
     C.adaptSegment( seg, presyn, 0.1f, 0.1f );
   }
   // Check that the synapse permanences did not saturate.
@@ -856,7 +861,7 @@ TEST(ConnectionsTest, testTimeseries) {
   // effectively turns off the timeseries parameter.
   for( int i = 0; i < 10; i++ ) {
     C.reset();
-    C.computeActivity( output, presyn.getSparse() );
+    output = C.computeActivity( presyn.getSparse() );
     C.adaptSegment( seg, presyn, 0.1f, 0.1f );
   }
   // Check that the synapse permanences staturated.  This is the failure

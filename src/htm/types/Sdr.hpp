@@ -175,21 +175,21 @@ protected:
     /**
      * Update the SDR to reflect the value currently inside of the dense array.
      * Use this method after modifying the dense buffer inplace, in order to
-     * propigate any changes to the sparse & coordinate formats.
+     * propagate any changes to the sparse & coordinate formats.
      */
     virtual void setDenseInplace() const;
 
     /**
      * Update the SDR to reflect the value currently inside of the flatSparse
      * vector. Use this method after modifying the flatSparse vector inplace, in
-     * order to propigate any changes to the dense & coordinate formats.
+     * order to propagate any changes to the dense & coordinate formats.
      */
     virtual void setSparseInplace() const;
 
     /**
      * Update the SDR to reflect the value currently inside of the sparse
      * vector. Use this method after modifying the sparse vector inplace, in
-     * order to propigate any changes to the dense & sparse formats.
+     * order to propagate any changes to the dense & sparse formats.
      */
     virtual void setCoordinatesInplace() const;
 
@@ -561,12 +561,14 @@ public:
      *      C.concatenate( A, B );
      *      C.getSparse() -> {0, 1, 2, 10, 11, 12}
      */
-    void concatenate(const SparseDistributedRepresentation &inp1,
-                     const SparseDistributedRepresentation &inp2,
-                     UInt  axis = 0u);
+    inline void concatenate(const SparseDistributedRepresentation &inp1,
+                            const SparseDistributedRepresentation &inp2,
+                            const UInt  axis = 0u) {
+      this->concatenate({&inp1, &inp2}, axis);
+    }
 
-    void concatenate(std::vector<const SparseDistributedRepresentation*> inputs,
-                     UInt axis = 0u);
+    void concatenate(const std::vector<const SparseDistributedRepresentation*>& inputs,
+                     const UInt axis = 0u);
 
     /**
      * Print a human readable version of the SDR.

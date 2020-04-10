@@ -120,7 +120,7 @@ import datetime
 import tempfile
 import threading
 from multiprocessing import Process, Pipe
-import resource
+import psutil
 import re
 import numpy as np
 import scipy.stats
@@ -433,6 +433,8 @@ class Laboratory:
     def save(self):
         with open(self.lab_report + '.tmp', 'w') as file:
             file.write( str(self) )
+        if  os.path.exists(self.lab_report):
+            os.unlink(self.lab_report)
         os.rename(self.lab_report + '.tmp', self.lab_report)
 
     def run(self, processes,
@@ -508,8 +510,10 @@ class Worker(Process):
         print("Started: " + time.asctime( time.localtime(start_time) ) + '\n')
         # Setup memory limit
         if self.memory_limit is not None:
-            soft, hard = resource.getrlimit(resource.RLIMIT_AS)
-            resource.setrlimit(resource.RLIMIT_AS, (self.memory_limit, hard))
+            if not sys.platform.startswith('win'):
+                p = psutil.Process()
+                soft, hard = p.rlimit(psutil.RLIMIT_AS)
+                p.rlimit(psutil.RLIMIT_AS, (self.memory_limit, hard))
 
         exec_globals = {}
         try:

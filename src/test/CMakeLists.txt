@@ -46,8 +46,10 @@ set(algorithm_tests
 	   )
                
 set(encoders_tests
+           unit/encoders/DateEncoderTest.cpp
            unit/encoders/ScalarEncoderTest.cpp
            unit/encoders/RandomDistributedScalarEncoderTest.cpp
+           unit/encoders/SimHashDocumentEncoderTest.cpp
            )
 	   
 set(engine_tests
@@ -56,7 +58,7 @@ set(engine_tests
 	   unit/engine/InputTest.cpp
 	   unit/engine/LinkTest.cpp
 	   unit/engine/NetworkTest.cpp
-	   unit/engine/YAMLUtilsTest.cpp
+	   unit/engine/RESTapiTest.cpp
 	   unit/engine/WatcherTest.cpp
 	   )
 	   
@@ -70,14 +72,12 @@ set(ntypes_tests
 	   unit/ntypes/BasicTypeTest.cpp
 	   unit/ntypes/CollectionTest.cpp
 	   unit/ntypes/DimensionsTest.cpp
-	   unit/ntypes/ScalarTest.cpp
 	   unit/ntypes/ValueTest.cpp
 	   )
 	   
 set(os_tests
 	   unit/os/DirectoryTest.cpp
 	   unit/os/EnvTest.cpp
-	   unit/os/OSTest.cpp
 	   unit/os/PathTest.cpp
 	   unit/os/TimerTest.cpp
 	   )
@@ -85,9 +85,13 @@ set(os_tests
 set(regions_tests
 	   unit/regions/RegionTestUtilities.cpp
 	   unit/regions/RegionTestUtilities.hpp
+	   unit/regions/DateEncoderRegionTest.cpp
+	   unit/regions/ClassifierRegionTest.cpp
+	   unit/regions/ScalarEncoderRegionTest.cpp
+	   unit/regions/RDSEEncoderRegionTest.cpp
 	   unit/regions/SPRegionTest.cpp
-           unit/regions/TMRegionTest.cpp
-           unit/regions/VectorFileTest.cpp
+       unit/regions/TMRegionTest.cpp
+       unit/regions/VectorFileTest.cpp
 	   )
 
 	   
@@ -105,9 +109,9 @@ set(utils_tests
 	   )
 
 set(examples_files
-	   # examples/hotgym/Hotgym.cpp # contains conflicting main()
-           ../examples/hotgym/HelloSPTP.cpp
-           ../examples/hotgym/HelloSPTP.hpp
+	   # examples/hello/hello.cpp # contains conflicting main()
+           ../examples/hello/HelloSPTP.cpp
+           ../examples/hello/HelloSPTP.hpp
 	   # examples/mnist/MNIST_SP.cpp
 )
 	   
@@ -150,6 +154,7 @@ target_link_libraries(${unit_tests_executable}
 )
 target_include_directories(${unit_tests_executable} PRIVATE 
 	${gtest_INCLUDE_DIRS}
+	examples/rest
 	${CORE_LIB_INCLUDES}
 	${EXTERNAL_INCLUDES})
 target_compile_definitions(${unit_tests_executable} PRIVATE ${COMMON_COMPILER_DEFINITIONS})

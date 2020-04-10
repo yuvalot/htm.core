@@ -66,17 +66,18 @@ public:
 
   SpatialPooler();
   SpatialPooler(const vector<UInt> inputDimensions, const vector<UInt> columnDimensions,
-                UInt potentialRadius = 16u, Real potentialPct = 0.5f,
-                bool globalInhibition = true, 
+    UInt potentialRadius = 16u, 
+    Real potentialPct = 0.5f,
+    bool globalInhibition = true, 
 		Real localAreaDensity = 0.05f, //5%
-                UInt stimulusThreshold = 0u, 
+    UInt stimulusThreshold = 0u, 
 		Real synPermInactiveDec = 0.008f,
-                Real synPermActiveInc = 0.05f, 
+    Real synPermActiveInc = 0.05f, 
 		Real synPermConnected = 0.1f,
-                Real minPctOverlapDutyCycles = 0.001f,
-                UInt dutyCyclePeriod = 1000u, 
+    Real minPctOverlapDutyCycles = 0.001f,
+    UInt dutyCyclePeriod = 1000u, 
 		Real boostStrength = 0.0f,
-                Int seed = 1, 
+    Int seed = 1, 
 		UInt spVerbosity = 0u, 
 		bool wrapAround = true);
 
@@ -233,8 +234,15 @@ public:
   @param active An SDR representing the winning columns after
         inhibition. The size of the SDR is equal to the number of
         columns (also returned by the method getNumColumns).
+
+  @return overlap
+        an int vector containing the overlap score for each column. The
+        overlap score for a column is defined as the number of synapses in
+        a "connected state" (connected synapses) that are connected to
+        input bits which are turned on. 
+        Replaces: SP.calculateOverlaps_(), SP.getOverlaps()
    */
-  virtual void compute(const SDR &input, const bool learn, SDR &active);
+  virtual const vector<SynapseIdx> compute(const SDR &input, const bool learn, SDR &active);
 
 
   /**
@@ -318,7 +326,6 @@ public:
     ar(CEREAL_NVP(rng_));
 
     // initialize ephemeral members
-    overlaps_.resize(numColumns_);
     boostedOverlaps_.resize(numColumns_);
   }
 
@@ -702,10 +709,12 @@ public:
 
   @param column integer of column index.
 
-  @param permanence real array to store permanence values for the selected
-  column.
+  @param threshold : only output synapses with `permanence >= threshold`.
+         This can be used to get connected synapses. 
+
+  @return vector with Permanence values for given column, 
   */
-  void getPermanence(UInt column, Real permanence[]) const;
+  vector<Real> getPermanence(const UInt column, const Permanence threshold = 0.0f) const;
   /**
   Sets the permanence values for a given column. 'permanence' size
   must match the number of inputs.
@@ -716,16 +725,6 @@ public:
   */
   void setPermanence(UInt column, const Real permanence[]);
 
-  /**
-  Returns the connected synapses for a given column.
-  'connectedSynapses' size must match the number of inputs.
-
-  @param column integer of column index.
-
-  @param connectedSynapses integer array to store the connected synapses for a
-  given column.
-  */
-  void getConnectedSynapses(UInt column, UInt connectedSynapses[]) const;
 
   /**
   Returns the number of connected synapses for all columns.
@@ -736,11 +735,6 @@ public:
   */
   void getConnectedCounts(UInt connectedCounts[]) const;
 
-
-  /**
-  Returns the overlap score for each column.
-   */
-  const std::vector<SynapseIdx> &getOverlaps() const;
 
   /**
   Returns the boosted overlap score for each column.
@@ -851,32 +845,6 @@ public:
   vector<Real> initPermanence_(const vector<UInt> &potential, Real connectedPct);
 
   void clip_(vector<Real> &perm) const;
-
-  void raisePermanencesToThreshold_(vector<Real> &perm,
-                                    const vector<UInt> &potential) const;
-
-  /**
-     This function determines each column's overlap with the current
-     input vector.
-
-     The overlap of a column is the number of synapses for that column
-     that are connected (permanence value is greater than
-     '_synPermConnected') to input bits which are turned on. The
-     implementation takes advantage of the SparseBinaryMatrix class to
-     perform this calculation efficiently.
-
-     @param inputVector
-     a int array of 0's and 1's that comprises the input to the spatial
-     pooler.
-
-     @param overlap
-     an int vector containing the overlap score for each column. The
-     overlap score for a column is defined as the number of synapses in
-     a "connected state" (connected synapses) that are connected to
-     input bits which are turned on.
-  */
-  void calculateOverlap_(const SDR &input, vector<SynapseIdx> &overlap);
-  void calculateOverlapPct_(const vector<SynapseIdx> &overlaps, vector<Real> &overlapPct) const;
 
   /**
       Performs inhibition. This method calculates the necessary values needed to
@@ -1201,7 +1169,6 @@ protected:
    */
   Connections connections_;
 
-  vector<SynapseIdx> overlaps_;
   vector<Real> boostedOverlaps_;
 
 
@@ -1209,8 +1176,9 @@ protected:
   Random rng_;
 
 public:
-  const Connections &connections = connections_;
   mutable Timer tSort, tNth, tWhile;
+  const Connections& connections = connections_; //for inspection of details in connections. Const, so users cannot break the SP internals.
+  const Connections& getConnections() const { return connections_; } // as above, but for use in pybind11
 };
 
 std::ostream & operator<<(std::ostream & out, const SpatialPooler &sp);
