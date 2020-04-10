@@ -780,6 +780,7 @@ void SpatialPooler::updateBoostFactorsLocal_() {
     // Or in non-wrap, if we use cached hood, we obtain the value the same as hood.size()
     const UInt numNeighbors = hood.size() + (centerIncluded ? 0 : 1);
     NTA_ASSERT(numNeighbors > 0);
+    NTA_CHECK(centerIncluded);
     if (! centerIncluded) {
       //start by adding the center ('i') which is not included in the hood
       localActivityDensity += activeDutyCycles_[i]; //include the center, which is 'i' (not included in hood)
@@ -870,7 +871,10 @@ vector<CellIdx> SpatialPooler::inhibitColumnsLocal_(const vector<Real> &overlaps
   // Tie-breaking: when overlaps are equal, columns that have already been
   // selected are treated as "bigger".
   vector<bool> alreadyUsedColumn(numColumns_, false); // in tie we prefer already used columns
-  
+
+  const bool centerIncluded = std::find(neighborMap_.at(0).cbegin(), neighborMap_.at(0).cend(), 0) != neighborMap_.at(0).cend(); //TODO remove this if SP uses only hood w/o center
+  std::cout << "CENTER=" << centerIncluded << "\n";
+
   for (UInt column = 0; column < numColumns_; column++) {
     if (overlaps[column] < stimulusThreshold_) { //TODO make connections.computeActivity() already drop sub-threshold columns
       continue;
@@ -879,10 +883,11 @@ vector<CellIdx> SpatialPooler::inhibitColumnsLocal_(const vector<Real> &overlaps
     UInt otherBigger = 0; //how many neighbor columns are bigger/better than this column 'column'. 
     //..aka. how many times this column lost. 
 
-    const auto& hood = neighborMap_[column];
+    const auto& hood = neighborMap_.at(column);
     // In wrapAround, number of neighbors to be considered is solely a function of the inhibition radius, 
     // the number of dimensions, and of the size of each of those dimenion
-    const UInt numNeighbors = hood.size(); // -1 if "hood" includes the column itself (center); See #also2 //TODO add check for w / w/o center
+    const UInt numNeighbors = hood.size() + centerIncluded ? -1 : 0; // +1 if "hood" does not includes the column itself (center); See #also2
+    NTA_ASSERT(numNeighbors >= 0);
     //const UInt numDesiredLocalActive = static_cast<UInt>(ceil(density * (numNeighbors + 1)));
     const UInt numDesiredLocalActive = static_cast<UInt>(0.5f + (density * (numNeighbors + 1)));
     NTA_ASSERT(numDesiredLocalActive > 0);

@@ -1761,8 +1761,8 @@ TEST(SpatialPoolerTest, ZeroOverlap_StimulusThreshold_GlobalInhibition) {
 
 
 TEST(SpatialPoolerTest, ZeroOverlap_NoStimulusThreshold_LocalInhibition) {
-  const UInt inputSize = 10;
-  const UInt nColumns = 20;
+  const UInt inputSize = 100;
+  const UInt nColumns = 200;
 
   SpatialPooler sp({inputSize}, {nColumns},
                    /*potentialRadius*/ 5,
@@ -1789,8 +1789,8 @@ TEST(SpatialPoolerTest, ZeroOverlap_NoStimulusThreshold_LocalInhibition) {
 
 
 TEST(SpatialPoolerTest, ZeroOverlap_StimulusThreshold_LocalInhibition) {
-  const UInt inputSize = 10;
-  const UInt nColumns = 20;
+  const UInt inputSize = 100;
+  const UInt nColumns = 200;
 
   SpatialPooler sp({inputSize}, {nColumns},
                    /*potentialRadius*/ 10,
