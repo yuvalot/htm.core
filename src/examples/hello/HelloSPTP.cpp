@@ -103,7 +103,7 @@ EPOCHS = 2; // make test faster in Debug
 
 
   // Start a stopwatch timer
-  printf("starting:  %d iterations.", EPOCHS);
+  std::cout << "starting:  " << to_string(EPOCHS) << " iterations.\n";
   tAll.start();
 
   //run
@@ -163,7 +163,7 @@ EPOCHS = 2; // make test faster in Debug
       tAll.stop();
 
       //print connections stats
-      cout << "\nInput :\n" << statsInput
+      std::cout << "\nInput :\n" << statsInput
 	   << "\nSP(local) " << spLocal.connections
 	   << "\nSP(local) " << statsSPlocal
            << "\nSP(global) " << spGlobal.connections
@@ -173,24 +173,24 @@ EPOCHS = 2; // make test faster in Debug
 	   << "\n";
 
       // output values
-      cout << "Epoch = " << e+1 << endl;
-      cout << "Anomaly = " << an << endl;
-      cout << "Anomaly (avg) = " << avgAnom10.getCurrentAvg() << endl;
-      cout << "Anomaly (Likelihood) = " << anLikely << endl;
-      cout << "input = " << input << endl;
-      if(useSPlocal) cout << "SP (g)= " << outSP << endl;
-      if(useSPlocal) cout << "SP (l)= " << outSPlocal <<endl;
-      if(useTM) cout << "TM= " << outTM << endl;
+      std::cout << "Epoch = " << e+1 << std::endl;
+      std::cout << "Anomaly = " << an << std::endl;
+      std::cout << "Anomaly (avg) = " << avgAnom10.getCurrentAvg() << std::endl;
+      std::cout << "Anomaly (Likelihood) = " << anLikely << std::endl;
+      std::cout << "input = " << input << std::endl;
+      if(useSPlocal) std::cout << "SP (g)= " << outSP << std::endl;
+      if(useSPlocal) std::cout << "SP (l)= " << outSPlocal <<std::endl;
+      if(useTM) std::cout << "TM= " << outTM << std::endl;
 
       //timers
-      cout << "==============TIMERS============" << endl;
-      cout << "Init:\t" << tInit.getElapsed() << endl;
-      cout << "Random:\t" << tRng.getElapsed() << endl;
-      cout << "Encode:\t" << tEnc.getElapsed() << endl;
-      if(useSPlocal)  cout << "SP (l):\t" << tSPloc.getElapsed()*1.0f  << endl;
-      if(useSPglobal) cout << "SP (g):\t" << tSPglob.getElapsed() << endl;
-      if(useTM) cout << "TM:\t" << tTM.getElapsed() << endl;
-      cout << "AN:\t" << tAnLikelihood.getElapsed() << endl;
+      std::cout << "==============TIMERS============" << std::endl;
+      std::cout << "Init:\t" << tInit.getElapsed() << std::endl;
+      std::cout << "Random:\t" << tRng.getElapsed() << std::endl;
+      std::cout << "Encode:\t" << tEnc.getElapsed() << std::endl;
+      if(useSPlocal)  std::cout << "SP (l):\t" << tSPloc.getElapsed()*1.0f  << std::endl;
+      if(useSPglobal) std::cout << "SP (g):\t" << tSPglob.getElapsed() << std::endl;
+      if(useTM) std::cout << "TM:\t" << tTM.getElapsed() << std::endl;
+      std::cout << "AN:\t" << tAnLikelihood.getElapsed() << std::endl;
 
       // check deterministic SP, TM output 
       SDR goldEnc({DIM_INPUT});
@@ -237,7 +237,7 @@ EPOCHS = 2; // make test faster in Debug
 
       // check runtime speed
       const size_t timeTotal = (size_t)floor(tAll.getElapsed());
-      cout << "Total elapsed time = " << timeTotal << " seconds" << endl;
+      std::cout << "Total elapsed time = " << timeTotal << " seconds" << std::endl;
       if(EPOCHS >= 100) { //show only relevant values, ie don't run in valgrind (ndebug, epochs=5) run
 #ifdef NTA_OS_LINUX
         const size_t CI_avg_time = (size_t)floor(99*Timer::getSpeed()); //sec //FIXME the CI speed broken for docker linux
