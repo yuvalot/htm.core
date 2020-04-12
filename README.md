@@ -452,6 +452,14 @@ and for papers we suggest to use the following BibTex citation:
 making the research reproducible. 
 
 
+## Helps
+
+[HTM School](https://numenta.org/htm-school/)
+
+Indy's Blog
+* [Hierarchical Temporal Memory – part 1 – getting started](https://3rdman.de/2020/02/hierarchical-temporal-memory-part-1-getting-started/)
+* [Hierarchical Temporal Memory – part 2](https://3rdman.de/2020/04/hierarchical-temporal-memory-part-2/)
+
 ## Related community work
 
 Community projects for working with HTM. 
