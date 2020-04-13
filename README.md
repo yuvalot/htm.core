@@ -4,7 +4,7 @@
 
 [![CI Build Status](https://github.com/htm-community/htm.core/workflows/build/badge.svg)](https://github.com/htm-community/htm.core/actions)
 
-This is a Community Fork of the [nupic.core](https://github.com/numenta/nupic.core) C++ repository, with Python bindings.
+This is a Community Fork of the [nupic.core](https://github.com/numenta/nupic.core) C++ repository, with Python bindings. This implements the theory as described in [Numnta's BAMI](https://numenta.com/resources/biological-and-machine-intelligence/).
 
 ## Project Goals
 
@@ -453,12 +453,17 @@ making the research reproducible.
 
 
 ## Helps
+[Numenta's BAMI](https://numenta.com/resources/biological-and-machine-intelligence/) The formal theory behind it all. Also consider [Numenta's Papters](https://numenta.com/neuroscience-research/research-publications/papers/).
 
-[HTM School](https://numenta.org/htm-school/)
+[HTM School](https://numenta.org/htm-school/)  is a set of videos that explains the concepts.
 
 Indy's Blog
 * [Hierarchical Temporal Memory – part 1 – getting started](https://3rdman.de/2020/02/hierarchical-temporal-memory-part-1-getting-started/)
 * [Hierarchical Temporal Memory – part 2](https://3rdman.de/2020/04/hierarchical-temporal-memory-part-2/)
+
+For questions regarding the theory can be posted to the [HTM Forum](https://discourse.numenta.org/categories). 
+
+Questions and bug reports regarding the library code can be posted in [htm.core Issues blog](https://github.com/htm-community/htm.core/issues).
 
 ## Related community work
 
