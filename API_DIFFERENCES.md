@@ -1,5 +1,5 @@
 ## Parameter Differences
-This is a comparison of parameters for python versions of this repository htm.core (link) and Numenta's NuPIC (link). Along with the API_CHANGELOG (link) this serves as a guide when migrating your code or comparing the frameworks.
+This is a comparison of parameters for python versions of this repository [htm.core](https://github.com/htm-community/htm.core) and [Numenta's NuPIC](https://github.com/numenta/nupic). Along with the [API_CHANGELOG](API_CHANGELOG.md) this serves as a guide when migrating your code or comparing the frameworks.
 
 ### RDSE
 | HTMCore    |                                                                                                                                                                                                                                                               |         | Numenta's NuPIC |                                                                                                                                                                                                                                                                                                                 |         |
