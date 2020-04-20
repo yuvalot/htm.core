@@ -34,7 +34,7 @@ in C++ library.
    An objective is to stay close to the [Nupic API Docs](http://nupic.docs.numenta.org/stable/api/index.html).
    This is a priority for the `NetworkAPI`.
    The algorithms APIs on the other hand have deviated from their original API (but their logic is the same as Numenta's).
-   If you are porting your code to this codebase, please review the [API Changelog](API_CHANGELOG.md).
+   If you are porting your code to this codebase, please follow the [API Differences](API_DIFFERENCES.md) and consult the [API Changelog](API_CHANGELOG.md).
  * REST interface for `NetworkAPI` with a REST server.
 
 ## Installation
