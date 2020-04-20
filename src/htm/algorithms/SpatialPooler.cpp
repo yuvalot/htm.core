@@ -772,9 +772,11 @@ void applyBoosting_(const UInt i,
 void SpatialPooler::updateBoostFactorsGlobal_() {
   Real targetDensity;
   if (numActiveColumnsPerInhArea_ > 0) {
-    UInt inhibitionArea = (UInt)(pow((Real)(2 * inhibitionRadius_ + 1), (Real)columnDimensions_.size())); //FIXME fix for nD
-    inhibitionArea = min(inhibitionArea, numColumns_);
-    NTA_ASSERT(inhibitionArea > 0);
+    UInt inhibitionArea = 1u;
+    for(UInt dim : columnDimensions_) {
+      inhibitionArea *= min(dim, 2 * inhibitionRadius_ + 1);
+    } 
+    NTA_ASSERT(inhibitionArea > 0 && inhibitionArea <= numColumns_);
     targetDensity = ((Real)numActiveColumnsPerInhArea_) / inhibitionArea;
     targetDensity = min(targetDensity, (Real)MAX_LOCALAREADENSITY);
   } else {
