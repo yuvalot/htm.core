@@ -73,7 +73,7 @@ SpatialPooler::SpatialPooler() {
 SpatialPooler::SpatialPooler(
     const vector<UInt> inputDimensions, const vector<UInt> columnDimensions,
     UInt potentialRadius, Real potentialPct, bool globalInhibition,
-    Real localAreaDensity,
+    Real localAreaDensity, UInt numActiveColumnsPerInhArea,
     UInt stimulusThreshold, Real synPermInactiveDec, Real synPermActiveInc,
     Real synPermConnected, Real minPctOverlapDutyCycles, UInt dutyCyclePeriod,
     Real boostStrength, Int seed, UInt spVerbosity, bool wrapAround)
@@ -88,6 +88,7 @@ SpatialPooler::SpatialPooler(
              potentialPct,
              globalInhibition,
              localAreaDensity,
+             numActiveColumnsPerInhArea,
              stimulusThreshold,
              synPermInactiveDec,
              synPermActiveInc,
@@ -132,14 +133,23 @@ void SpatialPooler::setGlobalInhibition(bool globalInhibition) {
   globalInhibition_ = globalInhibition;
 }
 
+Int SpatialPooler::getNumActiveColumnsPerInhArea() const {
+  return numActiveColumnsPerInhArea_;
+}
+
+void SpatialPooler::setNumActiveColumnsPerInhArea(UInt numActiveColumnsPerInhArea) {
+  NTA_CHECK( numActiveColumnsPerInhArea > 0 && numActiveColumnsPerInhArea <= numColumns_); //TODO this boundary could be smarter
+  numActiveColumnsPerInhArea_ = numActiveColumnsPerInhArea;
+  localAreaDensity_ = 0.0f;  //MUTEX with localAreaDensity
+}
 
 Real SpatialPooler::getLocalAreaDensity() const { return localAreaDensity_; }
 
 void SpatialPooler::setLocalAreaDensity(const Real localAreaDensity) {
   NTA_CHECK(localAreaDensity > 0.0f && localAreaDensity <= 1.0f);
-  NTA_CHECK(static_cast<UInt>(localAreaDensity * getNumColumns()) > 0) 
-	  << "Too small density or sp.getNumColumns() -> would have zero active output columns.";
+  NTA_CHECK(static_cast<UInt>(localAreaDensity * getNumColumns()) > 0) << "Too small density or sp.getNumColumns() -> would have zero active output columns.";
   localAreaDensity_ = localAreaDensity;
+  numActiveColumnsPerInhArea_ = 0; //MUTEX with numActiveColumnsPerInhArea
 }
 
 UInt SpatialPooler::getStimulusThreshold() const { return stimulusThreshold_; }
@@ -363,6 +373,7 @@ void SpatialPooler::initialize(
     Real potentialPct, 
     bool globalInhibition,
     Real localAreaDensity,
+    UInt numActiveColumnsPerInhArea,
     UInt stimulusThreshold, 
     Real synPermInactiveDec, 
     Real synPermActiveInc,
@@ -394,8 +405,13 @@ void SpatialPooler::initialize(
   // 1D input produces 1D output; 2D => 2D, etc. //TODO allow nD -> mD conversion
   NTA_CHECK(inputDimensions_.size() == columnDimensions_.size()); 
 
-  NTA_CHECK(localAreaDensity > 0 && localAreaDensity <= MAX_LOCALAREADENSITY);
-  setLocalAreaDensity(localAreaDensity); 
+  NTA_CHECK( (numActiveColumnsPerInhArea > 0 && localAreaDensity == 0) || (localAreaDensity > 0 && numActiveColumnsPerInhArea == 0) ) 
+  << "SP: Mutex. Only one can be set to >0: localAreaDensity, numActiveColumnsPerInhArea";
+  if(numActiveColumnsPerInhArea > 0) {
+    setNumActiveColumnsPerInhArea(numActiveColumnsPerInhArea);
+  } else {
+    setLocalAreaDensity(localAreaDensity); 
+  }
 
   rng_ = Random(seed);
 
@@ -754,7 +770,16 @@ void applyBoosting_(const UInt i,
 
 
 void SpatialPooler::updateBoostFactorsGlobal_() {
-  const Real targetDensity = localAreaDensity_;
+  Real targetDensity;
+  if (numActiveColumnsPerInhArea_ > 0) {
+    UInt inhibitionArea = (UInt)(pow((Real)(2 * inhibitionRadius_ + 1), (Real)columnDimensions_.size())); //FIXME fix for nD
+    inhibitionArea = min(inhibitionArea, numColumns_);
+    NTA_ASSERT(inhibitionArea > 0);
+    targetDensity = ((Real)numActiveColumnsPerInhArea_) / inhibitionArea;
+    targetDensity = min(targetDensity, (Real)MAX_LOCALAREADENSITY);
+  } else {
+    targetDensity = localAreaDensity_;
+  }
   
   for (UInt i = 0; i < numColumns_; ++i) { 
     applyBoosting_(i, targetDensity, activeDutyCycles_, boostStrength_, boostFactors_);
@@ -795,7 +820,14 @@ void SpatialPooler::updateBookeepingVars_(bool learn) {
 
 void SpatialPooler::inhibitColumns_(const vector<Real> &overlaps,
                                     vector<CellIdx> &activeColumns) const {
-  const Real density = localAreaDensity_;
+  Real density = localAreaDensity_;
+  if (numActiveColumnsPerInhArea_ > 0) {
+    UInt inhibitionArea =
+      (UInt)(pow((Real)(2 * inhibitionRadius_ + 1), (Real)columnDimensions_.size()));
+    inhibitionArea = min(inhibitionArea, numColumns_);
+    density = ((Real)numActiveColumnsPerInhArea_) / inhibitionArea;
+    density = min(density, (Real)MAX_LOCALAREADENSITY);
+  }
 
   if (globalInhibition_ ||
       inhibitionRadius_ >
@@ -936,6 +968,7 @@ void SpatialPooler::printParameters(std::ostream& out) const {
       << "iterationLearnNum           = " << getIterationLearnNum() << std::endl
       << "numInputs                   = " << getNumInputs() << std::endl
       << "numColumns                  = " << getNumColumns() << std::endl
+      << "numActiveColumnsPerInhArea  = " << getNumActiveColumnsPerInhArea()
       << std::endl
       << "potentialPct                = " << getPotentialPct() << std::endl
       << "globalInhibition            = " << getGlobalInhibition() << std::endl
@@ -986,6 +1019,7 @@ bool SpatialPooler::operator==(const SpatialPooler& o) const{
   if (potentialPct_ != o.potentialPct_) return false;
   if (initConnectedPct_ != o.initConnectedPct_) return false;
   if (globalInhibition_ != o.globalInhibition_) return false;
+  if (numActiveColumnsPerInhArea_ != o.numActiveColumnsPerInhArea_) return false;
   if (localAreaDensity_ != o.localAreaDensity_) return false;
   if (stimulusThreshold_ != o.stimulusThreshold_) return false;
   if (inhibitionRadius_ != o.inhibitionRadius_) return false;
