@@ -76,7 +76,7 @@ SpatialPooler::SpatialPooler(
     Real localAreaDensity,
     UInt stimulusThreshold, Real synPermInactiveDec, Real synPermActiveInc,
     Real synPermConnected, Real minPctOverlapDutyCycles, UInt dutyCyclePeriod,
-    Real boostStrength, Int seed, UInt spVerbosity, bool wrapAround)
+    Real boostStrength, UInt seed, UInt spVerbosity, bool wrapAround)
     : SpatialPooler::SpatialPooler()
 {
   // The current version number for serialzation.
@@ -370,7 +370,7 @@ void SpatialPooler::initialize(
     Real minPctOverlapDutyCycles, 
     UInt dutyCyclePeriod,
     Real boostStrength, 
-    Int seed, 
+    UInt seed, 
     UInt spVerbosity, 
     bool wrapAround) {
 

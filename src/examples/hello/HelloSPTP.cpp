@@ -72,8 +72,7 @@ EPOCHS = 2; // make test faster in Debug
   SpatialPooler  spLocal(enc.dimensions, vector<UInt>{COLS}); // Spatial pooler with local inh
   spGlobal.setGlobalInhibition(true);
   spLocal.setGlobalInhibition(false);
-  Random rnd(42); //uses fixed seed for deterministic output checks
-
+  
   TemporalMemory tm(vector<UInt>{COLS}, CELLS);
 
   AnomalyLikelihood anLikelihood;
@@ -93,6 +92,12 @@ EPOCHS = 2; // make test faster in Debug
   Metrics statsSPlocal(outSPlocal, 1000);
   Metrics statsSPglobal(outSPglobal, 1000);
   Metrics statsTM(outTM, 1000);
+
+  //uses fixed seed for deterministic output checks:
+  Random rnd(42);
+  spGlobal.setSeed(1);
+  spLocal.setSeed(1);
+  tm.setSeed(42);
 
   /*
    * For example: fn = sin(x) -> periodic >= 2Pi ~ 6.3 && x+=0.01 -> 630 steps to 1st period -> window >= 630
@@ -201,7 +206,7 @@ EPOCHS = 2; // make test faster in Debug
 
       SDR goldSP({COLS});
       const SDR_sparse_t deterministicSP{
-        62, 72, 73, 82, 85, 102, 263, 277, 287, 303, 306, 308, 309, 322, 337, 339, 340, 352, 370, 493, 1094, 1095, 1114, 1115, 1120, 1463, 1512, 1518, 1647, 1651, 1691, 1694, 1729, 1745, 1746, 1760, 1770, 1774, 1775, 1781, 1797, 1798, 1803, 1804, 1805, 1812, 1827, 1828, 1831, 1832, 1858, 1859, 1860, 1861, 1862, 1875, 1878, 1880, 1881, 1898, 1918, 1923, 1929, 1931,1936, 1950, 1953, 1956, 1958, 1961, 1964, 1965, 1967, 1971, 1973, 1975, 1976, 1979, 1980, 1981, 1982, 1984, 1985, 1986, 1988, 1991, 1994, 1996, 1997, 1998, 1999, 2002, 2006, 2008, 2011, 2012, 2013, 2017, 2019, 2022, 2027, 2030
+        66, 70, 72, 75, 76, 82, 83, 85, 99, 297, 300, 301, 303, 305, 306, 308, 309, 311, 316, 320, 321, 323, 324, 325, 327, 329, 330, 343, 345, 347, 363, 508, 1084, 1110, 1112, 1115, 1120, 1131, 1522, 1532, 1535, 1634, 1684, 1697, 1732, 1769, 1777, 1778, 1800, 1801, 1803, 1817, 1818, 1823, 1830, 1834, 1836, 1844, 1847, 1851, 1855, 1859, 1860, 1862, 1866, 1882, 1886, 1897,1906, 1918, 1921, 1922, 1931, 1936, 1954, 1961, 1964, 1965, 1966, 1967, 1968, 1970, 1971, 1972, 1973, 1975, 1977, 1978, 1980, 1981, 1987, 1989, 1990, 2001, 2006, 2007, 2009, 2015, 2016, 2018, 2020, 2042
       };
       goldSP.setSparse(deterministicSP);
 

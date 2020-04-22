@@ -77,7 +77,7 @@ public:
     Real minPctOverlapDutyCycles = 0.001f,
     UInt dutyCyclePeriod = 1000u, 
 		Real boostStrength = 0.0f,
-    Int seed = 1, 
+    UInt seed = 0u, //random
 		UInt spVerbosity = 0u, 
 		bool wrapAround = true);
 
@@ -186,9 +186,9 @@ public:
         too much boosting may also lead to instability of SP outputs.
 
 
-  @param seed Seed for our random number generator. If seed is < 0
+  @param seed Seed for our random number generator. If seed is 0,
         a randomly generated seed is used. The behavior of the spatial
-        pooler is deterministic once the seed is set.
+        pooler is deterministic once the seed is fixed to > 0.
 
   @param spVerbosity spVerbosity level: 0, 1, 2, or 3
 
@@ -205,10 +205,15 @@ public:
              bool globalInhibition = true, 
 	     Real localAreaDensity = 0.05f,
              UInt stimulusThreshold = 0u,
-             Real synPermInactiveDec = 0.01f, Real synPermActiveInc = 0.1f,
-             Real synPermConnected = 0.1f, Real minPctOverlapDutyCycles = 0.001f,
-             UInt dutyCyclePeriod = 1000u, Real boostStrength = 0.0f,
-             Int seed = 1, UInt spVerbosity = 0u, bool wrapAround = true);
+             Real synPermInactiveDec = 0.01f, 
+	     Real synPermActiveInc = 0.1f,
+             Real synPermConnected = 0.1f, 
+	     Real minPctOverlapDutyCycles = 0.001f,
+             UInt dutyCyclePeriod = 1000u, 
+	     Real boostStrength = 0.0f,
+             UInt seed = 0u, 
+	     UInt spVerbosity = 0u, 
+	     bool wrapAround = true);
 
 
   /**
@@ -734,6 +739,13 @@ public:
   columns.
   */
   void getConnectedCounts(UInt connectedCounts[]) const;
+
+  /** set seed for internal random number generator. 
+   * See @ref `seed` arg in the constructor.
+   */
+  void setSeed(UInt seed) {
+    rng_ = Random(seed);
+  }
 
 
   /**

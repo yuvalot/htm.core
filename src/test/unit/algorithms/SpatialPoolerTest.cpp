@@ -1936,26 +1936,23 @@ TEST(SpatialPoolerTest, testSerialization_ar) {
 
   SpatialPooler sp1;
   sp1.initialize(inputDims, colDims);
+  sp1.setSeed(1);
 
   SDR input(inputDims);
   SDR output(colDims);
 
+  //burn-in the SP
   for (UInt i = 0; i < 100; ++i) {
     input.randomize(0.05f, random); //5% random ON
     sp1.compute(input, true, output);
   }
 
-  // Now we reuse the last input to test after serialization
-
-  auto activeColumnsBefore = output.getSparse();
 
   // Save initial trained model
   stringstream ss;
 	ss.precision(std::numeric_limits<double>::digits10 + 1);
 	ss.precision(std::numeric_limits<float>::digits10 + 1);
   sp1.save(ss);
-
-  SpatialPooler sp2;
 
   htm::Timer testTimer;
 
@@ -1967,14 +1964,14 @@ TEST(SpatialPoolerTest, testSerialization_ar) {
     SDR outputBaseline(output);
     sp1.compute(input, true, outputBaseline);
 
-    // C - Next do old version
+    // C - Next, verify the same results come from the de/serialized version
     {
       SpatialPooler spTemp;
       testTimer.start();
 
       // Deserialize
       ss.seekg(0);
-      spTemp.load(ss);
+      EXPECT_NO_THROW(spTemp.load(ss));
 
       // Feed new record through
       SDR outputC({numColumns});
@@ -1982,11 +1979,11 @@ TEST(SpatialPoolerTest, testSerialization_ar) {
 
       // Serialize
       ss.clear();
-      spTemp.save(ss);
+      EXPECT_NO_THROW(spTemp.save(ss));
 
       testTimer.stop();
 
-      EXPECT_EQ(outputBaseline, outputC);
+      EXPECT_EQ(outputBaseline, outputC); //FIXME this test randomly fails. (De/serialization of rng_ is correct?) 
     }
   }
   ss.clear();
