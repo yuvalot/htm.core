@@ -71,9 +71,10 @@ namespace htm {
  */
 class Random : public Serializable  {
 public:
-  Random(UInt64 seed = 0);
+  Random(const UInt64 seed = 0);
 
 
+  // Serialization
   CerealAdapter;
   template<class Archive>
   void save_ar(Archive & ar) const {
@@ -160,8 +161,6 @@ public:
 
 protected:
   friend class RandomTest;
-  friend std::ostream &operator<<(std::ostream &, const Random &);
-  friend std::istream &operator>>(std::istream &, Random &);
   friend UInt32 GetRandomSeed();
 private:
   UInt64 seed_;
@@ -185,10 +184,6 @@ private:
     }
   }
 };
-
-// serialization/deserialization
-std::ostream &operator<<(std::ostream &, const Random &);
-std::istream &operator>>(std::istream &, Random &);
 
 // This function returns seeds from the Random singleton in our
 // "universe" (application, plugin, python module). If, when the
