@@ -32,27 +32,19 @@ bool Random::operator==(const Random &o) const {
 	 gen == o.gen;
 }
 
-bool static_gen_seeded = false;  //used only for seeding seed if 0/auto is passed for seed
-std::mt19937 static_gen;
+std::random_device rd; //HW RNG, undeterministic, platform dependant. Use only for seeding rng if random seed wanted (seed=0)
 
 Random::Random(UInt64 seed) {
   if (seed == 0) {
-    if( !static_gen_seeded ) {
-      #if NDEBUG
-        unsigned int static_seed = (unsigned int)std::chrono::system_clock::now().time_since_epoch().count();
-      #else
-        unsigned int static_seed = DEBUG_RANDOM_SEED;
-      #endif
-      static_gen.seed( static_seed );
-      static_gen_seeded = true;
+      const unsigned int static_seed = rd();
+      std::mt19937 static_gen(static_seed);
       NTA_INFO << "Random seed: " << static_seed;
-    }
+
     seed_ = static_gen(); //generate random value from HW RNG
   } else {
     seed_ = seed;
   }
-  // if seed is zero at this point, there is a logic error.
-  NTA_CHECK(seed_ != 0);
+  NTA_CHECK(seed_ != 0) << "Random: if seed is zero at this point, there is a logic error";
   gen.seed(static_cast<unsigned int>(seed_)); //seed the generator
   steps_ = 0;
 }

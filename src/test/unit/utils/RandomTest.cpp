@@ -37,8 +37,10 @@ using namespace std;
 TEST(RandomTest, Seeding) {
   {
   Random r;
+  ASSERT_TRUE(r.getSeed() != 0) << "Should initialize with randomized seed";
+
   auto x = r.getUInt32();
-  ASSERT_TRUE(x != 0);
+  ASSERT_NE(x,  0u);
   }
 
   // test getSeed
@@ -62,6 +64,10 @@ TEST(RandomTest, Seeding) {
   { //MAX_INT seed
   Random r(-1);
   ASSERT_EQ(r(), 419326371u);
+  }
+
+  for(int i=0; i< 10; i++) {
+    ASSERT_NE(Random(0).getSeed(), Random(0).getSeed()) << "Randomly seeded generators should not be identical!";
   }
 
 }
