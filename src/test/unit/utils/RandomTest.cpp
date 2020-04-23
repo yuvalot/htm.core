@@ -110,17 +110,15 @@ TEST(RandomTest, OperatorEquals) {
 }
 
 
-TEST(RandomTest, testSerialization_ar) {
-  // test serialization/deserialization
+TEST(RandomTest, testSerialization) { // test serialization/deserialization using Cereal
   const UInt SEED = 862973u;
   Random r1(SEED);
   ASSERT_EQ(r1.getSeed(), SEED) << "RNG seed not set properly";
 
   //burn-in
-  for (int i = 0; i < 100; i++)
-    r1.getUInt32();
-
+  for (int i = 0; i < 100; i++) r1.getUInt32();
   EXPECT_EQ(r1.getUInt32(), 2276275187u) << "Before serialization must be same";
+
   // serialize
   std::stringstream ss;
   r1.save(ss);
@@ -133,12 +131,12 @@ TEST(RandomTest, testSerialization_ar) {
   EXPECT_EQ(r1, r2) << "load from serialization";
   EXPECT_EQ(r2.getUInt32(), 3537119063u) << "Deserialized is not deterministic";
   EXPECT_EQ(r1.getUInt32(), 3537119063u); //move the same number of steps
+  EXPECT_EQ(r1.getSeed(), r2.getSeed());
+  EXPECT_EQ(r2.getSeed(), SEED) << "Rng deserialized seed is not the same!";
 
   for (int i = 0; i < 100; i++) {
     EXPECT_EQ(r1.getUInt32(), r2.getUInt32()) << "serialization";
   }
-
-  EXPECT_EQ(r2.getSeed(), SEED) << "Rng deserialized seed is not the same!";
 
 }
 

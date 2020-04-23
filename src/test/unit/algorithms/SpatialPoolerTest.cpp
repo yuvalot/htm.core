@@ -1945,6 +1945,7 @@ TEST(SpatialPoolerTest, testSerialization_ar) {
   SpatialPooler sp1;
   sp1.initialize(inputDims, colDims);
   sp1.setSeed(1);
+  ASSERT_EQ(sp1.getSeed(), 1u);
 
   SDR input(inputDims);
   SDR output(colDims);
@@ -1960,9 +1961,8 @@ TEST(SpatialPoolerTest, testSerialization_ar) {
   stringstream ss;
 //	ss.precision(std::numeric_limits<double>::digits10 + 1);
 //	ss.precision(std::numeric_limits<float>::digits10 + 1);
-  sp1.save(ss);
+  EXPECT_NO_THROW(sp1.save(ss)) << "serializing failed";
 
-  htm::Timer testTimer;
 
   for (UInt i = 0; i < 6; ++i) {
     // Create new input
@@ -1974,31 +1974,25 @@ TEST(SpatialPoolerTest, testSerialization_ar) {
 
     // C - Next, verify the same results come from the de/serialized version
     {
+      // Deserialize:
       SpatialPooler spTemp;
-      ASSERT_EQ(spTemp.getSeed(), 1u);
-
-      testTimer.start();
-
-      // Deserialize
-      ss.seekg(0);
+      //ss.seekg(0);
       EXPECT_NO_THROW(spTemp.load(ss));
+      ASSERT_EQ(spTemp.getSeed(), 1u);
+      check_spatial_eq(sp1, spTemp);
 
       // Feed new record through
       SDR outputC({numColumns});
       spTemp.compute(input, true, outputC);
 
-      // Serialize
+      // Serialize:
       ss.clear();
       EXPECT_NO_THROW(spTemp.save(ss));
 
-      testTimer.stop();
 
       EXPECT_EQ(outputBaseline, outputC); //FIXME this test randomly fails. (De/serialization of rng_ is correct?) 
     }
   }
-  ss.clear();
-
-  cout << "[          ] Timing for SP serialization: " << testTimer.getElapsed() << "sec" << endl;
 }
 
 

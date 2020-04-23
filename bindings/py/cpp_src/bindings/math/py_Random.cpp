@@ -147,8 +147,7 @@ namespace htm_ext {
             [](const Random_t& r)
         {
             std::stringstream ss;
-	    cereal::JSONOutputArchive ar( ss );
-            ar(r); //save r's state to archive (stream) with cereal
+            r.save(ss); //save r's state to archive (stream) with cereal
             return ss.str();
         },
 
@@ -162,8 +161,7 @@ namespace htm_ext {
             std::stringstream ss(str);
 	    cereal::JSONInputArchive ar( ss );
             Random_t r;
-            ar(r); //load from stream to Random 'r'
-
+            r.load(ss); //load from stream to Random 'r'
             return r;
         }
         ));
