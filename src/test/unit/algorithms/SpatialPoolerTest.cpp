@@ -121,34 +121,30 @@ bool check_vector_eq(vector<Real> vec1, vector<Real> vec2) {
   return true;
 }
 
+//helper method to check detailed equality of 2 spatial poolers
 void check_spatial_eq(const SpatialPooler& sp1, const SpatialPooler& sp2) {
   UInt numColumns = sp1.getNumColumns();
   UInt numInputs = sp2.getNumInputs();
 
-  ASSERT_TRUE(sp1.getNumColumns() == sp2.getNumColumns());
-  ASSERT_TRUE(sp1.getNumInputs() == sp2.getNumInputs());
-  ASSERT_TRUE(sp1.getPotentialRadius() == sp2.getPotentialRadius());
-  ASSERT_TRUE(sp1.getPotentialPct() == sp2.getPotentialPct());
-  ASSERT_TRUE(sp1.getGlobalInhibition() == sp2.getGlobalInhibition());
-  ASSERT_TRUE(almost_eq(sp1.getLocalAreaDensity(), sp2.getLocalAreaDensity()));
-  ASSERT_TRUE(sp1.getStimulusThreshold() == sp2.getStimulusThreshold());
-  ASSERT_TRUE(sp1.getDutyCyclePeriod() == sp2.getDutyCyclePeriod());
-  ASSERT_TRUE(almost_eq(sp1.getBoostStrength(), sp2.getBoostStrength()));
-  ASSERT_TRUE(sp1.getIterationNum() == sp2.getIterationNum());
-  ASSERT_TRUE(sp1.getIterationLearnNum() == sp2.getIterationLearnNum());
-  ASSERT_TRUE(sp1.getSpVerbosity() == sp2.getSpVerbosity());
-  ASSERT_TRUE(sp1.getWrapAround() == sp2.getWrapAround());
-  ASSERT_TRUE(sp1.getUpdatePeriod() == sp2.getUpdatePeriod());
-  cout << "check: " << sp1.getSynPermActiveInc() << " "
-       << sp2.getSynPermActiveInc() << endl;
-  ASSERT_TRUE(almost_eq(sp1.getSynPermActiveInc(), sp2.getSynPermActiveInc()));
-  ASSERT_TRUE(
-      almost_eq(sp1.getSynPermInactiveDec(), sp2.getSynPermInactiveDec()));
-  ASSERT_TRUE(almost_eq(sp1.getSynPermBelowStimulusInc(),
-                        sp2.getSynPermBelowStimulusInc()));
-  ASSERT_TRUE(almost_eq(sp1.getSynPermConnected(), sp2.getSynPermConnected()));
-  ASSERT_TRUE(almost_eq(sp1.getMinPctOverlapDutyCycles(),
-                        sp2.getMinPctOverlapDutyCycles()));
+  EXPECT_EQ(sp1.getNumColumns(), sp2.getNumColumns());
+  EXPECT_EQ(sp1.getNumInputs(), sp2.getNumInputs());
+  EXPECT_EQ(sp1.getPotentialRadius(), sp2.getPotentialRadius());
+  EXPECT_EQ(sp1.getPotentialPct(), sp2.getPotentialPct());
+  EXPECT_EQ(sp1.getGlobalInhibition(), sp2.getGlobalInhibition());
+  EXPECT_FLOAT_EQ(sp1.getLocalAreaDensity(), sp2.getLocalAreaDensity());
+  EXPECT_EQ(sp1.getStimulusThreshold(), sp2.getStimulusThreshold());
+  EXPECT_EQ(sp1.getDutyCyclePeriod(), sp2.getDutyCyclePeriod());
+  EXPECT_FLOAT_EQ(sp1.getBoostStrength(), sp2.getBoostStrength());
+  EXPECT_EQ(sp1.getIterationNum(), sp2.getIterationNum());
+  EXPECT_EQ(sp1.getIterationLearnNum(), sp2.getIterationLearnNum());
+  EXPECT_EQ(sp1.getSpVerbosity(), sp2.getSpVerbosity());
+  EXPECT_EQ(sp1.getWrapAround(), sp2.getWrapAround());
+  EXPECT_EQ(sp1.getUpdatePeriod(), sp2.getUpdatePeriod());
+  EXPECT_FLOAT_EQ(sp1.getSynPermActiveInc(), sp2.getSynPermActiveInc());
+  EXPECT_FLOAT_EQ(sp1.getSynPermInactiveDec(), sp2.getSynPermInactiveDec());
+  EXPECT_FLOAT_EQ(sp1.getSynPermBelowStimulusInc(), sp2.getSynPermBelowStimulusInc());
+  EXPECT_FLOAT_EQ(sp1.getSynPermConnected(), sp2.getSynPermConnected());
+  EXPECT_FLOAT_EQ(sp1.getMinPctOverlapDutyCycles(), sp2.getMinPctOverlapDutyCycles());
 
   auto boostFactors1 = new Real[numColumns];
   auto boostFactors2 = new Real[numColumns];
@@ -1964,14 +1960,6 @@ TEST(SpatialPoolerTest, testSerialization_ar) {
   EXPECT_NO_THROW(sp1.save(ss)) << "serializing failed";
 
 
-  for (UInt i = 0; i < 6; ++i) {
-    // Create new input
-    input.randomize(0.05f, random);
-
-    // Get expected output
-    SDR outputBaseline(output);
-    sp1.compute(input, true, outputBaseline);
-
     // C - Next, verify the same results come from the de/serialized version
     {
       // Deserialize:
@@ -1979,20 +1967,27 @@ TEST(SpatialPoolerTest, testSerialization_ar) {
       //ss.seekg(0);
       EXPECT_NO_THROW(spTemp.load(ss));
       ASSERT_EQ(spTemp.getSeed(), 1u);
-      check_spatial_eq(sp1, spTemp);
+      check_spatial_eq(sp1, spTemp); //detailed "equals" method here in test
+      ASSERT_EQ(sp1, spTemp) << "Loaded SP is not the same as original"; //equals method used in SP
 
-      // Feed new record through
-      SDR outputC({numColumns});
-      spTemp.compute(input, true, outputC);
+      // 1 step: Create new input & compute SP output
+      for(int i=0; i < 42; i++) {
+        input.randomize(0.05f, random);
+        SDR expected(colDims);
+        sp1.compute(input, true, expected);
+
+        // Feed new record through
+        SDR outputC(colDims);
+        spTemp.compute(input, true, outputC);
+
+
+        EXPECT_EQ(expected, outputC) << "Output of original and deserialized SP must be the same";
+      }
 
       // Serialize:
       ss.clear();
       EXPECT_NO_THROW(spTemp.save(ss));
-
-
-      EXPECT_EQ(outputBaseline, outputC); //FIXME this test randomly fails. (De/serialization of rng_ is correct?) 
     }
-  }
 }
 
 
