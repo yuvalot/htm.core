@@ -116,6 +116,7 @@ EPOCHS = 2; // make test faster in Debug
   for (UInt e = 0; e < EPOCHS; e++) { //FIXME EPOCHS is actually steps, there's just 1 pass through data/epoch.
 
     //Encode
+    {
     tEnc.start();
     x+=0.01f; //step size for fn(x)
     enc.encode(sin(x), input); //model sin(x) function //TODO replace with CSV data
@@ -125,32 +126,38 @@ EPOCHS = 2; // make test faster in Debug
     tRng.start();
     input.addNoise(0.01f, rnd); //change 1% of the SDR for each iteration, this makes a random sequence, but seemingly stable
     tRng.stop();
+    }
 
     //SP (global and local)
     if(useSPlocal) {
-    tSPloc.start();
-    spLocal.compute(input, true, outSPlocal);
-    tSPloc.stop();
+      tSPloc.start();
+      spLocal.compute(input, true, outSPlocal);
+      tSPloc.stop();
+
+      outSP = outSPlocal;
     }
 
     if(useSPglobal) {
-    tSPglob.start();
-    spGlobal.compute(input, true, outSPglobal);
-    tSPglob.stop();
+      tSPglob.start();
+      spGlobal.compute(input, true, outSPglobal);
+      tSPglob.stop();
+    
+      outSP = outSPglobal;
     }
-    outSP = outSPglobal; //toggle if local/global SP is used further down the chain (TM, Anomaly)
 
     // TM
     if(useTM) {
-    tTM.start();
+      tTM.start();
       tm.compute(outSP, true /*learn*/); //to uses output of SPglobal
       tm.activateDendrites(); //required to enable tm.getPredictiveCells()
-      outTM = tm.cellsToColumns( tm.getPredictiveCells() );
       tTM.stop();
+
+      outTM = tm.cellsToColumns( tm.getPredictiveCells() );
     }
 
 
     //Anomaly (pure x likelihood)
+    {
     an = tm.anomaly;
     avgAnom10.compute(an); //moving average
     if(e % 1000 == 0) {
@@ -161,6 +168,7 @@ EPOCHS = 2; // make test faster in Debug
     tAnLikelihood.start();
     anLikely = anLikelihood.anomalyProbability(an); 
     tAnLikelihood.stop();
+    }
 
 
     // print
