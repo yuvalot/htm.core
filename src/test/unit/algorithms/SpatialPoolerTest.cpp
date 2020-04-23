@@ -1958,8 +1958,8 @@ TEST(SpatialPoolerTest, testSerialization_ar) {
 
   // Save initial trained model
   stringstream ss;
-	ss.precision(std::numeric_limits<double>::digits10 + 1);
-	ss.precision(std::numeric_limits<float>::digits10 + 1);
+//	ss.precision(std::numeric_limits<double>::digits10 + 1);
+//	ss.precision(std::numeric_limits<float>::digits10 + 1);
   sp1.save(ss);
 
   htm::Timer testTimer;
@@ -1975,6 +1975,8 @@ TEST(SpatialPoolerTest, testSerialization_ar) {
     // C - Next, verify the same results come from the de/serialized version
     {
       SpatialPooler spTemp;
+      ASSERT_EQ(spTemp.getSeed(), 1u);
+
       testTimer.start();
 
       // Deserialize

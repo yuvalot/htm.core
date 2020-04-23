@@ -180,7 +180,11 @@ TEST(RandomTest, testSerialization2) {
 
 TEST(RandomTest, testSerialization_ar) {
   // test serialization/deserialization
-  Random r1(862973);
+  const UInt SEED = 862973u;
+  Random r1(SEED);
+  ASSERT_EQ(r1.getSeed(), SEED) << "RNG seed not set properly";
+
+  //burn-in
   for (int i = 0; i < 100; i++)
     r1.getUInt32();
 
@@ -196,14 +200,14 @@ TEST(RandomTest, testSerialization_ar) {
   // r1 and r2 should be identical
   EXPECT_EQ(r1, r2) << "load from serialization";
   EXPECT_EQ(r2.getUInt32(), 3537119063u) << "Deserialized is not deterministic";
-  r1.getUInt32(); //move the same number of steps
+  EXPECT_EQ(r1.getUInt32(), 3537119063u); //move the same number of steps
 
-  UInt32 v1, v2;
   for (int i = 0; i < 100; i++) {
-    v1 = r1.getUInt32();
-    v2 = r2.getUInt32();
-    EXPECT_EQ(v1, v2) << "serialization";
+    EXPECT_EQ(r1.getUInt32(), r2.getUInt32()) << "serialization";
   }
+
+  EXPECT_EQ(r2.getSeed(), SEED) << "Rng deserialized seed is not the same!";
+
 }
 
 

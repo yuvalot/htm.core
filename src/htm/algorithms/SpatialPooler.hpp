@@ -780,6 +780,9 @@ public:
   void setSeed(UInt seed) {
     rng_ = Random(seed);
   }
+  UInt getSeed() const {
+    return rng_.getSeed();
+  }
 
 
   /**
