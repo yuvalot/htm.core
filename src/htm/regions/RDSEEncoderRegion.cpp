@@ -68,7 +68,6 @@ namespace htm {
 
 
 RDSEEncoderRegion::RDSEEncoderRegion(const ValueMap &par, Region *region) : RegionImpl(region) {
-  rnd_ = Random(42); //TODO use seed value here?
   spec_.reset(createSpec());
   ValueMap params = ValidateParameters(par, spec_.get());
     
@@ -82,6 +81,7 @@ RDSEEncoderRegion::RDSEEncoderRegion(const ValueMap &par, Region *region) : Regi
   args.seed =       params.getScalarT<UInt32>("seed", 0);
 
   encoder_ = std::make_shared<RandomDistributedScalarEncoder>(args);
+  rnd_ = Random(encoder_->parameters.seed);
   sensedValue_ = params.getScalarT<Real64>("sensedValue");
   noise_ = params.getScalarT<Real32>("noise");
 }
