@@ -237,7 +237,7 @@ EPOCHS = 2; // make test faster in Debug
       if(e+1 == 5000) {
 	// For debugging: save SP's state in 1 step, comment out, recompile, load SP and compare in another 
 	// step 1:
-	//spGlobal.saveToFile("/tmp/spG.save");
+	spGlobal.saveToFile("/tmp/spG.save");
 	// step 2:
 	SpatialPooler resumedSP;
 	resumedSP.loadFromFile("/tmp/spG.save");

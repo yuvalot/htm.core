@@ -802,6 +802,7 @@ TEST(ConnectionsTest, testSaveLoad) {
   ASSERT_EQ(c1, c2);
 }
 
+
 TEST(ConnectionsTest, testCreateSegmentOverflow) {
     const auto LIMIT = std::numeric_limits<Segment>::max();
     if(LIMIT <= 256) { //connections::Segment is too large (likely uint32), so this test would run, but memory 
@@ -818,6 +819,7 @@ TEST(ConnectionsTest, testCreateSegmentOverflow) {
 	    << " total num segs: " << (size_t)c.numSegments() << "data-type limit " << LIMIT;
   }
 }
+
 
 TEST(ConnectionsTest, testCreateSynapseOverflow) {
   const auto LIMIT = std::numeric_limits<Synapse>::max();
@@ -836,6 +838,7 @@ TEST(ConnectionsTest, testCreateSynapseOverflow) {
       << " total num syns: " << (size_t)c.numSynapses() << "data-type limit " << LIMIT;
   }
 }
+
 
 TEST(ConnectionsTest, testTimeseries) {
   Connections C( 1, .5, true );

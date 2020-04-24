@@ -73,11 +73,15 @@ struct SynapseData: public Serializable {
   template<class Archive>
   void save_ar(Archive & ar) const {
     ar(cereal::make_nvp("perm", permanence),
-      cereal::make_nvp("presyn", presynapticCell));
+       cereal::make_nvp("presyn", presynapticCell),
+       cereal::make_nvp("segment", segment),
+       cereal::make_nvp("presynapticMapIndex", presynapticMapIndex_),
+       cereal::make_nvp("id", id)
+    );
   }
   template<class Archive>
   void load_ar(Archive & ar) {
-    ar( permanence, presynapticCell);
+    ar( permanence, presynapticCell, segment, presynapticMapIndex_, id);
   }
 
 };
@@ -94,7 +98,7 @@ struct SynapseData: public Serializable {
  * @param cell
  * The cell that this segment is on.
  */
-struct SegmentData {
+struct SegmentData: public Serializable {
   SegmentData(const CellIdx cell, Segment id, UInt32 lastUsed = 0) : cell(cell), numConnected(0), lastUsed(lastUsed), id(id) {} //default constructor
 
   std::vector<Synapse> synapses;
@@ -102,6 +106,23 @@ struct SegmentData {
   SynapseIdx numConnected; //number of permanences from `synapses` that are >= synPermConnected, ie connected synapses
   UInt32 lastUsed = 0; //last used time (iteration). Used for segment pruning by "least recently used" (LRU) in `createSegment`
   Segment id; 
+
+  //Serialize
+  SegmentData() {}; //empty constructor for serialization, do not use
+  CerealAdapter;
+  template<class Archive>
+  void save_ar(Archive & ar) const {
+    ar(cereal::make_nvp("synapses", synapses),
+       cereal::make_nvp("cell", cell),
+       cereal::make_nvp("numConnected", numConnected),
+       cereal::make_nvp("lastUsed", lastUsed),
+       cereal::make_nvp("id", id)
+    );
+  }
+  template<class Archive>
+  void load_ar(Archive & ar) {
+    ar( synapses, cell, numConnected, lastUsed, id);
+  }
 };
 
 /**
@@ -115,8 +136,19 @@ struct SegmentData {
  * Segments on this cell.
  *
  */
-struct CellData {
+struct CellData : public Serializable {
   std::vector<Segment> segments;
+
+  //Serialization
+  CerealAdapter;
+  template<class Archive>
+  void save_ar(Archive & ar) const {
+    ar(cereal::make_nvp("segments", segments));
+  }
+  template<class Archive>
+  void load_ar(Archive & ar) {
+    ar( segments);
+  }
 };
 
 /**
@@ -547,54 +579,62 @@ public:
   CerealAdapter;
   template<class Archive>
   void save_ar(Archive & ar) const {
-    // make this look like a queue of items to be sent. 
-    // and a queue of sizes so we can distribute the 
-		// correct number for each level when deserializing.
-    std::deque<SynapseData> syndata;
-    std::deque<size_t> sizes;
-    sizes.push_back(cells_.size());
-    for (CellData cellData : cells_) {
-      const std::vector<Segment> &segments = cellData.segments;
-      sizes.push_back(segments.size());
-      for (Segment segment : segments) {
-        const SegmentData &segmentData = segments_[segment];
-        const std::vector<Synapse> &synapses = segmentData.synapses;
-        sizes.push_back(synapses.size());
-        for (Synapse synapse : synapses) {
-          const SynapseData &synapseData = synapses_[synapse];
-          syndata.push_back(synapseData);
-        }
-      }
-    }
     ar(CEREAL_NVP(connectedThreshold_));
-    ar(CEREAL_NVP(sizes));
-    ar(CEREAL_NVP(syndata));
     ar(CEREAL_NVP(iteration_));
+    ar(cereal::make_nvp("numCells", cells_.size())); //not real member, helper for constructor
+    ar(CEREAL_NVP(cells_));
+    ar(CEREAL_NVP(segments_));
+    ar(CEREAL_NVP(synapses_));
+
+    ar(CEREAL_NVP(destroyedSynapses_));
+    ar(CEREAL_NVP(destroyedSegments_));
+
+    ar(CEREAL_NVP(potentialSynapsesForPresynapticCell_));
+    ar(CEREAL_NVP(connectedSynapsesForPresynapticCell_));
+    ar(CEREAL_NVP(potentialSegmentsForPresynapticCell_));
+    ar(CEREAL_NVP(connectedSegmentsForPresynapticCell_));
+
+    ar(CEREAL_NVP(nextSegmentOrdinal_));
+    ar(CEREAL_NVP(nextSynapseOrdinal_));
+
+    ar(CEREAL_NVP(timeseries_));
+    ar(CEREAL_NVP(previousUpdates_));
+    ar(CEREAL_NVP(currentUpdates_));
+
+    ar(CEREAL_NVP(prunedSyns_));
+    ar(CEREAL_NVP(prunedSegs_));
   }
 
   template<class Archive>
   void load_ar(Archive & ar) {
-    std::deque<size_t> sizes;
-    std::deque<SynapseData> syndata;
     ar(CEREAL_NVP(connectedThreshold_));
-    ar(CEREAL_NVP(sizes));
-    ar(CEREAL_NVP(syndata));
-
-    CellIdx numCells = static_cast<CellIdx>(sizes.front()); sizes.pop_front();
-    initialize(numCells, connectedThreshold_);
-    for (UInt cell = 0; cell < numCells; cell++) {
-      size_t numSegments = sizes.front(); sizes.pop_front();
-      for (SegmentIdx j = 0; j < static_cast<SegmentIdx>(numSegments); j++) {
-        Segment segment = createSegment( cell );
-
-        size_t numSynapses = sizes.front(); sizes.pop_front();
-        for (SynapseIdx k = 0; k < static_cast<SynapseIdx>(numSynapses); k++) {
-          SynapseData& syn = syndata.front(); syndata.pop_front();
-          createSynapse( segment, syn.presynapticCell, syn.permanence );
-        }
-      }
-    }
     ar(CEREAL_NVP(iteration_));
+    {
+    size_t numCells;
+    ar(CEREAL_NVP(numCells)); //helper for constructor
+    initialize(numCells, connectedThreshold_); //initialize Connections
+    }
+    ar(CEREAL_NVP(cells_));
+    ar(CEREAL_NVP(segments_));
+    ar(CEREAL_NVP(synapses_));
+
+    ar(CEREAL_NVP(destroyedSynapses_));
+    ar(CEREAL_NVP(destroyedSegments_));
+
+    ar(CEREAL_NVP(potentialSynapsesForPresynapticCell_));
+    ar(CEREAL_NVP(connectedSynapsesForPresynapticCell_));
+    ar(CEREAL_NVP(potentialSegmentsForPresynapticCell_));
+    ar(CEREAL_NVP(connectedSegmentsForPresynapticCell_));
+
+    ar(CEREAL_NVP(nextSegmentOrdinal_));
+    ar(CEREAL_NVP(nextSynapseOrdinal_));
+
+    ar(CEREAL_NVP(timeseries_));
+    ar(CEREAL_NVP(previousUpdates_));
+    ar(CEREAL_NVP(currentUpdates_));
+
+    ar(CEREAL_NVP(prunedSyns_));
+    ar(CEREAL_NVP(prunedSegs_));
   }
 
   /**
