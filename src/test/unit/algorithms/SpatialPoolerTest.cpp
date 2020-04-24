@@ -121,105 +121,12 @@ bool check_vector_eq(vector<Real> vec1, vector<Real> vec2) {
   return true;
 }
 
-//helper method to check detailed equality of 2 spatial poolers
-void check_spatial_eq(const SpatialPooler& sp1, const SpatialPooler& sp2) {
-  UInt numColumns = sp1.getNumColumns();
-  UInt numInputs = sp2.getNumInputs();
-
-  EXPECT_EQ(sp1.getNumColumns(), sp2.getNumColumns());
-  EXPECT_EQ(sp1.getNumInputs(), sp2.getNumInputs());
-  EXPECT_EQ(sp1.getPotentialRadius(), sp2.getPotentialRadius());
-  EXPECT_EQ(sp1.getPotentialPct(), sp2.getPotentialPct());
-  EXPECT_EQ(sp1.getGlobalInhibition(), sp2.getGlobalInhibition());
-  EXPECT_FLOAT_EQ(sp1.getLocalAreaDensity(), sp2.getLocalAreaDensity());
-  EXPECT_EQ(sp1.getStimulusThreshold(), sp2.getStimulusThreshold());
-  EXPECT_EQ(sp1.getDutyCyclePeriod(), sp2.getDutyCyclePeriod());
-  EXPECT_FLOAT_EQ(sp1.getBoostStrength(), sp2.getBoostStrength());
-  EXPECT_EQ(sp1.getIterationNum(), sp2.getIterationNum());
-  EXPECT_EQ(sp1.getIterationLearnNum(), sp2.getIterationLearnNum());
-  EXPECT_EQ(sp1.getSpVerbosity(), sp2.getSpVerbosity());
-  EXPECT_EQ(sp1.getWrapAround(), sp2.getWrapAround());
-  EXPECT_EQ(sp1.getUpdatePeriod(), sp2.getUpdatePeriod());
-  EXPECT_FLOAT_EQ(sp1.getSynPermActiveInc(), sp2.getSynPermActiveInc());
-  EXPECT_FLOAT_EQ(sp1.getSynPermInactiveDec(), sp2.getSynPermInactiveDec());
-  EXPECT_FLOAT_EQ(sp1.getSynPermBelowStimulusInc(), sp2.getSynPermBelowStimulusInc());
-  EXPECT_FLOAT_EQ(sp1.getSynPermConnected(), sp2.getSynPermConnected());
-  EXPECT_FLOAT_EQ(sp1.getMinPctOverlapDutyCycles(), sp2.getMinPctOverlapDutyCycles());
-
-  auto boostFactors1 = new Real[numColumns];
-  auto boostFactors2 = new Real[numColumns];
-  sp1.getBoostFactors(boostFactors1);
-  sp2.getBoostFactors(boostFactors2);
-  ASSERT_TRUE(check_vector_eq(boostFactors1, boostFactors2, numColumns));
-  delete[] boostFactors1;
-  delete[] boostFactors2;
-
-  auto overlapDutyCycles1 = new Real[numColumns];
-  auto overlapDutyCycles2 = new Real[numColumns];
-  sp1.getOverlapDutyCycles(overlapDutyCycles1);
-  sp2.getOverlapDutyCycles(overlapDutyCycles2);
-  ASSERT_TRUE(
-      check_vector_eq(overlapDutyCycles1, overlapDutyCycles2, numColumns));
-  delete[] overlapDutyCycles1;
-  delete[] overlapDutyCycles2;
-
-  auto activeDutyCycles1 = new Real[numColumns];
-  auto activeDutyCycles2 = new Real[numColumns];
-  sp1.getActiveDutyCycles(activeDutyCycles1);
-  sp2.getActiveDutyCycles(activeDutyCycles2);
-  ASSERT_TRUE(
-      check_vector_eq(activeDutyCycles1, activeDutyCycles2, numColumns));
-  delete[] activeDutyCycles1;
-  delete[] activeDutyCycles2;
-
-  auto minOverlapDutyCycles1 = new Real[numColumns];
-  auto minOverlapDutyCycles2 = new Real[numColumns];
-  sp1.getMinOverlapDutyCycles(minOverlapDutyCycles1);
-  sp2.getMinOverlapDutyCycles(minOverlapDutyCycles2);
-  ASSERT_TRUE(check_vector_eq(minOverlapDutyCycles1, minOverlapDutyCycles2,
-                              numColumns));
-  delete[] minOverlapDutyCycles1;
-  delete[] minOverlapDutyCycles2;
-
-  for (UInt i = 0; i < numColumns; i++) {
-    auto potential1 = new UInt[numInputs];
-    auto potential2 = new UInt[numInputs];
-    sp1.getPotential(i, potential1);
-    sp2.getPotential(i, potential2);
-    ASSERT_TRUE(check_vector_eq(potential1, potential2, numInputs));
-    delete[] potential1;
-    delete[] potential2;
-  }
-
-  // check get permanences
-  for (UInt i = 0; i < numColumns; i++) {
-    const auto& perm1 = sp1.getPermanence(i);
-    const auto& perm2 = sp2.getPermanence(i);
-    ASSERT_TRUE(check_vector_eq(perm1, perm2));
-  }
-
-  // check get connected synapses
-  for (UInt i = 0; i < numColumns; i++) {
-    const auto& con1 = sp1.getPermanence(i, sp1.connections.getConnectedThreshold());
-    const auto& con2 = sp2.getPermanence(i, sp2.connections.getConnectedThreshold());
-    ASSERT_TRUE(check_vector_eq(con1, con2));
-  }
-
-  auto conCounts1 = new UInt[numColumns];
-  auto conCounts2 = new UInt[numColumns];
-  sp1.getConnectedCounts(conCounts1);
-  sp2.getConnectedCounts(conCounts2);
-  ASSERT_TRUE(check_vector_eq(conCounts1, conCounts2, numColumns));
-  delete[] conCounts1;
-  delete[] conCounts2;
-}
-
 void setup(SpatialPooler &sp, vector<UInt> inputDim, vector<UInt> columnDim, Real sparsity = 0.5f) {
   //we are interested in the sparsity, should make it artificially high.
   //As we added SP check that sparsity*numColumns > 0, which is correct requirement.
   //But many tests have very small (artificial) number of columns (for convenient results),
   //therefore the check is failing -> we must set high sparsity at initialization. 
-  EXPECT_NO_THROW(sp.initialize(inputDim, columnDim, 16u, 0.5f, true, sparsity));
+  EXPECT_NO_THROW(sp.initialize(inputDim, columnDim, 16u, 0.5f, true, sparsity)) << "SP test: failed to initialize() SP";
 }
 void setup(SpatialPooler& sp, UInt numIn, UInt numCols, Real sparsity = 0.5f) {
   setup(sp, vector<UInt>{numIn}, vector<UInt>{numCols}, sparsity); 
@@ -231,11 +138,11 @@ TEST(SpatialPoolerTest, testUpdateInhibitionRadius) {
   colDim.push_back(57);
   colDim.push_back(31);
   colDim.push_back(2);
-  inputDim.push_back(1);
+  inputDim.push_back(100);
   inputDim.push_back(1);
   inputDim.push_back(1);
 
-  EXPECT_NO_THROW(sp.initialize(inputDim, colDim));
+  EXPECT_NO_THROW(sp.initialize(inputDim, colDim, /*potentialRadius: must be <= numInputs_ */16u));
   sp.setGlobalInhibition(true);
   ASSERT_EQ(sp.getInhibitionRadius(), 57u);
 
@@ -1831,6 +1738,9 @@ TEST(SpatialPoolerTest, testSaveLoad) {
   sp1.save(outfile);
   outfile.close();
 
+  EXPECT_NE(sp1, sp2);
+
+  // now deserialize to the sp2
   ifstream infile(filename, ifstream::binary);
   sp2.load(infile);
   infile.close();
@@ -1838,7 +1748,7 @@ TEST(SpatialPoolerTest, testSaveLoad) {
   int ret = ::remove(filename);
   ASSERT_TRUE(ret == 0) << "Failed to delete " << filename;
 
-  check_spatial_eq(sp1, sp2);
+  EXPECT_EQ(sp1, sp2) << "Deserialized SP must be the same!";
 }
 
 
@@ -1863,8 +1773,8 @@ TEST(SpatialPoolerTest, testSerialization2) {
 
   // Save initial trained model
   ofstream osC("outC.stream", ofstream::binary);
-	osC.precision(std::numeric_limits<double>::digits10 + 1);
-	osC.precision(std::numeric_limits<float>::digits10 + 1);
+//	osC.precision(std::numeric_limits<double>::digits10 + 1);
+//	osC.precision(std::numeric_limits<float>::digits10 + 1);
   sp1.save(osC);
   osC.close();
 
@@ -1894,8 +1804,8 @@ TEST(SpatialPoolerTest, testSerialization2) {
 
       // Serialize
       ofstream os("outC.stream", ofstream::binary);
-	    os.precision(std::numeric_limits<double>::digits10 + 1);
-	    os.precision(std::numeric_limits<float>::digits10 + 1);
+//	    os.precision(std::numeric_limits<double>::digits10 + 1);
+//	    os.precision(std::numeric_limits<float>::digits10 + 1);
       spTemp.save(os);
       os.close();
 
@@ -1924,7 +1834,7 @@ TEST(SpatialPoolerTest, testSaveLoad_ar) {
   int ret = ::remove(filename);
   ASSERT_TRUE(ret == 0) << "Failed to delete " << filename;
 
-  check_spatial_eq(sp1, sp2);
+  EXPECT_EQ(sp1, sp2);
 }
 
 
@@ -1967,7 +1877,6 @@ TEST(SpatialPoolerTest, testSerialization_ar) {
       //ss.seekg(0);
       EXPECT_NO_THROW(spTemp.load(ss));
       ASSERT_EQ(spTemp.getSeed(), 1u);
-      check_spatial_eq(sp1, spTemp); //detailed "equals" method here in test
       ASSERT_EQ(sp1, spTemp) << "Loaded SP is not the same as original"; //equals method used in SP
 
       // 1 step: Create new input & compute SP output
@@ -2012,6 +1921,9 @@ TEST(SpatialPoolerTest, testConstructorVsInitialize) {
       /*spVerbosity*/ 0,
       /*wrapAround*/ true);
 
+  const SpatialPooler spCopy = sp1;
+  EXPECT_EQ(sp1, spCopy) << "Copy constructor should be equal";
+
   // Initialize SP using the "initialize" method
   SpatialPooler sp2;
   sp2.initialize(
@@ -2034,9 +1946,7 @@ TEST(SpatialPoolerTest, testConstructorVsInitialize) {
       /*wrapAround*/ true);
 
   // The two SP should be the same
-  check_spatial_eq(sp1, sp2);
-  EXPECT_EQ(sp1, sp2);
-  EXPECT_TRUE(sp1 == sp2) << "Spatial Poolers not equal";
+  EXPECT_EQ(sp1, sp2) << "Spatial Poolers not equal";
 }
 
 

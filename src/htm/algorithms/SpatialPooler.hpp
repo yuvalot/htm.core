@@ -312,6 +312,9 @@ public:
     ar(CEREAL_NVP(minOverlapDutyCycles_));
     ar(CEREAL_NVP(connections_));
     ar(CEREAL_NVP(rng_));
+
+    //also save empheral members
+    ar(CEREAL_NVP(boostedOverlaps_));
   }
   // FOR Cereal Deserialization
   template<class Archive>
@@ -348,7 +351,7 @@ public:
     ar(CEREAL_NVP(rng_));
 
     // initialize ephemeral members
-    boostedOverlaps_.resize(numColumns_);
+    ar(CEREAL_NVP(boostedOverlaps_));
   }
 
   /**
