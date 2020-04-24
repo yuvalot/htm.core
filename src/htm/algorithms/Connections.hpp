@@ -69,6 +69,7 @@ struct SynapseData: public Serializable {
 
   SynapseData() {}
 
+  //Serialization
   CerealAdapter;
   template<class Archive>
   void save_ar(Archive & ar) const {
@@ -83,6 +84,22 @@ struct SynapseData: public Serializable {
   void load_ar(Archive & ar) {
     ar( permanence, presynapticCell, segment, presynapticMapIndex_, id);
   }
+
+  //operator==
+  bool operator==(const SynapseData& o) const {
+    try {
+    NTA_CHECK(presynapticCell == o.presynapticCell ) << "SynapseData equals: presynapticCell";
+    NTA_CHECK(permanence == o.permanence ) << "SynapseData equals: permanence";
+    NTA_CHECK(segment == o.segment ) << "SynapseData equals: segment";
+    NTA_CHECK(presynapticMapIndex_ == o.presynapticMapIndex_ ) << "SynapseData equals: presynapticMapIndex_";
+    NTA_CHECK(id == o.id ) << "SynapseData equals: id";
+    } catch(const htm::Exception& ex) {
+      NTA_WARN << "SynapseData equals: " << ex.what();
+      return false;
+    }
+    return true;
+  }
+  inline bool operator!=(const SynapseData& o) const { return !operator==(o); }
 
 };
 
@@ -123,6 +140,23 @@ struct SegmentData: public Serializable {
   void load_ar(Archive & ar) {
     ar( synapses, cell, numConnected, lastUsed, id);
   }
+
+  //equals op==
+  bool operator==(const SegmentData& o) const {
+    try {
+      NTA_CHECK(synapses == o.synapses) << "SegmentData equals: synapses";
+      NTA_CHECK(cell == o.cell) << "SegmentData equals: cell";
+      NTA_CHECK(numConnected == o.numConnected) << "SegmentData equals: numConnected";
+      NTA_CHECK(lastUsed == o.lastUsed) << "SegmentData equals: lastUsed";
+      NTA_CHECK(id == o.id) << "SegmentData equals: id";
+
+    } catch(const htm::Exception& ex) {
+      NTA_WARN << "SegmentData equals: " << ex.what();
+      return false;
+    }
+    return true;
+  }
+  inline bool operator!=(const SegmentData& o) const { return !operator==(o); }
 };
 
 /**
@@ -149,7 +183,20 @@ struct CellData : public Serializable {
   void load_ar(Archive & ar) {
     ar( segments);
   }
+
+  //operator==
+  bool operator==(const CellData& o) const {
+    try {
+      NTA_CHECK( segments == o.segments ) << "CellData equals: segments";
+    } catch(const htm::Exception& ex) {
+      NTA_WARN << "CellData equals: " << ex.what();
+      return false;
+    }
+    return true;
+  }
+  inline bool operator!=(const CellData& o) const { return !operator==(o); }
 };
+
 
 /**
  * A base class for Connections event handlers.
@@ -782,7 +829,7 @@ private:
   Synapse prunedSyns_ = 0; //how many synapses have been removed?
   Segment prunedSegs_ = 0;
 
-  //for listeners
+  //for listeners //TODO listeners are not serialized, nor included in equals ==
   UInt32 nextEventToken_;
   std::map<UInt32, ConnectionsEventHandler *> eventHandlers_;
 }; // end class Connections

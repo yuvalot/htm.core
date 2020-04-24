@@ -702,49 +702,53 @@ std::ostream& operator<< (std::ostream& stream, const Connections& self)
 
 
 
-bool Connections::operator==(const Connections &other) const {
-  if (cells_.size() != other.cells_.size())
-    return false;
-
-  if(iteration_ != other.iteration_) return false;
-
-  for (CellIdx i = 0; i < static_cast<CellIdx>(cells_.size()); i++) {
-    const CellData &cellData = cells_[i];
-    const CellData &otherCellData = other.cells_[i];
-
-    if (cellData.segments.size() != otherCellData.segments.size()) {
-      return false;
-    }
-
-    for (SegmentIdx j = 0; j < static_cast<SegmentIdx>(cellData.segments.size()); j++) {
-      const Segment segment = cellData.segments[j];
-      const SegmentData &segmentData = segments_[segment];
-      const Segment otherSegment = otherCellData.segments[j];
-      const SegmentData &otherSegmentData = other.segments_[otherSegment];
-
-      if (segmentData.synapses.size() != otherSegmentData.synapses.size() ||
-          segmentData.cell != otherSegmentData.cell) {
-        return false;
-      }
-
-      for (SynapseIdx k = 0; k < static_cast<SynapseIdx>(segmentData.synapses.size()); k++) {
-        const Synapse synapse = segmentData.synapses[k];
-        const SynapseData &synapseData = synapses_[synapse];
-        const Synapse otherSynapse = otherSegmentData.synapses[k];
-        const SynapseData &otherSynapseData = other.synapses_[otherSynapse];
-
-        if (synapseData.presynapticCell != otherSynapseData.presynapticCell ||
-            synapseData.permanence != otherSynapseData.permanence) {
-          return false;
-        }
-
-        // Two functionally identical instances may have different flatIdxs.
-        NTA_ASSERT(synapseData.segment == segment);
-        NTA_ASSERT(otherSynapseData.segment == otherSegment);
+bool Connections::operator==(const Connections &o) const {
+  try {
+  NTA_CHECK (cells_ == o.cells_) << "Connections equals: cells_";
+  
+  //also check underlying datastructures (segments, and subsequently synapses). Can be time consuming.
+  //1.cells:
+  for(const auto cellD : cells_) {
+    //2.segments:
+    const auto& segments = cellD.segments;
+    for(const auto seg : segments) {
+      NTA_CHECK( dataForSegment(seg) == o.dataForSegment(seg) ) << "CellData equals: segmentData";
+      //3.synapses: 
+      const auto& synapses = dataForSegment(seg).synapses;
+      for(const auto syn : synapses) {
+        NTA_CHECK(dataForSynapse(syn) == o.dataForSynapse(syn) ) << "SegmentData equals: synapseData";
       }
     }
   }
 
+  NTA_CHECK (segments_ == o.segments_ ) << "Connections equals: segments_";
+  NTA_CHECK (destroyedSegments_ == o.destroyedSegments_ ) << "Connections equals: destroyedSegments_";
+
+  NTA_CHECK (synapses_ == o.synapses_ ) << "Connections equals: synapses_";
+  NTA_CHECK (destroyedSynapses_ == o.destroyedSynapses_ ) << "Connections equals: destroyedSynapses_";
+
+  NTA_CHECK (connectedThreshold_ == o.connectedThreshold_ ) << "Connections equals: connectedThreshold_";
+  NTA_CHECK (iteration_ == o.iteration_ ) << "Connections equals: iteration_"; 
+
+  NTA_CHECK(potentialSynapsesForPresynapticCell_ == o.potentialSynapsesForPresynapticCell_);
+  NTA_CHECK(connectedSynapsesForPresynapticCell_ == o.connectedSynapsesForPresynapticCell_);
+  NTA_CHECK(potentialSegmentsForPresynapticCell_ == o.potentialSegmentsForPresynapticCell_);
+  NTA_CHECK(connectedSegmentsForPresynapticCell_ == o.connectedSegmentsForPresynapticCell_);
+
+  NTA_CHECK (nextSegmentOrdinal_ == o.nextSegmentOrdinal_ ) << "Connections equals: nextSegmentOrdinal_";
+  NTA_CHECK (nextSynapseOrdinal_ == o.nextSynapseOrdinal_ ) << "Connections equals: nextSynapseOrdinal_";
+
+  NTA_CHECK (timeseries_ == o.timeseries_ ) << "Connections equals: timeseries_";
+  NTA_CHECK (previousUpdates_ == o.previousUpdates_ ) << "Connections equals: previousUpdates_";
+  NTA_CHECK (currentUpdates_ == o.currentUpdates_ ) << "Connections equals: currentUpdates_";
+
+  NTA_CHECK (prunedSyns_ == o.prunedSyns_ ) << "Connections equals: prunedSyns_";
+  NTA_CHECK (prunedSegs_ == o.prunedSegs_ ) << "Connections equals: prunedSegs_";
+
+  } catch(const htm::Exception& ex) {
+    NTA_WARN << "Connection equals: differ! " << ex.what();
+    return false;
+  }
   return true;
 }
 
