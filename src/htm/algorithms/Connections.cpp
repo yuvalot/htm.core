@@ -749,7 +749,7 @@ bool Connections::operator==(const Connections &o) const {
   NTA_CHECK (prunedSegs_ == o.prunedSegs_ ) << "Connections equals: prunedSegs_";
 
   } catch(const htm::Exception& ex) {
-    //NTA_WARN << "Connection equals: differ! " << ex.what();
+	  std::cout << "Connection equals: differ! " << ex.what();
     return false;
   }
   return true;
