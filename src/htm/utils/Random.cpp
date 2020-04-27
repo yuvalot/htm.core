@@ -33,10 +33,7 @@ std::random_device rd; //HW RNG, undeterministic, platform dependant. Use only f
 
 Random::Random(const UInt64 seed) {
   if (seed == 0) {
-      const unsigned int static_seed = rd();
-      std::mt19937 static_gen(static_seed);
-      NTA_INFO << "Random seed: " << static_seed;
-
+    std::mt19937 static_gen(rd());
     seed_ = static_gen(); //generate random value from HW RNG
   } else {
     seed_ = seed;
@@ -48,7 +45,7 @@ Random::Random(const UInt64 seed) {
 
 namespace htm {
 // helper function for seeding RNGs across the plugin barrier
-UInt32 GetRandomSeed() {
-  return htm::Random(0).getUInt32();
+UInt32 GetRandomSeed(const UInt seed) {
+  return htm::Random(seed).getUInt32();
 }
 } // namespace htm

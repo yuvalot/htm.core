@@ -78,12 +78,16 @@ public:
   CerealAdapter;
   template<class Archive>
   void save_ar(Archive & ar) const {
-    ar( cereal::make_nvp("seed", seed_), cereal::make_nvp("steps", steps_));  
+    ar( CEREAL_NVP(seed_),
+        CEREAL_NVP(steps_)
+    );  
   }
   template<class Archive>
   void load_ar(Archive & ar) {
-    ar( seed_, steps_);  
-    gen.seed(static_cast<unsigned int>(seed_)); //reseed
+    ar( CEREAL_NVP(seed_), 
+	CEREAL_NVP(steps_)
+    );  
+    gen.seed(static_cast<UInt64>(seed_)); //reseed
     gen.discard(steps_); //advance n steps
   }
 
@@ -161,7 +165,7 @@ public:
 
 protected:
   friend class RandomTest;
-  friend UInt32 GetRandomSeed();
+  friend UInt32 GetRandomSeed(const UInt seed);
 private:
   UInt64 seed_;
   UInt64 steps_ = 0;  //step counter, used in serialization. It is important that steps_ is in sync with number of 
@@ -179,8 +183,7 @@ private:
     typename std::iterator_traits<RandomIt>::difference_type i, n;
     n = last - first;
     for (i = n-1; i > 0; --i) {
-        using std::swap;
-        swap(first[i], first[this->getUInt32(static_cast<UInt32>(i+1))]);
+      std::swap(first[i], first[this->getUInt32(static_cast<UInt32>(i+1))]);
     }
   }
 };
@@ -191,7 +194,7 @@ private:
 // set to this function. The plugin framework can override this
 // behavior by explicitly setting the seeder to the RandomSeeder
 // function provided by the application.
-UInt32 GetRandomSeed();
+UInt32 GetRandomSeed(const UInt seed=0);
 
 } // namespace htm
 
