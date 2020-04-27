@@ -792,14 +792,16 @@ TEST(ConnectionsTest, testSaveLoad) {
   c1.destroySegment(segment);
 
   computeSampleActivity(c1);
+  ASSERT_NE(c1, c2) << "shouldn't be eq";
 
   {
     stringstream ss;
     c1.save(ss);
     c2.load(ss);
   }
+  if(c1 == c2) NTA_WARN << "nice";
 
-  ASSERT_EQ(c1, c2);
+  ASSERT_EQ(c1, c2) << "Deserialized must be equal";
 }
 
 
@@ -878,12 +880,12 @@ TEST(ConnectionsTest, testTimeseries) {
 
 TEST(ConnectionsTest, testEquals) {
   Connections c1(100, 0.5, false), c2(100, 0.5, false);
-  ASSERT_EQ(c1, c2); 
+  ASSERT_EQ(c1, c2) << "Conn Eq: 1"; 
 
   setupSampleConnections(c1); //..creates some synapses.
-  ASSERT_NE(c1, c2);
+  ASSERT_NE(c1, c2) << "Conn Eq: 2";
 
   setupSampleConnections(c2);
-  ASSERT_EQ(c1, c2);
+  ASSERT_EQ(c1, c2) << "Conn Eq: 3";
 
 }

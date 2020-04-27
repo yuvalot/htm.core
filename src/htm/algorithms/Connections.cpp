@@ -704,8 +704,16 @@ std::ostream& operator<< (std::ostream& stream, const Connections& self)
 
 bool Connections::operator==(const Connections &o) const {
   try {
-  NTA_CHECK (cells_ == o.cells_) << "Connections equals: cells_";
-  
+  NTA_CHECK (cells_.size() == o.cells_.size()) << "Connections equals: cells_" << cells_.size() << " vs. " << o.cells_.size();
+  NTA_CHECK (cells_ == o.cells_) << "Connections equals: cells_" << cells_.size() << " vs. " << o.cells_.size();
+
+  NTA_CHECK (segments_ == o.segments_ ) << "Connections equals: segments_";
+  NTA_CHECK (destroyedSegments_ == o.destroyedSegments_ ) << "Connections equals: destroyedSegments_";
+
+  NTA_CHECK (synapses_ == o.synapses_ ) << "Connections equals: synapses_";
+  NTA_CHECK (destroyedSynapses_ == o.destroyedSynapses_ ) << "Connections equals: destroyedSynapses_";
+
+
   //also check underlying datastructures (segments, and subsequently synapses). Can be time consuming.
   //1.cells:
   for(const auto cellD : cells_) {
@@ -721,11 +729,6 @@ bool Connections::operator==(const Connections &o) const {
     }
   }
 
-  NTA_CHECK (segments_ == o.segments_ ) << "Connections equals: segments_";
-  NTA_CHECK (destroyedSegments_ == o.destroyedSegments_ ) << "Connections equals: destroyedSegments_";
-
-  NTA_CHECK (synapses_ == o.synapses_ ) << "Connections equals: synapses_";
-  NTA_CHECK (destroyedSynapses_ == o.destroyedSynapses_ ) << "Connections equals: destroyedSynapses_";
 
   NTA_CHECK (connectedThreshold_ == o.connectedThreshold_ ) << "Connections equals: connectedThreshold_";
   NTA_CHECK (iteration_ == o.iteration_ ) << "Connections equals: iteration_"; 
@@ -746,7 +749,7 @@ bool Connections::operator==(const Connections &o) const {
   NTA_CHECK (prunedSegs_ == o.prunedSegs_ ) << "Connections equals: prunedSegs_";
 
   } catch(const htm::Exception& ex) {
-    NTA_WARN << "Connection equals: differ! " << ex.what();
+    //NTA_WARN << "Connection equals: differ! " << ex.what();
     return false;
   }
   return true;

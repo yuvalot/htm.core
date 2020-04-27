@@ -73,11 +73,11 @@ struct SynapseData: public Serializable {
   CerealAdapter;
   template<class Archive>
   void save_ar(Archive & ar) const {
-    ar(cereal::make_nvp("perm", permanence),
-       cereal::make_nvp("presyn", presynapticCell),
-       cereal::make_nvp("segment", segment),
-       cereal::make_nvp("presynapticMapIndex", presynapticMapIndex_),
-       cereal::make_nvp("id", id)
+    ar(CEREAL_NVP(permanence),
+       CEREAL_NVP(presynapticCell),
+       CEREAL_NVP(segment),
+       CEREAL_NVP(presynapticMapIndex_),
+       CEREAL_NVP(id)
     );
   }
   template<class Archive>
@@ -94,7 +94,9 @@ struct SynapseData: public Serializable {
     NTA_CHECK(presynapticMapIndex_ == o.presynapticMapIndex_ ) << "SynapseData equals: presynapticMapIndex_";
     NTA_CHECK(id == o.id ) << "SynapseData equals: id";
     } catch(const htm::Exception& ex) {
-      NTA_WARN << "SynapseData equals: " << ex.what();
+      //NTA_WARN << "SynapseData equals: " << ex.what(); //Note: uncomment for debug, tells you 
+      //where the diff is. It's perfectly OK for the "exception" to occur, as it just denotes
+      //that the data is NOT equal.
       return false;
     }
     return true;
@@ -129,11 +131,11 @@ struct SegmentData: public Serializable {
   CerealAdapter;
   template<class Archive>
   void save_ar(Archive & ar) const {
-    ar(cereal::make_nvp("synapses", synapses),
-       cereal::make_nvp("cell", cell),
-       cereal::make_nvp("numConnected", numConnected),
-       cereal::make_nvp("lastUsed", lastUsed),
-       cereal::make_nvp("id", id)
+    ar(CEREAL_NVP(synapses),
+       CEREAL_NVP(cell),
+       CEREAL_NVP(numConnected),
+       CEREAL_NVP(lastUsed),
+       CEREAL_NVP(id)
     );
   }
   template<class Archive>
@@ -151,7 +153,7 @@ struct SegmentData: public Serializable {
       NTA_CHECK(id == o.id) << "SegmentData equals: id";
 
     } catch(const htm::Exception& ex) {
-      NTA_WARN << "SegmentData equals: " << ex.what();
+      //NTA_WARN << "SegmentData equals: " << ex.what();
       return false;
     }
     return true;
@@ -177,7 +179,8 @@ struct CellData : public Serializable {
   CerealAdapter;
   template<class Archive>
   void save_ar(Archive & ar) const {
-    ar(cereal::make_nvp("segments", segments));
+    ar(CEREAL_NVP(segments)
+    );
   }
   template<class Archive>
   void load_ar(Archive & ar) {
@@ -189,7 +192,7 @@ struct CellData : public Serializable {
     try {
       NTA_CHECK( segments == o.segments ) << "CellData equals: segments";
     } catch(const htm::Exception& ex) {
-      NTA_WARN << "CellData equals: " << ex.what();
+      //NTA_WARN << "CellData equals: " << ex.what();
       return false;
     }
     return true;
@@ -628,7 +631,6 @@ public:
   void save_ar(Archive & ar) const {
     ar(CEREAL_NVP(connectedThreshold_));
     ar(CEREAL_NVP(iteration_));
-    ar(cereal::make_nvp("numCells", cells_.size())); //not real member, helper for constructor
     ar(CEREAL_NVP(cells_));
     ar(CEREAL_NVP(segments_));
     ar(CEREAL_NVP(synapses_));
@@ -656,11 +658,8 @@ public:
   void load_ar(Archive & ar) {
     ar(CEREAL_NVP(connectedThreshold_));
     ar(CEREAL_NVP(iteration_));
-    {
-    size_t numCells;
-    ar(CEREAL_NVP(numCells)); //helper for constructor
-    initialize(numCells, connectedThreshold_); //initialize Connections
-    }
+    //!initialize(numCells, connectedThreshold_); //initialize Connections //Note: we actually don't call Connections
+    //initialize() as all the members are de/serialized. 
     ar(CEREAL_NVP(cells_));
     ar(CEREAL_NVP(segments_));
     ar(CEREAL_NVP(synapses_));

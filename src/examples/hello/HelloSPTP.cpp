@@ -235,7 +235,7 @@ EPOCHS = 2; // make test faster in Debug
 
 #ifdef _ARCH_DETERMINISTIC
       if(e+1 == 5000) {
-	// For debugging: save SP's state in 1 step, comment out, recompile, load SP and compare in another 
+	// For debugging serialization: save SP's state in 1 step, comment out, recompile, load SP and compare in another 
 	// step 1:
 	spGlobal.saveToFile("/tmp/spG.save");
 	// step 2:
