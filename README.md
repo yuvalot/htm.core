@@ -220,6 +220,9 @@ Comment out the one that is for Linux, and uncomment the one that is for Windows
 Document generation on Windows is currently not verified, so you may have to copy docs/py_filter.bat and/or docs/doxypypy.py
 to somewhere else to make them available in Windows.
 
+The generated files are under docs/html. The main entry point is docs/html/index.html.
+The file docs/Doxyfile lists the source direcories/files that are to be processed, under key INPUT.
+
 ## Workflow: Using IDE
 
 ### Generate the IDE solution  (Netbeans, XCode, Eclipse, KDevelop, etc)
