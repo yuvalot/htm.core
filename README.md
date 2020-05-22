@@ -205,6 +205,20 @@ This uses Docker and QEMU to achieve an ARM64 build on Actions' x86_64/amd64 har
  * [![CI Build Status](https://github.com/htm-community/htm.core/workflows/arm64-build/badge.svg)](https://github.com/htm-community/htm.core/actions?workflow=arm64-build)
  * [Config](./.github/workflows/arm64-build.yml)
 
+### Document generation
+
+We use Doxygen to generate the documents. Check that Doxygen is installed on you computer.
+To generate documentation for pyhton modules we use the helper program doxypypy.py. It currently can not handle new syntax that was added in Python 3.8,
+see https://github.com/Feneric/doxypypy/issues/70, so we use a patched version: docs/doxypypy.py.
+
+If you are on Linux or Mac:
+ * cd docs
+ * doxygen
+
+If you are on Windows, you need to make a small change to docs/Doxyfile, to change FILTER_PATTERNS.
+Comment out the one that is for Linux, and uncomment the one that is for Windows.
+Document generation on Windows is currently not verified, so you may have to copy docs/py_filter.bat and/or docs/doxypypy.py
+to somewhere else to make them available in Windows.
 
 ## Workflow: Using IDE
 
