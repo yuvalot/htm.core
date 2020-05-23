@@ -787,8 +787,8 @@ INPUT                  = . \
                          ../py/htm/advanced/examples/thing_classification \
                          ../py/htm/advanced/examples/union_path_integration \
                          ../py/htm/advanced/frameworks/location \
-                         ../py/htm/advanced/frameworks/regions \
-                         ../py/htm/advanced/frameworks/support \
+                         ../py/htm/advanced/regions \
+                         ../py/htm/advanced/support \
                          ../py/htm/algorithms \
                          ../py/htm/encoders \
                          ../py/htm/examples \

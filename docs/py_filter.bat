@@ -1,1 +1,1 @@
-doxypypy -a -c %1
+python .\doxypypy.py -a -c %1
