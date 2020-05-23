@@ -207,7 +207,7 @@ This uses Docker and QEMU to achieve an ARM64 build on Actions' x86_64/amd64 har
 
 ### Documentation
 
-See file docs/README.md
+See file [docs/README.md](docs/README.md)
 
 ## Workflow: Using IDE
 
