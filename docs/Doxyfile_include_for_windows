@@ -13,6 +13,4 @@
 # See https://github.com/Feneric/doxypypy/issues/70
 # The patched version is stored in the current directory.
 
-# For Windows something like the following?
-# Check that the .bat file is found, and that the .bat script finds doxypypy.py
-# FILTER_PATTERNS      = *.py=py_filter
+FILTER_PATTERNS      = *.py=py_filter

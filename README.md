@@ -207,18 +207,24 @@ This uses Docker and QEMU to achieve an ARM64 build on Actions' x86_64/amd64 har
 
 ### Document generation
 
-We use Doxygen to generate the documents. Check that Doxygen is installed on you computer.
+We use Doxygen to generate the documents. Check that Doxygen, and its dependecies, are installed on you computer.
+Ensure that doxygen and its dependencies can be started from the command line: That the are in the PATH environment variable.
 To generate documentation for pyhton modules we use the helper program doxypypy.py. It currently can not handle new syntax that was added in Python 3.8,
 see https://github.com/Feneric/doxypypy/issues/70, so we use a patched version: docs/doxypypy.py.
 
 If you are on Linux or Mac:
- * cd docs
- * doxygen
 
-If you are on Windows, you need to make a small change to docs/Doxyfile, to change FILTER_PATTERNS.
-Comment out the one that is for Linux, and uncomment the one that is for Windows.
-Document generation on Windows is currently not verified, so you may have to copy docs/py_filter.bat and/or docs/doxypypy.py
-to somewhere else to make them available in Windows.
+```
+    cd docs  
+    ./generate_docs_for_linux  
+```
+
+If you are on Windows:
+
+```
+    cd docs  
+    .\generate_docs_for_windows  
+```
 
 The generated files are under docs/html. The main entry point is docs/html/index.html.
 The file docs/Doxyfile lists the source direcories/files that are to be processed, under key INPUT.
