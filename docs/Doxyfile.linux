@@ -1,3 +1,0 @@
-# Doxyfile 1.8.7
-@INCLUDE = Doxyfile_common
-@INCLUDE = Doxyfile_include_for_linux
