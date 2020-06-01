@@ -11,9 +11,8 @@ jobs:
   runs-on: ubuntu-18.04
   if: (github.event_name == 'push' && startsWith(github.event.ref, 'refs/tags')) || github.event_name == 'schedule' # tag or schedule
   steps:
-    - name: Install docker
+    - name: Install docker # bug in ubuntu, conflicts with docker.io
       run: |
-      # bug in ubuntu, conflicts with docker.io
         sudo apt-get update
         sudo apt-get remove --purge -y moby-engine moby-cli
         sudo apt-get install -y qemu-user-static docker.io
