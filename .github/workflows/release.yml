@@ -1,0 +1,101 @@
+name: Release
+#TODO arm releases
+
+on:
+  push:
+    tags:
+      - 'v*.*.*' # vX.Y.Z release tag
+
+jobs:
+  build-release-gh:
+    name: Building on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      #max-parallel: 4
+      matrix:
+        python-version: [3.7, 3.8]
+        os: [ubuntu-18.04, windows-2019, macOS-latest]
+
+    steps:
+    - uses: actions/checkout@v1
+
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v1
+      with:
+        python-version: ${{ matrix.python-version }}
+
+    - name: Versions
+      run: |
+        python --version
+        cmake --version
+        c++ --version
+
+    - name: Install gcc-8
+      if: matrix.os == 'ubuntu-18.04'
+      run: |
+        sudo apt-get update
+        sudo apt-get -y install gcc-8 g++-8
+        sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-8 \
+                    100 \
+                    --slave   /usr/bin/g++ g++ /usr/bin/g++-8 \
+                    --slave   /usr/bin/gcov gcov /usr/bin/gcov-8 \
+                    --slave   /usr/bin/gcov-dump gcov-dump /usr/bin/gcov-dump-8 \
+                    --slave   /usr/bin/gcov-tool gcov-tool /usr/bin/gcov-tool-8 \
+                    --slave   /usr/bin/gcc-ar gcc-ar /usr/bin/gcc-ar-8 \
+                    --slave   /usr/bin/gcc-nm gcc-nm /usr/bin/gcc-nm-8 \
+                    --slave   /usr/bin/gcc-ranlib gcc-ranlib /usr/bin/gcc-ranlib-8
+        sudo update-alternatives --install /usr/bin/cpp cpp-bin /usr/bin/cpp-8 100
+
+    - name: Install dependencies
+      run: |
+        python -m pip install -r requirements.txt
+        python setup.py configure
+
+    - name: build htmcore with setup.py
+      run: python setup.py install --user --force
+
+    - name: C++ & Python Tests
+      run: python setup.py test
+
+    - name: Release (make package)
+      run: |
+        python setup.py bdist_wheel
+        cd build/scripts
+        cmake --build . --config Release --target install # aka make install ,but multiplatform
+        cmake --build . --config Release --target package # make package
+
+    - name: GitHub Release (deploy)
+      # from https://github.com/marketplace/actions/gh-release
+      uses: softprops/action-gh-release@v1
+      with:
+        files: |
+          build/scripts/htm_core-v*
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    - uses: actions/upload-artifact@v1.0.0
+      with:
+        name: "dist-${{ matrix.os }}"
+        path: build/Release/distr/dist
+
+    - name: Install cibuildwheel
+      run: |
+        python -m pip install cibuildwheel==1.4.2
+
+    - name: Build wheel
+      run: |
+        python -m cibuildwheel --output-dir wheelhouse
+
+    - name: Publish wheels to GitHub release
+      uses: actions/upload-artifact@v1
+      with:
+        name: wheels
+        path: ./wheelhouse
+
+    - name: Publish to PyPI
+      uses: pypa/gh-action-pypi-publish@master
+      with:
+        user: __token__
+        password: ${{ secrets.pypi_password }}
+        repository_url: https://test.pypi.org/legacy/ #TODO rm for real pypi
+        packages_dir: ./wheelhouse/
