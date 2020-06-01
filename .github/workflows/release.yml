@@ -85,7 +85,7 @@ jobs:
     - name: Build wheel
       env:
         CIBW_TEST_REQUIRES: pytest
-        CIBW_TEST_COMMAND: "pytest py/tests bindings/py/tests"
+        CIBW_TEST_COMMAND: "pytest {project}/py/tests {project}/bindings/py/tests"
         # Only build on Python >=3.7 and skip 32-bit builds
         CIBW_BUILD: cp3?-*
         CIBW_SKIP: "*-win32 cp27-manylinux*"
