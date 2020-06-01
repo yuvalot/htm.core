@@ -20,10 +20,10 @@ jobs:
         os: [ubuntu-18.04, windows-2019, macOS-latest]
 
     steps:
-    - uses: actions/checkout@v1
+    - uses: actions/checkout@v2
 
     - name: Set up Python ${{ matrix.python-version }} for PR
-      uses: actions/setup-python@v1
+      uses: actions/setup-python@v2
       with:
         python-version: ${{ matrix.python-version }}
 
@@ -76,7 +76,7 @@ jobs:
     #currently cannot run on Linux & Debug due to a bug in YAML parser: issue #218
     runs-on: macOS-latest
     steps:
-    - uses: actions/checkout@v1
+    - uses: actions/checkout@v2
 
     - name: Install dependencies (Debug)
       run: |
