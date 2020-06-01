@@ -200,10 +200,7 @@ jobs:
 
     - name: Tests
       run: |
-        sudo docker run -it htm-arm64-docker
-        uname -a && echo "\nHello from ARM64 htm.core build!\n"
-        python setup.py test
-        exit
+        sudo docker run htm-arm64-docker python setup.py test
 
     - name: Copy files from docker
       run: |

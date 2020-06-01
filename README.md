@@ -34,7 +34,7 @@ in C++ library.
    An objective is to stay close to the [Nupic API Docs](http://nupic.docs.numenta.org/stable/api/index.html).
    This is a priority for the `NetworkAPI`.
    The algorithms APIs on the other hand have deviated from their original API (but their logic is the same as Numenta's).
-   If you are porting your code to this codebase, please review the [API Changelog](API_CHANGELOG.md).
+   If you are porting your code to this codebase, please follow the [API Differences](API_DIFFERENCES.md) and consult the [API Changelog](API_CHANGELOG.md).
  * REST interface for `NetworkAPI` with a REST server.
 
 ## Installation
@@ -83,9 +83,6 @@ Fork or download the HTM-Community htm.core repository from https://github.com/h
 #### Prerequisites
 
 - same as for Binary releases, plus:
-- [CMake](http://www.cmake.org/)  Version 3.7  (3.14 for MSVC 2019)
-    - You should use `cmake` provided by your distribution,
-    - if not available, you can install it from Python: `python -m pip install cmake>=3.10`
 - **C++ compiler**: c++11/17 compatible (ie. g++, clang++)
 
 Be sure you are running the right version of python. Check it with the following command:
@@ -205,6 +202,9 @@ This uses Docker and QEMU to achieve an ARM64 build on Actions' x86_64/amd64 har
  * [![CI Build Status](https://github.com/htm-community/htm.core/workflows/arm64-build/badge.svg)](https://github.com/htm-community/htm.core/actions?workflow=arm64-build)
  * [Config](./.github/workflows/arm64-build.yml)
 
+### Documentation
+
+See file [docs/README.md](docs/README.md)
 
 ## Workflow: Using IDE
 

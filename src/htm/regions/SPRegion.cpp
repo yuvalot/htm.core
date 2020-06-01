@@ -47,6 +47,7 @@ SPRegion::SPRegion(const ValueMap &values, Region *region)
   args_.potentialPct = values.getScalarT<Real32>("potentialPct", 0.5);
   args_.globalInhibition = values.getScalarT<bool>("globalInhibition", true);
   args_.localAreaDensity = values.getScalarT<Real32>("localAreaDensity", 0.05f);
+  args_.numActiveColumnsPerInhArea = values.getScalarT<UInt32>("numActiveColumnsPerInhArea", 0);
   args_.stimulusThreshold = values.getScalarT<UInt32>("stimulusThreshold", 0);
   args_.synPermInactiveDec = values.getScalarT<Real32>("synPermInactiveDec", 0.008f);
   args_.synPermActiveInc = values.getScalarT<Real32>("synPermActiveInc", 0.05f);
@@ -134,7 +135,7 @@ void SPRegion::initialize() {
   sp_ = std::unique_ptr<SpatialPooler>( new SpatialPooler(
       inputDimensions, columnDimensions, args_.potentialRadius,
       args_.potentialPct, args_.globalInhibition, args_.localAreaDensity,
-      args_.stimulusThreshold,
+      args_.numActiveColumnsPerInhArea, args_.stimulusThreshold,
       args_.synPermInactiveDec, args_.synPermActiveInc, args_.synPermConnected,
       args_.minPctOverlapDutyCycles, args_.dutyCyclePeriod, args_.boostStrength,
       args_.seed, args_.spVerbosity, args_.wrapAround));
@@ -288,11 +289,41 @@ Spec *SPRegion::createSpec() {
           "inhibition logic will insure that at most N columns remain ON "
           "within a local inhibition area, where N = localAreaDensity * "
           "(total number of columns in inhibition area). "
-	  "Default 0.05 (5%)",
+	  "Default 0.05 (5%)"
+	  "Mutually exclusive with numActiveColumnsPerInhArea. ",
           NTA_BasicType_Real32,             // type
           1,                                // elementCount
           "",                               // constraints
           "0.05",                           // defaultValue
+          ParameterSpec::ReadWriteAccess)); // access
+
+  ns->parameters.add(
+      "numActiveColumnsPerInhArea",
+      ParameterSpec("(int)\n"
+          "An alternate way to control the density of the active columns.If "
+          "numActiveColumnsPerInhArea is specified then localAreaDensity is "
+          "set to -1 (disabled), and vice versa. When using "
+          "numActiveColumnsPerInhArea, the inhibition logic will insure that "
+          "at most 'numActiveColumnsPerInhArea' columns remain ON within a "
+          "local inhibition area (the size of which is set by the internally "
+          "calculated inhibitionRadius, which is in turn determined from "
+          "the average size of the connected receptive fields of all "
+          "columns).When using this method, as columns learn and grow "
+          "their effective receptive fields, the inhibitionRadius will grow, "
+          "and hence the net density of the active columns will *decrease*. "
+          "This is in contrast to the localAreaDensity method, which keeps "
+          "the density of active columns the same regardless of the size "
+          "of their receptive fields.\n"
+          "@rhyolight: numActiveColumnsPerInhArea is a manually set model "
+          "parameter. We almost always set it to 2% of the total column count "
+          "(if 2048 minicolumns, it is typically 40). Watch the HTM School video "
+          "about topology, it explains the minicolumn competition a bit better. "
+          "It makes more sense when you think about topology, which requires "
+          "local inhibition. Default ``0 (OFF)``.",
+          NTA_BasicType_UInt32,             // type
+          1,                                // elementCount
+          "",                               // constraints
+          "0",                             // defaultValue
           ParameterSpec::ReadWriteAccess)); // access
 
   ns->parameters.add(
@@ -577,6 +608,14 @@ UInt32 SPRegion::getParameterUInt32(const std::string &name, Int64 index) {
       return args_.learningMode;
     }
     break;
+  case 'n':
+    if (name == "numActiveColumnsPerInhArea") {
+      if (sp_)
+        return sp_->getNumActiveColumnsPerInhArea();
+      else
+        return args_.numActiveColumnsPerInhArea;
+    }
+    break;
   case 'p':
     if (name == "potentialRadius") {
       if (sp_)
@@ -747,6 +786,14 @@ void SPRegion::setParameterUInt32(const std::string &name, Int64 index,
       return;
     }
     break;
+  case 'n':
+    if (name == "numActiveColumnsPerInhArea") {
+      if (sp_)
+        sp_->setNumActiveColumnsPerInhArea(value);
+      args_.numActiveColumnsPerInhArea = value;
+      return;
+    }
+    break;
   case 'p':
     if (name == "potentialRadius") {
       if (sp_)
@@ -868,6 +915,7 @@ bool SPRegion::operator==(const RegionImpl &o) const {
   if (args_.potentialPct != other.args_.potentialPct) return false;
   if (args_.globalInhibition != other.args_.globalInhibition) return false;
   if (args_.localAreaDensity != other.args_.localAreaDensity) return false;
+  if (args_.numActiveColumnsPerInhArea != other.args_.numActiveColumnsPerInhArea) return false;
   if (args_.stimulusThreshold != other.args_.stimulusThreshold) return false;
   if (args_.synPermInactiveDec != other.args_.synPermInactiveDec) return false;
   if (args_.synPermActiveInc != other.args_.synPermActiveInc) return false;
