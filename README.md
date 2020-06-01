@@ -83,9 +83,6 @@ Fork or download the HTM-Community htm.core repository from https://github.com/h
 #### Prerequisites
 
 - same as for Binary releases, plus:
-- [CMake](http://www.cmake.org/)  Version 3.7  (3.14 for MSVC 2019)
-    - You should use `cmake` provided by your distribution,
-    - if not available, you can install it from Python: `python -m pip install cmake>=3.10`
 - **C++ compiler**: c++11/17 compatible (ie. g++, clang++)
 
 Be sure you are running the right version of python. Check it with the following command:
