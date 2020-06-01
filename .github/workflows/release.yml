@@ -38,8 +38,6 @@ jobs:
         sudo apt-get -y install gcc-8 g++-8
         sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-8 \
                     100 \
-                    --slave   /usr/bin/cc cc /usr/bin/gcc-8 \
-                    --slave   /usr/bin/c++ c++ /usr/bin/g++-8 \
                     --slave   /usr/bin/g++ g++ /usr/bin/g++-8 \
                     --slave   /usr/bin/gcov gcov /usr/bin/gcov-8 \
                     --slave   /usr/bin/gcov-dump gcov-dump /usr/bin/gcov-dump-8 \
@@ -47,6 +45,7 @@ jobs:
                     --slave   /usr/bin/gcc-ar gcc-ar /usr/bin/gcc-ar-8 \
                     --slave   /usr/bin/gcc-nm gcc-nm /usr/bin/gcc-nm-8 \
                     --slave   /usr/bin/gcc-ranlib gcc-ranlib /usr/bin/gcc-ranlib-8
+        sudo update-alternatives --install /usr/bin/cpp cpp-bin /usr/bin/cpp-8 100
 
     - name: Install dependencies
       run: |
