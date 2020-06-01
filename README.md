@@ -205,6 +205,9 @@ This uses Docker and QEMU to achieve an ARM64 build on Actions' x86_64/amd64 har
  * [![CI Build Status](https://github.com/htm-community/htm.core/workflows/arm64-build/badge.svg)](https://github.com/htm-community/htm.core/actions?workflow=arm64-build)
  * [Config](./.github/workflows/arm64-build.yml)
 
+### Documentation
+
+See file [docs/README.md](docs/README.md)
 
 ## Workflow: Using IDE
 
