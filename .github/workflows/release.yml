@@ -1,5 +1,8 @@
 name: Release
 #TODO arm releases
+#TODO enable 32bit linux wheels builds?
+#TODO use older manylinux2010 for larger compatibility?
+#TODO support py27 wheels?
 
 on:
   # FIXME remove when done debugging. run on pull_request events that target the master branch
@@ -7,17 +10,19 @@ on:
     branches:
       - master
   push:
-    tags:
-      - 'v*.*.*' # vX.Y.Z release tag
+    tags: 
+      - 'v*.*.*' # when tag with name 'vX.Y.Z' is pushed to master
+  release: # or when a new Release is created&published in GH web interface
+    types: [published]
 
 jobs:
-  build-release-gh:
+  build-release-gh: # do a release build for GH Releases, C++ binary
     name: Building on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     strategy:
       #max-parallel: 4
       matrix:
-        python-version: [3.7] #TODO we're not yet py 3.8 ready!
+        python-version: [3.7] #TODO we're not yet py3.8 ready!
         os: [ubuntu-18.04, windows-2019, macOS-latest]
 
     steps:
