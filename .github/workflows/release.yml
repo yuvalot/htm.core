@@ -100,6 +100,8 @@ jobs:
 
     - name: Build wheel
       env:
+        # install your project dependencies before building
+        CIBW_BEFORE_BUILD: "pip install -r {project}/requirements.txt"
         CIBW_TEST_REQUIRES: pytest
         CIBW_TEST_COMMAND: "pytest {project}/py/tests {project}/bindings/py/tests"
         # Only build on Python >=3.7 and skip 32-bit builds
