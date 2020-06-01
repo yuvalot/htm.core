@@ -135,11 +135,11 @@ jobs:
     name: Build for ARM64 on Docker
     runs-on: ubuntu-18.04
     steps:
-    - name: Install docker # bug in ubuntu, conflicts with docker.io
-      run: |
-        sudo apt-get update
-        sudo apt-get remove --purge -y moby-engine moby-cli
-        sudo apt-get install -y qemu-user-static docker.io
+            #    - name: Install docker # bug in ubuntu, conflicts with docker.io
+            #      run: |
+            #        sudo apt-get update
+            #        sudo apt-get remove --purge -y moby-engine moby-cli
+            #        sudo apt-get install -y qemu-user-static docker.io
 
     - uses: actions/checkout@v2
 
@@ -156,7 +156,13 @@ jobs:
         sudo docker cp `sudo docker ps -alq`:/usr/local/src/htm.core/dist dist #TODO the `command` is not 100% reliable, replace with some name/id
         ls dist
 
+    - uses: actions/upload-artifact@v2
+      with:
+        name: "release"
+        path: dist/
+
     - name: GitHub Release C++ (deploy)
+      if: (github.event_name == 'push' && startsWith(github.event.ref, 'refs/tags'))
       uses: softprops/action-gh-release@v1
       with:
         files: |
@@ -164,11 +170,6 @@ jobs:
           dist/*.whl
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-    - uses: actions/upload-artifact@v2
-      with:
-        name: "release"
-        path: dist/
 
 
 
