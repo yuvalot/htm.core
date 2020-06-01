@@ -110,7 +110,7 @@ jobs:
         # build using the manylinux2014 image
         CIBW_MANYLINUX_X86_64_IMAGE: manylinux2014
         CIBW_MANYLINUX_I686_IMAGE: manylinux2014
-        MACOSX_DEPLOYMENT_TARGET: "10.14" #for C++17 compatibility in OSX, see https://cibuildwheel.readthedocs.io/en/stable/cpp_standards/#macos-and-deployment-target-versions
+        MACOSX_DEPLOYMENT_TARGET: "10.15" #for C++17 compatibility in OSX, see https://cibuildwheel.readthedocs.io/en/stable/cpp_standards/#macos-and-deployment-target-versions
       run: |
         python -m cibuildwheel --output-dir wheelhouse
 
