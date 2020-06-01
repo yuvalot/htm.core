@@ -1,9 +1,6 @@
 name: build
 
 on:
-  push:
-    tags:
-      - 'v*.*.*' # vX.Y.Z release tag
   # run on pull_request events that target the master branch
   pull_request:
     branches:
@@ -26,16 +23,9 @@ jobs:
     - uses: actions/checkout@v1
 
     - name: Set up Python ${{ matrix.python-version }} for PR
-      if: github.event_name != 'push'
       uses: actions/setup-python@v1
       with:
         python-version: ${{ matrix.python-version }}
-
-    - name: Set up old Python for PyPI
-      if: github.event_name == 'push' && startsWith(github.event.ref, 'refs/tags') # only on tag/release
-      uses: actions/setup-python@v1
-      with:
-        python-version: 3.7 #FIXME for better PyPI compatibility, we need to compile on older python. But unittests  fail to import with <3.7
 
     - name: Versions
       run: |
@@ -43,19 +33,17 @@ jobs:
         cmake --version
         c++ --version
 
-    - name: Install dependencies (gcc-8)
+    - name: Install gcc-8
       if: matrix.os == 'ubuntu-18.04'
       env:
         CC: gcc-8
         CXX: g++-8
       run: |
         sudo apt-get update
+        sudo apt-get -y remove "gcc-*" "g++-*"
         sudo apt-get -y install gcc-8 g++-8
-        python -m pip install -r requirements.txt
-        python setup.py configure
 
     - name: Install dependencies
-      if: matrix.os != 'ubuntu-18.04'
       run: |
         python -m pip install -r requirements.txt
         python setup.py configure
@@ -71,86 +59,6 @@ jobs:
       run: |
         sudo apt-get -y install valgrind
         LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:${PWD}/build/Release/lib valgrind  --show-leak-kinds=definite,indirect,possible,reachable --track-origins=yes --num-callers=40 --error-exitcode=3 ./build/Release/bin/hello 5 || exit 1
-
-    - name: Release (make package)
-      if: github.event_name == 'push' && startsWith(github.event.ref, 'refs/tags') # only on tag/release
-      run: |
-        python setup.py bdist_wheel
-        cd build/scripts
-        cmake --build . --config Release --target install # aka make install ,but multiplatform
-        cmake --build . --config Release --target package # make package
-
-    - name: Release (deploy)
-      if: github.event_name == 'push' && startsWith(github.event.ref, 'refs/tags')
-      # from https://github.com/marketplace/actions/gh-release
-      uses: softprops/action-gh-release@v1
-      with:
-        files: |
-          build/scripts/htm_core-v*
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-    - uses: actions/upload-artifact@v1.0.0
-      if: github.event_name == 'push' && startsWith(github.event.ref, 'refs/tags')
-      with:
-        name: "dist-${{ matrix.os }}"
-        path: build/Release/distr/dist
-
-    - name: Test python package is working
-      if: github.event_name == 'push' && startsWith(github.event.ref, 'refs/tags')
-      shell: bash
-      run: |
-        python -m pip uninstall -y htm.core 
-        filePath=$(ls build/Release/distr/dist/*.whl) 
-        python -m pip install --force $filePath
-        python -m pytest bindings/py/tests
-
-
-  publish-pypi:
-    name: Publish package to PYPI
-    if: github.event_name == 'push' && startsWith(github.event.ref, 'refs/tags') # only on tag/release
-    needs: [build, build-debug, build-arm64-docker]
-    runs-on: ubuntu-18.04
-    steps:
-
-    - uses: actions/checkout@master
-
-    - uses: actions/download-artifact@master
-      with:
-        name: dist-ubuntu-18.04
-        path: dist/
-
-    - uses: actions/download-artifact@master
-      with:
-        name: dist-macOs-latest
-        path: dist/
-
-    - uses: actions/download-artifact@master
-      with:
-        name: dist-windows-2019
-        path: dist/
-
-    - uses: actions/download-artifact@master
-      with:
-        name: dist-arm64
-        path: dist/
-
-    - name: pre-PyPI
-      #copy dist data to /dist, where PyPI Action expects it
-      run: |
-        cd dist
-        mv `ls -1 htm*-linux_*.whl` `ls -1 htm*-linux_*.whl | sed -e's/linux/manylinux1/'` #rename to manylinux1 to make PYPI accept the package
-        rm *.egg #remove obsoleted egg format
-        rm requirements.txt # PIPY upload has problem with non-*.whl files 
-        cd ..
-        ls dist/
-
-    - name: Publish to PyPI
-      uses: pypa/gh-action-pypi-publish@master
-      with:
-        user: __token__
-        password: ${{ secrets.pypi_password }}
-        repository_url: https://test.pypi.org/legacy/ #TODO rm for real pypi
 
 
 
@@ -206,24 +114,3 @@ jobs:
       run: |
         sudo docker cp `sudo docker ps -alq`:/usr/local/src/htm.core/dist dist #TODO the `command` is not 100% reliable, replace with some name/id
         ls dist
-
-    - name: Release (deploy)
-      if: github.event_name == 'push' && startsWith(github.event.ref, 'refs/tags') #only on tag/release, not schedule
-      # from https://github.com/marketplace/actions/gh-release
-      uses: softprops/action-gh-release@v1
-      with:
-        files: |
-          dist/htm_core-v*gz
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-    - name: Pre-upload artifact
-      if: github.event_name == 'push' && startsWith(github.event.ref, 'refs/tags')
-      run: rm dist/*.gz
-
-    - uses: actions/upload-artifact@v1.0.0
-      if: github.event_name == 'push' && startsWith(github.event.ref, 'refs/tags')
-      with:
-        name: "dist-arm64"
-        path: ./dist
-    
