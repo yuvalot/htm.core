@@ -13,7 +13,7 @@ jobs:
     strategy:
       #max-parallel: 4
       matrix:
-        python-version: [3.7, 3.8]
+        python-version: [3.7] #TODO we're not yet py 3.8 ready!
         os: [ubuntu-18.04, windows-2019, macOS-latest]
 
     steps:
@@ -87,7 +87,7 @@ jobs:
         CIBW_TEST_REQUIRES: pytest
         CIBW_TEST_COMMAND: "pytest {project}/py/tests {project}/bindings/py/tests"
         # Only build on Python >=3.7 and skip 32-bit builds
-        CIBW_BUILD: cp3?-*
+        CIBW_BUILD: cp37-*
         CIBW_SKIP: "*-win32 cp27-manylinux*"
         # build using the manylinux2014 image
         CIBW_MANYLINUX_X86_64_IMAGE: manylinux2014
