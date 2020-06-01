@@ -2,6 +2,10 @@ name: Release
 #TODO arm releases
 
 on:
+  # FIXME remove when done debugging. run on pull_request events that target the master branch
+  pull_request:
+    branches:
+      - master
   push:
     tags:
       - 'v*.*.*' # vX.Y.Z release tag
@@ -106,13 +110,15 @@ jobs:
         CIBW_TEST_COMMAND: "pytest {project}/py/tests {project}/bindings/py/tests"
         # Only build on Python >=3.7 and skip 32-bit builds
         CIBW_BUILD: cp37-*
-        CIBW_SKIP: "*-win32 cp27-manylinux*"
+        CIBW_SKIP: "*-win32 cp27-manylinux* *i686*"
         # build using the manylinux2014 image
         CIBW_MANYLINUX_X86_64_IMAGE: manylinux2014
         CIBW_MANYLINUX_I686_IMAGE: manylinux2014
         MACOSX_DEPLOYMENT_TARGET: "10.15" #for C++17 compatibility in OSX, see https://cibuildwheel.readthedocs.io/en/stable/cpp_standards/#macos-and-deployment-target-versions
       run: |
         python -m cibuildwheel --output-dir wheelhouse
+        echo "done building wheel: "
+        ls -l ./wheelhouse
 
     - name: Publish wheels to GitHub release
       uses: actions/upload-artifact@v1
