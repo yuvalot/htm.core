@@ -68,7 +68,7 @@ jobs:
         cmake --build . --config Release --target install # aka make install ,but multiplatform
         cmake --build . --config Release --target package # make package
 
-    - name: GitHub Release (deploy)
+    - name: GitHub Release C++ (deploy)
       # from https://github.com/marketplace/actions/gh-release
       uses: softprops/action-gh-release@v1
       with:
@@ -136,7 +136,15 @@ jobs:
       with:
         name: wheels
         path: dist/
-    
+
+    - name: GitHub Release wheels (deploy)
+      uses: softprops/action-gh-release@v1
+      with:
+        files: |
+          dist/*.whl
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
     - name: Publish to PyPI
       uses: pypa/gh-action-pypi-publish@master
       with:
