@@ -9,7 +9,7 @@ dependencies:
   - python==3.7
   - pip>=19.3
   - git
-  - cmake
+  - cmake>=3.14 #>=3.7, >=3.14 needed for MSVC 2019
   - conda-forge:clangxx>=9.0
   - conda-forge:eigen
   - conda-forge:gtest
