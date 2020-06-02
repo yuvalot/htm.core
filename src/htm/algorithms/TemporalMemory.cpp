@@ -173,7 +173,7 @@ void TemporalMemory::growSynapses_(
   // ..Check if we're going to surpass the maximum number of synapses.
   Int overrun = static_cast<Int>(connections.numSynapses(segment) + nActual - maxSynapsesPerSegment_);
   if (overrun > 0) {
-    connections_.destroyMinPermanenceSynapses(segment, static_cast<Int>(overrun), prevWinnerCells);
+    connections_.destroyMinPermanenceSynapses(segment, static_cast<size_t>(overrun), prevWinnerCells);
   }
   // ..Recalculate in case we weren't able to destroy as many synapses as needed.
   const size_t nActualWithMax = std::min(nActual, static_cast<size_t>(maxSynapsesPerSegment_) - connections.numSynapses(segment));
