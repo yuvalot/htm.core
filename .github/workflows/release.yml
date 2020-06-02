@@ -135,18 +135,15 @@ jobs:
     name: Build for ARM64 on Docker
     runs-on: ubuntu-18.04
     steps:
-            #    - name: Install docker # bug in ubuntu, conflicts with docker.io
-            #      run: |
-            #        sudo apt-get update
-            #        sudo apt-get remove --purge -y moby-engine moby-cli
-            #        sudo apt-get install -y qemu-user-static docker.io
 
     - uses: actions/checkout@v2
 
     - name: ARM64 build
       run: |
         sudo docker run --privileged --rm multiarch/qemu-user-static:register
-        sudo docker build -t htm-arm64-docker --build-arg arch=arm64 .
+        sudo docker run --rm quay.io/pypa/manylinux2014_aarch64
+        uname -a
+        #sudo docker build -t htm-arm64-docker --build-arg arch=arm64 .
 
     - name: Tests
       run: |
