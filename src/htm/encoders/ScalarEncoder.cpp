@@ -40,8 +40,8 @@ void ScalarEncoder::initialize(const ScalarEncoderParameters &parameters)
   if( parameters.sparsity   > 0.0f) { num_active_args++; }
   NTA_CHECK( num_active_args != 0u )
       << "Missing argument, need one of: 'activeBits' or 'sparsity'.";
-  NTA_CHECK( num_active_args == 1u )
-      << "Too many arguments, choose only one of: 'activeBits' or 'sparsity'.";
+  if( num_active_args > 1u )
+    NTA_WARN  << "Specified both: 'activeBits' and 'sparsity'. Sparsity takes precedence. Or specify only one of them.";
 
   UInt num_size_args = 0;
   if( parameters.size       > 0u)   { num_size_args++; }
@@ -50,8 +50,8 @@ void ScalarEncoder::initialize(const ScalarEncoderParameters &parameters)
   if( parameters.resolution > 0.0f) { num_size_args++; }
   NTA_CHECK( num_size_args != 0u )
       << "Missing argument, need one of: 'size', 'radius', 'resolution', 'category'.";
-  NTA_CHECK( num_size_args == 1u )
-      << "Too many arguments, choose only one of: 'size', 'radius', 'resolution', 'category'.";
+  if( num_size_args == 1u )
+    NTA_WARN  << "Too many arguments specified: 'size', 'radius', 'resolution', 'category'. Size gets preference. Or choose only one of them.";
 
   if( parameters.periodic ) {
     NTA_CHECK( not parameters.clipInput )
@@ -79,9 +79,9 @@ void ScalarEncoder::initialize(const ScalarEncoderParameters &parameters)
   if( args_.sparsity > 0.0f ) {
     NTA_CHECK( parameters.sparsity >= 0.0f );
     NTA_CHECK( parameters.sparsity <= 1.0f );
-    NTA_CHECK( args_.size > 0u )
-        << "Argument 'sparsity' requires that the 'size' also be given.";
-    args_.activeBits = (UInt) round( args_.size * args_.sparsity );
+    NTA_CHECK( args_.size > 0u ) << "Argument 'sparsity' requires that the 'size' also be given.";
+    args_.activeBits = static_cast<UInt>(round( args_.size * args_.sparsity ));
+    NTA_CHECK(args_.activeBits > 0) << "sparsity and size must be given so that sparsity * size > 0!";
   }
 
   // Determine resolution & size.
@@ -126,9 +126,11 @@ void ScalarEncoder::initialize(const ScalarEncoderParameters &parameters)
 
   // Determine radius. Always calculate this even if it was given, to correct for rounding error.
   args_.radius = args_.activeBits * args_.resolution;
+  NTA_CHECK(args_.radius > 0);
 
   // Determine sparsity. Always calculate this even if it was given, to correct for rounding error.
-  args_.sparsity = (Real) args_.activeBits / args_.size;
+  args_.sparsity = args_.activeBits / static_cast<Real>(args_.size);
+  NTA_CHECK(args_.sparsity > 0);
 
 
   // Initialize parent class.
