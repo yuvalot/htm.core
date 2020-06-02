@@ -145,6 +145,7 @@ jobs:
 
     - name: ARM64 build
       run: |
+        sudo docker run --privileged --rm -it multiarch/qemu-user-static:register
         sudo docker build -t htm-arm64-docker --build-arg arch=arm64 .
 
     - name: Tests
@@ -160,6 +161,11 @@ jobs:
       with:
         name: "release"
         path: dist/
+
+    - uses: actions/upload-artifact@v2
+      with:
+        name: "wheels"
+        path: dist/*.whl
 
     - name: GitHub Release C++ (deploy)
       if: (github.event_name == 'push' && startsWith(github.event.ref, 'refs/tags'))
@@ -185,6 +191,7 @@ jobs:
         path: dist/
 
     - name: GitHub Release wheels (deploy)
+      if: (github.event_name == 'push' && startsWith(github.event.ref, 'refs/tags'))
       uses: softprops/action-gh-release@v1
       with:
         files: |
