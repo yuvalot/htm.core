@@ -59,12 +59,12 @@ For running C++ apps/examples/tests from binary release: none.
 If you want to use python, then obviously:
 
 - [Python](https://python.org/downloads/)
-    - Standard Python 3.4+ (Recommended)
+    - Standard Python 3.7+ (Recommended)
     - Standard Python 2.7
       + We recommend the latest version of 2.7 where possible, but the system version should be fine.
       + Python 2 is Not Supported on Windows, use Python 3 instead.
       + Python 2 is not tested by our CI anomore. It may still work but we don't test it. We expect to drop support for Python2 around 2020.
-    - Anaconda Python 3.7+
+    - [Anaconda Python](https://www.anaconda.com/products/individual#Downloads) 3.7+
       + On windows you must run from within 'Anaconda Prompt' not 'Command Prompt'.
       + The pre-built binary releases only work with Standard Python so you must build from sources.
       + Anaconda Python is not tested in our CI.
@@ -78,21 +78,25 @@ If you want to use python, then obviously:
 
 ### Building from Source
 
-Fork or download the HTM-Community htm.core repository from https://github.com/htm-community/htm.core
+An advantage of `HTM.core` is its well tested self-sustained dependency install, so you can install
+HTM on almost any platform/system if installing from source. 
+
+Fork or [download](https://github.com/htm-community/htm.core/archive/master.zip) the HTM-Community htm.core repository from [https://github.com/htm-community/htm.core](https://github.com/htm-community/htm.core). 
+
+To fork the repo with `git`:
+```
+git clone https://github.com/htm-community/htm.core
+```
 
 #### Prerequisites
 
 - same as for Binary releases, plus:
-- **C++ compiler**: c++11/17 compatible (ie. g++, clang++)
+- **C++ compiler**: c++11/17 compatible (ie. g++, clang++).
 
-Be sure you are running the right version of python. Check it with the following command:
-```
-python --version
-```
 
 #### Simple Python build (any platform)
 
-1) At a command prompt, cd to the root directory of this repository.
+1) At a command prompt, `cd` to the root directory of this repository.
 
 2) Run: `python setup.py install --user --force`
 
@@ -122,13 +126,13 @@ python --version
 
 #### Simple C++ build 
 
-After downloading the repository, do the following:
+After cloning/downloading the repository, do the following:
 ```
 cd path-to-repository
 mkdir -p build/scripts
 cd build/scripts
 cmake ../..
-make -j install
+make -j8 install
 ```
 
 | Build Artifact | File Location |
@@ -155,7 +159,8 @@ make -j install
 
 #### Build for Docker amd64 (x86_64)
 
-Our [Dockerfile](./Dockerfile) allows easy (cross) compilation from/to many HW platforms. 
+Our [Dockerfile](./Dockerfile) allows easy (cross) compilation from/to many HW platforms. This docker file does the full build, test & package build. 
+It takes quite a while to complete. 
 
 If you are on `amd64` (`x86_64`) and would like to build a Docker image:
 
@@ -172,43 +177,70 @@ specifically.
 ```sh
 docker build --build-arg arch=arm64 .
 ```
+Note: 
+* If you're directly on ARM64/aarch64 (running on real HW) you don't need the docker image, and can use the standard binary/source installation procedure. 
+
+#### Docker build for ARM64/aarch64 on AMD64/x86_64 HW
+
+A bit tricky part is providing cross-compilation builds if you need to build for a different platform (aarch64) then your system is running (x86_64). 
+A typical case is CI where all the standard(free) solutions offer only x86_64 systems, but we want to build for ARM. 
+
+See our [ARM release workflow](./.github/workflows/release.yml). 
+
+When running locally run:
+```sh
+docker run --privileged --rm multiarch/qemu-user-static:register
+docker build -t htm-arm64-docker --build-arg arch=arm64 -f Dockerfile-pypi .
+docker run htm-arm64-docker uname -a
+docker run htm-arm64-docker python setup.py test
+```
+Note: 
+* the 1st line allows you to emulate another platform on your HW.
+* 2nd line builds the docker image. The [Dockerfile](./Dockerfile) is a lightweight Alpine_arm64 image, which does full build,test&package build. It can take quite a long time. 
+  The [Dockerfile-pypi](./Dockerfile-pypi) "just" switches you to ARM64/aarch64 env, and then you can build & test yourself.
+
 
 ### Automated Builds, CI
 
 We use Github `Actions` to build and run multiplatform (OSX, Windows, Linux, ARM64) tests and releases. 
+* the [pr.yml](/.github/workflows/pr.yml) runs on each pull-request (PR), builds for Linux(Ubuntu18.04),Windows,OSX(10.15) and checkes that all tests pass OK. This is mandatory for a new PR
+to be accepted. 
+* [release.yml](/.github/workflows/release.yml) is created manually by the maintainers in the [release process](./RELEASE.md) and creates 
+  - binary GitHub releases
+  - PyPI wheels for `htm.core`
+  - uploads artifacts
+* [arm.yml](/.github/workflows/arm.yml) is an ARM64 build (that takes a long time) and thus is ran only daily.
 
-[![CI Build Status](https://github.com/htm-community/htm.core/workflows/build/badge.svg)](https://github.com/htm-community/htm.core/actions)
 
-### Linux auto build @ Github Actions
 
- * [![CI Build Status](https://github.com/htm-community/htm.core/workflows/build/badge.svg)](https://github.com/htm-community/htm.core/actions?workflow=build)
- * [Config](./.github/workflows/build.yml)
+[![CI Build Status](https://github.com/htm-community/htm.core/workflows/pr/badge.svg)](https://github.com/htm-community/htm.core/actions)
 
-### Mac OS/X auto build @ Github Actions
+#### Linux/OSX/Windows auto build on PR @ Github Actions
 
- * [![CI Build Status](https://github.com/htm-community/htm.core/workflows/build/badge.svg)](https://github.com/htm-community/htm.core/actions?workflow=build)
- * [Config](./.github/workflows/build.yml)
- * Local Test Build: `circleci local execute --job build-and-test`
+ * [![CI Build Status](https://github.com/htm-community/htm.core/workflows/pr/badge.svg)](https://github.com/htm-community/htm.core/actions?workflow=pr)
+ * [Config](./.github/workflows/pr.yml)
 
-### Windows auto build @ Github Actions
 
- * [![CI Build Status](https://github.com/htm-community/htm.core/workflows/build/badge.svg)](https://github.com/htm-community/htm.core/actions?workflow=build)
- * [Config](./.github/workflows/build.yml)
-
-### ARM64 auto build @ Github Actions
+#### ARM64 auto build @ Github Actions
 
 This uses Docker and QEMU to achieve an ARM64 build on Actions' x86_64/amd64 hardware.
 
- * [![CI Build Status](https://github.com/htm-community/htm.core/workflows/arm64-build/badge.svg)](https://github.com/htm-community/htm.core/actions?workflow=arm64-build)
- * [Config](./.github/workflows/arm64-build.yml)
+ * [![CI Build Status](https://github.com/htm-community/htm.core/workflows/arm64/badge.svg)](https://github.com/htm-community/htm.core/actions?workflow=arm64)
+ * [Config](./.github/workflows/arm.yml)
+
+
 
 ### Documentation
 
 See file [docs/README.md](docs/README.md)
 
-## Workflow: Using IDE
 
-### Generate the IDE solution  (Netbeans, XCode, Eclipse, KDevelop, etc)
+
+## Workflow
+
+### Using IDE  (Netbeans, XCode, Eclipse, KDevelop, etc)
+
+Generate IDE solution & build.
 
  * Choose the IDE that interest you (remember that IDE choice is limited to your OS).
  * Open CMake executable in the IDE.
@@ -228,7 +260,7 @@ After downloading the repository, do the following:
  * In the solution explorer window, right Click on 'unit_tests' and select `Set as StartUp Project` so debugger will run unit tests.
  * If you also want the Python extension library; then delete the `build` folder and then in a command prompt, cd to root of repository and run `python setup.py install --user --force`.
 
-#### For Visual Studio Code as the IDE
+#### For Visual Studio Code (VSCode) as the IDE
 [Visual Studio Code](https://code.visualstudio.com/) can be used on any of our three platforms (Windows, Linux, OSx). 
 You will need the C/C++ Tools extension by Microsoft and CMake Tools by vector-of-bool.
 
@@ -268,7 +300,8 @@ For Ubuntu and OSx:
 For all new work, tab settings are at 2 characters, replace tabs with spaces.
 The clang-format is LLVM style.
 
-### Workflow: Debugging 
+
+### Debugging 
 
 Creating a debug build of the `htm.core` library and unit tests is the same as building any C++ 
 application in Debug mode in any IDE as long as you do not include the python bindings. i.e. do 
@@ -290,7 +323,8 @@ Be aware that the CMake maintains a cache of build-time arguments and it will ig
 to CMake if is already in the cache.  So, between runs you need to clear the cache or even better,
 entirely remove the `build/` folder (ie. `git clean -xdf`).
 
-### Workflow: Dependency management
+
+### Dependency management
 
 The installation scripts will automatically download and build the dependencies it needs.
 
@@ -329,14 +363,21 @@ distribution packages as listed and rename them as indicated. Copy these to
  * note3: Boost is not required for any compiler that supports C++17 with `std::filesystem` (MSVC2017, gcc-8, clang-9).
  * note4: Used for examples. Not required to run but the build expects it.
 
+
 ## Testing
 
-### There are two sets of Unit Tests:
+We support test-driven development with reproducible builds. 
+You should run tests locally, and tests are also run as a part of the CI. 
+
+### C++ & Python Unit Tests:
+
+There are two sets (somewhat duplicit) tests for c++ and python.
 
  * C++ Unit tests -- to run: `./build/Release/bin/unit_tests`
  * Python Unit tests -- to run: `python setup.py test` (runs also the C++ tests above)
    - `py/tests/`
    - `bindings/py/tests/`
+
 
 ## Examples
 
@@ -353,8 +394,8 @@ Look in:
 
 ### Hot Gym
 
-This is a simple example application that calls the SpatialPooler and
-TemporalMemory algorithms directly.  This attempts to predict the electrical
+This is a simple example application that calls the `SpatialPooler` and
+`TemporalMemory` algorithms directly.  This attempts to predict the electrical
 power consumption for a gymnasium over the course of several months.
 
 To run python version:
@@ -362,16 +403,16 @@ To run python version:
 python -m htm.examples.hotgym
 ```
 
-To run C++ version: (assuming current directory is top of repository)
-```
+To run C++ version: (assuming current directory is root of the repository)
+```sh
 ./build/Release/bin/benchmark_hotgym
 ```
 
 There is also a dynamically linked version of Hot Gym (not available on MSVC). 
-You will need specify the location of the shared library with LD_LIBRARY_PATH.
+You will need specify the location of the shared library with `LD_LIBRARY_PATH`.
 
-To run: (assuming current directory is top of repository)
-```
+To run: (assuming current directory is root of the repository)
+```sh
 LD_LIBRARY_PATH=build/Release/lib ./build/Release/bin/dynamic_hotgym
 ```
 
@@ -408,9 +449,10 @@ To run:  first start the server.
 ```
 The default host is 127.0.0.1 (the local host) and the port is 8050.
 
+
 ## License
 
-The htm.core library is distributed under GNU Affero Public License version 3.  The full text of the license can be found at http://www.gnu.org/licenses.
+The htm.core library is distributed under GNU Affero Public License version 3 (AGPLv3).  The full text of the license can be found at http://www.gnu.org/licenses.
 
 Libraries that are incorporated into htm.core have the following licenses:
 
@@ -423,7 +465,6 @@ Libraries that are incorporated into htm.core have the following licenses:
 | cereal | https://uscilab.github.io/cereal/ | https://opensource.org/licenses/BSD-3-Clause |
 | digestpp | https://github.com/kerukuro/digestpp | released into public domain |
 | cpp-httplib | https://github.com/yhirose/cpp-httplib | https://github.com/yhirose/cpp-httplib/blob/master/LICENSE |
-
 
  * note3: Boost is not used if built with any compiler that supports C++17 with `std::filesystem` (MSVC2017, gcc-8, clang-9).
  

@@ -2,13 +2,10 @@ name: Release
 #TODO arm releases
 #TODO enable 32bit linux wheels builds?
 #TODO use older manylinux2010 for larger compatibility?
+#TODO enable python 3.8 builds for CIBW
 #TODO support py27 wheels?
 
 on:
-  # FIXME remove when done debugging. run on pull_request events that target the master branch
-  pull_request:
-    branches:
-      - master
   push:
     tags: 
       - 'v*.*.*' # when tag with name 'vX.Y.Z' is pushed to master
@@ -152,6 +149,8 @@ jobs:
       run: |
         sudo docker run htm-arm64-docker python setup.py install --force 
 
+     #TODO build manylinux2014 amr linux wheel using CIBW 
+ 
     - name: Tests
       run: |
         sudo docker run htm-arm64-docker python setup.py test
