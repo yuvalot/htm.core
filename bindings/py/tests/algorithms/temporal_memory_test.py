@@ -79,7 +79,7 @@ class TemporalMemoryBindingsTest(unittest.TestCase):
 
     t_total = t.elapsed()
     speed = t_total * 1000 / ITERS #time ms/iter
-    self.assertTrue(speed < 20.0)
+    self.assertTrue(speed < 40.0)
 
 
   @pytest.mark.skipif(sys.version_info < (3, 6), reason="Fails for python2 with segmentation fault")
