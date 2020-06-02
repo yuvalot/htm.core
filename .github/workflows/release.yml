@@ -145,7 +145,7 @@ jobs:
 
     - name: ARM64 build
       run: |
-        sudo docker run --privileged --rm -it multiarch/qemu-user-static:register
+        sudo docker run --privileged --rm multiarch/qemu-user-static:register
         sudo docker build -t htm-arm64-docker --build-arg arch=arm64 .
 
     - name: Tests
