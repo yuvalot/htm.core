@@ -111,7 +111,7 @@ void TemporalMemory::initialize(
 
   numColumns_ = 1;
   columnDimensions_.clear();
-  for (auto &columnDimension : columnDimensions) {
+  for (const auto &columnDimension : columnDimensions) {
     numColumns_ *= columnDimension;
     columnDimensions_.push_back(columnDimension);
   }
@@ -412,7 +412,7 @@ void TemporalMemory::activateDendrites(const bool learn,
 
   // Active segments, connected synapses.
   activeSegments_.clear();
-  for (Segment segment = 0; segment < numActiveConnectedSynapsesForSegment_.size(); segment++) {
+  for (size_t segment = 0; segment < numActiveConnectedSynapsesForSegment_.size(); segment++) {
     if (numActiveConnectedSynapsesForSegment_[segment] >= activationThreshold_) { //TODO move to SegmentData.numConnected?
       activeSegments_.push_back(segment);
     }
@@ -428,7 +428,7 @@ void TemporalMemory::activateDendrites(const bool learn,
 
   // Matching segments, potential synapses.
   matchingSegments_.clear();
-  for (Segment segment = 0; segment < numActivePotentialSynapsesForSegment_.size(); segment++) {
+  for (size_t segment = 0; segment < numActivePotentialSynapsesForSegment_.size(); segment++) {
     if (numActivePotentialSynapsesForSegment_[segment] >= minThreshold_) {
       matchingSegments_.push_back(segment);
     }
@@ -518,7 +518,7 @@ SDR TemporalMemory::cellsToColumns(const SDR& cells) const {
   auto correctDims = getColumnDimensions(); //nD column dimensions (eg 10x100)
   correctDims.push_back(static_cast<CellIdx>(getCellsPerColumn())); //add n+1-th dimension for cellsPerColumn (eg. 10x100x8)
 
-  NTA_CHECK(cells.dimensions.size() == correctDims.size()) 
+  NTA_ASSERT(cells.dimensions.size() == correctDims.size()) 
 	  << "cells.dimensions must match TM's (column dims x cellsPerColumn) ";
 
   for(size_t i = 0; i<correctDims.size(); i++) 
@@ -539,13 +539,9 @@ SDR TemporalMemory::cellsToColumns(const SDR& cells) const {
 
 vector<CellIdx> TemporalMemory::cellsForColumn(const CellIdx column) const { 
   const CellIdx start = cellsPerColumn_ * column;
-  const CellIdx end = start + cellsPerColumn_;
 
-  vector<CellIdx> cellsInColumn;
-  cellsInColumn.reserve(cellsPerColumn_);
-  for (CellIdx i = start; i < end; i++) {
-    cellsInColumn.push_back(i);
-  }
+  vector<CellIdx> cellsInColumn(cellsPerColumn_);
+  std::iota(std::begin(cellsInColumn), std::end(cellsInColumn), start); //fill with start, start+1, start+2, ...
 
   return cellsInColumn;
 }
@@ -687,7 +683,7 @@ static set<pair<CellIdx, SynapseIdx>>
 getComparableSegmentSet(const Connections &connections,
                         const vector<Segment> &segments) {
   set<pair<CellIdx, SynapseIdx>> segmentSet;
-  for (Segment segment : segments) {
+  for (const Segment segment : segments) {
     segmentSet.emplace(connections.cellForSegment(segment),
                        connections.idxOnCellForSegment(segment));
   }
