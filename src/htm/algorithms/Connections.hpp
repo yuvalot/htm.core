@@ -275,6 +275,32 @@ public:
                         const CellIdx presynapticCell,
                         Permanence permanence);
 
+
+
+  /**
+   * Grow new synapses for disconnected inputs/candidates.
+   *
+   * For each specified segments, grow synapses to all specified inputs that
+   * aren't already connected to the segment. 
+   *
+   * @param segment - Segment: The segment to modify 
+   * @param growthCandidates - vector<Synapse>&: The inputs to connect to 
+   * @param initialPermanence - Permanence: The permanence for each added synapse
+   * @param maxNew - (optional) size_t, default = 0/unused. If set to [1, growthCandidates.size())
+   *   then we subsample the disconnected inputs to be connected. This is used to limit "bursts" when
+   *   a huge number of cells/inputs would be newly connected at once. Which would disturb the HTM.
+   * @param rng - Random&, used to sample if `maxNew` is used. 
+   *
+   * @return vector<Synapse> the (formerly disconnected) synapses that we've grown now.
+   *
+   **/
+  std::vector<Synapse> growSynapses(const Segment segment, 
+		                    const std::vector<Synapse>& growthCandidates, 
+				    const Permanence initialPermanence,
+				    Random& rng,
+				    const size_t maxNew = 0
+				    );
+
   /**
    * Destroys segment.
    *

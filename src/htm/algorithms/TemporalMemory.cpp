@@ -160,7 +160,7 @@ CellIdx TemporalMemory::getLeastUsedCell_(const CellIdx column) {
 }
 
 
-void TemporalMemory::growSynapses_(
+void TemporalMemory::growSynapses_( //TODO replace w Connections.growSynapses
 			 const Segment& segment,
                          const SynapseIdx nDesiredNewSynapses,
                          const vector<CellIdx> &prevWinnerCells) {

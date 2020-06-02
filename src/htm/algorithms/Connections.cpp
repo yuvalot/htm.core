@@ -23,12 +23,14 @@
 #include <climits>
 #include <iomanip>
 #include <iostream>
+#include <set>
 
 #include <htm/algorithms/Connections.hpp>
 
 using std::endl;
 using std::string;
 using std::vector;
+using std::set;
 using namespace htm;
 
 Connections::Connections(const CellIdx numCells, 
@@ -626,6 +628,39 @@ void Connections::destroyMinPermanenceSynapses(
   for(Int i = 0; i < nDestroy; i++) {
     destroySynapse( destroyCandidates[i] );
   }
+}
+
+
+
+vector<Synapse> Connections::growSynapses(const Segment segment, 
+		                          const vector<Synapse>& growthCandidates, 
+					  const Permanence initialPermanence,
+					  Random& rng,
+					  const size_t maxNew) {
+
+  set<CellIdx> presynCells;
+  for(const auto synapse: synapsesForSegment(segment)) {
+    const auto presynapticCell = dataForSynapse(synapse).presynapticCell;
+    presynCells.insert(presynapticCell);
+  }
+
+  vector<Synapse> disconnectedCandidates; //inputs (candidates) that don't have (yet) any connection (synapse) to this Segment
+  for(const auto candidate: growthCandidates) {
+    if(presynCells.count(candidate) == 0) { //candidate input without connected segment
+      disconnectedCandidates.push_back(candidate);
+    }
+  }
+
+  //optionally subsample
+  if(maxNew > 0 and maxNew < growthCandidates.size()) {
+    disconnectedCandidates = rng.sample(disconnectedCandidates, maxNew);
+  }
+
+  //connect all disconnected synapses
+  for(const auto c : disconnectedCandidates) {
+    createSynapse(segment, c, initialPermanence);
+  }
+  return disconnectedCandidates;
 }
 
 
