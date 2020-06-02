@@ -31,7 +31,7 @@ jobs:
       if: matrix.os == 'ubuntu-18.04'
       uses: actions/setup-python@v2
       with:
-        python-version: 3.8
+        python-version: 3.8.1
 
     - name: Versions
       run: |
