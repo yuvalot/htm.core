@@ -541,7 +541,7 @@ class ApicalTiebreakTemporalMemory(object):
                 numSynapsesToReachMax = self.maxSynapsesPerSegment - synapseCounts
                 maxNew = min(maxNew, numSynapsesToReachMax)
             if maxNew > 0:
-                connections.growSynapsesToSample(segment, growthCandidates, maxNew, self.initialPermanence, self.rng)
+                connections.growSynapses(segment, growthCandidates, maxNew, self.initialPermanence, self.rng)
 
 
     def _learnOnNewSegments(self, connections, newSegmentCells, growthCandidates):
@@ -556,7 +556,7 @@ class ApicalTiebreakTemporalMemory(object):
             
         for cell in  newSegmentCells:
             newSegment = connections.createSegment(cell, self.maxSegmentsPerCell)
-            connections.growSynapsesToSample(newSegment, growthCandidates, numNewSynapses, self.initialPermanence, self.rng)
+            connections.growSynapses(newSegment, growthCandidates, numNewSynapses, self.initialPermanence, self.rng, maxNew=0)
 
 
     def _chooseBestSegmentPerCell(self,
