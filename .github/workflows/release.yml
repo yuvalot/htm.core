@@ -141,7 +141,7 @@ jobs:
     - name: ARM64 env
       run: |
         sudo docker run --privileged --rm multiarch/qemu-user-static:register
-        sudo docker build -t htm-arm64-docker --build-arg arch=arm64 -f Docker-pypi .
+        sudo docker build -t htm-arm64-docker --build-arg arch=arm64 -f Dockerfile-pypi .
         uname -a
 
     - name: Dependencies
