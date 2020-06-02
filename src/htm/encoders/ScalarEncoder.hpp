@@ -142,11 +142,11 @@ namespace htm {
       ar(cereal::make_nvp("clipInput", args_.clipInput));
       ar(cereal::make_nvp("periodic", args_.periodic));
       ar(cereal::make_nvp("category", args_.category));
-      ar(cereal::make_nvp("activeBits", args_.activeBits));
-      ar(cereal::make_nvp("sparsity", args_.sparsity));
+      ar(cereal::make_nvp("activeBits", args_.activeBits)); //we only save activeBits (as activeBist and sparsity are mutually exclusive params. And the other is computed
+//      ar(cereal::make_nvp("sparsity", args_.sparsity));
       ar(cereal::make_nvp("size", args_.size));
-      ar(cereal::make_nvp("radius", args_.radius));
-      ar(cereal::make_nvp("resolution", args_.resolution));
+//      ar(cereal::make_nvp("radius", args_.radius)); //DITTO, only size is stored from the mutex triplet of params.
+//      ar(cereal::make_nvp("resolution", args_.resolution));
     }
   
     // FOR Cereal Deserialization
@@ -160,10 +160,10 @@ namespace htm {
       ar(cereal::make_nvp("periodic", args_.periodic));
       ar(cereal::make_nvp("category", args_.category));
       ar(cereal::make_nvp("activeBits", args_.activeBits));
-      ar(cereal::make_nvp("sparsity", args_.sparsity));
+//      ar(cereal::make_nvp("sparsity", args_.sparsity));
       ar(cereal::make_nvp("size", args_.size));
-      ar(cereal::make_nvp("radius", args_.radius));
-      ar(cereal::make_nvp("resolution", args_.resolution));
+//      ar(cereal::make_nvp("radius", args_.radius));
+//      ar(cereal::make_nvp("resolution", args_.resolution));
 
       initialize(args_); //reload new args
     }

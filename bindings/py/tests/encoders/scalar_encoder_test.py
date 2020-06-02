@@ -120,10 +120,10 @@ class ScalarEncoder_Test(unittest.TestCase):
         p.activeBits = 2
         p.sparsity   = 0
 
-#        p.sparsity = .2  # Sparsity & num activeBits specified
-#        with self.assertRaises(RuntimeError):
-#            ScalarEncoder(p)
-#        p.sparsity = 0
+        p.sparsity = .2  # Sparsity & num activeBits specified
+        with self.assertRaises(RuntimeError):
+            ScalarEncoder(p)
+        p.sparsity = 0
 
         p.clipInput = True # Incompatible features...
         p.periodic  = True
@@ -132,15 +132,15 @@ class ScalarEncoder_Test(unittest.TestCase):
         p.clipInput = False
         p.periodic  = False
 
-#        p.radius = 1 # Size specified too many times
-#        with self.assertRaises(RuntimeError):
-#            ScalarEncoder(p)
-#        p.radius = 0
+        p.radius = 1 # Size specified too many times
+        with self.assertRaises(RuntimeError):
+            ScalarEncoder(p)
+        p.radius = 0
 
-#        p.resolution = 1 # Size specified too many times
-#        with self.assertRaises(RuntimeError):
-#            ScalarEncoder(p)
-#        p.resolution = 0
+        p.resolution = 1 # Size specified too many times
+        with self.assertRaises(RuntimeError):
+            ScalarEncoder(p)
+        p.resolution = 0
 
     def testBadEncode(self):
         # Test bad SDR

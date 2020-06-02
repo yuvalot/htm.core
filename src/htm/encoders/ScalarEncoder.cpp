@@ -40,8 +40,8 @@ void ScalarEncoder::initialize(const ScalarEncoderParameters &parameters)
   if( parameters.sparsity   > 0.0f) { num_active_args++; }
   NTA_CHECK( num_active_args != 0u )
       << "Missing argument, need one of: 'activeBits' or 'sparsity'.";
-  if( num_active_args > 1u )
-    NTA_WARN  << "Specified both: 'activeBits' and 'sparsity'. Sparsity takes precedence. Or specify only one of them.";
+  NTA_CHECK( num_active_args == 1u )
+    << "Specified both: 'activeBits' and 'sparsity'. Specify only one of them.";
 
   UInt num_size_args = 0;
   if( parameters.size       > 0u)   { num_size_args++; }
@@ -50,8 +50,8 @@ void ScalarEncoder::initialize(const ScalarEncoderParameters &parameters)
   if( parameters.resolution > 0.0f) { num_size_args++; }
   NTA_CHECK( num_size_args != 0u )
       << "Missing argument, need one of: 'size', 'radius', 'resolution', 'category'.";
-  if( num_size_args == 1u )
-    NTA_WARN  << "Too many arguments specified: 'size', 'radius', 'resolution', 'category'. Size gets preference. Or choose only one of them.";
+  NTA_CHECK( num_size_args == 1u )
+    << "Too many arguments specified: 'size', 'radius', 'resolution', 'category'. Choose only one of them.";
 
   if( parameters.periodic ) {
     NTA_CHECK( not parameters.clipInput )
