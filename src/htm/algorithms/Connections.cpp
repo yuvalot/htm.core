@@ -123,9 +123,12 @@ Synapse Connections::createSynapse(Segment segment,
   // them (synapses 0/1) varying levels of strength.
   const auto existingCells = presynapticCellsForSegment(segment); //TODO 1; add way to get all presynaptic cells for segment (fast)
   const auto found = std::find(existingCells.begin(), existingCells.end(), presynapticCell);
-  if (found != existingCells.end()) { //presynapticCell in existingCells
-      return *found; //synapse (connecting to this presyn cell) already exists on the segment; don't create a new one, exit early and return the existing
-    }
+  if (found != existingCells.end()) { //presynapticCell in existingCells //synapse (connecting to this presyn cell) already exists on the segment; 
+  //...don't create a new one, but strenghten the connection (choose max permanence) and exit early
+    const auto oldPerm = dataForSynapse(*found).permanence;
+    if(permanence > oldPerm) updateSynapsePermanence(*found, permanence);
+    return *found;
+  }
    //else: the new synapse is not duplicit, so keep creating it. 
 
 
