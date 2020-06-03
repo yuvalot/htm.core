@@ -83,6 +83,9 @@ R"(Compatibility Warning: This classes API is unstable and may change without wa
 
     py_Connections.def("idxOnCellForSegment", &Connections::idxOnCellForSegment);
 
+    py_Connections.def("presynapticCellsForSegment", &Connections::presynapticCellsForSegment,
+      py::arg("segment"));
+
     py_Connections.def("segmentForSynapse", &Connections::segmentForSynapse);
 
     py_Connections.def("permanenceForSynapse",

@@ -121,12 +121,12 @@ Synapse Connections::createSynapse(Segment segment,
   // That would give such input a stronger connection.
   // Synapses are supposed to have binary effects (0 or 1) but duplicate synapses give
   // them (synapses 0/1) varying levels of strength.
-  for (const Synapse& syn : synapsesForSegment(segment)) {
-    const CellIdx existingPresynapticCell = dataForSynapse(syn).presynapticCell; //TODO 1; add way to get all presynaptic cells for segment (fast)
-    if (presynapticCell == existingPresynapticCell) {
-      return syn; //synapse (connecting to this presyn cell) already exists on the segment; don't create a new one, exit early and return the existing
+  const auto existingCells = presynapticCellsForSegment(segment); //TODO 1; add way to get all presynaptic cells for segment (fast)
+  const auto found = std::find(existingCells.begin(), existingCells.end(), presynapticCell);
+  if (found != existingCells.end()) { //presynapticCell in existingCells
+      return *found; //synapse (connecting to this presyn cell) already exists on the segment; don't create a new one, exit early and return the existing
     }
-  } //else: the new synapse is not duplicit, so keep creating it. 
+   //else: the new synapse is not duplicit, so keep creating it. 
 
 
 
@@ -593,6 +593,16 @@ void Connections::bumpSegment(const Segment segment, const Permanence delta) {
   for( const auto syn : synapses ) {
     updateSynapsePermanence(syn, synapses_[syn].permanence + delta);
   }
+}
+
+
+vector<CellIdx> Connections::presynapticCellsForSegment(const Segment segment) const { //TODO optimize by storing the vector in SegmentData?
+  set<CellIdx> presynCells;
+  for(const auto synapse: synapsesForSegment(segment)) {
+    const auto presynapticCell = dataForSynapse(synapse).presynapticCell;
+    presynCells.insert(presynapticCell);
+  }
+  return vector<CellIdx>(std::begin(presynCells), std::end(presynCells));
 }
 
 
