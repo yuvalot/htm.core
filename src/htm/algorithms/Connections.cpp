@@ -435,9 +435,8 @@ void Connections::adaptSegment(const Segment segment,
     currentUpdates_.resize(  synapses_.size(), minPermanence );
   }
 
-  const auto& synapses = synapsesForSegment(segment);
   vector<Synapse> destroyLater;
-  for(const auto synapse: synapses) {
+  for(const auto synapse: synapsesForSegment(segment)) {
       const SynapseData &synapseData = dataForSynapse(synapse);
 
       Permanence update;
@@ -472,7 +471,7 @@ void Connections::adaptSegment(const Segment segment,
   }
 
   //destroy segment if it has too few synapses left -> will never be able to connect again
-  if(pruneZeroSynapses and synapses.size() < connectedThreshold_) { //FIXME this is incorrect! connectedThreshold_ is if > then syn = connected. We need stimulusThreshold_ from TM.
+  if(pruneZeroSynapses and synapsesForSegment(segment).size() < connectedThreshold_) { //FIXME this is incorrect! connectedThreshold_ is if > then syn = connected. We need stimulusThreshold_ from TM.
     destroySegment(segment);
     prunedSegs_++; //statistics
   }
@@ -589,9 +588,8 @@ void Connections::synapseCompetition(
 
 
 void Connections::bumpSegment(const Segment segment, const Permanence delta) {
-  const vector<Synapse> &synapses = synapsesForSegment(segment);
   // TODO: vectorize?
-  for( const auto syn : synapses ) {
+  for( const auto syn : synapsesForSegment(segment) ) {
     updateSynapsePermanence(syn, synapses_[syn].permanence + delta);
   }
 }
