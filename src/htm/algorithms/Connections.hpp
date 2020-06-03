@@ -362,10 +362,12 @@ public:
    *
    * @retval Segment data.
    */
-  inline const SegmentData &dataForSegment(const Segment segment) const {
+  const SegmentData &dataForSegment(const Segment segment) const {
+    NTA_CHECK(segmentExists_(segment));
     return segments_[segment];
   }
-  inline SegmentData& dataForSegment(const Segment segment) { //editable access, needed by SP 
+  SegmentData& dataForSegment(const Segment segment) { //editable access, needed by SP
+    NTA_CHECK(segmentExists_(segment));
     return segments_[segment];
   }
 
@@ -694,7 +696,7 @@ protected:
    *
    * @retval True if it's still in its cell's segment list.
    */
-  bool segmentExists_(const Segment segment) const noexcept;
+  bool segmentExists_(const Segment segment) const;
 
   /**
    * Check whether this synapse still exists "in Connections" ( on its segment).
@@ -712,7 +714,7 @@ protected:
    *
    * @retval True if synapse is valid (not removed, it's still in its segment's synapse list)
    */
-  bool synapseExists_(const Synapse synapse, bool fast = false) const noexcept;
+  bool synapseExists_(const Synapse synapse, bool fast = false) const;
 
   /**
    * Remove a synapse from presynaptic maps.

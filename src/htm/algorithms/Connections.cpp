@@ -188,7 +188,7 @@ Synapse Connections::createSynapse(Segment segment,
   return synapse;
 }
 
-bool Connections::segmentExists_(const Segment segment) const noexcept {
+bool Connections::segmentExists_(const Segment segment) const {
   if(segment >= segments_.size()) return false; //OOB segment
 
   const SegmentData &segmentData = segments_[segment];
@@ -196,7 +196,7 @@ bool Connections::segmentExists_(const Segment segment) const noexcept {
   return (std::find(segmentsOnCell.cbegin(), segmentsOnCell.cend(), segment) != segmentsOnCell.cend()); //TODO if too slow, also create "fast" variant, as synapseExists_()
 }
 
-bool Connections::synapseExists_(const Synapse synapse, bool fast) const noexcept {
+bool Connections::synapseExists_(const Synapse synapse, bool fast) const {
   if(synapse >= synapses_.size()) return false; //out of bounds. Can happen after serialization, where only existing synapses are stored.
 
 #ifdef NTA_ASSERTIONS_ON
@@ -207,7 +207,13 @@ bool Connections::synapseExists_(const Synapse synapse, bool fast) const noexcep
   const SynapseData &synapseData = synapses_[synapse];
   const vector<Synapse> &synapsesOnSegment =
       segments_[synapseData.segment].synapses;
-  return (std::find(synapsesOnSegment.begin(), synapsesOnSegment.end(), synapse) != synapsesOnSegment.end());
+  const bool found = (std::find(synapsesOnSegment.begin(), synapsesOnSegment.end(), synapse) != synapsesOnSegment.end());
+  //validate the fast & slow methods for same result:
+#ifdef NTA_ASSERTIONS_ON
+  const bool removed = synapses_[synapse].permanence == -1;
+  NTA_ASSERT( (removed and not found) or (not removed and found) );
+#endif
+  return found;
 
   } else {
   //quick method. Relies on hack in destroySynapse() where we set synapseData.permanence == -1
@@ -239,7 +245,8 @@ void Connections::removeSynapseFromPresynapticMap_(
 
 
 void Connections::destroySegment(const Segment segment) {
-  NTA_ASSERT(segmentExists_(segment));
+  if(not segmentExists_(segment)) return;
+
   for (auto h : eventHandlers_) {
     h.second->onDestroySegment(segment);
   }
@@ -254,16 +261,18 @@ void Connections::destroySegment(const Segment segment) {
   CellData &cellData = cells_[segmentData.cell];
 
   const auto segmentOnCell = std::find(cellData.segments.cbegin(), cellData.segments.cend(), segment);
-  NTA_CHECK(segmentOnCell != cellData.segments.cend()) << "Segment to be destroyed not found on the cell!";
+  NTA_ASSERT(segmentOnCell != cellData.segments.cend()) << "Segment to be destroyed not found on the cell!";
   NTA_ASSERT(*segmentOnCell == segment);
 
   cellData.segments.erase(segmentOnCell);
   destroyedSegments_++;
+
+  NTA_ASSERT(not segmentExists_(segment));
 }
 
 
 void Connections::destroySynapse(const Synapse synapse) {
-  NTA_CHECK(synapseExists_(synapse, true));
+  if(not synapseExists_(synapse, true)) return;
 
   for (auto h : eventHandlers_) {
     h.second->onDestroySynapse(synapse);
@@ -312,6 +321,7 @@ void Connections::destroySynapse(const Synapse synapse) {
   //To mark them as "removed", we set SynapseData.permanence = -1, this can be used for a quick check later
   synapseData.permanence = -1; //marking as "removed"
   destroyedSynapses_++;
+  NTA_ASSERT(not synapseExists_(synapse));
 }
 
 
