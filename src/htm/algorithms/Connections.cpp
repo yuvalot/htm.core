@@ -274,9 +274,11 @@ void Connections::destroySynapse(const Synapse synapse) {
     }
   }
   
-  const auto synapseOnSegment = std::find(segmentData.synapses.cbegin(), 
+  const auto synapseOnSegment = std::lower_bound(segmentData.synapses.cbegin(), 
 		                          segmentData.synapses.cend(),
-					  synapse); 
+					  synapse,
+					  [&](const Synapse a, const Synapse b) -> bool { return dataForSynapse(a).id < dataForSynapse(b).id;}
+					  ); 
 
   NTA_ASSERT(synapseOnSegment != segmentData.synapses.cend());
   NTA_ASSERT(*synapseOnSegment == synapse);
