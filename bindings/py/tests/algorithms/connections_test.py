@@ -84,7 +84,8 @@ class ConnectionsTest(unittest.TestCase):
         segments = connections.segmentsForCell(cell)
         self.assertEqual(len(segments), 1, "Segments were prematurely destroyed.")
         segment = segments[0]
-        connections.adaptSegment(segment, inputSDR, 0.1, 0.001, True)
+        numSynapsesOnSegment = len(segments)
+        connections.adaptSegment(segment, inputSDR, 0.1, 0.001, pruneZeroSynapses=True, segmentThreshold= numSynapsesOnSegment+1) #set to +1 so that segments get always deleted in this test
         segments = connections.segmentsForCell(cell)
         self.assertEqual(len(segments), 0, "Segments were not destroyed.")
 
@@ -165,7 +166,7 @@ class ConnectionsTest(unittest.TestCase):
 
 
   def testCreateSynapse(self):
-    # empty connections
+    # empty connections, create segment and a synapse
     co = Connections(NUM_CELLS, 0.51)
     self.assertEqual(co.numSynapses(), 0)
     self.assertEqual(co.numSegments(), 0)
@@ -183,29 +184,22 @@ class ConnectionsTest(unittest.TestCase):
     #syn2 = co.createSynapse(seg, NUM_CELLS-1, 0.52)
     #assert syn1 ==syn2
 
+
   def testDestroySynapse(self):
-    # empty connections
+    # empty connections, create segment seg and a synapse syn
     co = Connections(NUM_CELLS, 0.51)
-    self.assertEqual(co.numSynapses(), 0)
-    self.assertEqual(co.numSegments(), 0)
-
-    # 1st, create a segment
     seg = co.createSegment(NUM_CELLS-1, 1)
-    self.assertEqual(co.numSegments(), 1)
-
-    # create a synapse on that segment
     syn1 = co.createSynapse(seg, NUM_CELLS-1, 0.52)
-    perm1 = co.permanenceForSynapse(syn1)
-    self.assertEqual(co.numSynapses(), 1)
 
     # destroy the synapse
     co.destroySynapse(syn1)
     self.assertEqual(co.numSynapses(), 0)
 
-    permRemoved = co.permanenceForSynapse(syn1) #FIXME removed syn1 should not have (valid) data
-    assert permRemoved == perm1
+    with pytest.raises(RuntimeError): # NTA_CHECK, data for removed synapse must not be accessible!
+      permRemoved = co.permanenceForSynapse(syn1)
+      assert permRemoved == perm1
 
-    with pytest.raises(IndexError): # double remove should fail
+    with pytest.raises(RuntimeError): # NTA_CHECK, double remove should fail
       co.destroySynapse(syn1)
     
 

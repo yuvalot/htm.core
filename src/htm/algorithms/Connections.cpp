@@ -184,12 +184,23 @@ bool Connections::segmentExists_(const Segment segment) const {
           segmentsOnCell.cend());
 }
 
-bool Connections::synapseExists_(const Synapse synapse) const {
+bool Connections::synapseExists_(const Synapse synapse, bool fast) const {
+  if(synapse >= synapses_.size()) return false; //out of bounds. Can happen after serialization, where only existing synapses are stored.
+
+#ifdef NTA_ASSERTIONS_ON
+  fast = false; //in Debug, do the proper, slow check always
+#endif
+  if(!fast) {
+  //proper but slow method to check for valid, existing synapse
   const SynapseData &synapseData = synapses_[synapse];
   const vector<Synapse> &synapsesOnSegment =
       segments_[synapseData.segment].synapses;
   return (std::find(synapsesOnSegment.begin(), synapsesOnSegment.end(),
                     synapse) != synapsesOnSegment.end());
+  } else {
+  //quick method. Relies on hack in destroySynapse() where we set synapseData.permanence == -1
+  return synapses_[synapse].permanence != -1;
+  }
 }
 
 /**
@@ -240,14 +251,15 @@ void Connections::destroySegment(const Segment segment) {
 
 
 void Connections::destroySynapse(const Synapse synapse) {
-  NTA_ASSERT(synapseExists_(synapse));
+  NTA_CHECK(synapseExists_(synapse, true));
+
   for (auto h : eventHandlers_) {
     h.second->onDestroySynapse(synapse);
   }
 
-  const SynapseData &synapseData = synapses_[synapse];
-        SegmentData &segmentData = segments_[synapseData.segment];
-  const auto         presynCell  = synapseData.presynapticCell;
+  SynapseData& synapseData = synapses_[synapse]; //like dataForSynapse() but here we need writeable access
+  SegmentData &segmentData = segments_[synapseData.segment];
+  const auto   presynCell  = synapseData.presynapticCell;
 
   if( synapseData.permanence >= connectedThreshold_ ) {
     segmentData.numConnected--;
@@ -284,6 +296,9 @@ void Connections::destroySynapse(const Synapse synapse) {
   NTA_ASSERT(*synapseOnSegment == synapse);
 
   segmentData.synapses.erase(synapseOnSegment);
+  //Note: dataForSynapse(synapse) are not deleted, unfortunately. And are still accessible. 
+  //To mark them as "removed", we set SynapseData.permanence = -1, this can be used for a quick check later
+  synapseData.permanence = -1; //marking as "removed"
   destroyedSynapses_++;
 }
 

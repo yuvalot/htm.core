@@ -360,10 +360,10 @@ public:
    *
    * @retval Segment data.
    */
-  const SegmentData &dataForSegment(const Segment segment) const {
+  inline const SegmentData &dataForSegment(const Segment segment) const {
     return segments_[segment];
   }
-  SegmentData& dataForSegment(const Segment segment) { //editable access, needed by SP 
+  inline SegmentData& dataForSegment(const Segment segment) { //editable access, needed by SP 
     return segments_[segment];
   }
 
@@ -374,7 +374,8 @@ public:
    *
    * @retval Synapse data.
    */
-  const SynapseData &dataForSynapse(const Synapse synapse) const {
+  inline const SynapseData& dataForSynapse(const Synapse synapse) const {
+    NTA_CHECK(synapseExists_(synapse, true));
     return synapses_[synapse];
   }
 
@@ -386,7 +387,7 @@ public:
    *
    * @retval Segment
    */
-  Segment getSegment(const CellIdx cell, const SegmentIdx idx) const {
+  inline Segment getSegment(const CellIdx cell, const SegmentIdx idx) const {
     return cells_[cell].segments[idx];
   }
 
@@ -395,7 +396,7 @@ public:
    *
    * @retval A vector length
    */
-  size_t segmentFlatListLength() const { return segments_.size(); };
+  inline size_t segmentFlatListLength() const { return segments_.size(); };
 
   /**
    * Compare two segments. Returns true if a < b.
@@ -694,13 +695,22 @@ protected:
   bool segmentExists_(const Segment segment) const;
 
   /**
-   * Check whether this synapse still exists on its segment.
+   * Check whether this synapse still exists "in Connections" ( on its segment).
+   * After calling `synapseCreate()` this should be True, after `synapseDestroy()` 
+   * its False.
+   *
+   * Note: 
    *
    * @param Synapse
+   * @param fast - bool, default false. If false, run the slow, proper check that is always correct. 
+   *   If true, we use a "hack" for speed, where destroySynapse sets synapseData.permanence=-1,
+   *   so we can check and compare alter, if ==-1 then synapse is "removed". 
+   *   The problem is that synapseData are never truly removed. 
+   *   #TODO instead of vector<SynapseData> synapses_, try map<Synapse, SynapseData>, that way, we can properly remove (and check).
    *
-   * @retval True if it's still in its segment's synapse list.
+   * @retval True if synapse is valid (not removed, it's still in its segment's synapse list)
    */
-  bool synapseExists_(const Synapse synapse) const;
+  bool synapseExists_(const Synapse synapse, bool fast = false) const;
 
   /**
    * Remove a synapse from presynaptic maps.
