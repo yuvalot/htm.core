@@ -84,8 +84,6 @@ void Connections::pruneLRUSegment_(const CellIdx& cell) {
   const auto leastRecentlyUsedSegment = std::min_element(destroyCandidates.cbegin(),
                                                          destroyCandidates.cend(), 
 							 compareSegmentsByLRU);
-  destroySegment(*leastRecentlyUsedSegment);
-  NTA_ASSERT(destroyCandidates.size() < numBefore) << "A segment should have been pruned, but wasn't!";
 #ifdef NTA_ASSERTIONS_ON
   if(destroyCandidates.size() > 0) {
     // the removed seg should be the "oldest", least recently used. So any other is more recent. We don't check all, but randomly ([0])
@@ -93,6 +91,8 @@ void Connections::pruneLRUSegment_(const CellIdx& cell) {
 	    << "Should remove the least recently used segment,but older exists.";
   }
 #endif
+  destroySegment(*leastRecentlyUsedSegment);
+  NTA_ASSERT(destroyCandidates.size() < numBefore) << "A segment should have been pruned, but wasn't!";
 }
 
 Segment Connections::createSegment(const CellIdx cell, 
