@@ -175,14 +175,29 @@ class ConnectionsTest(unittest.TestCase):
     seg = co.createSegment(NUM_CELLS-1, 1)
     self.assertEqual(co.numSegments(), 1)
 
-    # create a synapse on that segment
+    #1. create a synapse on that segment
     syn1 = co.createSynapse(seg, NUM_CELLS-1, 0.52)
-    perm1 = co.permanenceForSynapse(syn1)
+    self.assertEqual(pytest.approx(co.permanenceForSynapse(syn1)), 0.52)
     self.assertEqual(co.numSynapses(), 1)
 
-    #FIXME creating a duplicit synapse should not crash! i
-    #syn2 = co.createSynapse(seg, NUM_CELLS-1, 0.52)
-    #assert syn1 ==syn2
+    #2. creating a duplicit synapse should not crash!
+    syn2 = co.createSynapse(seg, NUM_CELLS-1, 0.52)
+    self.assertEqual( syn1,  syn2, "creating duplicate synapses should return the same")
+    self.assertEqual(co.numSynapses(), 1, "Duplicate synapse, number should not increase")
+
+    #3. create a different synapse
+    syn3 = co.createSynapse(seg, 1, 0.52)
+    self.assertNotEqual( syn1,  syn3, "creating a different synapse must create a new one")
+    self.assertEqual(co.numSynapses(), 2, "New synapse should increase the number")
+
+    #4. create existing synapse with a new value -> should update permanence
+    #4.a lower permanence -> keep max()
+    syn4 = co.createSynapse(seg, NUM_CELLS-1, 0.11) #all the same just permanence is a lower val
+    self.assertEqual( syn1,  syn4, "just updating existing syn")
+    self.assertEqual(co.numSynapses(), 2, "Duplicate synapse, number should not increase")
+    self.assertEqual(pytest.approx(co.permanenceForSynapse(syn1)), 0.52, "update keeps the larger value")
+
+
 
 
   def testDestroySynapse(self):
