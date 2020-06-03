@@ -205,7 +205,7 @@ void TemporalMemory::activatePredictedColumn_(
     // This cell might have multiple active segments.
     do {
       if (learn) { 
-        connections.adaptSegment(*activeSegment, prevActiveCells,
+        connections_.adaptSegment(*activeSegment, prevActiveCells,
                      permanenceIncrement_, permanenceDecrement_, true, minThreshold_);
 
         const Int32 nGrowDesired =
@@ -251,7 +251,7 @@ void TemporalMemory::burstColumn_(
   if (learn) {
     if (bestMatchingSegment != columnMatchingSegmentsEnd) {
       // Learn on the best matching segment.
-      connections.adaptSegment(*bestMatchingSegment, prevActiveCells,
+      connections_.adaptSegment(*bestMatchingSegment, prevActiveCells,
                    permanenceIncrement_, permanenceDecrement_, true, minThreshold_); //TODO consolidate SP.stimulusThreshold_ & TM.minThreshold_ into Conn.stimulusThreshold ? (replacing segmentThreshold arg used in some methods in Conn) 
 
       const Int32 nGrowDesired = maxNewSynapseCount_ - numActivePotentialSynapsesForSegment_[*bestMatchingSegment];
@@ -284,7 +284,7 @@ void TemporalMemory::punishPredictedColumn_(
   if (predictedSegmentDecrement_ > 0.0) {
     for (auto matchingSegment = columnMatchingSegmentsBegin;
          matchingSegment != columnMatchingSegmentsEnd; matchingSegment++) {
-      connections.adaptSegment(*matchingSegment, prevActiveCells,
+      connections_.adaptSegment(*matchingSegment, prevActiveCells,
                    -predictedSegmentDecrement_, 0.0, true, minThreshold_);
     }
   }
