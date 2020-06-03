@@ -163,14 +163,15 @@ class ConnectionsTest(unittest.TestCase):
         self.assertEqual(presynamptic_cells, presynaptic_input_set, "Missing synapses")
 
 
-  def testDestroySynapse(self):
+
+  def testCreateSynapse(self):
     # empty connections
     co = Connections(NUM_CELLS, 0.51)
     self.assertEqual(co.numSynapses(), 0)
     self.assertEqual(co.numSegments(), 0)
 
     # 1st, create a segment
-    seg = co.createSegment(NUM_CELLS-1,1)
+    seg = co.createSegment(NUM_CELLS-1, 1)
     self.assertEqual(co.numSegments(), 1)
 
     # create a synapse on that segment
@@ -178,15 +179,33 @@ class ConnectionsTest(unittest.TestCase):
     perm1 = co.permanenceForSynapse(syn1)
     self.assertEqual(co.numSynapses(), 1)
 
-    #FIXME creating a duplicit synapse should not crash! syn2 = co.createSynapse(seg, NUM_CELLS-1, 0.52)
+    #FIXME creating a duplicit synapse should not crash! i
+    #syn2 = co.createSynapse(seg, NUM_CELLS-1, 0.52)
     #assert syn1 ==syn2
 
+  def testDestroySynapse(self):
+    # empty connections
+    co = Connections(NUM_CELLS, 0.51)
+    self.assertEqual(co.numSynapses(), 0)
+    self.assertEqual(co.numSegments(), 0)
+
+    # 1st, create a segment
+    seg = co.createSegment(NUM_CELLS-1, 1)
+    self.assertEqual(co.numSegments(), 1)
+
+    # create a synapse on that segment
+    syn1 = co.createSynapse(seg, NUM_CELLS-1, 0.52)
+    perm1 = co.permanenceForSynapse(syn1)
+    self.assertEqual(co.numSynapses(), 1)
+
+    # destroy the synapse
     co.destroySynapse(syn1)
     self.assertEqual(co.numSynapses(), 0)
+
     permRemoved = co.permanenceForSynapse(syn1) #FIXME removed syn1 should not have (valid) data
     assert permRemoved == perm1
 
-    with pytest.raises(IndexError):
+    with pytest.raises(IndexError): # double remove should fail
       co.destroySynapse(syn1)
     
 
