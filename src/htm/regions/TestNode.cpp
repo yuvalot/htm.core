@@ -29,7 +29,6 @@
 #include <htm/engine/Spec.hpp>
 #include <htm/regions/TestNode.hpp>
 #include <htm/ntypes/Array.hpp>
-#include <htm/ntypes/Value.hpp>
 #include <htm/utils/Log.hpp>
 #include <htm/types/Types.hpp>
 
@@ -52,7 +51,7 @@ TestNode::TestNode(const ValueMap &params, Region *region)
 
 
   shouldCloneParam_ = params.getScalarT<UInt32>("shouldCloneParam", 1) != 0;
-  stringParam_ = params.getString("stringParam");
+  stringParam_ = params.getString("stringParam", "nodespec value");
 
   real32ArrayParam_.resize(8);
   for (size_t i = 0; i < 8; i++) {
@@ -173,6 +172,10 @@ void TestNode::compute() {
   Array &inputArray = bottomUpIn_->getData();
   Real64* inputBuffer = (Real64*)inputArray.getBuffer();
   size_t count = inputArray.getCount();
+
+    // trace facility
+  NTA_DEBUG << "compute " << bottomUpIn_ << std::endl;
+
 	
   // See TestNode.hpp for description of the computation
 	
@@ -198,6 +201,10 @@ void TestNode::compute() {
 		  }
     }
   }
+
+  // trace facility
+  NTA_DEBUG << "compute " << bottomUpOut_ << "\n";
+
 
   iter_++;
 }

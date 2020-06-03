@@ -105,7 +105,7 @@ Segment Connections::createSegment(const CellIdx cell,
   }
 
   //proceed to create a new segment
-  NTA_CHECK(segments_.size() < std::numeric_limits<Segment>::max()) << "Add segment failed: Range of Segment (data-type) insufficient size."
+  NTA_CHECK(segments_.size() < std::numeric_limits<Segment>::max()) << "Add segment failed: Range of Segment (data-type) insufficinet size."
 	    << (size_t)segments_.size() << " < " << (size_t)std::numeric_limits<Segment>::max();
   const Segment segment = static_cast<Segment>(segments_.size());
   const SegmentData& segmentData = SegmentData(cell, iteration_, nextSegmentOrdinal_++);
@@ -125,11 +125,31 @@ Segment Connections::createSegment(const CellIdx cell,
 Synapse Connections::createSynapse(Segment segment,
                                    CellIdx presynapticCell,
                                    Permanence permanence) {
+
+  // Skip cells that are already synapsed on by this segment
+  // Biological motivation (?):
+  // There are structural constraints on the shapes of axons & synapses
+  // which prevent a large number duplicate of connections.
+  //
+  // It's important to prevent cells from growing duplicate synapses onto a segment,
+  // because otherwise a strong input would be sampled many times and grow many synapses.
+  // That would give such input a stronger connection.
+  // Synapses are supposed to have binary effects (0 or 1) but duplicate synapses give
+  // them (synapses 0/1) varying levels of strength.
+  for (const Synapse& syn : synapsesForSegment(segment)) {
+    const CellIdx existingPresynapticCell = dataForSynapse(syn).presynapticCell; //TODO 1; add way to get all presynaptic cells for segment (fast)
+    if (presynapticCell == existingPresynapticCell) {
+      return syn; //synapse (connecting to this presyn cell) already exists on the segment; don't create a new one, exit early and return the existing
+    }
+  } //else: the new synapse is not duplicit, so keep creating it. 
+
+
+
   // Get an index into the synapses_ list, for the new synapse to reside at.
-  NTA_CHECK(synapses_.size() < std::numeric_limits<Synapse>::max()) << "Add synapse failed: Range of Synapse (data-type) insufficient size."
+  NTA_ASSERT(synapses_.size() < std::numeric_limits<Synapse>::max()) << "Add synapse failed: Range of Synapse (data-type) insufficient size."
 	    << synapses_.size() << " < " << (size_t)std::numeric_limits<Synapse>::max();
-  const Synapse synapse = static_cast<Synapse>(synapses_.size());
-  synapses_.push_back(SynapseData());
+  const Synapse synapse = static_cast<Synapse>(synapses_.size()); //TODO work on cache locality. Have all Synapse, SynapseData on Segment in continuous mem block ?
+  synapses_.emplace_back(SynapseData());
 
   // Fill in the new synapse's data
   SynapseData &synapseData    = synapses_[synapse];
@@ -157,6 +177,7 @@ Synapse Connections::createSynapse(Segment segment,
 }
 
 bool Connections::segmentExists_(const Segment segment) const {
+  NTA_CHECK(segment < segments_.size());
   const SegmentData &segmentData = segments_[segment];
   const vector<Segment> &segmentsOnCell = cells_[segmentData.cell].segments;
   return (std::find(segmentsOnCell.cbegin(), segmentsOnCell.cend(), segment) !=
@@ -328,19 +349,6 @@ SegmentIdx Connections::idxOnCellForSegment(const Segment segment) const {
 }
 
 
-void Connections::mapSegmentsToCells(const Segment *segments_begin,
-                                     const Segment *segments_end,
-                                     CellIdx *cells_begin) const {
-  CellIdx *out = cells_begin;
-
-  for (auto segment = segments_begin; segment != segments_end;
-       ++segment, ++out) {
-    NTA_ASSERT(segmentExists_(*segment));
-    *out = segments_[*segment].cell;
-  }
-}
-
-
 bool Connections::compareSegments(const Segment a, const Segment b) const {
   const SegmentData &aData = segments_[a];
   const SegmentData &bData = segments_[b];
@@ -443,8 +451,8 @@ void Connections::adaptSegment(const Segment segment,
   }
 
   const auto& synapses = synapsesForSegment(segment);
-  for( size_t i = 0; i <  synapses.size(); i++) {
-      const auto synapse = synapses[i];
+  vector<Synapse> destroyLater;
+  for(const auto synapse: synapses) {
       const SynapseData &synapseData = dataForSynapse(synapse);
 
       Permanence update;
@@ -457,10 +465,8 @@ void Connections::adaptSegment(const Segment segment,
     //prune permanences that reached zero
     if (pruneZeroSynapses and 
         synapseData.permanence + update < htm::minPermanence + htm::Epsilon) { //new value will disconnect the synapse
-      destroySynapse(synapse);
+      destroyLater.push_back(synapse);
       prunedSyns_++; //for statistics
-      i--; // do not advance `i`, as `destroySynapse` just modified inplace the synapses_, so now a `synapses_[i]`
-      // is the "next" synapse. 
       continue;
     }
 
@@ -473,6 +479,11 @@ void Connections::adaptSegment(const Segment segment,
     } else {
       updateSynapsePermanence(synapse, synapseData.permanence + update);
     }
+  }
+
+  //destroy synapses accumulated for pruning
+  for(const auto pruneSyn : destroyLater) {
+    destroySynapse(pruneSyn);
   }
 
   //destroy segment if it has too few synapses left -> will never be able to connect again
@@ -605,12 +616,10 @@ void Connections::bumpSegment(const Segment segment, const Permanence delta) {
 
 
 void Connections::destroyMinPermanenceSynapses(
-                              const Segment segment, Int nDestroy,
+                              const Segment segment, 
+			      const size_t nDestroy,
                               const vector<CellIdx> &excludeCells)
 {
-  NTA_ASSERT( nDestroy >= 0 );
-  if( nDestroy <= 0 ) return; // Nothing to do.
-
   // Don't destroy any cells that are in excludeCells.
   vector<Synapse> destroyCandidates;
   for( Synapse synapse : synapsesForSegment(segment)) {
@@ -633,8 +642,8 @@ void Connections::destroyMinPermanenceSynapses(
   };
   std::sort(destroyCandidates.begin(), destroyCandidates.end(), comparePermanences);
 
-  nDestroy = std::min( nDestroy, (Int) destroyCandidates.size() );
-  for(Int i = 0; i < nDestroy; i++) {
+  const size_t destroy = std::min( nDestroy, destroyCandidates.size() );
+  for(size_t i = 0; i < destroy; i++) {
     destroySynapse( destroyCandidates[i] );
   }
 }

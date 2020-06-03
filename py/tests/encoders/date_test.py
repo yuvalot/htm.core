@@ -15,7 +15,7 @@
 # along with this program.  If not, see http://www.gnu.org/licenses.
 # ----------------------------------------------------------------------
 
-""" Unit tests for date encoder. """
+""" Unit tests for .py implemented date encoder. """
 
 import datetime
 import numpy
@@ -192,21 +192,22 @@ class DateEncoderTest(unittest.TestCase):
   def testHoliday(self):
     """ Look at holiday more carefully because of the smooth transition. """
     e = DateEncoder(holiday=5)
-    holiday    = [0,0,0,0,0,1,1,1,1,1]
-    notholiday = [1,1,1,1,1,0,0,0,0,0]
-    holiday2   = [0,0,0,1,1,1,1,1,0,0]
-
+    notholiday = [1,1,1,1,1,0,0,0,0,0]  # Not a holiday
+    holiday1   = [0,0,0,1,1,1,1,1,0,0]  # day before holiday
+    holiday    = [0,0,0,0,0,1,1,1,1,1]  # day of holiday
+    holiday2   = [1,1,0,0,0,0,0,1,1,1]  # day after holiday
+    
+    d = datetime.datetime(2011, 12, 24, 16, 00) #day before holiday, approaching
+    assert(all( e.encode(d).dense == holiday1 ))
+    
     d = datetime.datetime(2010, 12, 25, 4, 55) #Christmas day 25th Dec, a default holiday
     assert(all( e.encode(d).dense == holiday ))
 
-    d = datetime.datetime(2008, 12, 27, 4, 55) #12/27 is not a holiday
-    assert(all( e.encode(d).dense == notholiday ))
-
     d = datetime.datetime(1999, 12, 26, 8, 00) #day after holiday, approaching
     assert(all( e.encode(d).dense == holiday2 ))
-
-    d = datetime.datetime(2011, 12, 24, 16, 00) #day before holiday, approaching
-    assert(all( e.encode(d).dense == holiday2 ))
+    
+    d = datetime.datetime(2008, 12, 27, 4, 55) #12/27 is not a holiday
+    assert(all( e.encode(d).dense == notholiday ))
 
 
   def testHolidayMultiple(self):
@@ -242,15 +243,6 @@ class DateEncoderTest(unittest.TestCase):
       self.assertEqual( e.encode(d), e2.encode(d) )
 
   
-  @unittest.skip("Encoding years not supported, DateTime now works at weekly basis only")
-  def testYearsDiffer(self):
-    """ Creating date encoder instance. """
-    enc = DateEncoder(season=1, dayOfWeek=1, weekend=1) #all info for recognizing days 
-    # 1.1. 2007 & 2018 was Monday, can you recognize the days?
-    first2007 = datetime.datetime(2007, 1, 1) #FIXME enc fails to encode this? 
-    first2018 = datetime.datetime(2018, 1, 1)
-    self.assertNotEqual(enc.encode(first2007).dense.tolist(), 
-                        enc.encode(first2018).dense.tolist()) 
 
 
 if __name__ == "__main__":

@@ -37,6 +37,7 @@
 #include <htm/os/Timer.hpp>
 #include <htm/types/Serializable.hpp>
 #include <htm/types/Types.hpp>
+#include <htm/ntypes/Value.hpp>
 
 namespace htm {
 
@@ -142,6 +143,7 @@ public:
   Real32 getParameterReal32(const std::string &name) const;
   Real64 getParameterReal64(const std::string &name) const;
   bool getParameterBool(const std::string &name) const;
+  std::string getParameterJSON(const std::string &name) const;
 
   /**
    * Set the parameter value of a specific type.
@@ -159,6 +161,7 @@ public:
   void setParameterReal32(const std::string &name, Real32 value);
   void setParameterReal64(const std::string &name, Real64 value);
   void setParameterBool(const std::string &name, bool value);
+  void setParameterJSON(const std::string &name, const std::string& value);
 
   /**
    * Get the parameter as an @c Array value.
@@ -410,9 +413,8 @@ public:
   // Internal methods.
 
   // New region from parameter spec
-  Region(std::string name, const std::string &type,
-         const std::string &nodeParams, Network *network = nullptr);
-
+  Region(const std::string &name, const std::string &type, const std::string &nodeParams, Network *network = nullptr);
+  Region(const std::string &name, const std::string &node, ValueMap &vm, Network *network = nullptr);
   Region(Network *network); // An empty region for deserialization.
   Region(); // A default constructor for region for deserialization.
 
@@ -423,13 +425,12 @@ public:
   bool isInitialized() const { return initialized_; }
 
   // Used by RegionImpl to get inputs/outputs
-  Output *getOutput(const std::string &name) const;
-
-  Input *getInput(const std::string &name) const;
-
-  const std::map<std::string, Input *> &getInputs() const;
-
-  const std::map<std::string, Output *> &getOutputs() const;
+  bool hasOutput(const std::string &name) const;
+  bool hasInput(const std::string &name) const;
+  std::shared_ptr<Output> getOutput(const std::string &name) const;
+  std::shared_ptr<Input> getInput(const std::string &name) const;
+  const std::map<std::string, std::shared_ptr<Input>> &getInputs() const;
+  const std::map<std::string, std::shared_ptr<Output>> &getOutputs() const;
 
   void clearInputs();
 
@@ -466,11 +467,6 @@ public:
 
   void removeAllIncomingLinks();
 
-  // TODO: sort our phases api. Users should never call Region::setPhases
-  // and it is here for serialization only.
-  void setPhases(std::set<UInt32> &phases);
-
-  std::set<UInt32> &getPhases();
 
 
   // These must be implemented for serialization.
@@ -480,8 +476,7 @@ public:
   void save_ar(Archive& ar) const {
     ar(cereal::make_nvp("name", name_),
        cereal::make_nvp("nodeType", type_),
-       cereal::make_nvp("initialized", initialized_),
-       cereal::make_nvp("phases", phases_));
+       cereal::make_nvp("initialized", initialized_));
     ar(cereal::make_nvp("dim", getDimensions()));
 
     std::map<std::string, Dimensions> outDims;
@@ -511,7 +506,6 @@ public:
     ar(cereal::make_nvp("name", name_));
     ar(cereal::make_nvp("nodeType", type_));
     ar(cereal::make_nvp("initialized", init));
-    ar(cereal::make_nvp("phases", phases_));
     ar(cereal::make_nvp("dim", dim));
 
     std::map<std::string, Dimensions> outDims;
@@ -560,13 +554,11 @@ private:
   std::string type_;
   std::shared_ptr<Spec> spec_;
 
-  typedef std::map<std::string, Output *> OutputMap;
-  typedef std::map<std::string, Input *> InputMap;
+  typedef std::map<std::string, std::shared_ptr<Output>> OutputMap;
+  typedef std::map<std::string, std::shared_ptr<Input>> InputMap;
 
   OutputMap outputs_;
   InputMap inputs_;
-  // used for serialization only
-  std::set<UInt32> phases_;
   bool initialized_;
 
   // Region contains a backpointer to network_ only to be able

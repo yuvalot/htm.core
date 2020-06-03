@@ -53,6 +53,7 @@ using namespace htm;
             , bool
             , Real
             , UInt
+            , UInt
             , Real
             , Real
             , Real
@@ -113,6 +114,21 @@ Argument localAreaDensity The desired density of active columns within
         most N columns remain ON within a local inhibition area, where
         N = localAreaDensity * (total number of columns in inhibition
         area). 
+    If localAreaDensity is set to 0, 
+    output sparsity will be determined by the numActivePerInhArea.
+
+Argument numActiveColumnsPerInhArea An alternate way to control the sparsity of
+        active columns. When numActivePerInhArea > 0, the inhibition logic will insure that
+        at most 'numActivePerInhArea' columns remain ON within a local
+        inhibition area (the size of which is set by the internally
+        calculated inhibitionRadius). When using this method, as columns
+        learn and grow their effective receptive fields, the
+        inhibitionRadius will grow, and hence the net density of the
+        active columns will *decrease*. This is in contrast to the
+        localAreaDensity method, which keeps the density of active
+        columns the same regardless of the size of their receptive
+        fields.
+    If numActivePerInhArea is specified then it overrides localAreaDensity..
 
 Argument stimulusThreshold This is a number specifying the minimum
         number of synapses that must be active in order for a column to
@@ -173,6 +189,7 @@ Argument wrapAround boolean value that determines whether or not inputs
             , py::arg("potentialPct") = 0.5
             , py::arg("globalInhibition") = false
             , py::arg("localAreaDensity") = 0.02f
+            , py::arg("numActiveColumnsPerInhArea") = 0
             , py::arg("stimulusThreshold") = 0
             , py::arg("synPermInactiveDec") = 0.01
             , py::arg("synPermActiveInc") = 0.1
@@ -196,6 +213,8 @@ Argument wrapAround boolean value that determines whether or not inputs
         py_SpatialPooler.def("getGlobalInhibition", &SpatialPooler::getGlobalInhibition);
         py_SpatialPooler.def("setGlobalInhibition", &SpatialPooler::setGlobalInhibition);
 
+        py_SpatialPooler.def("getNumActiveColumnsPerInhArea", &SpatialPooler::getNumActiveColumnsPerInhArea);
+        py_SpatialPooler.def("setNumActiveColumnsPerInhArea", &SpatialPooler::setNumActiveColumnsPerInhArea);
         py_SpatialPooler.def("getLocalAreaDensity", &SpatialPooler::getLocalAreaDensity);
         py_SpatialPooler.def("setLocalAreaDensity", &SpatialPooler::setLocalAreaDensity);
         py_SpatialPooler.def("getStimulusThreshold", &SpatialPooler::getStimulusThreshold);
@@ -246,8 +265,8 @@ Argument wrapAround boolean value that determines whether or not inputs
         py_SpatialPooler.def("writeToString", [](const SpatialPooler& self)
         {
             std::ostringstream os;
-					  os.precision(std::numeric_limits<double>::digits10 + 1);
-					  os.precision(std::numeric_limits<float>::digits10 + 1);
+	    os.precision(std::numeric_limits<double>::digits10 + 1);
+	    os.precision(std::numeric_limits<float>::digits10 + 1);
 
             self.save(os, JSON);
 
@@ -355,16 +374,17 @@ Argument output An SDR representing the winning columns after
         });
 
         // getPermanence
-        py_SpatialPooler.def("getPermanence", [](const SpatialPooler& self, UInt column, py::array& x)
+        py_SpatialPooler.def("getPermanence", [](const SpatialPooler& self, const UInt column, py::array& x, const Permanence threshold)
         {
-            self.getPermanence(column, get_it<Real>(x));
-        });
+            const auto& perm = self.getPermanence(column, threshold);
+	    std::copy(perm.begin(), perm.end(), get_it<Real>(x)); //TODO pass-by-value here only for compatibility, could have just returned perm 
+	    return perm;
+        },
+	"",
+	py::arg("column"),
+	py::arg("x"),
+	py::arg("threshold") = 0.0);
 
-        // getConnectedSynapses
-        py_SpatialPooler.def("getConnectedSynapses", [](const SpatialPooler& self, UInt column, py::array& x)
-        {
-            self.getConnectedSynapses(column, get_it<UInt>(x));
-        });
 
         // getConnectedCounts
         py_SpatialPooler.def("getConnectedCounts", [](const SpatialPooler& self, py::array& x)
@@ -387,9 +407,7 @@ Argument output An SDR representing the winning columns after
         auto inhibitColumns_func = [](SpatialPooler& self, py::array& overlaps)
         {
             std::vector<htm::Real> overlapsVector(get_it<Real>(overlaps), get_end<Real>(overlaps));
-
             std::vector<htm::UInt> activeColumnsVector;
-
             self.inhibitColumns_(overlapsVector, activeColumnsVector);
 
             return py::array_t<UInt>( activeColumnsVector.size(), activeColumnsVector.data());
@@ -410,6 +428,7 @@ Argument output An SDR representing the winning columns after
                 buf << self;
                 return buf.str(); });
 
+        py_SpatialPooler.def_property_readonly("connections", &SpatialPooler::getConnections, "SP's internal connections (read-only) Warning: the Connections is subject to change.");
 
         // pickle
         py_SpatialPooler.def(py::pickle(
@@ -419,28 +438,28 @@ Argument output An SDR representing the winning columns after
 
             sp.save(ss);
 						
-						/* The values in stringstream are binary so pickle will get confused
-						 * trying to treat it as utf8 if you just return ss.str().
-						 * So we must treat it as py::bytes.  Some characters could be null values.
-						 */
+	   /* The values in stringstream are binary so pickle will get confused
+	    * trying to treat it as utf8 if you just return ss.str().
+	    * So we must treat it as py::bytes.  Some characters could be null values.
+	    */
             return py::bytes( ss.str() );
         },
             [](py::bytes &s)   // __setstate__
         {
-				    /* pybind11 will pass in the bytes array without conversion.
-						 * so we should be able to just create a string to initalize the stringstream.
-						 */
+	   /* pybind11 will pass in the bytes array without conversion.
+	    * so we should be able to just create a string to initalize the stringstream.
+	    */
             std::stringstream ss( s.cast<std::string>() );
 						std::unique_ptr<SpatialPooler> sp(new SpatialPooler());
             sp->load(ss);
-
-						/*
-						 * The __setstate__ part of the py::pickle() is actually a py::init() with some options.
-						 * So the return value can be the object returned by value, by pointer, 
-						 * or by container (meaning a unique_ptr). SP has a problem with the copy constructor
-						 * and pointers have problems knowing who the owner is so lets use unique_ptr.
-						 * See: https://pybind11.readthedocs.io/en/stable/advanced/classes.html#custom-constructors
-						 */
+           
+	   /*
+	    * The __setstate__ part of the py::pickle() is actually a py::init() with some options.
+	    * So the return value can be the object returned by value, by pointer, 
+	    * or by container (meaning a unique_ptr). SP has a problem with the copy constructor
+	    * and pointers have problems knowing who the owner is so lets use unique_ptr.
+	    * See: https://pybind11.readthedocs.io/en/stable/advanced/classes.html#custom-constructors
+	    */
             return sp;
         }));
 				

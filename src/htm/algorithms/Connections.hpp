@@ -246,13 +246,30 @@ public:
 		        const SegmentIdx maxSegmentsPerCell = std::numeric_limits<SegmentIdx>::max());
 
   /**
-   * Creates a synapse on the specified segment.
+   * Creates a synapse on the specified segment that connects to the presynaptic cell.
+   *
+   * Note 1: If attemping to connect to an already synapsed presynaptic cell, we don't create
+   *   a duplicit synapse, and just return early with the existing synapse. 
+   *   This has an effect that `connections.synapsesForSegment()` is not ensured to grow (by +1)
+   *   after calling `createSynapse()` is the method conditionally skips. Users can query this by
+   *   `connections.numSynapses(segment)`.
+   *
+   *   Explanation:
+   *     Biological motivation (?):
+   *     There are structural constraints on the shapes of axons & synapses
+   *     which prevent a large number duplicate of connections.
+   *
+   *     It's important to prevent cells from growing duplicate synapses onto a segment,
+   *     because otherwise a strong input would be sampled many times and grow many synapses.
+   *     That would give such input a stronger connection.
+   *     Synapses are supposed to have binary effects (0 or 1) but duplicate synapses give
+   *     them (synapses 0/1) varying levels of strength.
    *
    * @param segment         Segment to create synapse on.
    * @param presynapticCell Cell to synapse on.
    * @param permanence      Initial permanence of new synapse.
    *
-   * @reval Created synapse.
+   * @return Created synapse. //TODO consider changing to void, or explain what's returned
    */
   Synapse createSynapse(const Segment segment,
                         const CellIdx presynapticCell,
@@ -312,6 +329,7 @@ public:
    * @retval Cell that this segment is on.
    */
   CellIdx cellForSegment(const Segment segment) const {
+    NTA_ASSERT(segmentExists_(segment));
     return segments_[segment].cell;
   }
 
@@ -323,19 +341,6 @@ public:
    * @retval Index of the segment.
    */
   SegmentIdx idxOnCellForSegment(const Segment segment) const;
-
-  /**
-   * Get the cell for each provided segment.
-   *
-   * @param segments
-   * The segments to query
-   *
-   * @param cells
-   * Output array with the same length as 'segments'
-   */
-  void mapSegmentsToCells(const Segment *segments_begin,
-                          const Segment *segments_end,
-                          CellIdx *cells_begin) const;
 
   /**
    * Gets the segment that this synapse is on.
@@ -533,7 +538,8 @@ public:
    * @param nDestroy - Must be greater than or equal to zero!
    * @param excludeCells - Presynaptic cells which will NOT have any synapses destroyed.
    */
-  void destroyMinPermanenceSynapses(const Segment segment, Int nDestroy,
+  void destroyMinPermanenceSynapses(const Segment segment, 
+		                    const size_t nDestroy,
                                     const SDR_sparse_t &excludeCells = {});
 
   /**
@@ -615,9 +621,8 @@ public:
    * @retval Number of segments.
    */
   size_t numSegments() const { 
-	  const long num = static_cast<int>(segments_.size()) - destroyedSegments_; 
-          NTA_ASSERT(num >= 0) << "Number of segments must be greater than zero!";
-          return static_cast<size_t>(num);
+	  NTA_ASSERT(segments_.size() >= destroyedSegments_);
+	  return segments_.size() - destroyedSegments_; 
   }
 
   /**
