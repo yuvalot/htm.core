@@ -66,7 +66,8 @@ R"(Compatibility Warning: This classes API is unstable and may change without wa
 	py::arg("growthCandidates"),
 	py::arg("initialPermanence"),
 	py::arg("rng"),
-	py::arg("maxNew") = 0);
+	py::arg("maxNew") = 0,
+	py::arg("maxSynapsesPerSegment") = 0);
 
     py_Connections.def("destroySynapse", &Connections::destroySynapse);
 

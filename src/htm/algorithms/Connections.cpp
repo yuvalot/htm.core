@@ -632,35 +632,41 @@ void Connections::destroyMinPermanenceSynapses(
 
 
 
-vector<Synapse> Connections::growSynapses(const Segment segment, 
+void Connections::growSynapses(const Segment segment, 
 		                          const vector<Synapse>& growthCandidates, 
 					  const Permanence initialPermanence,
 					  Random& rng,
-					  const size_t maxNew) {
+					  const size_t maxNew,
+					  const size_t maxSynapsesPerSegment) {
 
-  set<CellIdx> presynCells;
-  for(const auto synapse: synapsesForSegment(segment)) {
-    const auto presynapticCell = dataForSynapse(synapse).presynapticCell;
-    presynCells.insert(presynapticCell);
-  }
+  //0. copy input vector - candidate cells on input
+  vector<CellIdx> candidates(growthCandidates.begin(), growthCandidates.end());
 
-  vector<Synapse> disconnectedCandidates; //inputs (candidates) that don't have (yet) any connection (synapse) to this Segment
-  for(const auto candidate: growthCandidates) {
-    if(presynCells.count(candidate) == 0) { //candidate input without connected segment
-      disconnectedCandidates.push_back(candidate);
+  //1. figure the number of new synapses to grow
+  size_t nActual = std::min(maxNew, candidates.size());
+  if(maxNew == 0) nActual = candidates.size(); //grow all, unlimited
+
+  if(maxSynapsesPerSegment > 0) { // ..Check if we're going to surpass the maximum number of synapses.
+    NTA_ASSERT(numSynapses(segment) <= maxSynapsesPerSegment) << "Illegal state, shouldn't be here to begin with.";
+    const Int overrun = static_cast<Int>(numSynapses(segment) + nActual - maxSynapsesPerSegment);
+    if (overrun > 0) { //..too many synapses, make space for new ones
+      destroyMinPermanenceSynapses(segment, static_cast<Int>(overrun), candidates);
     }
+    //Recalculate in case we weren't able to destroy as many synapses as needed.
+    nActual = std::min(nActual, static_cast<size_t>(maxSynapsesPerSegment) - numSynapses(segment));
   }
+  if(nActual == 0) return;
 
-  //optionally subsample
-  if(maxNew > 0 and maxNew < growthCandidates.size()) {
-    disconnectedCandidates = rng.sample(disconnectedCandidates, maxNew);
+  //2. Pick nActual cells randomly.
+  if(maxNew > 0 and maxNew < candidates.size()) {
+    rng.shuffle(candidates.begin(), candidates.end());
   }
-
-  //connect all disconnected synapses
-  for(const auto c : disconnectedCandidates) {
-    createSynapse(segment, c, initialPermanence);
+  const size_t nDesired = numSynapses(segment) + nActual; //num synapses on seg after this function (+-), see #COND
+  for (const auto syn : candidates) {
+    // #COND: this loop finishes two folds: a) we ran out of candidates (above), b) we grew the desired number of new synapses (below)
+    if(numSynapses(segment) == nDesired) break;
+    createSynapse(segment, syn, initialPermanence); //TODO createSynapse consider creating a vector of new synapses at once?
   }
-  return disconnectedCandidates;
 }
 
 

@@ -290,15 +290,16 @@ public:
    *   then we subsample the disconnected inputs to be connected. This is used to limit "bursts" when
    *   a huge number of cells/inputs would be newly connected at once. Which would disturb the HTM.
    * @param rng - Random&, used to sample if `maxNew` is used. 
-   *
-   * @return vector<Synapse> the (formerly disconnected) synapses that we've grown now.
+   * @param maxSynapsesPerSegment - (optional) size_t, default=0/off. If >0: enforce limit on max
+   *   number of synapses on a segment. If reached, weak synapses will be purged to make space.
    *
    **/
-  std::vector<Synapse> growSynapses(const Segment segment, 
+  void growSynapses(const Segment segment, 
 		                    const std::vector<Synapse>& growthCandidates, 
 				    const Permanence initialPermanence,
 				    Random& rng,
-				    const size_t maxNew = 0
+				    const size_t maxNew = 0,
+				    const size_t maxSynapsesPerSegment = 0
 				    );
 
   /**
