@@ -78,16 +78,17 @@ class ConnectionsTest(unittest.TestCase):
     
     connections = Connections(NUM_CELLS, 0.51) 
     for i in range(NUM_CELLS):
-      seg = connections.createSegment(i, 1)
+      seg = connections.createSegment(i, 2)
+      seg = connections.createSegment(i, 2) #create 2 segments on each cell
     
     for cell in active_cells:
         segments = connections.segmentsForCell(cell)
-        self.assertEqual(len(segments), 1, "Segments were prematurely destroyed.")
+        self.assertEqual(len(segments), 2, "Segments were prematurely destroyed.")
         segment = segments[0]
         numSynapsesOnSegment = len(segments)
-        connections.adaptSegment(segment, inputSDR, 0.1, 0.001, pruneZeroSynapses=True, segmentThreshold= numSynapsesOnSegment+1) #set to +1 so that segments get always deleted in this test
+        connections.adaptSegment(segment, inputSDR, 0.1, 0.001, pruneZeroSynapses=True, segmentThreshold=1) #set to =1 so that segments get always deleted in this test
         segments = connections.segmentsForCell(cell)
-        self.assertEqual(len(segments), 0, "Segments were not destroyed.")
+        self.assertEqual(len(segments), 1, "Segments were not destroyed.")
 
   def testAdaptShouldIncrementSynapses(self):
     """
@@ -219,8 +220,8 @@ class ConnectionsTest(unittest.TestCase):
       permRemoved = co.permanenceForSynapse(syn1)
       assert permRemoved == perm1
 
-    with pytest.raises(RuntimeError): # NTA_CHECK, double remove should fail
-      co.destroySynapse(syn1)
+    # double remove should be just ignored
+    co.destroySynapse(syn1)
     
 
 
@@ -430,6 +431,23 @@ class ConnectionsTest(unittest.TestCase):
     # segment pruning -> reduce to 1 seg per cell
     co.createSegment(NUM_CELLS-1, 1)
     self.assertEqual(co.numSegments(), 1)
+
+
+  def testDestroySegment(self):
+    co = Connections(NUM_CELLS, 0.51)
+    self.assertEqual(co.numSegments(), 0, "there are zero segments yet")
+
+    # removing while no segments exist
+    co.destroySegment(1)
+
+    # successfully remove
+    seg = co.createSegment(1, 20)
+    self.assertEqual(co.numSegments(), 1)
+    n = co.numConnectedSynapses(seg) #uses dataForSegment()
+    co.destroySegment(seg)
+    self.assertEqual(co.numSegments(), 0, "segment should have been removed")
+    with pytest.raises(RuntimeError):
+      n2 = co.numConnectedSynapses(seg)
     
 
 
