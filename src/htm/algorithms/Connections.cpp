@@ -99,10 +99,11 @@ Segment Connections::createSegment(const CellIdx cell,
 	                           const SegmentIdx maxSegmentsPerCell) {
 
   //limit number of segmets per cell. If exceeded, remove the least recently used ones.
-  NTA_ASSERT(maxSegmentsPerCell > 0);
+  NTA_CHECK(maxSegmentsPerCell > 0);
   while (numSegments(cell) >= maxSegmentsPerCell) {
     pruneLRUSegment_(cell);
   }
+  NTA_ASSERT(numSegments(cell) <= maxSegmentsPerCell);
 
   //proceed to create a new segment
   NTA_CHECK(segments_.size() < std::numeric_limits<Segment>::max()) << "Add segment failed: Range of Segment (data-type) insufficinet size."
@@ -111,6 +112,7 @@ Segment Connections::createSegment(const CellIdx cell,
   const SegmentData& segmentData = SegmentData(cell, iteration_, nextSegmentOrdinal_++);
   segments_.push_back(segmentData);
 
+  NTA_CHECK(cell < numCells()) << "cell out of bounds!";
   CellData &cellData = cells_[cell];
   cellData.segments.push_back(segment); //assign the new segment to its mother-cell
 
@@ -186,15 +188,15 @@ Synapse Connections::createSynapse(Segment segment,
   return synapse;
 }
 
-bool Connections::segmentExists_(const Segment segment) const {
-  NTA_CHECK(segment < segments_.size());
+bool Connections::segmentExists_(const Segment segment) const noexcept {
+  if(segment >= segments_.size()) return false; //OOB segment
+
   const SegmentData &segmentData = segments_[segment];
   const vector<Segment> &segmentsOnCell = cells_[segmentData.cell].segments;
-  return (std::find(segmentsOnCell.cbegin(), segmentsOnCell.cend(), segment) !=
-          segmentsOnCell.cend());
+  return (std::find(segmentsOnCell.cbegin(), segmentsOnCell.cend(), segment) != segmentsOnCell.cend()); //TODO if too slow, also create "fast" variant, as synapseExists_()
 }
 
-bool Connections::synapseExists_(const Synapse synapse, bool fast) const {
+bool Connections::synapseExists_(const Synapse synapse, bool fast) const noexcept {
   if(synapse >= synapses_.size()) return false; //out of bounds. Can happen after serialization, where only existing synapses are stored.
 
 #ifdef NTA_ASSERTIONS_ON
@@ -205,8 +207,8 @@ bool Connections::synapseExists_(const Synapse synapse, bool fast) const {
   const SynapseData &synapseData = synapses_[synapse];
   const vector<Synapse> &synapsesOnSegment =
       segments_[synapseData.segment].synapses;
-  return (std::find(synapsesOnSegment.begin(), synapsesOnSegment.end(),
-                    synapse) != synapsesOnSegment.end());
+  return (std::find(synapsesOnSegment.begin(), synapsesOnSegment.end(), synapse) != synapsesOnSegment.end());
+
   } else {
   //quick method. Relies on hack in destroySynapse() where we set synapseData.permanence == -1
   return synapses_[synapse].permanence != -1;
@@ -404,7 +406,7 @@ vector<Synapse> Connections::synapsesForPresynapticCell(const CellIdx presynapti
 }
 
 
-void Connections::reset()
+void Connections::reset() noexcept
 {
   if( not timeseries_ ) {
     NTA_WARN << "Connections::reset() called with timeseries=false.";

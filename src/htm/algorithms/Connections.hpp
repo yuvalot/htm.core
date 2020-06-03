@@ -214,7 +214,7 @@ public:
 	      const Permanence connectedThreshold = 0.5f,
               const bool timeseries = false);
 
-  virtual ~Connections() {}
+  virtual ~Connections() {} 
 
   /**
    * Initialize connections.
@@ -398,7 +398,7 @@ public:
    *
    * @retval A vector length
    */
-  inline size_t segmentFlatListLength() const { return segments_.size(); };
+  inline size_t segmentFlatListLength() const noexcept { return segments_.size(); };
 
   /**
    * Compare two segments. Returns true if a < b.
@@ -424,7 +424,7 @@ public:
   /**
    * For use with time-series datasets.
    */
-  void reset();
+  void reset() noexcept;
 
   /**
    * Compute the segment excitations for a vector of active presynaptic
@@ -500,7 +500,7 @@ public:
    *  SP & TM. 
    */
 //!  const UInt32& iteration = iteration_; //FIXME cannot construct iteration like this?
-  UInt32 iteration() const { return iteration_; }
+  UInt32 iteration() const noexcept { return iteration_; }
 
 
   /**
@@ -694,7 +694,7 @@ protected:
    *
    * @retval True if it's still in its cell's segment list.
    */
-  bool segmentExists_(const Segment segment) const;
+  bool segmentExists_(const Segment segment) const noexcept;
 
   /**
    * Check whether this synapse still exists "in Connections" ( on its segment).
@@ -712,7 +712,7 @@ protected:
    *
    * @retval True if synapse is valid (not removed, it's still in its segment's synapse list)
    */
-  bool synapseExists_(const Synapse synapse, bool fast = false) const;
+  bool synapseExists_(const Synapse synapse, bool fast = false) const noexcept;
 
   /**
    * Remove a synapse from presynaptic maps.
