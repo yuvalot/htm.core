@@ -100,6 +100,7 @@ Segment Connections::createSegment(const CellIdx cell,
 
   //limit number of segmets per cell. If exceeded, remove the least recently used ones.
   NTA_CHECK(maxSegmentsPerCell > 0);
+  NTA_CHECK(cell < numCells());
   while (numSegments(cell) >= maxSegmentsPerCell) {
     pruneLRUSegment_(cell);
   }
@@ -112,7 +113,6 @@ Segment Connections::createSegment(const CellIdx cell,
   const SegmentData& segmentData = SegmentData(cell, iteration_, nextSegmentOrdinal_++);
   segments_.push_back(segmentData);
 
-  NTA_CHECK(cell < numCells()) << "cell out of bounds!";
   CellData &cellData = cells_[cell];
   cellData.segments.push_back(segment); //assign the new segment to its mother-cell
 

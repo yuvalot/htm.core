@@ -407,6 +407,32 @@ class ConnectionsTest(unittest.TestCase):
     conn = Connections(1024, 0.123, False)
     self.assertAlmostEqual(conn.connectedThreshold,  0.123, places=4)
 
+  def testCreateSegment(self):
+    co = Connections(NUM_CELLS, 0.51)
+    self.assertEqual(co.numSegments(), 0, "there are zero segments yet")
+
+    # create segment
+    co.createSegment(NUM_CELLS-1, 20)
+    self.assertEqual(co.numSegments(), 1, "created 1 new segment")
+
+    # wrong param
+    with pytest.raises(RuntimeError):
+      co.createSegment(1, 0) #wrong param maxSegmentsPerCell "0"
+
+    # wrong param - OOB cell
+    with pytest.raises(RuntimeError):
+      co.createSegment(NUM_CELLS+22, 1)
+
+    # another segment
+    co.createSegment(NUM_CELLS-1, 20)
+    self.assertEqual(co.numSegments(), 2)
+
+    # segment pruning -> reduce to 1 seg per cell
+    co.createSegment(NUM_CELLS-1, 1)
+    self.assertEqual(co.numSegments(), 1)
+    
+
+
 
 if __name__ == "__main__":
   unittest.main()
