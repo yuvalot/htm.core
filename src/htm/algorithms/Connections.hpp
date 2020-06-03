@@ -616,7 +616,8 @@ public:
    * @param nDestroy - Must be greater than or equal to zero!
    * @param excludeCells - Presynaptic cells which will NOT have any synapses destroyed.
    */
-  void destroyMinPermanenceSynapses(const Segment segment, Int nDestroy,
+  void destroyMinPermanenceSynapses(const Segment segment, 
+		                    const size_t nDestroy,
                                     const SDR_sparse_t &excludeCells = {});
 
   /**

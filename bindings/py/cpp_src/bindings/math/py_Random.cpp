@@ -58,8 +58,7 @@ namespace htm_ext {
         /////////////////
 
 
-        Random.def("sample",
-            [](Random_t& r, py::array& population, const htm::UInt32 nSelect)
+        Random.def("sample", [](Random_t& r, py::array& population, const htm::UInt32 nSelect)
         {
             if (population.ndim() != 1 )
             {
@@ -96,8 +95,8 @@ namespace htm_ext {
         {
             auto array_data = get_it<htm::UInt32>(a);
 
-            for (htm::UInt32 i = 0; i != a.size(); ++i)
-                array_data[i] = self.getUInt32() % max_value;
+            for (auto i = a.size()-1; i >= 0; --i)
+                array_data[i] = self.getUInt32(max_value);
 
         });
 
@@ -108,7 +107,7 @@ namespace htm_ext {
         {
             auto array_data = get_it<htm::Real64>(a);
 
-            for (htm::UInt32 i = 0; i != a.size(); ++i)
+            for (auto i = a.size()-1; i >=0; --i)
                 array_data[i] = self.getReal64();
 
         });
@@ -120,8 +119,8 @@ namespace htm_ext {
 				Random.def("saveToFile", [](Random_t& self, const std::string& name, int fmt) { 
 				  htm::SerializableFormat fmt1;
 				  switch(fmt) {                                             
-			    case 0: fmt1 = htm::SerializableFormat::BINARY; break;
-			    case 1: fmt1 = htm::SerializableFormat::PORTABLE; break;
+			                case 0: fmt1 = htm::SerializableFormat::BINARY; break;
+			                case 1: fmt1 = htm::SerializableFormat::PORTABLE; break;
 					case 2: fmt1 = htm::SerializableFormat::JSON; break;
 					case 3: fmt1 = htm::SerializableFormat::XML; break;
 					default: NTA_THROW << "unknown serialization format.";

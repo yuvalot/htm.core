@@ -436,8 +436,8 @@ void Connections::adaptSegment(const Segment segment,
   }
 
   const auto& synapses = synapsesForSegment(segment);
-  for( size_t i = 0; i <  synapses.size(); i++) {
-      const auto synapse = synapses[i];
+  vector<Synapse> destroyLater;
+  for(const auto synapse: synapses) {
       const SynapseData &synapseData = dataForSynapse(synapse);
 
       Permanence update;
@@ -450,10 +450,8 @@ void Connections::adaptSegment(const Segment segment,
     //prune permanences that reached zero
     if (pruneZeroSynapses and 
         synapseData.permanence + update < htm::minPermanence + htm::Epsilon) { //new value will disconnect the synapse
-      destroySynapse(synapse);
+      destroyLater.push_back(synapse);
       prunedSyns_++; //for statistics
-      i--; // do not advance `i`, as `destroySynapse` just modified inplace the synapses_, so now a `synapses_[i]`
-      // is the "next" synapse. 
       continue;
     }
 
@@ -466,6 +464,11 @@ void Connections::adaptSegment(const Segment segment,
     } else {
       updateSynapsePermanence(synapse, synapseData.permanence + update);
     }
+  }
+
+  //destroy synapses accumulated for pruning
+  for(const auto pruneSyn : destroyLater) {
+    destroySynapse(pruneSyn);
   }
 
   //destroy segment if it has too few synapses left -> will never be able to connect again
@@ -595,11 +598,10 @@ void Connections::bumpSegment(const Segment segment, const Permanence delta) {
 
 
 void Connections::destroyMinPermanenceSynapses(
-                              const Segment segment, Int nDestroy,
+                              const Segment segment, 
+			      const size_t nDestroy,
                               const vector<CellIdx> &excludeCells)
 {
-  NTA_ASSERT( nDestroy >= 0 );
-
   // Don't destroy any cells that are in excludeCells.
   vector<Synapse> destroyCandidates;
   for( Synapse synapse : synapsesForSegment(segment)) {
@@ -622,8 +624,8 @@ void Connections::destroyMinPermanenceSynapses(
   };
   std::sort(destroyCandidates.begin(), destroyCandidates.end(), comparePermanences);
 
-  nDestroy = std::min( nDestroy, (Int) destroyCandidates.size() );
-  for(Int i = 0; i < nDestroy; i++) {
+  const size_t destroy = std::min( nDestroy, destroyCandidates.size() );
+  for(size_t i = 0; i < destroy; i++) {
     destroySynapse( destroyCandidates[i] );
   }
 }
