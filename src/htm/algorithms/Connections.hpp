@@ -267,9 +267,10 @@ public:
    *
    * @param segment         Segment to create synapse on.
    * @param presynapticCell Cell to synapse on.
-   * @param permanence      Initial permanence of new synapse.
+   * @param permanence      Initial permanence of new synapse. If calling "create" on an existing synapse (same segment, presynapticCell),
+   *   then we either keep the old one, or update the old one to have higher permanence (from the new call).
    *
-   * @return Created synapse. //TODO consider changing to void, or explain what's returned
+   * @return Created synapse - index to the newly created synapse. Use `dataForSynapse(returnedValue)` to work with it.
    */
   Synapse createSynapse(const Segment segment,
                         const CellIdx presynapticCell,
@@ -286,6 +287,7 @@ public:
    * Destroys synapse.
    *
    * @param synapse Synapse to destroy.
+   * @throws if synapse does not exist (ie already removed)
    */
   void destroySynapse(const Synapse synapse);
 

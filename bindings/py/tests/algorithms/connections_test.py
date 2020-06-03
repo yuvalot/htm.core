@@ -197,6 +197,11 @@ class ConnectionsTest(unittest.TestCase):
     self.assertEqual(co.numSynapses(), 2, "Duplicate synapse, number should not increase")
     self.assertEqual(pytest.approx(co.permanenceForSynapse(syn1)), 0.52, "update keeps the larger value")
 
+    #4.b higher permanence -> update
+    syn5 = co.createSynapse(seg, NUM_CELLS-1, 0.99) #all the same just permanence is a higher val
+    self.assertEqual( syn1,  syn5, "just updating existing syn")
+    self.assertEqual(co.numSynapses(), 2, "Duplicate synapse, number should not increase")
+    self.assertEqual(pytest.approx(co.permanenceForSynapse(syn1)), 0.99, "updated to the larger permanence value")
 
 
 

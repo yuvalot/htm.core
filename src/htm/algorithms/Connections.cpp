@@ -139,7 +139,17 @@ Synapse Connections::createSynapse(Segment segment,
   for (const Synapse& syn : synapsesForSegment(segment)) {
     const CellIdx existingPresynapticCell = dataForSynapse(syn).presynapticCell; //TODO 1; add way to get all presynaptic cells for segment (fast)
     if (presynapticCell == existingPresynapticCell) {
-      return syn; //synapse (connecting to this presyn cell) already exists on the segment; don't create a new one, exit early and return the existing
+      //synapse (connecting to this presyn cell) already exists on the segment; don't create a new one, exit early and return the existing
+      NTA_ASSERT(synapseExists_(syn));
+      //TODO what is the strategy on creating a new synapse, while the same already exists (on the same segment, presynapticCell) ??
+      //1. just keep the older (former default)
+      //2. throw an error (ideally, user should not createSynapse() but rather updateSynapsePermanence())
+      //3. create a duplicit new synapse -- NO. This is the only choice that is incorrect! HTM works on binary synapses, duplicates would break that.
+      //4. update to the max of the permanences (default)
+
+      auto& synData = synapses_[syn];
+      if(permanence > synData.permanence) updateSynapsePermanence(syn, permanence);
+      return syn;
     }
   } //else: the new synapse is not duplicit, so keep creating it. 
 
