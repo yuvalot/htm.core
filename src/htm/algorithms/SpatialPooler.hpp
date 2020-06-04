@@ -1141,8 +1141,6 @@ public:
   */
   bool isUpdateRound_() const;
 
-  std::unordered_map<CellIdx, std::vector<CellIdx>> mapAllNeighbors() const;
-
   //-------------------------------------------------------------------
   // Debugging helpers
   //-------------------------------------------------------------------
