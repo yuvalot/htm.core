@@ -19,8 +19,8 @@
 #include <htm/utils/Random.hpp>
 #include <htm/utils/Log.hpp>
 #include <htm/ntypes/Value.hpp>
-#include "htm/utils/MovingAverage.hpp"
-#include "htm/algorithms/AnomalyLikelihood.hpp"
+#include <htm/utils/MovingAverage.hpp>
+#include <htm/algorithms/AnomalyLikelihood.hpp>
 #include <fstream>
 
 using namespace htm;
@@ -62,7 +62,7 @@ int main(int argc, char* argv[]) {
     Network net;
 
     // Declare the regions to use
-    std::shared_ptr<Region> encoder   = net.addRegion("encoder",   "RDSERegion", encoder_params);
+    std::shared_ptr<Region> encoder   = net.addRegion("encoder",   "RDSEEncoderRegion", encoder_params);
     std::shared_ptr<Region> sp_global = net.addRegion("sp_global", "SPRegion",   sp_global_params);
     std::shared_ptr<Region> tm        = net.addRegion("tm",        "TMRegion",   tm_params);
 
@@ -75,11 +75,11 @@ int main(int argc, char* argv[]) {
 
     ///////////////////////////////////////////////////////////////
     //
-    //                          .----------------.
-    //                         |    encoder      |
-    //                 data--->|  (RDSERegion)   |
-    //                         |                 |
-    //                         `-----------------'
+    //                          .------------------.
+    //                         |    encoder        |
+    //                 data--->|(RDSEEncoderRegion)|
+    //                         |                   |
+    //                         `-------------------'
     //                                 |
     //                         .-----------------.
     //                         |   sp_global     |

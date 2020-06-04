@@ -69,7 +69,7 @@
 static bool verbose = false;  // turn this on to print extra stuff for debugging the test.
 
 // The following string should contain a valid expected Spec length - manually verified. 
-const UInt EXPECTED_SPEC_COUNT =  21u;  // The number of parameters expected in the SPRegion Spec
+const UInt EXPECTED_SPEC_COUNT =  22u;  // The number of parameters expected in the SPRegion Spec
 
 using namespace htm;
 namespace testing 
@@ -164,8 +164,8 @@ namespace testing
 	{
     // This is a minimal end-to-end test containing an SPRegion region.
     // To make sure we can feed data from some other region to our SPRegion
-    // this test will hook up the VectorFileSensor to our SPRegion and then
-    // connect our SPRegion to a VectorFileEffector to capture the results.
+    // this test will hook up the FileInputRegion to our SPRegion and then
+    // connect our SPRegion to a FileOutputRegion to capture the results.
     //
     std::string test_input_file = "TestOutputDir/SPRegionTestInput.csv";
     std::string test_output_file = "TestOutputDir/SPRegionTestOutput.csv";
@@ -197,9 +197,9 @@ namespace testing
     // Explicit parameters:  (Yaml format...but since YAML is a superset of JSON, 
     // you can use JSON format as well)
 
-    std::shared_ptr<Region> region1 = net.addRegion("region1", "VectorFileSensor", "{activeOutputCount: "+std::to_string(dataWidth) +"}");
+    std::shared_ptr<Region> region1 = net.addRegion("region1", "FileInputRegion", "{activeOutputCount: "+std::to_string(dataWidth) +"}");
     std::shared_ptr<Region> region2 = net.addRegion("region2", "SPRegion", "{columnCount: 100}");
-    std::shared_ptr<Region> region3 = net.addRegion("region3", "VectorFileEffector", "{outputFile: '"+ test_output_file + "'}");
+    std::shared_ptr<Region> region3 = net.addRegion("region3", "FileOutputRegion", "{outputFile: '"+ test_output_file + "'}");
 
 
     net.link("region1", "region2", "UniformLink", "", "dataOut", "bottomUpIn");
@@ -222,7 +222,7 @@ namespace testing
     net.run(1);
 
 	  VERBOSE << "Checking data after first iteration..." << std::endl;
-    VERBOSE << "  VectorFileSensor Output" << std::endl;
+    VERBOSE << "  FileInputRegion Output" << std::endl;
     Array r1OutputArray = region1->getOutputData("dataOut");
     EXPECT_EQ(r1OutputArray.getCount(), dataWidth);
     EXPECT_TRUE(r1OutputArray.getType() == NTA_BasicType_Real32)
@@ -237,7 +237,7 @@ namespace testing
     VERBOSE << "  SPRegion input" << std::endl;
     Array r2InputArray = region2->getInputData("bottomUpIn");
 	  ASSERT_TRUE (r1OutputArray.getCount() == r2InputArray.getCount()) 
-		<< "Buffer length different. Output from VectorFileSensor is " << r1OutputArray.getCount() << ", input to SPRegion is " << r2InputArray.getCount();
+		<< "Buffer length different. Output from FileInputRegion is " << r1OutputArray.getCount() << ", input to SPRegion is " << r2InputArray.getCount();
     EXPECT_TRUE(r2InputArray.getType() == NTA_BasicType_SDR) 
       << "actual type is " << BasicType::getName(r2InputArray.getType());
 		const Byte *buffer2 = (const Byte*)r2InputArray.getBuffer(); 
@@ -274,7 +274,7 @@ namespace testing
     }
 
 
-    VERBOSE << "  VectorFileEffector input" << std::endl;
+    VERBOSE << "  FileOutputRegion input" << std::endl;
     Array r3InputArray = region3->getInputData("dataIn");
     ASSERT_TRUE(r3InputArray.getType() == NTA_BasicType_Real32)
       << "actual type is " << BasicType::getName(r3InputArray.getType());
@@ -284,7 +284,7 @@ namespace testing
     {
       //VERBOSE << "  [" << i << "]=    " << buffer4[i] << "" << std::endl;
       ASSERT_TRUE(buffer3[i] == buffer4[i])
-        << " Buffer content different. Element[" << i << "] from SPRegion out is " << buffer3[i] << ", input to VectorFileEffector is " << buffer4[i];
+        << " Buffer content different. Element[" << i << "] from SPRegion out is " << buffer3[i] << ", input to FileOutputRegion is " << buffer4[i];
     }
 
     // cleanup
@@ -296,7 +296,7 @@ namespace testing
 TEST(SPRegionTest, testSerialization)
 {
   // NOTE: this test does end-to-end serialize and deserialize with the following modules:
-  //   Network, Region, Array, ScalerSensor, SPRegion, SpatialPooler, Connections, Random, Links
+  //   Network, Region, Array, ScalarEncoderRegion, SPRegion, SpatialPooler, Connections, Random, Links
   //
 	  // use default parameters
 	  Network net1;
@@ -304,7 +304,7 @@ TEST(SPRegionTest, testSerialization)
 	  Network net3;
 
 	  VERBOSE << "Setup first network and save it" << std::endl;
-    std::shared_ptr<Region> n1region1 = net1.addRegion("region1", "ScalarSensor", "{n: 100,w: 10,minValue: 1,maxValue: 10}");
+    std::shared_ptr<Region> n1region1 = net1.addRegion("region1", "ScalarEncoderRegion", "{n: 100,w: 10,minValue: 1,maxValue: 10}");
     std::shared_ptr<Region> n1region2 = net1.addRegion("region2", "SPRegion", "{columnCount: 20}");
     net1.link("region1", "region2", "", "", "encoded", "bottomUpIn");
     net1.initialize();

@@ -11,8 +11,8 @@ integrated into the cmake-based build of htm.core.  The code that does this are 
 - gtest.cmake      - Downloads and installs googletest 1.8.1
 - mnist_data.cmake - Downloads the mnist data set from repository master.
 - pybind11.cmake   - Downloads and installs pybind11 2.2.4  (header only)
-- YamlCppLib.cmake - Downloads and installs yaml-cpp master (something wrong with release 0.6.2)
-- libayml.cmake    - Downloads and installs libyaml which is an alternative to yaml-cpp (currently default) 
+- libayml.cmake    - Downloads and installs libyaml which is an alternative to yaml-cpp (default) 
+- cpp-httplib.cmake- Downloads and installs cpp-httplib a REST server (header only)
 
 External packages included within this repository are built into the common library:
 

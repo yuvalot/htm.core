@@ -1,5 +1,5 @@
 ﻿# C++ example using Network API
-The program `sine_napi` is an example of an app using the Network API tools 
+The program `napi_hello` is an example of an app using the Network API tools 
 available in the htm.core library.  In this example we generate a sine wave 
 with some noise as the input.  This is passed to an encoder to turn that 
 into a quantized format.  This is passed to an instance of SpatialPooler (SP).  
@@ -10,11 +10,11 @@ output of the TM can be written to a file so that it can be plotted.
 ```
   ///////////////////////////////////////////////////////////////
   //
-  //                              .------------------.
-  //                              |    encoder       |
-  //                      data--->|  (RDSERegion)    |
-  //                              |                  |
-  //                              `------------------'
+  //                              .-------------------.
+  //                              |    encoder        |
+  //                      data--->|(RDSEEncoderRegion)|
+  //                              |                   |
+  //                              `-------------------'
   //                                       |
   //                              .------------------.
   //                              |   SP (global)    |
@@ -41,11 +41,11 @@ Each "region" is a wrapper around an algorithm.  This wrapper provides a uniform
 </thead>
 <tbody>
 	<tr>
-		<td>ScalarSensor</td>
+		<td>ScalarEncoderRegion</td>
 		<td>ScalarEncoder;  Original encoder for numeric values</td>
 	</tr>
 	<tr>
-		<td>RDSERegion</td>
+		<td>RDSEEncoderRegion</td>
 		<td>RandomDistributedScalarEncoder (RDSE);  advanced encoder for numeric values.</td>
 	</tr>
 	<tr>
@@ -70,7 +70,7 @@ Each "region" is a wrapper around an algorithm.  This wrapper provides a uniform
 ## Usage
 
 ```
-   sine_napi  [iterations [filename]]
+   napi_hello  [iterations [filename]]
 ```
 - *iterations* is the number of times to execute the regions configured into the network. The default is 5000.
 - *filename* is the path for a file to be written which contains the following for each iteration.  The default is no file written.

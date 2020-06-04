@@ -16,7 +16,8 @@
  * --------------------------------------------------------------------- */
 
 /** @file
- * Implementation for VectorFileSensor class
+ * Implementation for FileInputRegion class
+ *   (was VectorFileSensor )
  */
 
 #include <cstring> // strlen
@@ -30,7 +31,7 @@
 #include <htm/engine/Input.hpp>
 #include <htm/engine/Region.hpp>
 #include <htm/engine/Spec.hpp>
-#include <htm/regions/VectorFileSensor.hpp>
+#include <htm/regions/FileInputRegion.hpp>
 #include <htm/utils/Log.hpp>
 
 using namespace std;
@@ -46,7 +47,7 @@ UInt32 toUInt32(const std::string& s) {
 
 //----------------------------------------------------------------------------
 
-VectorFileSensor::VectorFileSensor(const ValueMap &params, Region *region)
+FileInputRegion::FileInputRegion(const ValueMap &params, Region *region)
     : RegionImpl(region),
 
       iterations_(0), curVector_(-1),
@@ -65,7 +66,7 @@ VectorFileSensor::VectorFileSensor(const ValueMap &params, Region *region)
     filename_ = params.getString("inputFile", "");
 }
 
-VectorFileSensor::VectorFileSensor(ArWrapper& wrapper, Region *region) 
+FileInputRegion::FileInputRegion(ArWrapper &wrapper, Region *region) 
     : RegionImpl(region), repeatCount_(1), iterations_(0), curVector_(-1),
       activeOutputCount_(0), hasCategoryOut_(false), hasResetOut_(false),
       dataOut_(NTA_BasicType_Real32), categoryOut_(NTA_BasicType_Real32),
@@ -75,7 +76,7 @@ VectorFileSensor::VectorFileSensor(ArWrapper& wrapper, Region *region)
 }
 
 
-void VectorFileSensor::initialize() {
+void FileInputRegion::initialize() {
   // NOTE: this is not called after deserialize.
   NTA_CHECK(region_ != nullptr);
   dataOut_ = region_->getOutput("dataOut")->getData();
@@ -83,17 +84,17 @@ void VectorFileSensor::initialize() {
   if (activeOutputCount_ == 0)
     activeOutputCount_ = (UInt32)dataOut_.getCount();
   else if (dataOut_.getCount() != activeOutputCount_) {
-    NTA_THROW << "VectorFileSensor::init - wrong output size: "
+    NTA_THROW << "FileInputRegion::init - wrong output size: "
               << dataOut_.getCount() << " should be: " << activeOutputCount_
               << ". Are activeOutputCount parameter and dimensions both specified?";
   }
 }
 
-VectorFileSensor::~VectorFileSensor() {}
+FileInputRegion::~FileInputRegion() {}
 
 //----------------------------------------------------------------------------
 
-void VectorFileSensor::compute() {
+void FileInputRegion::compute() {
   // It's not necessarily an error to have no outputs. In this case we just
   // return
   dataOut_ = region_->getOutput("dataOut")->getData();
@@ -102,12 +103,12 @@ void VectorFileSensor::compute() {
 
   // Don't write if there is no open file.
   if (recentFile_ == "") {
-    NTA_WARN << "VectorFileSesnsor compute() called, but there is no open file";
+    NTA_WARN << "FileInputRegion compute() called, but there is no open file";
     return;
   }
 
   NTA_CHECK(vectorFile_.vectorCount() > 0)
-      << "VectorFileSensor::compute - no data vectors in memory."
+      << "FileInputRegion::compute - no data vectors in memory."
       << "Perhaps no data file has been loaded using the 'loadFile'"
       << " execute command.";
 
@@ -163,8 +164,8 @@ inline const char *checkExtensions(const std::string &filename,
 }
 
 //--------------------------------------------------------------------------------
-/// Execute a VectorFilesensor specific command
-std::string VectorFileSensor::executeCommand(const std::vector<std::string>& args, Int64 index)
+/// Execute a FileInputRegion specific command
+std::string FileInputRegion::executeCommand(const std::vector<std::string> &args, Int64 index)
 
 {
   UInt32 argCount = (UInt32)args.size();
@@ -181,7 +182,7 @@ std::string VectorFileSensor::executeCommand(const std::vector<std::string>& arg
 
     // string filename = ReadStringFromBuffer(*buf2);
     string filename(args[1]);
-    cout << "In VectorFileSensor " << filename << endl;
+    cout << "In FileInputRegion " << filename << endl;
 
     if (argCount == 3) {
       labeled = toUInt32(args[2]);
@@ -202,7 +203,7 @@ std::string VectorFileSensor::executeCommand(const std::vector<std::string>& arg
     }
 
     if (labeled > (UInt32)VectorFile::maxFormat())
-      NTA_THROW << "VectorFileSensor: unknown file format '" << labeled << "'";
+      NTA_THROW << "FileInputRegion: unknown file format '" << labeled << "'";
 
     // Read in new set of vectors
     // If the command is loadFile, we clear the list first and reset the
@@ -241,7 +242,7 @@ std::string VectorFileSensor::executeCommand(const std::vector<std::string>& arg
 
   else if (command == "dump") {
     std::string message;
-    message = "VectorFileSensor isLabeled = " + to_string(vectorFile_.isLabeled())
+    message = "FileInputRegion isLabeled = " + to_string(vectorFile_.isLabeled())
       + ", repeatCount = " + to_string(repeatCount_)
       + ", vectorWidth = " + to_string(vectorFile_.getElementCount())
       + ", vectorCount = " + to_string(vectorFile_.vectorCount())
@@ -252,7 +253,7 @@ std::string VectorFileSensor::executeCommand(const std::vector<std::string>& arg
 
   else if (command == "saveFile") {
     NTA_CHECK(argCount > 1)
-        << "VectorFileSensor: no filename specified for " << command;
+        << "FileInputRegion: no filename specified for " << command;
 
     Int32 format = 2; // Default format is 2
     Int64 begin = 0, end = 0;
@@ -275,7 +276,7 @@ std::string VectorFileSensor::executeCommand(const std::vector<std::string>& arg
       hasEnd = true;
     }
 
-    NTA_CHECK(argCount <= 5) << "VectorFileSensor: too many arguments";
+    NTA_CHECK(argCount <= 5) << "FileInputRegion: too many arguments";
 
     std::ofstream f(filename.c_str());
     if (!hasEnd)
@@ -284,7 +285,7 @@ std::string VectorFileSensor::executeCommand(const std::vector<std::string>& arg
   }
 
   else {
-    NTA_THROW << "VectorFileSensor: Unknown execute command: '" << command
+    NTA_THROW << "FileInputRegion: Unknown execute command: '" << command
               << "' sent!";
   }
 
@@ -296,7 +297,7 @@ std::string VectorFileSensor::executeCommand(const std::vector<std::string>& arg
  * Position to a vector within the vector file.
  * A negative number for n will position n from the end (wrapping backward). 
  */
-void VectorFileSensor::seek(int n) {
+void FileInputRegion::seek(int n) {
   // Set curVector_ to be one before the vector we want and reset iterations
   // On the next compute() it will advance to the vector we want and output it.
   iterations_ = 0;
@@ -309,20 +310,19 @@ void VectorFileSensor::seek(int n) {
   curVector_ %= vectorFile_.vectorCount();
 }
 
-size_t
-VectorFileSensor::getNodeOutputElementCount(const std::string &outputName) const {
+size_t FileInputRegion::getNodeOutputElementCount(const std::string &outputName) const {
   NTA_CHECK(outputName == "dataOut") << "Invalid output name: " << outputName;
   return activeOutputCount_;
 }
 
 
-Spec *VectorFileSensor::createSpec() {
+Spec *FileInputRegion::createSpec() {
   auto ns = new Spec;
   ns->description =
-      "VectorFileSensor is a basic sensor for reading files containing "
+      "FileInputRegion is a basic sensor for reading files containing "
       "vectors.\n"
       "\n"
-      "VectorFileSensor reads in a text file containing lists of numbers\n"
+      "FileInputRegion reads in a text file containing lists of numbers\n"
       "and outputs these vectors in sequence. The output is updated\n"
       "each time the sensor's compute() method is called. If\n"
       "repeatCount is > 1, then each vector is repeated that many times\n"
@@ -528,7 +528,7 @@ Spec *VectorFileSensor::createSpec() {
 
 
 //--------------------------------------------------------------------------------
-UInt32 VectorFileSensor::getParameterUInt32(const std::string &name, Int64 index) {
+UInt32 FileInputRegion::getParameterUInt32(const std::string &name, Int64 index) {
   if (name == "vectorCount") {
     return (UInt32)vectorFile_.vectorCount();
   } else if (name == "repeatCount") {
@@ -546,7 +546,7 @@ UInt32 VectorFileSensor::getParameterUInt32(const std::string &name, Int64 index
   }
 }
 
-Int32 VectorFileSensor::getParameterInt32(const std::string &name, Int64 index) {
+Int32 FileInputRegion::getParameterInt32(const std::string &name, Int64 index) {
   if (name == "position") {
     if (vectorFile_.vectorCount() == 0) return -1;
     return curVector_;
@@ -554,7 +554,7 @@ Int32 VectorFileSensor::getParameterInt32(const std::string &name, Int64 index) 
     return RegionImpl::getParameterInt32(name, index);
   }
 }
-std::string VectorFileSensor::getParameterString(const std::string &name, Int64 index) {
+std::string FileInputRegion::getParameterString(const std::string &name, Int64 index) {
   if (name == "scalingMode") {
     return scalingMode_;
   } else if (name == "recentFile") {
@@ -565,7 +565,7 @@ std::string VectorFileSensor::getParameterString(const std::string &name, Int64 
 }
 
 
-void VectorFileSensor::getParameterArray(const std::string &name, Int64 index,
+void FileInputRegion::getParameterArray(const std::string &name, Int64 index,
                                          Array &a) {
   if (a.getCount() != dataOut_.getCount())
     NTA_THROW << "getParameterArray(), array size is: " << a.getCount()
@@ -584,14 +584,14 @@ void VectorFileSensor::getParameterArray(const std::string &name, Int64 index,
       vectorFile_.getScaling(i, dummy, buf[i]);
     }
   } else {
-    NTA_THROW << "VectorfileSensor::getParameterArray(), unknown parameter: "
+    NTA_THROW << "FileInputRegion::getParameterArray(), unknown parameter: "
               << name;
   }
 }
 
 //--------------------------------------------------------------------------------
-void VectorFileSensor::setParameterUInt32(const std::string &name, Int64 index, UInt32 value) {
-  const char *where = "setParameterUInt32() VectorFileSensor, parameter ";
+void FileInputRegion::setParameterUInt32(const std::string &name, Int64 index, UInt32 value) {
+  const char *where = "setParameterUInt32() FileInputRegion, parameter ";
 
   if (name == "repeatCount") {
     NTA_CHECK(value > 0)
@@ -610,8 +610,8 @@ void VectorFileSensor::setParameterUInt32(const std::string &name, Int64 index, 
   }
 }
 
-void VectorFileSensor::setParameterInt32(const std::string &name, Int64 index, Int32 value) {
-  const char *where = "setParameterInt32() VectorFileSensor, parameter ";
+void FileInputRegion::setParameterInt32(const std::string &name, Int64 index, Int32 value) {
+  const char *where = "setParameterInt32() FileInputRegion, parameter ";
   if (name == "position") {
     if (vectorFile_.vectorCount() == 0) return; // not yet initialized.
     NTA_CHECK(value >= 0 && value < static_cast<Int32>(vectorFile_.vectorCount()))
@@ -623,8 +623,8 @@ void VectorFileSensor::setParameterInt32(const std::string &name, Int64 index, I
   }
 }
 
-void VectorFileSensor::setParameterString(const std::string &name, Int64 index, const std::string& value) {
-  const char *where = "setParameterString() VectorFileSensor ";
+void FileInputRegion::setParameterString(const std::string &name, Int64 index, const std::string &value) {
+  const char *where = "setParameterString() FileInputRegion ";
   if (name == "scalingMode") {
     if (value == "none")
       vectorFile_.resetScaling();
@@ -640,7 +640,7 @@ void VectorFileSensor::setParameterString(const std::string &name, Int64 index, 
 
 
 
-void VectorFileSensor::setParameterArray(const std::string &name, Int64 index,
+void FileInputRegion::setParameterArray(const std::string &name, Int64 index,
                                          const Array &a) {
   NTA_CHECK (a.getCount() == dataOut_.getCount())
          << "setParameterArray(), array size is: " << a.getCount()
@@ -657,23 +657,23 @@ void VectorFileSensor::setParameterArray(const std::string &name, Int64 index,
       vectorFile_.setOffset(i, buf[i]);
     }
   } else {
-    NTA_THROW << "VectorfileSensor::setParameterArray(), unknown parameter: " << name;
+    NTA_THROW << "FileInputRegion::setParameterArray(), unknown parameter: " << name;
   }
 
   scalingMode_ = "custom";
 }
 
-size_t VectorFileSensor::getParameterArrayCount(const std::string &name, Int64 index) {
+size_t FileInputRegion::getParameterArrayCount(const std::string &name, Int64 index) {
   NTA_CHECK (name == "scaleVector" || name == "offsetVector")
-     << "VectorFileSensor::getParameterArrayCount(), unknown array parameter: "<< name;
+     << "FileInputRegion::getParameterArrayCount(), unknown array parameter: "<< name;
   return dataOut_.getCount();
 }
 
 
 
-bool VectorFileSensor::operator==(const RegionImpl &o) const {
-  if (o.getType() != "VectorFileSensor") return false;
-  VectorFileSensor& other = (VectorFileSensor&)o;
+bool FileInputRegion::operator==(const RegionImpl &o) const {
+  if (o.getType() != "FileInputRegion") return false;
+  FileInputRegion &other = (FileInputRegion &)o;
   if (repeatCount_ != other.repeatCount_) return false;
   if (activeOutputCount_ != other.activeOutputCount_) return false;
   if (curVector_ != other.curVector_) return false;

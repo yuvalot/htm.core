@@ -290,7 +290,7 @@ Spec *TMRegion::createSpec() {
       ParameterSpec("(int) Number of mini-columns in the region. This values "
                     "needs to be the same as the number of columns in the "
                     "input from SP.  Normally this value is derived from "
-                    "the input width but if privided, this parameter must be "
+                    "the input width but if provided, this parameter must be "
                     "the same total size as the input.",
                     NTA_BasicType_UInt32,          // type
                     1,                             // elementCount
