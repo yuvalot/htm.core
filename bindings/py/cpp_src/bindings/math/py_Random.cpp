@@ -42,14 +42,12 @@ namespace htm_ext {
         py::class_<Random_t> Random(m, "Random");
 
         Random.def(py::init<htm::UInt64>(), py::arg("seed") = 0)
-            .def("getUInt32", &Random_t::getUInt32, py::arg("max") = (htm::UInt32)-1l)
-            .def("getReal64", &Random_t::getReal64)
-	    .def("getSeed", &Random_t::getSeed)
-            .def("max", &Random_t::max)
-            .def("min", &Random_t::min)
-            .def("__eq__", [](Random_t const & self, Random_t const & other) {//wrapping operator==
-            	return self == other;
-                }, py::is_operator());
+              .def("getUInt32", &Random_t::getUInt32, py::arg("max") = (htm::UInt32)-1l)
+              .def("getReal64", &Random_t::getReal64)
+	      .def("getSeed", &Random_t::getSeed)
+              .def("max", &Random_t::max)
+              .def("min", &Random_t::min)
+              .def("__eq__", [](Random_t const & self, Random_t const & other) { return self == other; }, py::is_operator()); //operator==
 
         Random.def_property_readonly_static("MAX32", [](py::object) {
 				return Random_t::MAX32;
@@ -148,9 +146,10 @@ namespace htm_ext {
             [](const Random_t& r)
         {
             std::stringstream ss;
-            ss << r;
+            r.save(ss); //save r's state to archive (stream) with cereal
             return ss.str();
         },
+
             [](const std::string& str)
         {
             if (str.empty())
@@ -159,9 +158,9 @@ namespace htm_ext {
             }
 
             std::stringstream ss(str);
+	    cereal::JSONInputArchive ar( ss );
             Random_t r;
-            ss >> r;
-
+            r.load(ss); //load from stream to Random 'r'
             return r;
         }
         ));
