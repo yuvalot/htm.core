@@ -296,7 +296,7 @@ public:
 	      const Permanence connectedThreshold = 0.5f,
               const bool timeseries = false);
 
-  virtual ~Connections() {}
+  virtual ~Connections() {} 
 
   /**
    * Initialize connections.
@@ -349,9 +349,10 @@ public:
    *
    * @param segment         Segment to create synapse on.
    * @param presynapticCell Cell to synapse on.
-   * @param permanence      Initial permanence of new synapse.
+   * @param permanence      Initial permanence of new synapse. If calling "create" on an existing synapse (same segment, presynapticCell),
+   *   then we either keep the old one, or update the old one to have higher permanence (from the new call).
    *
-   * @return Created synapse. //TODO consider changing to void, or explain what's returned
+   * @return Created synapse - index to the newly created synapse. Use `dataForSynapse(returnedValue)` to work with it.
    */
   Synapse createSynapse(const Segment segment,
                         const CellIdx presynapticCell,
@@ -368,6 +369,7 @@ public:
    * Destroys synapse.
    *
    * @param synapse Synapse to destroy.
+   * @throws if synapse does not exist (ie already removed)
    */
   void destroySynapse(const Synapse synapse);
 
@@ -443,9 +445,11 @@ public:
    * @retval Segment data.
    */
   const SegmentData &dataForSegment(const Segment segment) const {
+    NTA_CHECK(segmentExists_(segment));
     return segments_[segment];
   }
-  SegmentData& dataForSegment(const Segment segment) { //editable access, needed by SP 
+  SegmentData& dataForSegment(const Segment segment) { //editable access, needed by SP
+    NTA_CHECK(segmentExists_(segment));
     return segments_[segment];
   }
 
@@ -456,7 +460,8 @@ public:
    *
    * @retval Synapse data.
    */
-  const SynapseData &dataForSynapse(const Synapse synapse) const {
+  inline const SynapseData& dataForSynapse(const Synapse synapse) const {
+    NTA_CHECK(synapseExists_(synapse, true));
     return synapses_[synapse];
   }
 
@@ -468,7 +473,7 @@ public:
    *
    * @retval Segment
    */
-  Segment getSegment(const CellIdx cell, const SegmentIdx idx) const {
+  inline Segment getSegment(const CellIdx cell, const SegmentIdx idx) const {
     return cells_[cell].segments[idx];
   }
 
@@ -477,7 +482,7 @@ public:
    *
    * @retval A vector length
    */
-  size_t segmentFlatListLength() const { return segments_.size(); };
+  inline size_t segmentFlatListLength() const noexcept { return segments_.size(); };
 
   /**
    * Compare two segments. Returns true if a < b.
@@ -503,7 +508,7 @@ public:
   /**
    * For use with time-series datasets.
    */
-  void reset();
+  void reset() noexcept;
 
   /**
    * Compute the segment excitations for a vector of active presynaptic
@@ -546,14 +551,18 @@ public:
    * @param increment  Change in permanence for synapses with active presynapses.
    * @param decrement  Change in permanence for synapses with inactive presynapses.
    * @param pruneZeroSynapses (default false) If set, synapses that reach minPermanence(aka. "zero")
-   *        are removed. This is used in TemporalMemory.  If the segment becomes empty due to these
-   *        removed synapses, we remove the segment (see @ref `destroySegment`).
+   *        are removed. This is used in TemporalMemory.
+   * @param segmentThreshold (optional) (default 0) Minimum number of connected synapses for a segment
+   *        to be considered active. @see raisePermenencesToThreshold(). Equivalent to `SP.stimulusThreshold`.
+   *        If `pruneZeroSynapses` is used and synapses are removed, if the amount of synapses drops below 
+   *        `segmentThreshold`, we'll remove the segment as it can never become active again. See `destroySegment`.
    */
   void adaptSegment(const Segment segment,
                     const SDR &inputs,
                     const Permanence increment,
                     const Permanence decrement,
-		    const bool pruneZeroSynapses = false);
+		    const bool pruneZeroSynapses = false,
+		    const UInt segmentThreshold = 0);
 
   /**
    * Ensures a minimum number of connected synapses.  This raises permance
@@ -575,7 +584,7 @@ public:
    *  SP & TM. 
    */
 //!  const UInt32& iteration = iteration_; //FIXME cannot construct iteration like this?
-  UInt32 iteration() const { return iteration_; }
+  UInt32 iteration() const noexcept { return iteration_; }
 
 
   /**
@@ -700,7 +709,8 @@ public:
    */
   size_t numSegments() const { 
 	  NTA_ASSERT(segments_.size() >= destroyedSegments_);
-	  return segments_.size() - destroyedSegments_; }
+	  return segments_.size() - destroyedSegments_; 
+  }
 
   /**
    * Gets the number of segments on a cell.
@@ -771,13 +781,22 @@ protected:
   bool segmentExists_(const Segment segment) const;
 
   /**
-   * Check whether this synapse still exists on its segment.
+   * Check whether this synapse still exists "in Connections" ( on its segment).
+   * After calling `synapseCreate()` this should be True, after `synapseDestroy()` 
+   * its False.
+   *
+   * Note: 
    *
    * @param Synapse
+   * @param fast - bool, default false. If false, run the slow, proper check that is always correct. 
+   *   If true, we use a "hack" for speed, where destroySynapse sets synapseData.permanence=-1,
+   *   so we can check and compare alter, if ==-1 then synapse is "removed". 
+   *   The problem is that synapseData are never truly removed. 
+   *   #TODO instead of vector<SynapseData> synapses_, try map<Synapse, SynapseData>, that way, we can properly remove (and check).
    *
-   * @retval True if it's still in its segment's synapse list.
+   * @retval True if synapse is valid (not removed, it's still in its segment's synapse list)
    */
-  bool synapseExists_(const Synapse synapse) const;
+  bool synapseExists_(const Synapse synapse, bool fast = false) const;
 
   /**
    * Remove a synapse from presynaptic maps.
@@ -798,12 +817,17 @@ protected:
                               std::vector<Synapse> &synapsesForPresynapticCell,
                               std::vector<Segment> &segmentsForPresynapticCell);
 
+  /** 
+   *  Remove least recently used Segment from cell. 
+   */
+  void pruneLRUSegment_(const CellIdx& cell);
+
 private:
   std::vector<CellData>    cells_;
   std::vector<SegmentData> segments_;
-  Segment     destroyedSegments_ = 0;
+  size_t                   destroyedSegments_ = 0;
   std::vector<SynapseData> synapses_;
-  Synapse     destroyedSynapses_ = 0; //number of destroyed synapses
+  size_t                   destroyedSynapses_ = 0;
   Permanence               connectedThreshold_; //TODO make const
   UInt32 iteration_ = 0;
 
