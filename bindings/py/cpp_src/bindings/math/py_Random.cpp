@@ -142,26 +142,37 @@ namespace htm_ext {
 				}, "load from a File, using BINARY, PORTABLE, JSON, or XML format.",
 				py::arg("name"), py::arg("fmt") = 0);
 
+
         Random.def(py::pickle(
-            [](const Random_t& r)
+            [](const Random_t& r) //__getstate__
         {
             std::stringstream ss;
             r.save(ss); //save r's state to archive (stream) with cereal
-            return ss.str();
+
+	    /* The values in stringstream are binary so pickle will get confused
+             * trying to treat it as utf8 if you just return ss.str().
+             * So we must treat it as py::bytes.  Some characters could be null values.
+             */
+            return py::bytes( ss.str() );
         },
 
-            [](const std::string& str)
-        {
-            if (str.empty())
-            {
-                throw std::runtime_error("Empty state");
-            }
+	   [](py::bytes &s)   // __setstate__
+       {
+           /* pybind11 will pass in the bytes array without conversion.
+            * so we should be able to just create a string to initalize the stringstream.
+            */
+           std::stringstream ss( s.cast<std::string>() );
+           std::unique_ptr<htm::Random> r(new htm::Random());
+           r->load(ss);
 
-            std::stringstream ss(str);
-	    cereal::JSONInputArchive ar( ss );
-            Random_t r;
-            r.load(ss); //load from stream to Random 'r'
-            return r;
+           /*
+            * The __setstate__ part of the py::pickle() is actually a py::init() with some options.
+            * So the return value can be the object returned by value, by pointer,
+            * or by container (meaning a unique_ptr). SP has a problem with the copy constructor
+            * and pointers have problems knowing who the owner is so lets use unique_ptr.
+            * See: https://pybind11.readthedocs.io/en/stable/advanced/classes.html#custom-constructors
+            */
+           return r;
         }
         ));
 
