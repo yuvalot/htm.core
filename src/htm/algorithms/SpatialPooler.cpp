@@ -164,7 +164,7 @@ void SpatialPooler::setInhibitionRadius(UInt inhibitionRadius) {
   NTA_ASSERT(inhibitionRadius > 0);
   if (inhibitionRadius_ != inhibitionRadius) {
     inhibitionRadius_ = inhibitionRadius;
-    neighborMap_ = mapAllNeighbors_(inhibitionRadius_, columnDimensions_, wrapAround_, /*skip_center=*/true);
+    neighborMap_ = Neighborhood::updateAllNeighbors(inhibitionRadius_, columnDimensions_, wrapAround_, /*skip_center=*/true);
   }
 }
 
@@ -498,31 +498,6 @@ const vector<SynapseIdx> SpatialPooler::compute(const SDR &input, const bool lea
   }
 
   return overlaps;
-}
-
-
-unordered_map<CellIdx, vector<CellIdx>> mapAllNeighbors_(const Real radius, 
-		                                         const vector<UInt> dimensions, 
-							 const bool wrapAround=true, 
-							 const bool skip_center=false) { //TODO  move the cache logic to Neighbor class
-  std::unordered_map<CellIdx, vector<CellIdx>> neighborMap; 
-  UInt numColumns = 1;
-  for(const auto dim: dimensions) {
-    numColumns*= dim;
-  }
-  neighborMap.reserve(numColumns);
-
-  for(UInt column=0; column < numColumns; column++) {
-      vector<CellIdx> neighbors; //of the current column
-      for(const auto neighbor: Neighborhood(column, radius, dimensions, wrapAround, skip_center)) { 
-        neighbors.push_back(neighbor);
-      }
-      std::sort(neighbors.begin(), neighbors.end()); //sort for better cache locality
-      neighbors.shrink_to_fit();
-
-      neighborMap[column] = neighbors;
-  }
-  return neighborMap;
 }
 
 

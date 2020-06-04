@@ -24,10 +24,12 @@
 
 #include <vector>
 #include <functional>
+#include <unordered_map>
 
 #include <htm/types/Types.hpp>
 #include <htm/types/Sdr.hpp>
 #include <htm/utils/Random.hpp>
+#include <htm/algorithms/Connections.hpp> //just for CellIdx, maybe define separately?
 
 namespace htm {
 
@@ -223,6 +225,12 @@ public:
 
   Iterator begin() const;
   Iterator end() const;
+
+static  std::unordered_map<htm::CellIdx, std::vector<htm::CellIdx>> updateAllNeighbors(
+    const Real radius,
+    const std::vector<UInt> dimensions,
+    const bool wrapAround=true,
+    const bool skip_center=false);
 
 private:
   const std::vector<UInt> centerPosition_;

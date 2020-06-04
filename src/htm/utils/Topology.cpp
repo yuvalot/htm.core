@@ -23,8 +23,8 @@
 #include <htm/utils/Log.hpp>
 #include <algorithm> // sort
 
-using std::vector;
 using namespace htm;
+using namespace std;
 
 namespace htm {
 
@@ -230,6 +230,34 @@ void Neighborhood::Iterator::advance_() {
     finished_ = true;
   }
 }
+
+unordered_map<CellIdx, vector<CellIdx>> Neighborhood::updateAllNeighbors(
+		const Real radius,
+                const vector<UInt> dimensions,
+                const bool wrapAround,
+                const bool skip_center) { //TODO  move the cache logic to Neighbor class
+
+  std::unordered_map<CellIdx, vector<CellIdx>> neighborMap;
+  size_t numColumns = 1;
+  for(const auto dim: dimensions) {
+    numColumns*= dim;
+  }
+  neighborMap.reserve(numColumns);
+
+
+  for(size_t column=0; column < numColumns; column++) {
+    vector<CellIdx> neighbors; //of the current column
+    for(const auto neighbor: Neighborhood(column, radius, dimensions, wrapAround, skip_center)) {
+      neighbors.push_back(neighbor);
+    }
+    std::sort(neighbors.begin(), neighbors.end()); //sort for better cache locality
+    neighbors.shrink_to_fit();
+
+    neighborMap[column] = neighbors;
+  }
+  return neighborMap;
+}
+
 
 Neighborhood::Iterator Neighborhood::begin() const { return {*this, false}; }
 Neighborhood::Iterator Neighborhood::end() const { return {*this, true}; }
