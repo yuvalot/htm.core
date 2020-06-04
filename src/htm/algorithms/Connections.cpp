@@ -68,24 +68,43 @@ void Connections::unsubscribe(UInt32 token) {
   eventHandlers_.erase(token);
 }
 
+
+void Connections::pruneLRUSegment_(const CellIdx& cell) {
+  const auto& destroyCandidates = segmentsForCell(cell);
+#ifdef NTA_ASSERTIONS_ON
+  const auto numBefore = destroyCandidates.size();
+#endif
+  const auto compareSegmentsByLRU = [&](const Segment a, const Segment b) {
+    if(dataForSegment(a).lastUsed == dataForSegment(b).lastUsed) {
+      return a < b; //needed for deterministic sort
+    }
+    else return dataForSegment(a).lastUsed < dataForSegment(b).lastUsed; //sort segments by access time
+  };
+
+  const auto leastRecentlyUsedSegment = std::min_element(destroyCandidates.cbegin(),
+                                                         destroyCandidates.cend(), 
+							 compareSegmentsByLRU);
+#ifdef NTA_ASSERTIONS_ON
+  if(destroyCandidates.size() > 0) {
+    // the removed seg should be the "oldest", least recently used. So any other is more recent. We don't check all, but randomly ([0])
+    NTA_ASSERT(dataForSegment(*leastRecentlyUsedSegment).lastUsed <= dataForSegment(destroyCandidates[0]).lastUsed) 
+	    << "Should remove the least recently used segment,but older exists.";
+  }
+#endif
+  destroySegment(*leastRecentlyUsedSegment);
+  NTA_ASSERT(destroyCandidates.size() < numBefore) << "A segment should have been pruned, but wasn't!";
+}
+
 Segment Connections::createSegment(const CellIdx cell, 
 	                           const SegmentIdx maxSegmentsPerCell) {
 
   //limit number of segmets per cell. If exceeded, remove the least recently used ones.
-  NTA_ASSERT(maxSegmentsPerCell > 0);
+  NTA_CHECK(maxSegmentsPerCell > 0);
+  NTA_CHECK(cell < numCells());
   while (numSegments(cell) >= maxSegmentsPerCell) {
-    const auto& destroyCandidates = segmentsForCell(cell);
-    const auto compareSegmentsByLRU = [&](const Segment a, const Segment b) {
-	if(dataForSegment(a).lastUsed == dataForSegment(b).lastUsed) {
-	  return a < b; //needed for deterministic sort
-        } 
-	else return dataForSegment(a).lastUsed < dataForSegment(b).lastUsed; //sort segments by access time
-      };
-    const auto leastRecentlyUsedSegment = std::min_element(destroyCandidates.cbegin(), 
-        destroyCandidates.cend(), compareSegmentsByLRU);
-
-    destroySegment(*leastRecentlyUsedSegment);
+    pruneLRUSegment_(cell);
   }
+  NTA_ASSERT(numSegments(cell) <= maxSegmentsPerCell);
 
   //proceed to create a new segment
   NTA_CHECK(segments_.size() < std::numeric_limits<Segment>::max()) << "Add segment failed: Range of Segment (data-type) insufficinet size."
@@ -122,7 +141,17 @@ Synapse Connections::createSynapse(Segment segment,
   for (const Synapse& syn : synapsesForSegment(segment)) {
     const CellIdx existingPresynapticCell = dataForSynapse(syn).presynapticCell; //TODO 1; add way to get all presynaptic cells for segment (fast)
     if (presynapticCell == existingPresynapticCell) {
-      return syn; //synapse (connecting to this presyn cell) already exists on the segment; don't create a new one, exit early and return the existing
+      //synapse (connecting to this presyn cell) already exists on the segment; don't create a new one, exit early and return the existing
+      NTA_ASSERT(synapseExists_(syn));
+      //TODO what is the strategy on creating a new synapse, while the same already exists (on the same segment, presynapticCell) ??
+      //1. just keep the older (former default)
+      //2. throw an error (ideally, user should not createSynapse() but rather updateSynapsePermanence())
+      //3. create a duplicit new synapse -- NO. This is the only choice that is incorrect! HTM works on binary synapses, duplicates would break that.
+      //4. update to the max of the permanences (default)
+
+      auto& synData = synapses_[syn];
+      if(permanence > synData.permanence) updateSynapsePermanence(syn, permanence);
+      return syn;
     }
   } //else: the new synapse is not duplicit, so keep creating it. 
 
@@ -160,19 +189,36 @@ Synapse Connections::createSynapse(Segment segment,
 }
 
 bool Connections::segmentExists_(const Segment segment) const {
-  NTA_CHECK(segment < segments_.size());
+  if(segment >= segments_.size()) return false; //OOB segment
+
   const SegmentData &segmentData = segments_[segment];
   const vector<Segment> &segmentsOnCell = cells_[segmentData.cell].segments;
-  return (std::find(segmentsOnCell.cbegin(), segmentsOnCell.cend(), segment) !=
-          segmentsOnCell.cend());
+  return (std::find(segmentsOnCell.cbegin(), segmentsOnCell.cend(), segment) != segmentsOnCell.cend()); //TODO if too slow, also create "fast" variant, as synapseExists_()
 }
 
-bool Connections::synapseExists_(const Synapse synapse) const {
+bool Connections::synapseExists_(const Synapse synapse, bool fast) const {
+  if(synapse >= synapses_.size()) return false; //out of bounds. Can happen after serialization, where only existing synapses are stored.
+
+#ifdef NTA_ASSERTIONS_ON
+  fast = false; //in Debug, do the proper, slow check always
+#endif
+  if(!fast) {
+  //proper but slow method to check for valid, existing synapse
   const SynapseData &synapseData = synapses_[synapse];
   const vector<Synapse> &synapsesOnSegment =
       segments_[synapseData.segment].synapses;
-  return (std::find(synapsesOnSegment.begin(), synapsesOnSegment.end(),
-                    synapse) != synapsesOnSegment.end());
+  const bool found = (std::find(synapsesOnSegment.begin(), synapsesOnSegment.end(), synapse) != synapsesOnSegment.end());
+  //validate the fast & slow methods for same result:
+#ifdef NTA_ASSERTIONS_ON
+  const bool removed = synapses_[synapse].permanence == -1;
+  NTA_ASSERT( (removed and not found) or (not removed and found) );
+#endif
+  return found;
+
+  } else {
+  //quick method. Relies on hack in destroySynapse() where we set synapseData.permanence == -1
+  return synapses_[synapse].permanence != -1;
+  }
 }
 
 /**
@@ -199,7 +245,8 @@ void Connections::removeSynapseFromPresynapticMap_(
 
 
 void Connections::destroySegment(const Segment segment) {
-  NTA_ASSERT(segmentExists_(segment));
+  if(not segmentExists_(segment)) return;
+
   for (auto h : eventHandlers_) {
     h.second->onDestroySegment(segment);
   }
@@ -219,18 +266,21 @@ void Connections::destroySegment(const Segment segment) {
 
   cellData.segments.erase(segmentOnCell);
   destroyedSegments_++;
+
+  NTA_ASSERT(not segmentExists_(segment));
 }
 
 
 void Connections::destroySynapse(const Synapse synapse) {
-  NTA_ASSERT(synapseExists_(synapse));
+  if(not synapseExists_(synapse, true)) return;
+
   for (auto h : eventHandlers_) {
     h.second->onDestroySynapse(synapse);
   }
 
-  const SynapseData &synapseData = synapses_[synapse];
-        SegmentData &segmentData = segments_[synapseData.segment];
-  const auto         presynCell  = synapseData.presynapticCell;
+  SynapseData& synapseData = synapses_[synapse]; //like dataForSynapse() but here we need writeable access
+  SegmentData &segmentData = segments_[synapseData.segment];
+  const auto   presynCell  = synapseData.presynapticCell;
 
   if( synapseData.permanence >= connectedThreshold_ ) {
     segmentData.numConnected--;
@@ -256,19 +306,22 @@ void Connections::destroySynapse(const Synapse synapse) {
       potentialSegmentsForPresynapticCell_.erase( presynCell );
     }
   }
+  
+  const auto synapseOnSegment = std::lower_bound(segmentData.synapses.cbegin(), 
+		                          segmentData.synapses.cend(),
+					  synapse,
+					  [&](const Synapse a, const Synapse b) -> bool { return dataForSynapse(a).id < dataForSynapse(b).id;}
+					  ); 
 
-  const auto synapseOnSegment =
-      std::lower_bound(segmentData.synapses.cbegin(), segmentData.synapses.cend(),
-                       synapse, 
-		       [&](const Synapse a, const Synapse b) -> bool {
-			 return dataForSynapse(a).id < dataForSynapse(b).id;
-                       });
-
-  NTA_ASSERT(synapseOnSegment != segmentData.synapses.end());
+  NTA_ASSERT(synapseOnSegment != segmentData.synapses.cend());
   NTA_ASSERT(*synapseOnSegment == synapse);
 
   segmentData.synapses.erase(synapseOnSegment);
+  //Note: dataForSynapse(synapse) are not deleted, unfortunately. And are still accessible. 
+  //To mark them as "removed", we set SynapseData.permanence = -1, this can be used for a quick check later
+  synapseData.permanence = -1; //marking as "removed"
   destroyedSynapses_++;
+  NTA_ASSERT(not synapseExists_(synapse));
 }
 
 
@@ -341,7 +394,7 @@ bool Connections::compareSegments(const Segment a, const Segment b) const {
   // default sort by cell
   if (aData.cell == bData.cell)
     //fallback to ordinals:
-    return aData.id < bData.id;
+    return aData.id < bData.id; //TODO is segment's id/ordinals needed?
   else return aData.cell < bData.cell;
 }
 
@@ -363,7 +416,7 @@ vector<Synapse> Connections::synapsesForPresynapticCell(const CellIdx presynapti
 }
 
 
-void Connections::reset()
+void Connections::reset() noexcept
 {
   if( not timeseries_ ) {
     NTA_WARN << "Connections::reset() called with timeseries=false.";
@@ -426,7 +479,8 @@ void Connections::adaptSegment(const Segment segment,
                                const SDR &inputs,
                                const Permanence increment,
                                const Permanence decrement, 
-			       const bool pruneZeroSynapses)
+			       const bool pruneZeroSynapses, 
+			       const UInt segmentThreshold)
 {
   const auto &inputArray = inputs.getDense();
 
@@ -435,9 +489,8 @@ void Connections::adaptSegment(const Segment segment,
     currentUpdates_.resize(  synapses_.size(), minPermanence );
   }
 
-  const auto& synapses = synapsesForSegment(segment);
-  for( size_t i = 0; i <  synapses.size(); i++) {
-      const auto synapse = synapses[i];
+  vector<Synapse> destroyLater;
+  for(const auto synapse: synapsesForSegment(segment)) {
       const SynapseData &synapseData = dataForSynapse(synapse);
 
       Permanence update;
@@ -450,10 +503,8 @@ void Connections::adaptSegment(const Segment segment,
     //prune permanences that reached zero
     if (pruneZeroSynapses and 
         synapseData.permanence + update < htm::minPermanence + htm::Epsilon) { //new value will disconnect the synapse
-      destroySynapse(synapse);
+      destroyLater.push_back(synapse);
       prunedSyns_++; //for statistics
-      i--; // do not advance `i`, as `destroySynapse` just modified inplace the synapses_, so now a `synapses_[i]`
-      // is the "next" synapse. 
       continue;
     }
 
@@ -468,8 +519,18 @@ void Connections::adaptSegment(const Segment segment,
     }
   }
 
+  //destroy synapses accumulated for pruning
+  for(const auto pruneSyn : destroyLater) {
+    destroySynapse(pruneSyn);
+  }
+
   //destroy segment if it has too few synapses left -> will never be able to connect again
-  if(pruneZeroSynapses and synapses.size() < connectedThreshold_) { //FIXME this is incorrect! connectedThreshold_ is if > then syn = connected. We need stimulusThreshold_ from TM.
+  #ifdef NTA_ASSERTIONS_ON
+  if(segmentThreshold > 0) {
+    NTA_ASSERT(pruneZeroSynapses) << "Setting segmentThreshold only makes sense when pruneZeroSynapses is allowed.";
+  }
+  #endif
+  if(pruneZeroSynapses and synapsesForSegment(segment).size() < segmentThreshold) { 
     destroySegment(segment);
     prunedSegs_++; //statistics
   }
@@ -586,20 +647,18 @@ void Connections::synapseCompetition(
 
 
 void Connections::bumpSegment(const Segment segment, const Permanence delta) {
-  const vector<Synapse> &synapses = synapsesForSegment(segment);
   // TODO: vectorize?
-  for( const auto syn : synapses ) {
+  for( const auto syn : synapsesForSegment(segment) ) {
     updateSynapsePermanence(syn, synapses_[syn].permanence + delta);
   }
 }
 
 
 void Connections::destroyMinPermanenceSynapses(
-                              const Segment segment, Int nDestroy,
+                              const Segment segment, 
+			      const size_t nDestroy,
                               const vector<CellIdx> &excludeCells)
 {
-  NTA_ASSERT( nDestroy >= 0 );
-
   // Don't destroy any cells that are in excludeCells.
   vector<Synapse> destroyCandidates;
   for( Synapse synapse : synapsesForSegment(segment)) {
@@ -622,8 +681,8 @@ void Connections::destroyMinPermanenceSynapses(
   };
   std::sort(destroyCandidates.begin(), destroyCandidates.end(), comparePermanences);
 
-  nDestroy = std::min( nDestroy, (Int) destroyCandidates.size() );
-  for(Int i = 0; i < nDestroy; i++) {
+  const size_t destroy = std::min( nDestroy, destroyCandidates.size() );
+  for(size_t i = 0; i < destroy; i++) {
     destroySynapse( destroyCandidates[i] );
   }
 }
@@ -695,6 +754,8 @@ std::ostream& operator<< (std::ostream& stream, const Connections& self)
          << "%) Saturated (" <<   (Real) synapsesSaturated / self.numSynapses() << "%)" << std::endl;
   stream << "    Synapses pruned (" << (Real) self.prunedSyns_ / self.numSynapses() 
 	 << "%) Segments pruned (" << (Real) self.prunedSegs_ / self.numSegments() << "%)" << std::endl;
+  stream << "    Buffer for destroyed synapses: " << self.destroyedSynapses_
+	 << "    Buffer for destroyed segments: " << self.destroyedSegments_ << std::endl;
 
   return stream;
 }

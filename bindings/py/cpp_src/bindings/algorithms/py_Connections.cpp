@@ -129,7 +129,14 @@ R"(Returns pair of:
     numActiveConnectedSynapsesForSegment
     numActivePotentialSynapsesForSegment)");
 
-    py_Connections.def("adaptSegment", &Connections::adaptSegment);
+    py_Connections.def("adaptSegment", &Connections::adaptSegment,
+      py::arg("segment"),
+      py::arg("inputs"),
+      py::arg("increment"),
+      py::arg("decrement"),
+      py::arg("pruneZeroSynapses") = false,
+      py::arg("segmentThreshold") = 0
+		    );
 
     py_Connections.def("raisePermanencesToThreshold", &Connections::raisePermanencesToThreshold);
 
