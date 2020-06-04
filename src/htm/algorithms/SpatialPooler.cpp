@@ -462,7 +462,6 @@ void SpatialPooler::initialize(
   }
 
   updateInhibitionRadius_();
-  neighborMap_ = mapAllNeighbors();
 
   if (spVerbosity_ > 0) {
     printParameters();
@@ -508,7 +507,7 @@ unordered_map<CellIdx, vector<CellIdx>> SpatialPooler::mapAllNeighbors() const {
 
 	for(UInt column=0; column < numColumns_; column++) {
 		  vector<CellIdx> neighbors; //of the current column
-      for(const auto neighbor: Neighborhood(column, inhibitionRadius_, columnDimensions_, wrapAround_, /*skip_center=*/false)) { 
+      for(const auto neighbor: Neighborhood(column, inhibitionRadius_, columnDimensions_, wrapAround_, /*skip_center=*/true)) { 
 			  neighbors.push_back(neighbor);
 		  }
       std::sort(neighbors.begin(), neighbors.end()); //sort for better cache locality
@@ -597,8 +596,7 @@ vector<Real> SpatialPooler::initPermanence_(const vector<UInt> &potential, //TOD
 
 void SpatialPooler::updateInhibitionRadius_() {
   if (globalInhibition_) {
-    inhibitionRadius_ =
-        *max_element(columnDimensions_.cbegin(), columnDimensions_.cend());
+    setInhibitionRadius( *max_element(columnDimensions_.cbegin(), columnDimensions_.cend()) );
     return;
   }
 
