@@ -352,7 +352,7 @@ distribution packages as listed and rename them as indicated. Copy these to
 | libyaml.zip   (*node1) | https://github.com/yaml/libyaml/archive/master.zip |
 | boost.tar.gz  (*note3) | https://dl.bintray.com/boostorg/release/1.72.0/source/boost_1_72_0.tar.gz | 
 | eigen.tar.bz2          | http://bitbucket.org/eigen/eigen/get/3.3.7.tar.bz2 |
-| googletest.tar.gz      | https://github.com/abseil/googletest/archive/release-1.8.1.tar.gz |
+| googletest.tar.gz      | https://github.com/google/googletest/archive/release-1.10.0.tar.gz |
 | mnist.zip     (*note4) | https://github.com/wichtounet/mnist/archive/master.zip |
 | pybind11.tar.gz        | https://github.com/pybind/pybind11/archive/v2.4.2.tar.gz |
 | cereal.tar.gz          | https://github.com/USCiLab/cereal/archive/v1.2.2.tar.gz |
