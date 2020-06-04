@@ -406,6 +406,7 @@ if __name__ == "__main__":
                     'sklearn':'examples',
                     'matplotlib':'examples',
                     'PIL':'examples',
+                    'requests':'examples',
                     'scipy':'examples'
                    },
     zip_safe=False,

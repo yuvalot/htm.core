@@ -104,7 +104,7 @@ EPOCHS = 2; // make test faster in Debug
 
 
   // Start a stopwatch timer
-  printf("starting:  %d iterations.", EPOCHS);
+  std::cout << "starting:  " << to_string(EPOCHS) << " iterations.\n";
   tAll.start();
 
   //run
@@ -164,7 +164,7 @@ EPOCHS = 2; // make test faster in Debug
       tAll.stop();
 
       //print connections stats
-      cout << "\nInput :\n" << statsInput
+      std::cout << "\nInput :\n" << statsInput
 	   << "\nSP(local) " << spLocal.connections
 	   << "\nSP(local) " << statsSPlocal
            << "\nSP(global) " << spGlobal.connections
@@ -174,24 +174,24 @@ EPOCHS = 2; // make test faster in Debug
 	   << "\n";
 
       // output values
-      cout << "Epoch = " << e+1 << endl;
-      cout << "Anomaly = " << an << endl;
-      cout << "Anomaly (avg) = " << avgAnom10.getCurrentAvg() << endl;
-      cout << "Anomaly (Likelihood) = " << anLikely << endl;
-      cout << "input = " << input << endl;
-      if(useSPlocal) cout << "SP (g)= " << outSP << endl;
-      if(useSPlocal) cout << "SP (l)= " << outSPlocal <<endl;
-      if(useTM) cout << "TM= " << outTM << endl;
+      std::cout << "Epoch = " << e+1 << std::endl;
+      std::cout << "Anomaly = " << an << std::endl;
+      std::cout << "Anomaly (avg) = " << avgAnom10.getCurrentAvg() << std::endl;
+      std::cout << "Anomaly (Likelihood) = " << anLikely << std::endl;
+      std::cout << "input = " << input << std::endl;
+      if(useSPlocal) std::cout << "SP (g)= " << outSP << std::endl;
+      if(useSPlocal) std::cout << "SP (l)= " << outSPlocal <<std::endl;
+      if(useTM) std::cout << "TM= " << outTM << std::endl;
 
       //timers
-      cout << "==============TIMERS============" << endl;
-      cout << "Init:\t" << tInit.getElapsed() << endl;
-      cout << "Random:\t" << tRng.getElapsed() << endl;
-      cout << "Encode:\t" << tEnc.getElapsed() << endl;
-      if(useSPlocal)  cout << "SP (l):\t" << tSPloc.getElapsed()*1.0f  << endl;
-      if(useSPglobal) cout << "SP (g):\t" << tSPglob.getElapsed() << endl;
-      if(useTM) cout << "TM:\t" << tTM.getElapsed() << endl;
-      cout << "AN:\t" << tAnLikelihood.getElapsed() << endl;
+      std::cout << "==============TIMERS============" << std::endl;
+      std::cout << "Init:\t" << tInit.getElapsed() << std::endl;
+      std::cout << "Random:\t" << tRng.getElapsed() << std::endl;
+      std::cout << "Encode:\t" << tEnc.getElapsed() << std::endl;
+      if(useSPlocal)  std::cout << "SP (l):\t" << tSPloc.getElapsed()*1.0f  << std::endl;
+      if(useSPglobal) std::cout << "SP (g):\t" << tSPglob.getElapsed() << std::endl;
+      if(useTM) std::cout << "TM:\t" << tTM.getElapsed() << std::endl;
+      std::cout << "AN:\t" << tAnLikelihood.getElapsed() << std::endl;
 
       // check deterministic SP, TM output 
       SDR goldEnc({DIM_INPUT});
@@ -214,12 +214,12 @@ EPOCHS = 2; // make test faster in Debug
 
       SDR goldTM({COLS});
       const SDR_sparse_t deterministicTM{
-      87, 93, 102, 282, 303, 308, 337, 340, 502, 542, 952, 1115, 1502, 1518, 1626, 1691, 1694, 1711, 1727, 1760, 1775, 1781, 1804, 1805, 1827, 1831, 1832, 1844, 1851, 1858, 1859, 1918, 1929, 1931, 1941, 1943, 1945, 1952, 1953, 1955, 1956, 1958, 1960, 1961, 1965, 1973, 1975, 1976, 1979, 1980, 1984, 1985, 1986, 1987, 1994, 1996, 1998, 2002, 2006, 2013, 2042
+        72, 85, 102, 114, 122, 126, 287, 308, 337, 339, 542, 920, 939, 952, 1268, 1507, 1508, 1518, 1546, 1547, 1626, 1627, 1633, 1668, 1727, 1804, 1805, 1827, 1832, 1844, 1859, 1862, 1918, 1920, 1924, 1931, 1933, 1945, 1961, 1965, 1966, 1968, 1970, 1973, 1975, 1976, 1977, 1979, 1986, 1987, 1991, 1992, 1996, 1998, 2002, 2006, 2008, 2012, 2042, 2045
       };
       goldTM.setSparse(deterministicTM);
 
-      const float goldAn    = 0.715686f; //Note: this value is for a (randomly picked) datapoint, it does not have to improve (decrease) with better algorithms
-      const float goldAnAvg = 0.412719f; // ...the averaged value, on the other hand, should improve/decrease. 
+      const float goldAn    = 0.637255f; //Note: this value is for a (randomly picked) datapoint, it does not have to improve (decrease) with better algorithms
+      const float goldAnAvg = 0.40804f; // ...the averaged value, on the other hand, should improve/decrease. 
 
 #ifdef _ARCH_DETERMINISTIC
       if(e+1 == 5000) {
@@ -238,7 +238,7 @@ EPOCHS = 2; // make test faster in Debug
 
       // check runtime speed
       const size_t timeTotal = (size_t)floor(tAll.getElapsed());
-      cout << "Total elapsed time = " << timeTotal << " seconds" << endl;
+      std::cout << "Total elapsed time = " << timeTotal << " seconds" << std::endl;
       if(EPOCHS >= 100) { //show only relevant values, ie don't run in valgrind (ndebug, epochs=5) run
 #ifdef NTA_OS_LINUX
         const size_t CI_avg_time = (size_t)floor(99*Timer::getSpeed()); //sec //FIXME the CI speed broken for docker linux
