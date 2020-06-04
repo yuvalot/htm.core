@@ -69,16 +69,39 @@ struct SynapseData: public Serializable {
 
   SynapseData() {}
 
+  //Serialization
   CerealAdapter;
   template<class Archive>
   void save_ar(Archive & ar) const {
-    ar(cereal::make_nvp("perm", permanence),
-      cereal::make_nvp("presyn", presynapticCell));
+    ar(CEREAL_NVP(permanence),
+       CEREAL_NVP(presynapticCell),
+       CEREAL_NVP(segment),
+       CEREAL_NVP(presynapticMapIndex_),
+       CEREAL_NVP(id)
+    );
   }
   template<class Archive>
   void load_ar(Archive & ar) {
-    ar( permanence, presynapticCell);
+    ar( permanence, presynapticCell, segment, presynapticMapIndex_, id);
   }
+
+  //operator==
+  bool operator==(const SynapseData& o) const {
+    try {
+    NTA_CHECK(presynapticCell == o.presynapticCell ) << "SynapseData equals: presynapticCell";
+    NTA_CHECK(permanence == o.permanence ) << "SynapseData equals: permanence";
+    NTA_CHECK(segment == o.segment ) << "SynapseData equals: segment";
+    NTA_CHECK(presynapticMapIndex_ == o.presynapticMapIndex_ ) << "SynapseData equals: presynapticMapIndex_";
+    NTA_CHECK(id == o.id ) << "SynapseData equals: id";
+    } catch(const htm::Exception& ex) {
+      //NTA_WARN << "SynapseData equals: " << ex.what(); //Note: uncomment for debug, tells you 
+      //where the diff is. It's perfectly OK for the "exception" to occur, as it just denotes
+      //that the data is NOT equal.
+      return false;
+    }
+    return true;
+  }
+  inline bool operator!=(const SynapseData& o) const { return !operator==(o); }
 
 };
 
@@ -94,7 +117,7 @@ struct SynapseData: public Serializable {
  * @param cell
  * The cell that this segment is on.
  */
-struct SegmentData {
+struct SegmentData: public Serializable {
   SegmentData(const CellIdx cell, Segment id, UInt32 lastUsed = 0) : cell(cell), numConnected(0), lastUsed(lastUsed), id(id) {} //default constructor
 
   std::vector<Synapse> synapses;
@@ -102,6 +125,40 @@ struct SegmentData {
   SynapseIdx numConnected; //number of permanences from `synapses` that are >= synPermConnected, ie connected synapses
   UInt32 lastUsed = 0; //last used time (iteration). Used for segment pruning by "least recently used" (LRU) in `createSegment`
   Segment id; 
+
+  //Serialize
+  SegmentData() {}; //empty constructor for serialization, do not use
+  CerealAdapter;
+  template<class Archive>
+  void save_ar(Archive & ar) const {
+    ar(CEREAL_NVP(synapses),
+       CEREAL_NVP(cell),
+       CEREAL_NVP(numConnected),
+       CEREAL_NVP(lastUsed),
+       CEREAL_NVP(id)
+    );
+  }
+  template<class Archive>
+  void load_ar(Archive & ar) {
+    ar( synapses, cell, numConnected, lastUsed, id);
+  }
+
+  //equals op==
+  bool operator==(const SegmentData& o) const {
+    try {
+      NTA_CHECK(synapses == o.synapses) << "SegmentData equals: synapses";
+      NTA_CHECK(cell == o.cell) << "SegmentData equals: cell";
+      NTA_CHECK(numConnected == o.numConnected) << "SegmentData equals: numConnected";
+      NTA_CHECK(lastUsed == o.lastUsed) << "SegmentData equals: lastUsed";
+      NTA_CHECK(id == o.id) << "SegmentData equals: id";
+
+    } catch(const htm::Exception& ex) {
+      //NTA_WARN << "SegmentData equals: " << ex.what();
+      return false;
+    }
+    return true;
+  }
+  inline bool operator!=(const SegmentData& o) const { return !operator==(o); }
 };
 
 /**
@@ -115,9 +172,34 @@ struct SegmentData {
  * Segments on this cell.
  *
  */
-struct CellData {
+struct CellData : public Serializable {
   std::vector<Segment> segments;
+
+  //Serialization
+  CerealAdapter;
+  template<class Archive>
+  void save_ar(Archive & ar) const {
+    ar(CEREAL_NVP(segments)
+    );
+  }
+  template<class Archive>
+  void load_ar(Archive & ar) {
+    ar( segments);
+  }
+
+  //operator==
+  bool operator==(const CellData& o) const {
+    try {
+      NTA_CHECK( segments == o.segments ) << "CellData equals: segments";
+    } catch(const htm::Exception& ex) {
+      //NTA_WARN << "CellData equals: " << ex.what();
+      return false;
+    }
+    return true;
+  }
+  inline bool operator!=(const CellData& o) const { return !operator==(o); }
 };
+
 
 /**
  * A base class for Connections event handlers.
@@ -557,58 +639,58 @@ public:
   CerealAdapter;
   template<class Archive>
   void save_ar(Archive & ar) const {
-    // make this look like a queue of items to be sent. 
-    // and a queue of sizes so we can distribute the 
-		// correct number for each level when deserializing.
-    std::deque<SynapseData> syndata;
-    std::deque<size_t> sizes;
-    sizes.push_back(cells_.size());
-    for (CellData cellData : cells_) {
-      const std::vector<Segment> &segments = cellData.segments;
-      sizes.push_back(segments.size());
-      for (Segment segment : segments) {
-        const SegmentData &segmentData = segments_[segment];
-        const std::vector<Synapse> &synapses = segmentData.synapses;
-        sizes.push_back(synapses.size());
-        for (Synapse synapse : synapses) {
-          const SynapseData &synapseData = synapses_[synapse];
-          syndata.push_back(synapseData);
-        }
-      }
-    }
     ar(CEREAL_NVP(connectedThreshold_));
-    //the following member must not be serialized (so is set to =0).
-    //That is because of we serialize only active segments & synapses,
-    //excluding the "destroyed", so those fields start empty.
-//!    ar(CEREAL_NVP(destroyedSegments_));
-    ar(CEREAL_NVP(sizes));
-    ar(CEREAL_NVP(syndata));
     ar(CEREAL_NVP(iteration_));
+    ar(CEREAL_NVP(cells_));
+    ar(CEREAL_NVP(segments_));
+    ar(CEREAL_NVP(synapses_));
+
+    ar(CEREAL_NVP(destroyedSynapses_));
+    ar(CEREAL_NVP(destroyedSegments_));
+
+    ar(CEREAL_NVP(potentialSynapsesForPresynapticCell_));
+    ar(CEREAL_NVP(connectedSynapsesForPresynapticCell_));
+    ar(CEREAL_NVP(potentialSegmentsForPresynapticCell_));
+    ar(CEREAL_NVP(connectedSegmentsForPresynapticCell_));
+
+    ar(CEREAL_NVP(nextSegmentOrdinal_));
+    ar(CEREAL_NVP(nextSynapseOrdinal_));
+
+    ar(CEREAL_NVP(timeseries_));
+    ar(CEREAL_NVP(previousUpdates_));
+    ar(CEREAL_NVP(currentUpdates_));
+
+    ar(CEREAL_NVP(prunedSyns_));
+    ar(CEREAL_NVP(prunedSegs_));
   }
 
   template<class Archive>
   void load_ar(Archive & ar) {
-    std::deque<size_t> sizes;
-    std::deque<SynapseData> syndata;
     ar(CEREAL_NVP(connectedThreshold_));
-    ar(CEREAL_NVP(sizes));
-    ar(CEREAL_NVP(syndata));
-
-    CellIdx numCells = static_cast<CellIdx>(sizes.front()); sizes.pop_front();
-    initialize(numCells, connectedThreshold_);
-    for (UInt cell = 0; cell < numCells; cell++) {
-      size_t numSegments = sizes.front(); sizes.pop_front();
-      for (SegmentIdx j = 0; j < static_cast<SegmentIdx>(numSegments); j++) {
-        Segment segment = createSegment( cell );
-
-        size_t numSynapses = sizes.front(); sizes.pop_front();
-        for (SynapseIdx k = 0; k < static_cast<SynapseIdx>(numSynapses); k++) {
-          SynapseData& syn = syndata.front(); syndata.pop_front();
-          createSynapse( segment, syn.presynapticCell, syn.permanence );
-        }
-      }
-    }
     ar(CEREAL_NVP(iteration_));
+    //!initialize(numCells, connectedThreshold_); //initialize Connections //Note: we actually don't call Connections
+    //initialize() as all the members are de/serialized. 
+    ar(CEREAL_NVP(cells_));
+    ar(CEREAL_NVP(segments_));
+    ar(CEREAL_NVP(synapses_));
+
+    ar(CEREAL_NVP(destroyedSynapses_));
+    ar(CEREAL_NVP(destroyedSegments_));
+
+    ar(CEREAL_NVP(potentialSynapsesForPresynapticCell_));
+    ar(CEREAL_NVP(connectedSynapsesForPresynapticCell_));
+    ar(CEREAL_NVP(potentialSegmentsForPresynapticCell_));
+    ar(CEREAL_NVP(connectedSegmentsForPresynapticCell_));
+
+    ar(CEREAL_NVP(nextSegmentOrdinal_));
+    ar(CEREAL_NVP(nextSynapseOrdinal_));
+
+    ar(CEREAL_NVP(timeseries_));
+    ar(CEREAL_NVP(previousUpdates_));
+    ar(CEREAL_NVP(currentUpdates_));
+
+    ar(CEREAL_NVP(prunedSyns_));
+    ar(CEREAL_NVP(prunedSegs_));
   }
 
   /**
@@ -771,7 +853,7 @@ private:
   Synapse prunedSyns_ = 0; //how many synapses have been removed?
   Segment prunedSegs_ = 0;
 
-  //for listeners
+  //for listeners //TODO listeners are not serialized, nor included in equals ==
   UInt32 nextEventToken_;
   std::map<UInt32, ConnectionsEventHandler *> eventHandlers_;
 }; // end class Connections
