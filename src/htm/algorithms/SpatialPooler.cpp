@@ -508,7 +508,7 @@ unordered_map<CellIdx, vector<CellIdx>> SpatialPooler::mapAllNeighbors() const {
 
 	for(UInt column=0; column < numColumns_; column++) {
 		  vector<CellIdx> neighbors; //of the current column
-      for(const auto neighbor: Neighborhood(column, inhibitionRadius_, columnDimensions_, wrapAround_, false /*skip center*/)) { 
+      for(const auto neighbor: Neighborhood(column, inhibitionRadius_, columnDimensions_, wrapAround_, /*skip_center=*/false)) { 
 			  neighbors.push_back(neighbor);
 		  }
       std::sort(neighbors.begin(), neighbors.end()); //sort for better cache locality
@@ -555,7 +555,7 @@ vector<UInt> SpatialPooler::initMapPotential_(UInt column, bool wrapAround) {
   const UInt centerInput = initMapColumn_(column);
 
   vector<UInt> columnInputs;
-  for (const auto input : Neighborhood(centerInput, potentialRadius_, inputDimensions_, wrapAround, false /*=include center*/)) {
+  for (const auto input : Neighborhood(centerInput, potentialRadius_, inputDimensions_, wrapAround, /*skip_center=*/false)) {
       columnInputs.push_back(input);
   }
 
@@ -800,13 +800,12 @@ void SpatialPooler::updateBoostFactorsLocal_() {
     Real localActivityDensity = 0.0f;
     
     const auto& hood = neighborMap_[i]; //hood is vector<> of cached neighborhood values
-    const bool centerIncluded = std::find(hood.cbegin(), hood.cend(), i) != hood.cend(); //TODO avoid this once hood w/o center works for SP! 
     //optimization: In wrapAround, number of neighbors to be considered is solely a function of the inhibition radius,
     // the number of dimensions, and of the size of each of those dimenions. 
     // Or in non-wrap, if we use cached hood, we obtain the value the same as hood.size()
+    const bool centerIncluded = std::find(hood.cbegin(), hood.cend(), i) != hood.cend(); //TODO avoid this once hood w/o center works for SP!
     const UInt numNeighbors = hood.size() + (centerIncluded ? 0 : 1);
     NTA_ASSERT(numNeighbors > 0);
-    NTA_CHECK(centerIncluded);
     if (! centerIncluded) {
       //start by adding the center ('i') which is not included in the hood
       localActivityDensity += activeDutyCycles_[i]; //include the center, which is 'i' (not included in hood)
@@ -923,9 +922,6 @@ vector<CellIdx> SpatialPooler::inhibitColumnsLocal_(const vector<Real> &overlaps
   // selected are treated as "bigger".
   vector<bool> alreadyUsedColumn(numColumns_, false); // in tie we prefer already used columns
 
-  const bool centerIncluded = std::find(neighborMap_.at(0).cbegin(), neighborMap_.at(0).cend(), 0) != neighborMap_.at(0).cend(); //TODO remove this if SP uses only hood w/o center
-  std::cout << "CENTER=" << centerIncluded << "\n";
-
   for (size_t column = 0; column < numColumns_; column++) {
     if (overlaps[column] < stimulusThreshold_) { //TODO make connections.computeActivity() already drop sub-threshold columns
       continue;
@@ -937,6 +933,7 @@ vector<CellIdx> SpatialPooler::inhibitColumnsLocal_(const vector<Real> &overlaps
     const auto& hood = neighborMap_.at(column);
     // In wrapAround, number of neighbors to be considered is solely a function of the inhibition radius, 
     // the number of dimensions, and of the size of each of those dimenion
+    const bool centerIncluded = std::find(neighborMap_.at(0).cbegin(), neighborMap_.at(0).cend(), 0) != neighborMap_.at(0).cend(); //TODO remove this if SP uses only hood w/o center
     const UInt numNeighbors = hood.size() + (centerIncluded ? -1 : 0); // +1 if "hood" does not includes the column itself (center); See #also2
     NTA_ASSERT(numNeighbors >= 0);
     //const UInt numDesiredLocalActive = static_cast<UInt>(ceil(density * (numNeighbors + 1)));
