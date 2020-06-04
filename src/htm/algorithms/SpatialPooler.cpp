@@ -1052,15 +1052,15 @@ bool SpatialPooler::operator==(const SpatialPooler& o) const{
   NTA_CHECK (rng_ == o.rng_) << "SP equals: rng differs";
 
   // compare connections
-  //NTA_CHECK (connections_ == o.connections_) << "SP equals: connections: " << connections_ << " vs. " << o.connections_;
+  NTA_CHECK (connections_ == o.connections_) << "SP equals: connections: " << connections_ << " vs. " << o.connections_;
 
 
   // compare vectors.
   NTA_CHECK (inputDimensions_      == o.inputDimensions_) << "SP equals: inputDimensions differ";
   NTA_CHECK (columnDimensions_     == o.columnDimensions_) << "SP equals: columnDimensions differ";
   NTA_CHECK (boostFactors_         == o.boostFactors_) << "SP equals: boostFactors";
-  //!NTA_CHECK (overlapDutyCycles_    == o.overlapDutyCycles_) << "SP equals: overlapDutyCycles"; //FIXME seems bug is here?!
-  //!NTA_CHECK (activeDutyCycles_     == o.activeDutyCycles_) << "SP equals: activeDutyCucles"; //FIXME here?
+  NTA_CHECK (overlapDutyCycles_    == o.overlapDutyCycles_) << "SP equals: overlapDutyCycles"; //FIXME seems bug is here?!
+  NTA_CHECK (activeDutyCycles_     == o.activeDutyCycles_) << "SP equals: activeDutyCucles"; //FIXME here?
   NTA_CHECK (minOverlapDutyCycles_ == o.minOverlapDutyCycles_) << "SP equals: minOverlapDutyCycles";
 
   //detailed compare potentials
@@ -1069,21 +1069,21 @@ bool SpatialPooler::operator==(const SpatialPooler& o) const{
     std::vector<UInt> potential2(numInputs_, 0);
     this->getPotential(i, potential1.data()); //TODO make the method return vect?
     o.getPotential(i, potential2.data());
-    //!NTA_CHECK(potential1 == potential2) << "SP equals: potentials"; //FIXME
+    NTA_CHECK(potential1 == potential2) << "SP equals: potentials"; //FIXME
   }
 
   // check get permanences
   for (UInt i = 0; i < numColumns_; i++) {
     const auto& perm1 = this->getPermanence(i);
     const auto& perm2 = o.getPermanence(i);
-    //!NTA_CHECK(perm1 == perm2) << "SP equals: permanences";
+    NTA_CHECK(perm1 == perm2) << "SP equals: permanences";
   }
 
   // check get connected synapses
   for (UInt i = 0; i < numColumns_; i++) {
     const auto& con1 = this->getPermanence(i, this->connections.getConnectedThreshold());
     const auto& con2 = o.getPermanence(i, o.connections.getConnectedThreshold());
-    //!NTA_CHECK(con1 == con2) << "SP equals: connected synapses";
+    NTA_CHECK(con1 == con2) << "SP equals: connected synapses";
   }
 
   {
@@ -1091,12 +1091,12 @@ bool SpatialPooler::operator==(const SpatialPooler& o) const{
   std::vector<UInt> conCounts2(numColumns_, 0);
   this->getConnectedCounts(conCounts1.data());
   o.getConnectedCounts(conCounts2.data());
-  //!NTA_CHECK(conCounts1 == conCounts2) << "SP equals: connected column counts";
+  NTA_CHECK(conCounts1 == conCounts2) << "SP equals: connected column counts";
   }
   std::cout << "here\n";
 
   // compare connections
-NTA_CHECK (connections_ == o.connections_) << "SP equals: connections: " << connections_ << " vs. " << o.connections_; //FIXME connections.segments_ 
+  NTA_CHECK (connections_ == o.connections_) << "SP equals: connections: " << connections_ << " vs. " << o.connections_;
 
   } catch(const htm::Exception& ex) {
     //some check failed -> not equal
