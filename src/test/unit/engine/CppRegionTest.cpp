@@ -110,7 +110,7 @@ TEST(CppRegionTest, testCppLinkingFanIn) {
 TEST(CppRegionTest, testCppLinkingSDR) {
   Network net;
 
-  std::shared_ptr<Region> region1 = net.addRegion("region1", "ScalarSensor", "{dim: [6,1], n: 6, w: 2}");
+  std::shared_ptr<Region> region1 = net.addRegion("region1", "ScalarEncoderRegion", "{dim: [6,1], n: 6, w: 2}");
   std::shared_ptr<Region> region2 = net.addRegion("region2", "SPRegion", "{dim: [20,3]}");
 
   net.link("region1", "region2");

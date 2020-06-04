@@ -16,13 +16,14 @@
  * --------------------------------------------------------------------- */
 
 /** @file
- * Declarations for VectorFileSensor class
+ * Declarations for FileInputRegion class
+ *   (was VectorFileSensor)
  */
 
 //----------------------------------------------------------------------
 
-#ifndef NTA_VECTOR_FILE_SENSOR_HPP
-#define NTA_VECTOR_FILE_SENSOR_HPP
+#ifndef NTA_FILE_INPUT_REGION_HPP
+#define NTA_FILE_INPUT_REGION_HPP
 
 //----------------------------------------------------------------------
 
@@ -38,7 +39,7 @@
 namespace htm {
 
 /**
- *  VectorFileSensor is a sensor that reads in files containing lists of
+ *  FileInputRegion is a sensor that reads in files containing lists of
  *  vectors and outputs these vectors in sequence.
  *
  *  @b Description
@@ -90,16 +91,16 @@ namespace htm {
  *
  */
 
-class VectorFileSensor : public RegionImpl, Serializable {
+class FileInputRegion : public RegionImpl, Serializable {
 public:
   //------ Static methods for plug-in API ------------------------------------
 
   //    static const NTA_Spec * getSpec(const NTA_Byte * nodeType)
   //    {
   //      const char *description =
-  //"VectorFileSensor is a basic sensor for reading files containing vectors.\n"
+  //"FileInputRegion is a basic sensor for reading files containing vectors.\n"
   //"\n"
-  //"VectorFileSensor reads in a text file containing lists of numbers\n"
+  //"FileInputRegion reads in a text file containing lists of numbers\n"
   //"and outputs these vectors in sequence. The output is updated\n"
   //"each time the sensor's compute() method is called. If\n"
   //"repeatCount is > 1, then each vector is repeated that many times\n"
@@ -132,11 +133,10 @@ public:
   //;
   //
   //
-  //      htm::SpecBuilder nsb("VectorFileSensor", description, 0 /* flags
-  //      */);
+  //      Spec* spec = new Spec("FileInputRegion", description, 0 /* flags */);
   //
   //      // ------ OUTPUTS
-  //      nsb.addOutput("dataOut", "real", "This is VectorFileSensor's only
+  //      nsb.addOutput("dataOut", "real", "This is FileInputRegion's only
   //      output. "
   //                    "It will be set to the next vector after each
   //                    compute.");
@@ -263,7 +263,6 @@ public:
   //
   //
   //
-  //      return nsb.getSpec();
   //    }
 
   static Spec *createSpec();
@@ -282,11 +281,11 @@ public:
 
   void initialize() override;
 
-  VectorFileSensor(const ValueMap &params, Region *region);
+  FileInputRegion(const ValueMap &params, Region *region);
 
-  VectorFileSensor(ArWrapper& wrapper, Region *region);
+  FileInputRegion(ArWrapper &wrapper, Region *region);
 
-  virtual ~VectorFileSensor();
+  virtual ~FileInputRegion();
 
 
 	CerealAdapter;  // see Serializable.hpp
@@ -322,7 +321,7 @@ public:
 
 
   bool operator==(const RegionImpl &other) const override;
-  inline bool operator!=(const VectorFileSensor &other) const {
+  inline bool operator!=(const FileInputRegion &other) const {
     return !operator==(other);
   }
 
@@ -359,10 +358,10 @@ private:
   // numVectors-1. Logs a warning if n is outside those bounds.
   void seek(int n);
 
-}; // end class VectorFileSensor
+}; // end class FileInputRegion
 
 //----------------------------------------------------------------------
 
 } // end namespace htm
 
-#endif // NTA_VECTOR_FILE_SENSOR_HPP
+#endif // NTA_FILE_INPUT_REGION_HPP

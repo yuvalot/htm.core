@@ -15,13 +15,13 @@
  * along with this program.  If not, see http://www.gnu.org/licenses.
  * --------------------------------------------------------------------- */
 
-#include "examples/hotgym/HelloSPTP.hpp" // run()
+#include "examples/hello/HelloSPTP.hpp" // run()
 #include "gtest/gtest.h"
 
 namespace testing {
 
 TEST(HelloSPTPTest, performance) {
-  auto bench = examples::BenchmarkHotgym();
+  auto bench = examples::BenchmarkHelloSPTP();
   bench.run();
 }
 

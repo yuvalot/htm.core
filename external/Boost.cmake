@@ -34,7 +34,7 @@
 if(EXISTS "${REPOSITORY_DIR}/build/ThirdParty/share/boost.tar.gz")
     set(BOOST_URL "${REPOSITORY_DIR}/build/ThirdParty/share/boost.tar.gz")
 else()
-    set(BOOST_URL "https://dl.bintray.com/boostorg/release/1.69.0/source/boost_1_69_0.tar.gz")
+    set(BOOST_URL "https://dl.bintray.com/boostorg/release/1.72.0/source/boost_1_72_0.tar.gz")
 endif()
 
 # Download the boost distribution (at configure time).
@@ -57,7 +57,7 @@ download_project(PROJ Boost_download
 set(BOOST_ROOT ${Boost_download_SOURCE_DIR})
 set(Boost_INCLUDE_DIRS ${BOOST_ROOT})
 
-file(GLOB Boost_LIBRARIES ${BOOST_ROOT}/stage/lib/*)
+file(GLOB Boost_LIBRARIES ${BOOST_ROOT}/stage/lib/libboost*)
 list(LENGTH Boost_LIBRARIES qty_libs)
 if(${qty_libs} LESS 2)
   #message(STATUS "Boost being installed at BOOST_ROOT = ${BOOST_ROOT}")
@@ -103,7 +103,7 @@ if(${qty_libs} LESS 2)
     if(error_result)
       message(FATAL_ERROR "Boost build has errors. ${error_result}")
     else()
-      file(GLOB Boost_LIBRARIES ${BOOST_ROOT}/stage/lib/*)
+      file(GLOB Boost_LIBRARIES ${BOOST_ROOT}/stage/lib/libboost*)
       set(Boost_INCLUDE_DIRS ${BOOST_ROOT})
     endif()
   endif()

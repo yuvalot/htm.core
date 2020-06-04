@@ -77,6 +77,48 @@ public:
    */
   ~Network();
 
+   /**
+   * An alternate way to configure the network.
+   * Pass in an yaml or JSON string that defines all regions and links.
+   * YAML Syntax:
+   *      network:
+   *         - registerRegion:            (TODO:)
+   *             type: <region type>
+   *             path: <path to shared lib to link to>
+   *             class: <classname to load>
+   *
+   *         - addRegion:
+   *             name: <region name>
+   *             type: <region type>
+   *             params: <list of parameters>  (optional)
+   *             phase:  <optonal phase number> (optional)
+   *
+   *         - addLink:
+   *             src: <Name of the source region "." Output name>
+   *             dest: <Name of the destination region "." Input name>
+   *             delay: <iterations to delay> (optional, default=0)
+   *
+   *
+   * JSON syntax:
+    *   {network: [
+   *       {addRegion: {name: <region name>, type: <region type>, params: {<parameters>}, phase: <phase>}},
+   *       {addLink:   {src: "<region name>.<output name>", dest: "<region name>.<output name>", delay: <delay>}},
+   *    ]}
+  *
+   * JSON example:
+   *   {network: [
+   *       {addRegion: {name: "encoder", type: "RDSERegion", params: {size: 1000, sparsity: 0.2, radius: 0.03, seed: 2019, noise: 0.01}}},
+   *       {addRegion: {name: "sp", type: "SPRegion", params: {columnCount: 2048, globalInhibition: true}}},
+   *       {addRegion: {name: "tm", type: "TMRegion", params: {cellsPerColumn: 8, orColumnOutputs: true}}},
+   *       {addLink:   {src: "encoder.encoded", dest: "sp.bottomUpIn"}},
+   *       {addLink:   {src: "sp.bottomUpOut", dest: "tm.bottomUpIn"}}
+   *    ]}
+
+   *  On errors it throws an exception.
+   */
+  void configure(const std::string &yaml);
+
+
   /**
    * Initialize all elements of a network so that it can run.
    *
@@ -163,7 +205,9 @@ public:
   std::shared_ptr<Region> addRegion(const std::string &name,
   					                        const std::string &nodeType,
                                     const std::string &nodeParams);
-
+  std::shared_ptr<Region> addRegion(const std::string &name, 
+                                    const std::string &nodeType,
+                                    ValueMap& vm);
   /**
     * Add a region in a network from deserialized region
     *

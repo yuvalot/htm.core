@@ -1,6 +1,6 @@
-// header file for Hotgym, HelloSPTP
-#ifndef NTA_EXAMPLES_HOTGYM_
-#define NTA_EXAMPLES_HOTGYM_
+// header file for HelloSPTP
+#ifndef NTA_EXAMPLES_HELLO_SPTP_
+#define NTA_EXAMPLES_HELLO_SPTP_
 
 #include <htm/types/Types.hpp>
 #include <htm/os/Timer.hpp>
@@ -11,7 +11,7 @@ using htm::Real64;
 using htm::UInt;
 using htm::Timer;
 
-class BenchmarkHotgym {
+class BenchmarkHelloSPTP {
 
 public:	
   Real64 run(
@@ -29,4 +29,4 @@ public:
 };
 
 } //-ns
-#endif //header
+#endif //NTA_EXAMPLES_HELLO_SPTP_

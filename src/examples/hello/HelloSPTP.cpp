@@ -38,7 +38,7 @@ using namespace htm;
 
 
 // work-load
-Real64 BenchmarkHotgym::run(UInt EPOCHS, bool useSPlocal, bool useSPglobal, bool useTM, const UInt COLS, const UInt DIM_INPUT, const UInt CELLS)
+Real64 BenchmarkHelloSPTP::run(UInt EPOCHS, bool useSPlocal, bool useSPglobal, bool useTM, const UInt COLS, const UInt DIM_INPUT, const UInt CELLS)
 {
 #ifndef NDEBUG
 EPOCHS = 2; // make test faster in Debug
@@ -103,7 +103,7 @@ EPOCHS = 2; // make test faster in Debug
 
 
   // Start a stopwatch timer
-  printf("starting:  %d iterations.", EPOCHS);
+  std::cout << "starting:  " << to_string(EPOCHS) << " iterations.\n";
   tAll.start();
 
   //run
@@ -163,7 +163,7 @@ EPOCHS = 2; // make test faster in Debug
       tAll.stop();
 
       //print connections stats
-      cout << "\nInput :\n" << statsInput
+      std::cout << "\nInput :\n" << statsInput
 	   << "\nSP(local) " << spLocal.connections
 	   << "\nSP(local) " << statsSPlocal
            << "\nSP(global) " << spGlobal.connections
@@ -173,24 +173,24 @@ EPOCHS = 2; // make test faster in Debug
 	   << "\n";
 
       // output values
-      cout << "Epoch = " << e+1 << endl;
-      cout << "Anomaly = " << an << endl;
-      cout << "Anomaly (avg) = " << avgAnom10.getCurrentAvg() << endl;
-      cout << "Anomaly (Likelihood) = " << anLikely << endl;
-      cout << "input = " << input << endl;
-      if(useSPlocal) cout << "SP (g)= " << outSP << endl;
-      if(useSPlocal) cout << "SP (l)= " << outSPlocal <<endl;
-      if(useTM) cout << "TM= " << outTM << endl;
+      std::cout << "Epoch = " << e+1 << std::endl;
+      std::cout << "Anomaly = " << an << std::endl;
+      std::cout << "Anomaly (avg) = " << avgAnom10.getCurrentAvg() << std::endl;
+      std::cout << "Anomaly (Likelihood) = " << anLikely << std::endl;
+      std::cout << "input = " << input << std::endl;
+      if(useSPlocal) std::cout << "SP (g)= " << outSP << std::endl;
+      if(useSPlocal) std::cout << "SP (l)= " << outSPlocal <<std::endl;
+      if(useTM) std::cout << "TM= " << outTM << std::endl;
 
       //timers
-      cout << "==============TIMERS============" << endl;
-      cout << "Init:\t" << tInit.getElapsed() << endl;
-      cout << "Random:\t" << tRng.getElapsed() << endl;
-      cout << "Encode:\t" << tEnc.getElapsed() << endl;
-      if(useSPlocal)  cout << "SP (l):\t" << tSPloc.getElapsed()*1.0f  << endl;
-      if(useSPglobal) cout << "SP (g):\t" << tSPglob.getElapsed() << endl;
-      if(useTM) cout << "TM:\t" << tTM.getElapsed() << endl;
-      cout << "AN:\t" << tAnLikelihood.getElapsed() << endl;
+      std::cout << "==============TIMERS============" << std::endl;
+      std::cout << "Init:\t" << tInit.getElapsed() << std::endl;
+      std::cout << "Random:\t" << tRng.getElapsed() << std::endl;
+      std::cout << "Encode:\t" << tEnc.getElapsed() << std::endl;
+      if(useSPlocal)  std::cout << "SP (l):\t" << tSPloc.getElapsed()*1.0f  << std::endl;
+      if(useSPglobal) std::cout << "SP (g):\t" << tSPglob.getElapsed() << std::endl;
+      if(useTM) std::cout << "TM:\t" << tTM.getElapsed() << std::endl;
+      std::cout << "AN:\t" << tAnLikelihood.getElapsed() << std::endl;
 
       // check deterministic SP, TM output 
       SDR goldEnc({DIM_INPUT});
@@ -213,12 +213,12 @@ EPOCHS = 2; // make test faster in Debug
 
       SDR goldTM({COLS});
       const SDR_sparse_t deterministicTM{
-      36, 62, 77, 85, 87, 90, 102, 113, 118, 126, 133, 155, 277, 322, 337, 339, 340, 352, 370, 432, 493, 1089, 1095, 1114, 1184, 1214, 1230, 1488, 1499, 1502, 1507, 1508, 1518, 1547, 1626, 1691, 1711, 1760, 1781, 1797, 1803, 1804, 1805, 1812, 1827, 1828, 1832, 1841, 1858, 1859, 1860, 1862, 1918, 1925, 1929, 1944, 1950, 1953, 1956, 1958, 1967, 1968, 1971, 1973, 1975, 1976, 1977, 1980, 1985, 1986, 1994, 1998, 1999, 2002, 2013, 2027, 2036, 2042, 2045
+        72, 85, 102, 114, 122, 126, 287, 308, 337, 339, 542, 920, 939, 952, 1268, 1507, 1508, 1518, 1546, 1547, 1626, 1627, 1633, 1668, 1727, 1804, 1805, 1827, 1832, 1844, 1859, 1862, 1918, 1920, 1924, 1931, 1933, 1945, 1961, 1965, 1966, 1968, 1970, 1973, 1975, 1976, 1977, 1979, 1986, 1987, 1991, 1992, 1996, 1998, 2002, 2006, 2008, 2012, 2042, 2045
       };
       goldTM.setSparse(deterministicTM);
 
-      const float goldAn    = 0.77451f; //Note: this value is for a (randomly picked) datapoint, it does not have to improve (decrease) with better algorithms
-      const float goldAnAvg = 0.411894f; // ...the averaged value, on the other hand, should improve/decrease. 
+      const float goldAn    = 0.637255f; //Note: this value is for a (randomly picked) datapoint, it does not have to improve (decrease) with better algorithms
+      const float goldAnAvg = 0.40804f; // ...the averaged value, on the other hand, should improve/decrease. 
 
 #ifdef _ARCH_DETERMINISTIC
       if(e+1 == 5000) {
@@ -237,7 +237,7 @@ EPOCHS = 2; // make test faster in Debug
 
       // check runtime speed
       const size_t timeTotal = (size_t)floor(tAll.getElapsed());
-      cout << "Total elapsed time = " << timeTotal << " seconds" << endl;
+      std::cout << "Total elapsed time = " << timeTotal << " seconds" << std::endl;
       if(EPOCHS >= 100) { //show only relevant values, ie don't run in valgrind (ndebug, epochs=5) run
 #ifdef NTA_OS_LINUX
         const size_t CI_avg_time = (size_t)floor(99*Timer::getSpeed()); //sec //FIXME the CI speed broken for docker linux

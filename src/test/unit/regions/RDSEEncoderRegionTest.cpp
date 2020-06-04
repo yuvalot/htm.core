@@ -19,8 +19,8 @@
 
  
 /*---------------------------------------------------------------------
-  * This is a test of the ScalarSensor module.  It does not check the ScalarEncoder itself
-  * but rather just the plug-in mechanisom to call the ScalarEncoder.
+  * This is a test of the RDSERegion module.  It does not check the RandomDistributedScalarEncoder itself
+  * but rather just the plug-in mechanisom to call the RandomDistributedScalarEncoder.
   *
   * For those not familiar with GTest:
   *     ASSERT_TRUE(value)   -- Fatal assertion that the value is true.  Test terminates if false.
@@ -34,7 +34,7 @@
   *     EXPECT_THROW(statement, exception_type) -- nonfatal exception, cought and continues.
   *---------------------------------------------------------------------
   */
-#include <htm/regions/ScalarSensor.hpp>
+#include <htm/regions/RDSEEncoderRegion.hpp>
 #include <htm/engine/Network.hpp>
 #include <htm/engine/Region.hpp>
 #include <htm/engine/Spec.hpp>
@@ -52,7 +52,7 @@
 #define VERBOSE if(verbose)std::cerr << "[          ] "
 static bool verbose = false;  // turn this on to print extra stuff for debugging the test.
 
-const UInt EXPECTED_SPEC_COUNT =  9u;  // The number of parameters expected in the ScalarSensor Spec
+const UInt EXPECTED_SPEC_COUNT =  9u;  // The number of parameters expected in the RDSERegion Spec
 
 using namespace htm;
 namespace testing 
@@ -61,33 +61,33 @@ namespace testing
   // Verify that all parameters are working.
   // Assumes that the default value in the Spec is the same as the default 
   // when creating a region with default constructor.
-  TEST(ScalarSensorTest, testSpecAndParameters)
+  TEST(RDSEEncoderRegionTest, testSpecAndParameters)
   {
-    // create an ScalarSensor region with default parameters
+    // create an RDSERegion region with default parameters
     Network net;
 
-    Spec* ns = ScalarSensor::createSpec();
+    Spec* ns = RDSEEncoderRegion::createSpec();
     VERBOSE << *ns << std::endl;
 
-    std::shared_ptr<Region> region1 = net.addRegion("region1", "ScalarSensor", "{n: 100, w: 10}"); 
-    std::set<std::string> excluded = {"n", "w", "resolution", "radius"};
+    std::shared_ptr<Region> region1 = net.addRegion("region1", "RDSERegion", "{size: 100, activeBits: 10, resolution: 10}");  // use default configuration
+    std::set<std::string> excluded = {"size", "seed", "activeBits", "resolution", "radius", "sparsity"};
     checkGetSetAgainstSpec(region1, EXPECTED_SPEC_COUNT, excluded, verbose);
     checkInputOutputsAgainstSpec(region1, verbose);
   }
 
 
-	TEST(ScalarSensorTest, initialization_with_builtin_impl)
+	TEST(RDSEEncoderRegionTest, initialization_with_builtin_impl)
 	{
 	  VERBOSE << "Creating network..." << std::endl;
 	  Network net;
 
 	  size_t regionCntBefore = net.getRegions().size();
 
-	  VERBOSE << "Adding a built-in ScalarSensor region..." << std::endl;
-	  std::shared_ptr<Region> region1 = net.addRegion("region1", "ScalarSensor", "{n: 100, w: 10}");
+	  VERBOSE << "Adding a built-in RDSEEncoderRegionTest..." << std::endl;
+	  std::shared_ptr<Region> region1 = net.addRegion("region1", "RDSEEncoderRegion", "{size: 100, activeBits: 10, resolution: 10}");
 	  size_t regionCntAfter = net.getRegions().size();
 	  ASSERT_TRUE(regionCntBefore + 1 == regionCntAfter) << " Expected number of regions to increase by one.  ";
-	  ASSERT_TRUE(region1->getType() == "ScalarSensor") << " Expected type for region1 to be \"ScalarSensor\" but type is: " << region1->getType();
+	  ASSERT_TRUE(region1->getType() == "RDSEEncoderRegion") << " Expected type for region1 to be \"RDSEEncoderRegion\" but type is: " << region1->getType();
 
 
     EXPECT_THROW(region1->getOutputData("doesnotexist"), std::exception);
@@ -101,7 +101,7 @@ namespace testing
 	}
 
 
-  TEST(ScalarSensorTest, initialization_with_custom_impl)
+  TEST(RDSEEncoderRegionTest, initialization_with_custom_impl)
   {
     VERBOSE << "Creating network..." << std::endl;
     Network net;
@@ -113,19 +113,20 @@ namespace testing
     // While we are at it, make sure we can initialize the dimensions and parameters from here too.
     // The parameter names and data types must match those of the spec.
     // Explicit parameters:  (Yaml format...but since YAML is a superset of JSON, you can use JSON format as well)
-    std::string nodeParams = "{n: 2048, w: 40}";
+    std::string nodeParams = "{size: 2048, radius: 16, sparsity: 0.1}";
 
-    VERBOSE << "Adding a custom-built ScalarSensor region..." << std::endl;
-    net.registerRegion("ScalarSensorCustom", new RegisteredRegionImplCpp<ScalarSensor>());
-    std::shared_ptr<Region> region2 = net.addRegion("region2", "ScalarSensorCustom", nodeParams);
+    VERBOSE << "Adding a custom-built RDSEEncoderRegion region..." << std::endl;
+    net.registerRegion("RDSERegionCustom", new RegisteredRegionImplCpp<RDSEEncoderRegion>());
+    std::shared_ptr<Region> region2 = net.addRegion("region2", "RDSERegionCustom", nodeParams);
     size_t regionCntAfter = net.getRegions().size();
     ASSERT_TRUE(regionCntBefore + 1 == regionCntAfter) 
       << "  Expected number of regions to increase by one.  ";
-    ASSERT_TRUE(region2->getType() == "ScalarSensorCustom") 
-      << " Expected type for region2 to be \"ScalarSensorCustom\" but type is: " 
+    ASSERT_TRUE(region2->getType() == "RDSERegionCustom") 
+      << " Expected type for region2 to be \"RDSERegionCustom\" but type is: " 
       << region2->getType();
 
-    ASSERT_DOUBLE_EQ(region2->getParameterReal64("radius"), 0.039840637450199202);
+    // round( args_.size * args_.sparsity )/args_.size
+    ASSERT_FLOAT_EQ(region2->getParameterReal32("sparsity"), 0.10009766f);
 
     net.run(1);
     region2->compute();
@@ -134,15 +135,15 @@ namespace testing
 
 
 
-	TEST(ScalarSensorTest, testLinking)
+	TEST(RDSEEncoderRegionTest, testLinking)
 	{
     // This is a minimal end-to-end test containing an RDSERegionTest region.
     // To make sure we can feed data from some other region to our RDSERegion,
-    // this test will hook up the VectorFileSensor to our RDSERegion and then
-    // connect that to an SPRegion and then on to a VectorFileEffector to capture the results.
+    // this test will hook up the FileInputRegion to our RDSERegion and then
+    // connect that to an SPRegion and then on to a FileOutputRegion to capture the results.
     //
-    std::string test_input_file = "TestOutputDir/ScalarSensorTestInput.csv";
-    std::string test_output_file = "TestOutputDir/ScalarSensorTestOutput.csv";
+    std::string test_input_file = "TestOutputDir/RDSEEncoderRegionTestInput.csv";
+    std::string test_output_file = "TestOutputDir/RDSEEncoderRegionTestOutput.csv";
 
 
     // make a place to put test data.
@@ -165,10 +166,10 @@ namespace testing
     // Explicit parameters:  (Yaml format...but since YAML is a superset of JSON, 
     // you can use JSON format as well)
 
-    std::shared_ptr<Region> region1 = net.addRegion("region1", "VectorFileSensor", "{activeOutputCount: 1}");
-    std::shared_ptr<Region> region2 = net.addRegion("region2", "ScalarSensor", "{n: 100, w: 4}");
+    std::shared_ptr<Region> region1 = net.addRegion("region1", "FileInputRegion", "{activeOutputCount: 1}");
+    std::shared_ptr<Region> region2 = net.addRegion("region2", "RDSEEncoderRegion", "{size: 100, radius: 16, sparsity: 0.1}");
     std::shared_ptr<Region> region3 = net.addRegion("region3", "SPRegion", "{columnCount: 200}");
-    std::shared_ptr<Region> region4 = net.addRegion("region4", "VectorFileEffector", "{outputFile: '" + test_output_file + "'}");
+    std::shared_ptr<Region> region4 = net.addRegion("region4", "FileOutputRegion", "{outputFile: '" + test_output_file + "'}");
 
 
     net.link("region1", "region2", "", "", "dataOut", "values");
@@ -185,25 +186,25 @@ namespace testing
 
 
 	  // check actual dimensions
-    ASSERT_EQ(region2->getParameterUInt32("n"), 100u);
+    ASSERT_EQ(region2->getParameterUInt32("size"), 100u);
 
     VERBOSE << "Execute once." << std::endl;
     net.run(1);
 
 	  VERBOSE << "Checking data after first iteration..." << std::endl;
     Array r1OutputArray = region1->getOutputData("dataOut");
-    VERBOSE << "  VectorFileSensor Output" << r1OutputArray << std::endl;
+    VERBOSE << "  FileInputRegion Output" << r1OutputArray << std::endl;
     EXPECT_TRUE(r1OutputArray.getType() == NTA_BasicType_Real32)
             << "actual type is " << BasicType::getName(r1OutputArray.getType());
     VERBOSE << "  " << std::endl;
 
     Array r2InputArray = region2->getInputData("values");
-    VERBOSE << "  ScalarSensor input" << r2InputArray << std::endl;
+    VERBOSE << "  SDSERegion input" << r2InputArray << std::endl;
     ASSERT_TRUE(r1OutputArray.getCount() == r2InputArray.getCount()) 
-		<< "Buffer length different. Output from VectorFileSensor is " << r1OutputArray.getCount() << ", input to ScalarSensor is " << r2InputArray.getCount();
+		<< "Buffer length different. Output from FileInputRegion is " << r1OutputArray.getCount() << ", input to SPRegion is " << r2InputArray.getCount();
     
     Array r2OutputArray = region2->getOutputData("encoded");
-    VERBOSE << "  ScalarSensor output" << r2OutputArray << std::endl;
+    VERBOSE << "  SDSERegion output" << r2OutputArray << std::endl;
     EXPECT_TRUE(r2OutputArray.getType() == NTA_BasicType_SDR) 
       << "actual type is " << BasicType::getName(r2OutputArray.getType());
 
@@ -211,7 +212,7 @@ namespace testing
     VERBOSE << "Execute 9 times." << std::endl;
     net.run(9);
 
-    VERBOSE << "  VectorFileEffector input" << std::endl;
+    VERBOSE << "  FileOutputRegion input" << std::endl;
     Array r4InputArray = region4->getInputData("dataIn");
     ASSERT_TRUE(r4InputArray.getType() == NTA_BasicType_Real32)
       << "actual type is " << BasicType::getName(r4InputArray.getType());
@@ -222,7 +223,7 @@ namespace testing
   }
 
 
-  TEST(ScalarSensorTest, testSerialization) {
+  TEST(RDSEEncoderRegionTest, testSerialization) {
     // NOTE: this test does end-to-end serialize and deserialize with the following modules:
     //   Network, Region, Array, RDSERegion, SPRegion, SpatialPooler, Connections, Random, Links
     //
@@ -232,34 +233,34 @@ namespace testing
 	  Network net3;
 
 	  VERBOSE << "Setup first network and save it" << std::endl;
-    std::shared_ptr<Region> n1region1 = net1.addRegion("region1", "ScalarSensor", "{n: 100, w: 4}");
+    std::shared_ptr<Region> n1region1 = net1.addRegion("region1", "RDSEEncoderRegion", "{size: 100, activeBits: 10, radius: 16}");
     std::shared_ptr<Region> n1region2 = net1.addRegion("region2", "SPRegion", "{columnCount: 200}");
     net1.link("region1", "region2", "", "", "encoded", "bottomUpIn");
     net1.initialize();
 
-    n1region1->setParameterReal64("sensedValue", 0.5);
+    n1region1->setParameterReal64("sensedValue", 5.5);
 		net1.run(1);
 
-    // take a snapshot of everything in ScalarSensor at this point
+    // take a snapshot of everything in RDSERegion at this point
     std::map<std::string, std::string> parameterMap;
     EXPECT_TRUE(captureParameters(n1region1, parameterMap)) << "Capturing parameters before save.";
 
     Directory::removeTree("TestOutputDir", true);
-    VERBOSE << "Writing stream to " << Path::makeAbsolute("TestOutputDir/spRegionTest.stream") << "\n";
-	  net1.saveToFile("TestOutputDir/spRegionTest.stream", SerializableFormat::JSON);
+    VERBOSE << "Writing stream to " << Path::makeAbsolute("TestOutputDir/RDSEEncoderRegionTest.stream") << "\n";
+	  net1.saveToFile("TestOutputDir/RDSEEncoderRegionTest.stream", SerializableFormat::JSON);
 
-    VERBOSE << "Restore from " << Path::makeAbsolute("TestOutputDir/spRegionTest.stream") 
+    VERBOSE << "Restore from " << Path::makeAbsolute("TestOutputDir/RDSEEncoderRegionTest.stream") 
             << " into a second network and compare." << std::endl;
-    net2.loadFromFile("TestOutputDir/spRegionTest.stream", SerializableFormat::JSON);
+    net2.loadFromFile("TestOutputDir/RDSEEncoderRegionTest.stream", SerializableFormat::JSON);
 
 	  std::shared_ptr<Region> n2region1 = net2.getRegion("region1");
 	  std::shared_ptr<Region> n2region2 = net2.getRegion("region2");
 
-	  ASSERT_TRUE (n2region1->getType() == "ScalarSensor") 
-	    << " Restored ScalarSensor region does not have the right type.  Expected ScalarSensor, found " << n2region1->getType();
+	  ASSERT_TRUE (n2region1->getType() == "RDSEEncoderRegion") 
+	    << " Restored RDSEEncoderRegion region does not have the right type.  Expected RDSEEncoderRegion, found " << n2region1->getType();
 
     EXPECT_TRUE(compareParameters(n2region1, parameterMap)) 
-      << "Conflict when comparing ScalarSensor parameters after restore with before save.";
+      << "Conflict when comparing RDSEEncoderRegion parameters after restore with before save.";
       
     EXPECT_TRUE(compareParameterArrays(n1region2, n2region2, "spatialPoolerOutput", NTA_BasicType_SDR))
         << " comparing Output arrays after restore with before save.";
@@ -268,7 +269,7 @@ namespace testing
 
 
 	  // can we continue with execution?  See if we get any exceptions.
-    n2region1->setParameterReal64("sensedValue", 0.5);
+    n2region1->setParameterReal64("sensedValue", 5.5);
     net2.run(2);
 
     // cleanup
