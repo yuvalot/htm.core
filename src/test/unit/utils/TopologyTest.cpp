@@ -376,12 +376,30 @@ const UInt center = 2;
 const UInt radius = 3;
 const vector<UInt> dims = {10, 15};
 
-bool skipCenter = true;
-for(const auto i: Neighborhood(center, radius, dims, /*wrap*/ false, /*skip center=*/ skipCenter )) {
+
+for(const auto i: Neighborhood(center, radius, dims, /*wrap*/ false, /*skip center=*/ true )) {
   ASSERT_NE(center, i) << "Center should be skipped!";
 }
 
-skipCenter = false;
+
+{
+bool centerFound_ = false;
+for(const auto i: Neighborhood(center, radius, dims, /*wrap*/ false, /*skip center=*/ false )) {
+  if(i == center) {
+    centerFound_ = true;
+    break;
+  }
+}
+ASSERT_TRUE(centerFound_) << "Center was not included in hood!";
+}
+
+
+for(const auto i: Neighborhood(center, radius, dims, /*wrap*/ true, /*skip center=*/ true )) {
+  ASSERT_NE(center, i) << "Center should be skipped!";
+}
+
+{
+bool skipCenter = false;
 bool centerFound_ = false;
 for(const auto i: Neighborhood(center, radius, dims, /*wrap*/ false, /*skip center=*/ skipCenter )) {
   if(i == center) {
@@ -390,6 +408,8 @@ for(const auto i: Neighborhood(center, radius, dims, /*wrap*/ false, /*skip cent
   }
 }
 ASSERT_TRUE(centerFound_) << "Center was not included in hood!";
+}
+
 
 }
 
