@@ -174,6 +174,58 @@ std::string RESTapi::get_param_request(const std::string &id,
   }
 }
 
+std::string RESTapi::delete_region_request(const std::string &id, const std::string &region_name) {
+  try {
+    auto itr = resource_.find(id);
+    NTA_CHECK(itr != resource_.end()) << "Context for resource '" + id + "' not found.";
+    itr->second.t = time(0);
+
+    std::string response = "OK";
+    itr->second.net->removeRegion(region_name);
+
+    return response;
+  } catch (Exception &e) {
+    return std::string("ERROR: ") + e.getMessage();
+  }
+}
+
+std::string RESTapi::delete_link_request(const std::string &id, 
+                                         const std::string &source_name,
+                                         const std::string &dest_name) {
+  try {
+    auto itr = resource_.find(id);
+    NTA_CHECK(itr != resource_.end()) << "Context for resource '" + id + "' not found.";
+    itr->second.t = time(0);
+
+    std::vector<std::string> args;
+    args = split(source_name, '.');
+    NTA_CHECK(args.size() == 2) << "Expected syntax <region>.<output> for source name. Found " << source_name;
+    std::string source_region = args[0];
+    std::string source_output = args[1];
+
+    args = split(dest_name, '.');
+    NTA_CHECK(args.size() == 2) << "Expected syntax <region>.<input> for destination name. Found " << dest_name;
+    std::string dest_region = args[0];
+    std::string dest_input = args[1];
+
+    std::string response = "OK";
+    itr->second.net->removeLink(source_region, dest_region, source_output, dest_input);
+    return response;
+
+  } catch (Exception &e) {
+    return std::string("ERROR: ") + e.getMessage();
+  }
+}
+
+std::string RESTapi::delete_network_request(const std::string &id) {
+    auto itr = resource_.find(id);
+    NTA_CHECK(itr != resource_.end()) << "Context for resource '" + id + "' not found.";
+    
+    resource_.erase(itr);
+    return "OK";
+}
+
+
 std::string RESTapi::run_request(const std::string &id, const std::string &iterations) {
   try {
     auto itr = resource_.find(id);
