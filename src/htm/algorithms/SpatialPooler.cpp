@@ -883,7 +883,7 @@ vector<CellIdx> SpatialPooler::inhibitColumnsGlobal_(const vector<Real> &overlap
 
   // Compare the column indexes by their overlap.
   auto compare = [&overlaps](const UInt &a, const UInt &b) -> bool
-    {return (overlaps[a] == overlaps[b]) ? a > b : overlaps[a] > overlaps[b];};  //for determinism if overlaps match (tieBreaker does not solve that),
+    {return (overlaps[a] == overlaps[b]) ? (a > b) : (overlaps[a] > overlaps[b]) ;};  //for determinism if overlaps match (tieBreaker does not solve that),
   //otherwise we'd return just `return overlaps[a] > overlaps[b]`. 
 
   // Do a partial sort to divide the winners from the losers.  This sort is
