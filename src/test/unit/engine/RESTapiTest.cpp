@@ -129,7 +129,7 @@ TEST(RESTapiTest, example) {
        {addLink:   {src: "sp.bottomUpOut", dest: "tm.bottomUpIn"}}
     ]})";
 
-
+  // create the network object
   res = client.Post("/network", config, "application/json");
   ASSERT_TRUE(res && res->status/100 == 2 && res->body.size() == 5) << "Failed Response to POST /network request.";
   std::string id = res->body.substr(0,4);
@@ -170,4 +170,59 @@ TEST(RESTapiTest, example) {
 
   threadObj.join(); // wait until server thread has stopped.
 }
+
+TEST(RESTapiTest, test_delete) {
+  std::thread threadObj(serverThread);                  // start REST server
+  std::this_thread::sleep_for(std::chrono::seconds(1)); // give server time to start
+
+  // Client thread.
+  const httplib::Params noParams;
+  char message[1000];
+
+  httplib::Client client("127.0.0.1", port);
+  client.set_timeout_sec(30);
+
+  // Configure a NetworkAPI example
+  // See Network.configure() for syntax.
+  //     Simple situation    Encoder  ==>  SP  ==>  TM
+  //     Compare this to the napi_sine example.
+  std::string config = R"(
+   {network: [
+       {addRegion: {name: "encoder", type: "RDSEEncoderRegion", params: {size: 1000, sparsity: 0.2, radius: 0.03, seed: 2019, noise: 0.01}}},
+       {addRegion: {name: "sp", type: "SPRegion", params: {columnCount: 2048, globalInhibition: true}}},
+       {addRegion: {name: "tm", type: "TMRegion", params: {cellsPerColumn: 8, orColumnOutputs: true}}},
+       {addLink:   {src: "encoder.encoded", dest: "sp.bottomUpIn"}},
+       {addLink:   {src: "sp.bottomUpOut", dest: "tm.bottomUpIn"}}
+    ]})";
+
+  // create the network object
+  auto res = client.Post("/network", config, "application/json");
+  ASSERT_TRUE(res && res->status / 100 == 2 && res->body.size() == 5) << "Failed Response to POST /network request.";
+  std::string id = res->body.substr(0, 4);
+
+  // Now delete the second link.
+  snprintf(message, sizeof(message), "/network/%s/link/sp.bottomUpOut/tm.bottomUpIn", id.c_str());
+  res = client.Delete(message);
+  ASSERT_TRUE(res && res->status / 100 == 2) << " DELETE link message failed.";
+  EXPECT_STREQ(trim(res->body).c_str(), "OK") << "Response to DELETE Link request";
+
+  // Delete a region
+  snprintf(message, sizeof(message), "/network/%s/region/tm", id.c_str());
+  res = client.Delete(message);
+  ASSERT_TRUE(res && res->status / 100 == 2) << " DELETE region message failed.";
+  EXPECT_STREQ(trim(res->body).c_str(), "OK") << "Response to DELETE Link request";
+  
+  // Delete a Network
+  snprintf(message, sizeof(message), "/network/%s/ALL", id.c_str());
+  res = client.Delete(message);
+  ASSERT_TRUE(res && res->status / 100 == 2) << " DELETE region message failed.";
+  EXPECT_STREQ(trim(res->body).c_str(), "OK") << "Response to DELETE Link request";
+  
+  
+
+  // wrap up
+  res = client.Get("/stop"); // stop the server.
+  threadObj.join();          // wait until server thread has stopped.
+}
+
 } // namespace testing

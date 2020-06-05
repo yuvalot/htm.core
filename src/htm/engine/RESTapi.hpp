@@ -42,6 +42,10 @@
  *       There is a maximum of 65535 active Network class resources.
  *       A Network resource will timeout without activity in 24 hrs.
  *
+ *       The methods in the class are called from examples/rest/server_core.hpp
+ *       which is compiled with the rest server.  An application can use the server
+ *       AS-IS or replace the server and server_core.hpp to sute its needs.
+ *
  * LIMITATIONS:
  *       1) Only built-in C++ regions can be used.  There are plans to
  *          eventually allow connecting to Python regions and dynamically 
@@ -246,6 +250,62 @@ public:
   std::string get_param_request(const std::string &id, 
                                 const std::string &region_name, 
                                 const std::string &param_name);
+
+
+  /**
+   * @b Description:
+   * Handler for a DELETE "link" request message.
+   * This will remove the link with matching source and destination names.
+   *
+   * @param id  Identifier for the resource context (a Network class instance).
+   *            Client should pass the id returned by the previous "configure"
+   *            request message.
+   *
+   *
+   * @param source_name The name of the region that is the source of data.
+   *
+   * @param dest_name   The name of the region that is destination of data.
+   *
+   * @retval            If success returns Ok.
+   *                    Otherwise returns error message starting with "ERROR: ".
+   */
+  std::string delete_link_request(const std::string &id, 
+                                  const std::string &source_name, 
+                                  const std::string &dest_name);
+
+
+  /**
+   * @b Description:
+   * Handler for a DELETE "region" request message.
+   * This will remove the region with matching name.
+   *
+   * @param id  Identifier for the resource context (a Network class instance).
+   *            Client should pass the id returned by the previous "configure"
+   *            request message.
+   *
+   *
+   * @param region_name The name of the region that is to be removed.
+   *
+   * @retval            If success returns Ok.
+   *                    Otherwise returns error message starting with "ERROR: ".
+   */
+  std::string delete_region_request(const std::string &id, const std::string &region_name);
+
+    /**
+   * @b Description:
+   * Handler for a DELETE "network" request message.
+   * This will remove the entire Network object.
+   *
+   * @param id  Identifier for the resource context (a Network class instance).
+   *            Client should pass the id returned by the previous "configure"
+   *            request message.
+   *
+   *
+   * @retval            If success returns Ok.
+   *                    Otherwise returns error message starting with "ERROR: ".
+   */
+  std::string delete_network_request(const std::string &id);
+
 
   /**
    * @b Description:
