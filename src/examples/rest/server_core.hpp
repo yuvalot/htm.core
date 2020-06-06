@@ -87,7 +87,7 @@ public:
     }
 
 
-    //  POST /network?id=<previous id>
+    //  POST /network?id=<previous id>&force
     //  Configure a Network resource (with JSON configuration in POST body) ==> token
     //  Note: the id parameter is optional.  If given it will re-use (replace) a previous id.
     svr.Post("/network", [&](const Request &req, Response &res) {
@@ -95,8 +95,14 @@ public:
       auto itr = req.params.find("id");
       if (itr != req.params.end())
         id = itr->second;
+
+      bool force = false;
+      itr = req.params.find("force");
+      if (itr != req.params.end())
+        force = true;
+
       RESTapi *interface = RESTapi::getInstance();
-      std::string token = interface->create_network_request(id, req.body);
+      std::string token = interface->create_network_request(id, req.body, force);
       res.set_content(token+"\n", "text/plain");
     });
     

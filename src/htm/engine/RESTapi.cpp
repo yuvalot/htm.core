@@ -64,9 +64,12 @@ std::string RESTapi::get_new_id_(const std::string &old_id) {
 
 
 
-std::string RESTapi::create_network_request(const std::string &old_id, const std::string &config) {
+std::string RESTapi::create_network_request(const std::string &old_id, const std::string &config, bool force) {
   try {
-    std::string id = get_new_id_(old_id);
+    std::string id = old_id;
+    if (!force) {
+      id = get_new_id_(old_id);
+    }
     ResourceContext obj;
     obj.id = id;
     obj.t = time(0);
