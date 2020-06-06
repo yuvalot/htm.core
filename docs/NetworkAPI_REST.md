@@ -36,7 +36,7 @@ Network                   (key is id)
 So a full key structure would look like:
 ```
 /network/<id>/region/<region name>/param/<param name>
-/network/<id>/region/<region name>/Input/<param name>
+/network/<id>/region/<region name>/input/<param name>
 /network/<id>/region/<region name>/output/<param name>
 /network/<id>/link/<from>/<to>
 ```
