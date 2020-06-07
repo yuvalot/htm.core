@@ -16,7 +16,9 @@
 //   /network/<id>/region/<name>/param/<name>
 //   /network/<id>/region/<name>/input/<name>
 //   /network/<id>/region/<name>/output/<name>
-//   /network/<id>/link/<name>
+//   /network/<id>/link/<source_name>/<dest_name>
+//      Note: source_name syntax is "region_name.output_name"
+//            dest_name   syntax is "region_name.input_name"
 //
 // The expected protocol for the NetworkAPI application is as follows:
 //
@@ -35,6 +37,12 @@
 //       Get the value of a region's input. Returns a JSON encoded array.
 //  GET  /network/<id>/region/<region name>/output/<output name>
 //       Get the value of a region's output. Returns a JSON encoded array.
+//  DELETE /network/<id>/region/<region name>
+//       Deletes a region. Must not be in any links.
+//  DELETE /network/<id>/link/<source_name>/<dest_name>
+//       Deletes a link.
+//  DELETE /network/<id>/ALL
+//       Deletes the entire Network object
 //  GET  /network/<id>/run?iterations=<iterations>
 //       Execute all regions in phase order. Repeat <iterations> times.
 //  GET  /network/<id>/region/<region name>/command?data=<command>
@@ -163,6 +171,42 @@ public:
 
       RESTapi *interface = RESTapi::getInstance();
       std::string result = interface->get_output_request(id, region_name, output_name);
+      res.set_content(result + "\n", "text/plain");
+    });
+    
+    //  DELETE /network/<id>/region/<region name>
+    //       Deletes a region. Must not be in any links.
+    svr.Delete("/network/.*/region/.*", [](const Request &req, Response &res) {
+      std::vector<std::string> flds = split(req.path, '/');
+      std::string id = flds[2];
+      std::string region_name = flds[4];
+
+      RESTapi *interface = RESTapi::getInstance();
+      std::string result = interface->delete_region_request(id, region_name);
+      res.set_content(result + "\n", "text/plain");
+    });
+
+    //  DELETE /network/<id>/link/<name>
+    //       Deletes a link.
+    svr.Delete("/network/.*/link/.*/.*", [](const Request &req, Response &res) {
+      std::vector<std::string> flds = split(req.path, '/');
+      std::string id = flds[2];
+      std::string source_name = flds[4];
+      std::string dest_name = flds[5];
+
+      RESTapi *interface = RESTapi::getInstance();
+      std::string result = interface->delete_link_request(id, source_name, dest_name);
+      res.set_content(result + "\n", "text/plain");
+    });
+    
+    //  DELETE /network/<id>/ALL
+    //       Deletes the entire Network object
+    svr.Delete("/network/.*/ALL", [](const Request &req, Response &res) {
+      std::vector<std::string> flds = split(req.path, '/');
+      std::string id = flds[2];
+
+      RESTapi *interface = RESTapi::getInstance();
+      std::string result = interface->delete_network_request(id);
       res.set_content(result + "\n", "text/plain");
     });
 
