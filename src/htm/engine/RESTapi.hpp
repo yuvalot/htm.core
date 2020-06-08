@@ -89,7 +89,7 @@ public:
   * @retval On success it returns the id to use with this resource context. 
   *         Otherwise it returns the error message starting with "ERROR".
   */
-  std::string create_network_request(const std::string &id, const std::string &conf, bool force);
+  std::string create_network_request(const std::string &id, const std::string &conf);
 
   /**
    * @b Description:
