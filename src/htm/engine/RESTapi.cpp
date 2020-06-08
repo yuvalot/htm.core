@@ -39,10 +39,10 @@ RESTapi* RESTapi::getInstance() { return &rest; }
 std::string RESTapi::get_new_id_(const std::string &old_id) {
   std::string id = old_id;
 
-  // re-use the same id if we can.
-  std::map<std::string, ResourceContext>::iterator itr = resource_.find(old_id);
-  if (itr == rest.resource_.end()) {
-    // not found, create a new context id
+  // re-use the same id if we can or use a provide one.
+  std::map<std::string, ResourceContext>::iterator itr;
+  if (id.empty()) {
+    // id is empty, create a new context id
     while (rest.resource_.size() < UINT16_MAX - 1) {
       unsigned int id_nbr = next_id++;
       if (id_nbr == 0)
