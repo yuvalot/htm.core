@@ -144,7 +144,68 @@ class Network(object):
 
 def get_classifer_predict(net, region_name):
   pred = net.get_region_output(region_name, 'predicted')
+  if not pred:
+    return {}
   titles = net.get_region_output(region_name, 'titles')
   pdf = net.get_region_output(region_name, 'pdf')
 
   return {'title': titles[pred[0]], 'prob': pdf[pred[0]]}
+
+
+class Region(dict):
+
+  def __init__(self, name, type, params={}):
+    self['name'] = name
+    self['type'] = type
+    self['params'] = params
+    self.__dict__ = self
+
+
+class Link(dict):
+
+  def __init__(self, source, dest, source_output, dest_input):
+    self.source = source
+    self.dest = dest
+    self.source_output = source_output
+    self.dest_input = dest_input
+
+    self['src'] = '{}.{}'.format(self.source, self.source_output)
+    self['dest'] = '{}.{}'.format(self.dest, self.dest_input)
+
+
+class NetworkConfig(object):
+
+  def __init__(self):
+    self.regions = []
+    self.links = []
+
+  def has_region(self, name):
+    for region in self.regions:
+      if region.name == name:
+        return True
+
+    return False
+
+  def add_region(self, region):
+    if self.has_region(region.name):
+      raise NetworkError('Region {} is already exists.'.format(region.name))
+
+    self.regions.append(region)
+
+  def add_link(self, link):
+    if not self.has_region(link.source):
+      raise NetworkError('Region {} is not found.'.format(link.source))
+    if not self.has_region(link.dest):
+      raise NetworkError('Region {} is not found.'.format(link.dest))
+
+    self.links.append(link)
+
+  def __str__(self):
+    network = []
+
+    for region in self.regions:
+      network.append({'addRegion': dict(region)})
+    for link in self.links:
+      network.append({'addLink': dict(link)})
+
+    return json.dumps({'network': network}, indent=2)
