@@ -43,7 +43,7 @@ SPRegion::SPRegion(const ValueMap &values, Region *region)
   // parameters out of the map and set aside so we can pass them to the SpatialPooler
   // algorithm when we create it during initialization().
   args_.columnCount = values.getScalarT<UInt32>("columnCount", 0);
-  args_.potentialRadius = values.getScalarT<UInt32>("potentialRadius", 16u);
+  args_.potentialRadius = values.getScalarT<UInt32>("potentialRadius", 0u);
   args_.potentialPct = values.getScalarT<Real32>("potentialPct", 0.5);
   args_.globalInhibition = values.getScalarT<bool>("globalInhibition", true);
   args_.localAreaDensity = values.getScalarT<Real32>("localAreaDensity", 0.05f);
@@ -236,7 +236,7 @@ Spec *SPRegion::createSpec() {
                     NTA_BasicType_UInt32,             // type
                     1,                                // elementCount
                     "",                               // constraints
-                    "16",                              // defaultValue
+                    "0",                              // defaultValue
                     ParameterSpec::ReadWriteAccess)); // access
 
   ns->parameters.add(
