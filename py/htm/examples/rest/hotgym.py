@@ -88,6 +88,7 @@ def main(parameters=default_parameters, argv=None, verbose=True):
       dict(
           columnCount=spParams['columnCount'],
           potentialPct=spParams["potentialPct"],
+          potentialRadius=0,                      # 0 is auto assign as inputWith
           globalInhibition=True,
           localAreaDensity=spParams["localAreaDensity"],
           synPermInactiveDec=spParams["synPermInactiveDec"],
