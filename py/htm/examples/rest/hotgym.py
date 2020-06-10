@@ -4,7 +4,7 @@ import os
 import numpy as np
 import math
 
-from rest_api import Link, Region, NetworkConfig, Network, get_classifer_predict
+from htm_rest_api import Link, Region, NetworkConfig, Network, get_classifer_predict
 
 _EXAMPLE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 _INPUT_FILE_PATH = os.path.join(_EXAMPLE_DIR, "gymdata.csv")

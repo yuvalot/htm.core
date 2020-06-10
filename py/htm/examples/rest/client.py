@@ -30,7 +30,7 @@
 import sys
 import math
 
-import rest_api
+import htm_rest_api
 
 verbose = True
 
