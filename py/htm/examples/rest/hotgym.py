@@ -4,7 +4,7 @@ import os
 import numpy as np
 import math
 
-from htm_rest_api import Link, Region, NetworkConfig, Network, get_classifer_predict
+from htm_rest_api import Link, Region, NetworkConfig, NetworkREST, get_classifer_predict
 
 _EXAMPLE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 _INPUT_FILE_PATH = os.path.join(_EXAMPLE_DIR, "gymdata.csv")
@@ -130,7 +130,7 @@ def main(parameters=default_parameters, argv=None, verbose=True):
       Link(tmRegion.name, clsrRegion.name, 'bottomUpOut', 'pattern'))
   config.add_link(Link(scalarRegion.name, clsrRegion.name, 'bucket', 'bucket'))
 
-  net = Network(str(config), verbose=verbose)
+  net = NetworkREST(str(config), verbose=verbose)
 
   net.create()
 

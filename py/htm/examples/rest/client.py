@@ -54,8 +54,8 @@ def main(argv):
        {addLink:   {src: "sp.bottomUpOut", dest: "tm.bottomUpIn"}}
     ]}"""
 
-  net = rest_api.Network(config, host = URL, verbose=verbose)
-    
+  net = htm_rest_api.NetworkREST(config, host = URL, verbose=verbose)
+
   # Send the config string and obtain a token for the created Network object instance.
   net.create()
 

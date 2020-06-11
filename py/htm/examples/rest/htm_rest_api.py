@@ -3,18 +3,18 @@ import requests
 import json
 
 
-class NetworkError(Exception):
+class NetworkRESTError(Exception):
   pass
 
 
 def process_response(rsp):
   if rsp.status_code != requests.codes.ok:
-    raise NetworkError('HTTP Error')
+    raise NetworkRESTError('HTTP Error')
 
   text = rsp.text.strip()
 
   if text[0:6] == 'ERROR:':
-    raise NetworkError(text[6:].strip())
+    raise NetworkRESTError(text[6:].strip())
 
   if text == 'OK':
     return text
@@ -29,7 +29,7 @@ def process_response(rsp):
   return json.loads('[' + data + ']')
 
 
-class Network(object):
+class NetworkREST(object):
 
   def __init__(self,
                config,
@@ -64,7 +64,7 @@ class Network(object):
       print('Resource ID: ' + id)
 
     if self.id and self.id != id:
-      raise NetworkError('Network id not match')
+      raise NetworkRESTError('Network id not match')
     else:
       self.id = id
 
@@ -188,15 +188,15 @@ class NetworkConfig(object):
 
   def add_region(self, region):
     if self.has_region(region.name):
-      raise NetworkError('Region {} is already exists.'.format(region.name))
+      raise NetworkRESTError('Region {} is already exists.'.format(region.name))
 
     self.regions.append(region)
 
   def add_link(self, link):
     if not self.has_region(link.source):
-      raise NetworkError('Region {} is not found.'.format(link.source))
+      raise NetworkRESTError('Region {} is not found.'.format(link.source))
     if not self.has_region(link.dest):
-      raise NetworkError('Region {} is not found.'.format(link.dest))
+      raise NetworkRESTError('Region {} is not found.'.format(link.dest))
 
     self.links.append(link)
 
