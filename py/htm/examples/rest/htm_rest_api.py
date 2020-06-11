@@ -36,7 +36,6 @@ def request(method, url, data=None, verbose=False):
 
 
 class NetworkREST(object):
-
   def __init__(self,
                config,
                id=None,
@@ -111,7 +110,8 @@ class NetworkREST(object):
     return request('GET', url, verbose=self.verbose)
 
   def execute(self, region_name, command):
-    url = self.api1('/region/{}/command'.format(region_name), {'data': command})
+    url = self.api1('/region/{}/command'.format(region_name),
+                    {'data': command})
     return request('GET', url, verbose=self.verbose)
 
 
@@ -125,29 +125,30 @@ def get_classifer_predict(net, region_name):
   return {'title': titles[pred[0]], 'prob': pdf[pred[0]]}
 
 
-class Region(dict):
-
+class Region(object):
   def __init__(self, name, type, params={}):
-    self['name'] = name
-    self['type'] = type
-    self['params'] = params
-    self.__dict__ = self
+    self.name = name
+    self.type = type
+    self.params = params
 
 
-class Link(dict):
-
+class Link(object):
   def __init__(self, source, dest, source_output, dest_input):
     self.source = source
     self.dest = dest
     self.source_output = source_output
     self.dest_input = dest_input
 
-    self['src'] = '{}.{}'.format(self.source, self.source_output)
-    self['dest'] = '{}.{}'.format(self.dest, self.dest_input)
+  @property
+  def src(self):
+    return '{}.{}'.format(self.source, self.source_output)
+
+  @property
+  def dest(self):
+    return '{}.{}'.format(self.dest, self.dest_input)
 
 
 class NetworkConfig(object):
-
   def __init__(self):
     self.regions = []
     self.links = []
@@ -159,26 +160,39 @@ class NetworkConfig(object):
 
     return False
 
-  def add_region(self, region):
-    if self.has_region(region.name):
-      raise NetworkRESTError('Region {} is already exists.'.format(region.name))
+  def add_region(self, name, type, params={}):
+    if self.has_region(name):
+      raise NetworkRESTError('Region {} is already exists.'.format(name))
+
+    region = Region(name, type, params)
 
     self.regions.append(region)
 
-  def add_link(self, link):
-    if not self.has_region(link.source):
-      raise NetworkRESTError('Region {} is not found.'.format(link.source))
-    if not self.has_region(link.dest):
-      raise NetworkRESTError('Region {} is not found.'.format(link.dest))
+    return region
 
+  def add_link(self, source, dest, source_output, dest_input):
+    if not self.has_region(source):
+      raise NetworkRESTError('Region {} is not found.'.format(source))
+    if not self.has_region(dest):
+      raise NetworkRESTError('Region {} is not found.'.format(dest))
+
+    link = Link(source, dest, source_output, dest_input)
     self.links.append(link)
+
+    return link
 
   def __str__(self):
     network = []
 
     for region in self.regions:
-      network.append({'addRegion': dict(region)})
+      network.append({
+        'addRegion': {
+          'name': region.name,
+          'type': region.type,
+          'params': region.params
+        }
+      })
     for link in self.links:
-      network.append({'addLink': dict(link)})
+      network.append({'addLink': {'src': link.src, 'dest': link.dest}})
 
     return json.dumps({'network': network}, indent=2)

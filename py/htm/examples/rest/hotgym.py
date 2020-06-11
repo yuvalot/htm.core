@@ -10,38 +10,38 @@ _EXAMPLE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 _INPUT_FILE_PATH = os.path.join(_EXAMPLE_DIR, "gymdata.csv")
 
 default_parameters = {
-    # there are 2 (3) encoders: "value" (RDSE) & "time" (DateTime weekend, timeOfDay)
-    'enc': {
-        "value": {
-            'resolution': 0.88,
-            'size': 700,
-            'sparsity': 0.02
-        },
-        "time": {
-            'timeOfDay': (30, 1),
-            'weekend': 21
-        }
+  # there are 2 (3) encoders: "value" (RDSE) & "time" (DateTime weekend, timeOfDay)
+  'enc': {
+    "value": {
+      'resolution': 0.88,
+      'size': 700,
+      'sparsity': 0.02
     },
-    'sp': {
-        'boostStrength': 3.0,
-        'columnCount': 1638,
-        'localAreaDensity': 0.04395604395604396,
-        'potentialPct': 0.85,
-        'synPermActiveInc': 0.04,
-        'synPermConnected': 0.13999999999999999,
-        'synPermInactiveDec': 0.006
-    },
-    'tm': {
-        'activationThreshold': 17,
-        'cellsPerColumn': 13,
-        'initialPerm': 0.21,
-        'maxSegmentsPerCell': 128,
-        'maxSynapsesPerSegment': 64,
-        'minThreshold': 10,
-        'newSynapseCount': 32,
-        'permanenceDec': 0.1,
-        'permanenceInc': 0.1
+    "time": {
+      'timeOfDay': (30, 1),
+      'weekend': 21
     }
+  },
+  'sp': {
+    'boostStrength': 3.0,
+    'columnCount': 1638,
+    'localAreaDensity': 0.04395604395604396,
+    'potentialPct': 0.85,
+    'synPermActiveInc': 0.04,
+    'synPermConnected': 0.13999999999999999,
+    'synPermInactiveDec': 0.006
+  },
+  'tm': {
+    'activationThreshold': 17,
+    'cellsPerColumn': 13,
+    'initialPerm': 0.21,
+    'maxSegmentsPerCell': 128,
+    'maxSynapsesPerSegment': 64,
+    'minThreshold': 10,
+    'newSynapseCount': 32,
+    'permanenceDec': 0.1,
+    'permanenceInc': 0.1
+  }
 }
 
 
@@ -64,71 +64,58 @@ def main(parameters=default_parameters, argv=None, verbose=True):
 
   config = NetworkConfig()
   # Make the Encoders.  These will convert input data into binary representations.
-  dateRegion = Region(
-      'dateEncoder', 'DateEncoderRegion', {
-          'timeOfDay_width': parameters["enc"]["time"]["timeOfDay"][0],
-          'timeOfDay_radius': parameters["enc"]["time"]["timeOfDay"][1],
-          'weekend_width': parameters["enc"]["time"]["weekend"]
-      })
+  dateRegion = config.add_region(
+    'dateEncoder', 'DateEncoderRegion',
+    dict(timeOfDay_width=parameters["enc"]["time"]["timeOfDay"][0],
+         timeOfDay_radius=parameters["enc"]["time"]["timeOfDay"][1],
+         weekend_width=parameters["enc"]["time"]["weekend"]))
 
-  config.add_region(dateRegion)
-
-  scalarRegion = Region(
-      'scalarEncoder', 'RDSEEncoderRegion', {
-          'size': parameters["enc"]["value"]["size"],
-          'sparsity': parameters["enc"]["value"]["sparsity"],
-          'resolution': parameters["enc"]["value"]["resolution"]
-      })
-  config.add_region(scalarRegion)
+  scalarRegion = config.add_region(
+    'scalarEncoder', 'RDSEEncoderRegion',
+    dict(size=parameters["enc"]["value"]["size"],
+         sparsity=parameters["enc"]["value"]["sparsity"],
+         resolution=parameters["enc"]["value"]["resolution"]))
 
   # Make the HTM.  SpatialPooler & TemporalMemory & associated tools.
   spParams = parameters["sp"]
-  spRegion = Region(
-      'sp', 'SPRegion',
-      dict(
-          columnCount=spParams['columnCount'],
-          potentialPct=spParams["potentialPct"],
-          potentialRadius=0,                      # 0 is auto assign as inputWith
-          globalInhibition=True,
-          localAreaDensity=spParams["localAreaDensity"],
-          synPermInactiveDec=spParams["synPermInactiveDec"],
-          synPermActiveInc=spParams["synPermActiveInc"],
-          synPermConnected=spParams["synPermConnected"],
-          boostStrength=spParams["boostStrength"],
-          wrapAround=True))
-
-  config.add_region(spRegion)
+  spRegion = config.add_region(
+    'sp',
+    'SPRegion',
+    dict(
+      columnCount=spParams['columnCount'],
+      potentialPct=spParams["potentialPct"],
+      potentialRadius=0,  # 0 is auto assign as inputWith
+      globalInhibition=True,
+      localAreaDensity=spParams["localAreaDensity"],
+      synPermInactiveDec=spParams["synPermInactiveDec"],
+      synPermActiveInc=spParams["synPermActiveInc"],
+      synPermConnected=spParams["synPermConnected"],
+      boostStrength=spParams["boostStrength"],
+      wrapAround=True))
 
   tmParams = parameters["tm"]
-  tmRegion = Region(
-      'tm', 'TMRegion',
-      dict(
-          columnCount=spParams['columnCount'],
-          cellsPerColumn=tmParams["cellsPerColumn"],
-          activationThreshold=tmParams["activationThreshold"],
-          initialPermanence=tmParams["initialPerm"],
-          connectedPermanence=spParams["synPermConnected"],
-          minThreshold=tmParams["minThreshold"],
-          maxNewSynapseCount=tmParams["newSynapseCount"],
-          permanenceIncrement=tmParams["permanenceInc"],
-          permanenceDecrement=tmParams["permanenceDec"],
-          predictedSegmentDecrement=0.0,
-          maxSegmentsPerCell=tmParams["maxSegmentsPerCell"],
-          maxSynapsesPerSegment=tmParams["maxSynapsesPerSegment"]))
+  tmRegion = config.add_region(
+    'tm', 'TMRegion',
+    dict(columnCount=spParams['columnCount'],
+         cellsPerColumn=tmParams["cellsPerColumn"],
+         activationThreshold=tmParams["activationThreshold"],
+         initialPermanence=tmParams["initialPerm"],
+         connectedPermanence=spParams["synPermConnected"],
+         minThreshold=tmParams["minThreshold"],
+         maxNewSynapseCount=tmParams["newSynapseCount"],
+         permanenceIncrement=tmParams["permanenceInc"],
+         permanenceDecrement=tmParams["permanenceDec"],
+         predictedSegmentDecrement=0.0,
+         maxSegmentsPerCell=tmParams["maxSegmentsPerCell"],
+         maxSynapsesPerSegment=tmParams["maxSynapsesPerSegment"]))
 
-  config.add_region(tmRegion)
+  clsrRegion = config.add_region('clsr', 'ClassifierRegion', {'learn': True})
 
-  clsrRegion = Region('clsr', 'ClassifierRegion', {'learn': True})
-  config.add_region(clsrRegion)
-
-  config.add_link(Link(dateRegion.name, spRegion.name, 'encoded', 'bottomUpIn'))
-  config.add_link(
-      Link(scalarRegion.name, spRegion.name, 'encoded', 'bottomUpIn'))
-  config.add_link(
-      Link(spRegion.name, tmRegion.name, 'bottomUpOut', 'bottomUpIn'))
-  config.add_link(
-      Link(tmRegion.name, clsrRegion.name, 'bottomUpOut', 'pattern'))
-  config.add_link(Link(scalarRegion.name, clsrRegion.name, 'bucket', 'bucket'))
+  config.add_link(dateRegion.name, spRegion.name, 'encoded', 'bottomUpIn')
+  config.add_link(scalarRegion.name, spRegion.name, 'encoded', 'bottomUpIn')
+  config.add_link(spRegion.name, tmRegion.name, 'bottomUpOut', 'bottomUpIn')
+  config.add_link(tmRegion.name, clsrRegion.name, 'bottomUpOut', 'pattern')
+  config.add_link(scalarRegion.name, clsrRegion.name, 'bucket', 'bucket')
 
   net = NetworkREST(str(config), verbose=verbose)
 
@@ -192,9 +179,8 @@ def main(parameters=default_parameters, argv=None, verbose=True):
     plt.title("Predictions")
     plt.xlabel("Time")
     plt.ylabel("Power Consumption")
-    plt.plot(
-        np.arange(len(inputs)), inputs, 'red', np.arange(len(inputs)),
-        predictions, 'blue')
+    plt.plot(np.arange(len(inputs)), inputs, 'red', np.arange(len(inputs)),
+             predictions, 'blue')
     plt.legend(labels=('Input', '1 Step Prediction, Shifted 1 step'))
 
     plt.subplot(2, 1, 2)
@@ -202,14 +188,8 @@ def main(parameters=default_parameters, argv=None, verbose=True):
     plt.xlabel("Time")
     plt.ylabel("Power Consumption")
     inputs = np.array(inputs) / max(inputs)
-    plt.plot(
-        np.arange(len(inputs)),
-        inputs,
-        'red',
-        np.arange(len(inputs)),
-        anomaly,
-        'blue',
-    )
+    plt.plot(np.arange(len(inputs)), inputs, 'red', np.arange(len(inputs)),
+             anomaly, 'blue')
     plt.legend(labels=('Input', 'Anomaly Score'))
     plt.show()
 
