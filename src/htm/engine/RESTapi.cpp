@@ -36,44 +36,43 @@ RESTapi::~RESTapi() { }
 
 RESTapi* RESTapi::getInstance() { return &rest; }
 
-std::string RESTapi::get_new_id_(const std::string &old_id) {
-  std::string id = old_id;
-
-  // re-use the same id if we can or use a provide one.
+  std::string RESTapi::get_new_id_() {
+  // No id was provided so find the next available number.
+  // Do not use an id of "0".
+  
   std::map<std::string, ResourceContext>::iterator itr;
-  if (id.empty()) {
-    // id is empty, create a new context id
-    while (rest.resource_.size() < UINT16_MAX - 1) {
-      unsigned int id_nbr = next_id++;
-      if (id_nbr == 0)
-        id_nbr = next_id++; // allow integer wrap of the id without a 0 value.
-      char buf[10];
-      std::snprintf(buf, sizeof(buf), "%4.04x", id_nbr);
-      id = buf;
+  std::string id;
+  while (rest.resource_.size() < UINT16_MAX - 1) {
+    unsigned int id_nbr = next_id++;
+    if (id_nbr == 0)
+      id_nbr = next_id++; // allow integer wrap of the id without a 0 value.
+    char buf[10];
+    std::snprintf(buf, sizeof(buf), "%4.04x", id_nbr);
+    id = buf;
 
-      // Make sure this new session id is not in use.
-      itr = resource_.find(id);
-      if (itr == resource_.end() || (itr->second.t < time(0) - RESOURCE_TIMEOUT)) {
-        // This is one we can use
-        break;
-      }
-    };
+    // Make sure this new session id is not in use.
+    itr = resource_.find(id);
+    if (itr == resource_.end() || (itr->second.t < time(0) - RESOURCE_TIMEOUT)) {
+      // This is one we can use
+      break;
+    }
   }
   return id;
 }
 
 
 
-std::string RESTapi::create_network_request(const std::string &old_id, const std::string &config) {
+std::string RESTapi::create_network_request(const std::string &specified_id, const std::string &config) {
   try {
-    std::string id = get_new_id_(old_id);
+    std::string id = specified_id;
+    if (id.empty()) id = get_new_id_();
     ResourceContext obj;
     obj.id = id;
     obj.t = time(0);
     obj.net.reset(new htm::Network);  // Allocate a Network object.
 
     obj.net->configure(config);
-    resource_[id] = obj;
+    resource_[id] = obj;              // assign the resource (deleting any previous value)
     return id;
   } catch (Exception& e) {
     return std::string("ERROR: ") + e.getMessage();

@@ -22,11 +22,16 @@
 //
 // The expected protocol for the NetworkAPI application is as follows:
 //
-//  POST /network?id=<previous id>
+//  POST /network
+//     or
+//       /network/<id>
+//     or
+//       /network?id=<id>
 //       Create a new Network class object as a resource identified by id.
-//       The id field is optional. If given a new network object will replace that id.
+//       The id field is optional. If the id is given the new network object will be 
+//       assigned to this id.  Otherwise it will be assigned to the next available id.
 //       The body of the POST is JSON formatted configuration string
-//       Returns a new id for the created resouce or an Error message.
+//       Returns the id for the created resouce or an Error message.
 //  PUT  /network/<id>/region/<region name/param/<param name>?data=<JSON encoded data>
 //       Set the value of a region's parameter. The <data> could also be in the body.
 //  GET  /network/<id>/region/<region name>/param/<param name>
@@ -55,7 +60,10 @@
 //  GET  /stop
 //       Stop the server.  All resources are released.
 
-
+#include <cctype>
+#include <iomanip>
+#include <sstream>
+#include <string>
 #include <chrono>
 #include <cstdio>
 #include <httplib.h>
@@ -87,19 +95,53 @@ public:
     }
 
 
-    //  POST /network?id=<previous id>
-    //  Configure a Network resource (with JSON configuration in POST body) ==> token
-    //  Note: the id parameter is optional.  If given it will re-use (replace) a previous id or use it.
+    //  POST /network?id=<specified id>
+    // or
+    //  POST /network/<specified id>
+    // or
+    //  POST /network
+    //  Create and configure a Network resource indexed by an id.
+    //  The configuration string is passed in the POST body, JSON encoded.
+    //  Returns the id used (URLencoded).  Subsequent calls should use this id.
+    //  Note: the id parameter is optional.  If not provided it will use the next 
+    //        available id.  Otherwise it will use and return the specified id.
+    //        If a Network object is already associated with the specified id
+    //        the program will remove the existing Network object and create a new one.
+    //
+    //        The specified id does not have to be numeric.  However, if it is 
+    //        not compatible with URL syntax the returned id will be a URLencoded
+    //        copy of the id.
+    //
     svr.Post("/network", [&](const Request &req, Response &res) {
-      std::string id;
+      std::string id;      
       auto itr = req.params.find("id");
       if (itr != req.params.end())
-        id = itr->second;
+        id = url_encode(itr->second);  // the returned parameter value gets url decoded so must re-encode it.
+      
+      std::string data = res.body;
+      auto ix = req.params.find("data"); // The body could optionally be encoded in a parameter
+      if (ix != req.params.end())
+        data = ix->second;
+
 
       RESTapi *interface = RESTapi::getInstance();
       std::string token = interface->create_network_request(id, req.body);
       res.set_content(token+"\n", "text/plain");
     });
+    svr.Post("/network/[^/]*", [&](const Request &req, Response &res) {
+      std::vector<std::string> flds = split(req.path, '/');
+      std::string id = flds[2];  
+
+      std::string data = res.body;
+      auto ix = req.params.find("data");
+      if (ix != req.params.end())
+        data = ix->second;
+
+      RESTapi *interface = RESTapi::getInstance();
+      std::string token = interface->create_network_request(id, req.body);
+      res.set_content(token+"\n", "text/plain");
+    });
+
     
     //  PUT  /network/<id>/region/<region name>/param/<param name>?data=<JSON encoded data>
     // Set the value of a ReadWrite Parameter on a Region.  Alternatively, the data could be in the body.
@@ -273,6 +315,31 @@ public:
       // Enter the server listen loop.
       svr.listen(net_interface.c_str(), port);
   }
+  
+
+  inline std::string url_encode(const std::string &value) {
+      std::ostringstream escaped;
+      escaped.fill('0');
+      escaped << std::hex;
+
+      for (std::string::const_iterator i = value.begin(), n = value.end(); i != n; ++i) {
+          std::string::value_type c = (*i);
+
+          // Keep alphanumeric and other accepted characters intact
+          if (std::isalnum(c) || c == '-' || c == '_' || c == '.' || c == '~') {
+              escaped << c;
+              continue;
+          }
+
+          // Any other characters are percent-encoded
+          escaped << std::uppercase;
+          escaped << '%' << std::setw(2) << int((unsigned char) c);
+          escaped << std::nouppercase;
+      }
+
+      return escaped.str();
+  }
+  
 
 private:
   #ifdef CPPHTTPLIB_OPENSSL_SUPPORT

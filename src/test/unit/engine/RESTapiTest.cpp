@@ -225,4 +225,55 @@ TEST(RESTapiTest, test_delete) {
   threadObj.join();          // wait until server thread has stopped.
 }
 
+
+TEST(RESTapiTest, alternative_ids) {
+  std::thread threadObj(serverThread); // start REST server
+  std::this_thread::sleep_for(std::chrono::seconds(1)); // give server time to start
+
+  // Client thread.
+  const httplib::Params noParams;
+
+  httplib::Client client("127.0.0.1", port);
+  client.set_timeout_sec(30);
+
+  // See Network.configure() for syntax.
+  //     Simple situation    Just the encoder Encoder, nothing else 
+  std::string config = R"(
+   {network: [
+       {addRegion: {name: "encoder", type: "RDSEEncoderRegion", params: {size: 1000, sparsity: 0.2, radius: 0.03, seed: 2019, noise: 0.01}}},
+    ]})";
+
+  // create a Network object using a numeric id as a URL parameter
+  auto res = client.Post("/network?id=123", config, "application/json");
+  ASSERT_TRUE(res && res->status/100 == 2 && res->body.size() > 0) << "Failed Response to POST /network?id=123 request.";
+  std::string id = res->body.substr(0, res->body.length() - 1); // remove the \n
+  EXPECT_STREQ(id.c_str(), "123");
+  
+  // create a Network object using a numeric id as a URL field
+  res = client.Post("/network/456", config, "application/json");
+  ASSERT_TRUE(res && res->status/100 == 2 && res->body.size() > 0) << "Failed Response to POST /network/456 request.";
+  id = res->body.substr(0, res->body.length() - 1); // remove the \n
+  EXPECT_STREQ(id.c_str(), "456");
+
+  // create a Network object using a non-numeric id as a URL field
+  res = client.Post("/network/TestObj", config, "application/json");
+  ASSERT_TRUE(res && res->status/100 == 2 && res->body.size() > 0) << "Failed Response to POST /network/TestObj request.";
+  id = res->body.substr(0, res->body.length() - 1); // remove the \n
+  EXPECT_STREQ(id.c_str(), "TestObj");
+
+  // create a Network object using a non-numeric id as a URL parameter that contains URL encoding.
+  res = client.Post("/network?id=%20abc", config, "application/json");
+  ASSERT_TRUE(res && res->status/100 == 2 && res->body.size() > 0) << "Failed Response to POST /network?id=%20abc request.";
+  id = res->body.substr(0, res->body.length() - 1); // remove the \n
+  EXPECT_STREQ(id.c_str(), "%20abc");
+  
+  
+
+
+  res = client.Get("/stop"); // stop the server.
+
+  threadObj.join(); // wait until server thread has stopped.
+}
+
+
 } // namespace testing

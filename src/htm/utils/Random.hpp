@@ -87,7 +87,7 @@ public:
     ar( CEREAL_NVP(seed_), 
 	CEREAL_NVP(steps_)
     );  
-    gen.seed(static_cast<UInt64>(seed_)); //reseed
+    gen.seed(static_cast<unsigned int>(seed_)); //reseed
     gen.discard(steps_); //advance n steps
   }
 
