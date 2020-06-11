@@ -356,7 +356,7 @@ void SpatialPooler::setPermanence(UInt column, const Real permanences[]) {
 
 void SpatialPooler::getConnectedCounts(UInt connectedCounts[]) const {
   for(size_t seg = 0; seg < numColumns_; seg++) { //in SP each column = 1 cell with 1 segment only.
-    const auto &segment = connections_.dataForSegment( (const Segment)seg );
+    const auto &segment = connections_.dataForSegment( seg );
     connectedCounts[ seg ] = segment.numConnected; //TODO numConnected only used here, rm from SegmentData and compute for each segment.synapses?
   }
 }
