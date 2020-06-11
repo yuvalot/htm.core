@@ -7,7 +7,13 @@ class NetworkRESTError(Exception):
   pass
 
 
-def process_response(rsp):
+def request(method, url, data=None, verbose=False):
+  if verbose:
+    if data:
+      print('{} {}; body: {}'.format(method, url, data))
+    else:
+      print('{} {}'.format(method, url))
+  rsp = requests.request(method, url, data=data)
   if rsp.status_code != requests.codes.ok:
     raise NetworkRESTError('HTTP Error')
 
@@ -55,10 +61,7 @@ class NetworkREST(object):
     if self.id:
       query['id'] = self.id
     url = self.api('', query)
-    if self.verbose:
-      print('POST {}; body: {}'.format(url, self.config))
-    rsp = requests.post(url, data=self.config)
-    id = process_response(rsp)
+    id = request('POST', url, self.config, verbose=self.verbose)
 
     if self.verbose:
       print('Resource ID: ' + id)
@@ -71,75 +74,45 @@ class NetworkREST(object):
   def put_region_param(self, region_name, param_name, data):
     url = self.api1('/region/{}/param/{}'.format(region_name, param_name),
                     {'data': data})
-    if self.verbose:
-      print('PUT {}'.format(url))
-    rsp = requests.put(url)
-    return process_response(rsp)
+    return request('PUT', url, verbose=self.verbose)
 
   def get_region_param(self, region_name, param_name):
     url = self.api1('/region/{}/param/{}'.format(region_name, param_name))
-    if self.verbose:
-      print('GET {}'.format(url))
-    rsp = requests.get(url)
-    return process_response(rsp)
+    return request('GET', url, verbose=self.verbose)
 
   def put_region_input(self, region_name, input_name, data):
     url = self.api1('/region/{}/input/{}'.format(region_name, input_name),
                     {'data': data})
-    if self.verbose:
-      print('PUT {}'.format(url))
-    rsp = requests.put(url)
-    return process_response(rsp)
+    return request('PUT', url, verbose=self.verbose)
 
   def get_region_input(self, region_name, input_name):
     url = self.api1('/region/{}/input/{}'.format(region_name, input_name))
-    if self.verbose:
-      print('GET {}'.format(url))
-    rsp = requests.get(url)
-    return process_response(rsp)
+    return request('GET', url, verbose=self.verbose)
 
   def get_region_output(self, region_name, output_name):
     url = self.api1('/region/{}/output/{}'.format(region_name, output_name))
-    if self.verbose:
-      print('GET {}'.format(url))
-    rsp = requests.get(url)
-    return process_response(rsp)
+    return request('GET', url, verbose=self.verbose)
 
   def delete_region(self, region_name):
     url = self.api1('/region/{}'.format(region_name))
-    if self.verbose:
-      print('DELETE {}'.format(url))
-    rsp = requests.delete(url)
-    return process_response(rsp)
+    return request('DELETE', url, verbose=self.verbose)
 
   def delete_link(self, source_name, dest_name):
     url = self.api1('/link/{}/{}'.format(source_name, dest_name))
-    if self.verbose:
-      print('DELETE {}'.format(url))
-    rsp = requests.delete(url)
-    return process_response(rsp)
+    return request('DELETE', url, verbose=self.verbose)
 
   def delete_all(self):
     url = self.api1('/ALL')
-    if self.verbose:
-      print('DELETE {}'.format(url))
-    rsp = requests.delete(url)
-    return process_response(rsp)
+    return request('DELETE', url, verbose=self.verbose)
 
   def run(self, iterations=None):
     query = None if iterations is None else {'iterations': iterations}
     url = self.api1('/run', query)
-    if self.verbose:
-      print('GET {}'.format(url))
-    rsp = requests.get(url)
-    return process_response(rsp)
+    return request('GET', url, verbose=self.verbose)
 
   def execute(self, region_name, command):
     url = self.api1('/region/{}/command'.format(region_name), {'data': command})
-    if self.verbose:
-      print('GET {}'.format(url))
-    rsp = requests.get(url)
-    return process_response(rsp)
+    return request('GET', url, verbose=self.verbose)
 
 
 def get_classifer_predict(net, region_name):
