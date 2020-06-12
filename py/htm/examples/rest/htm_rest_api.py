@@ -133,19 +133,19 @@ class Region(object):
 
 
 class Link(object):
-  def __init__(self, source, dest, source_output, dest_input):
-    self.source = source
-    self.dest = dest
+  def __init__(self, source_name, dest_name, source_output, dest_input):
+    self.source_name = source_name
+    self.dest_name = dest_name
     self.source_output = source_output
     self.dest_input = dest_input
 
   @property
   def src(self):
-    return '{}.{}'.format(self.source, self.source_output)
+    return '{}.{}'.format(self.source_name, self.source_output)
 
   @property
   def dest(self):
-    return '{}.{}'.format(self.dest, self.dest_input)
+    return '{}.{}'.format(self.dest_name, self.dest_input)
 
 
 class NetworkConfig(object):
@@ -170,13 +170,16 @@ class NetworkConfig(object):
 
     return region
 
-  def add_link(self, source, dest, source_output, dest_input):
-    if not self.has_region(source):
-      raise NetworkRESTError('Region {} is not found.'.format(source))
-    if not self.has_region(dest):
-      raise NetworkRESTError('Region {} is not found.'.format(dest))
+  def add_link(self, source_region, dest_region, source_output, dest_input):
+    if not self.has_region(source_region.name):
+      raise NetworkRESTError('Region {} is not found.'.format(
+        source_region.name))
+    if not self.has_region(dest_region.name):
+      raise NetworkRESTError('Region {} is not found.'.format(
+        dest_region.name))
 
-    link = Link(source, dest, source_output, dest_input)
+    link = Link(source_region.name, dest_region.name, source_output,
+                dest_input)
     self.links.append(link)
 
     return link

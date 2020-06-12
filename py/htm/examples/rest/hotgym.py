@@ -111,11 +111,11 @@ def main(parameters=default_parameters, argv=None, verbose=True):
 
   clsrRegion = config.add_region('clsr', 'ClassifierRegion', {'learn': True})
 
-  config.add_link(dateRegion.name, spRegion.name, 'encoded', 'bottomUpIn')
-  config.add_link(scalarRegion.name, spRegion.name, 'encoded', 'bottomUpIn')
-  config.add_link(spRegion.name, tmRegion.name, 'bottomUpOut', 'bottomUpIn')
-  config.add_link(tmRegion.name, clsrRegion.name, 'bottomUpOut', 'pattern')
-  config.add_link(scalarRegion.name, clsrRegion.name, 'bucket', 'bucket')
+  config.add_link(dateRegion, spRegion, 'encoded', 'bottomUpIn')
+  config.add_link(scalarRegion, spRegion, 'encoded', 'bottomUpIn')
+  config.add_link(spRegion, tmRegion, 'bottomUpOut', 'bottomUpIn')
+  config.add_link(tmRegion, clsrRegion, 'bottomUpOut', 'pattern')
+  config.add_link(scalarRegion, clsrRegion, 'bucket', 'bucket')
 
   net = NetworkREST(str(config), verbose=verbose)
 
