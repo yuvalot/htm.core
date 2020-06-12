@@ -101,7 +101,7 @@ static void serverThread() {
 TEST(RESTapiTest, example) {
   // A test similar to the Client Example.
   std::thread threadObj(serverThread); // start REST server
-  std::this_thread::sleep_for(std::chrono::seconds(1)); // give server time to start
+  std::this_thread::sleep_for(std::chrono::milliseconds(1)); // yield to give server time to start
 
   // Client thread.
   const httplib::Params noParams;

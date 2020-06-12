@@ -38,7 +38,9 @@ RESTapi* RESTapi::getInstance() { return &rest; }
 
   std::string RESTapi::get_new_id_() {
   // No id was provided so find the next available number.
-  // Do not use an id of "0".
+  // Note: This will return a 4 digit number as a string, 
+  //       starting with "0001" and incrementing on each use. 
+  //       This will never return "0000" 
   
   std::map<std::string, ResourceContext>::iterator itr;
   std::string id;
