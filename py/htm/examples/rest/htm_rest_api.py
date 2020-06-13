@@ -41,6 +41,11 @@ class NetworkREST(object):
                id=None,
                host='http://127.0.0.1:8050',
                verbose=False):
+
+    if isinstance(config, NetworkConfig):
+      config.set_net(self)
+      config = str(config)
+
     self.config = config
     self.id = id
     self.host = host
@@ -130,6 +135,31 @@ class Region(object):
     self.name = name
     self.type = type
     self.params = params
+    self.net = None
+
+  def set_net(self, net):
+    self.net = net
+
+  def input(self, input_name, data=None):
+    if data is None:
+      return self.net.get_region_input(self.name, input_name)
+
+    return self.net.put_region_input(self.name, input_name, data)
+
+  def param(self, param_name, data=None):
+    if data is None:
+      return self.net.get_region_param(self.name, param_name)
+
+    return self.net.put_region_param(self.name, param_name, data)
+
+  def output(self, output_name):
+    return self.net.get_region_output(self.name, output_name)
+
+  def execute(self, command):
+    return self.net.execute(self.name, output_name)
+
+  def destory(self):
+    return self.net.delete_region(self.name)
 
 
 class Link(object):
@@ -138,6 +168,10 @@ class Link(object):
     self.dest_name = dest_name
     self.source_output = source_output
     self.dest_input = dest_input
+    self.net = None
+
+  def set_net(self, net):
+    self.net = net
 
   @property
   def src(self):
@@ -147,11 +181,24 @@ class Link(object):
   def dest(self):
     return '{}.{}'.format(self.dest_name, self.dest_input)
 
+  def destory(self):
+    return self.net.delete_link(self.src, self.dest)
+
 
 class NetworkConfig(object):
   def __init__(self):
     self.regions = []
     self.links = []
+    self.net = None
+
+  def set_net(self, net):
+    self.net = net
+
+    for region in self.regions:
+      region.set_net(net)
+
+    for link in self.links:
+      link.set_net(net)
 
   def has_region(self, name):
     for region in self.regions:
@@ -165,6 +212,7 @@ class NetworkConfig(object):
       raise NetworkRESTError('Region {} is already exists.'.format(name))
 
     region = Region(name, type, params)
+    region.set_net(self.net)
 
     self.regions.append(region)
 
@@ -180,6 +228,7 @@ class NetworkConfig(object):
 
     link = Link(source_region.name, dest_region.name, source_output,
                 dest_input)
+    link.set_net(self.net)
     self.links.append(link)
 
     return link

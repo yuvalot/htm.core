@@ -117,7 +117,7 @@ def main(parameters=default_parameters, argv=None, verbose=True):
   config.add_link(tmRegion, clsrRegion, 'bottomUpOut', 'pattern')
   config.add_link(scalarRegion, clsrRegion, 'bucket', 'bucket')
 
-  net = NetworkREST(str(config), verbose=verbose)
+  net = NetworkREST(config, verbose=verbose)
 
   net.create()
 
@@ -135,14 +135,13 @@ def main(parameters=default_parameters, argv=None, verbose=True):
     inputs.append(consumption)
 
     # Call the encoders to create bit representations for each value.  These are SDR objects.
-    net.put_region_param(dateRegion.name, 'sensedTime',
-                         int(dateString.timestamp()))
-    net.put_region_param(scalarRegion.name, 'sensedValue', consumption)
+    dateRegion.param('sensedTime', int(dateString.timestamp()))
+    scalarRegion.param('sensedValue', consumption)
 
     # Predict what will happen, and then train the predictor based on what just happened.
     net.run()
     pred = get_classifer_predict(net, clsrRegion.name)
-    pred['anomaly'] = net.get_region_output(tmRegion.name, 'anomaly')[0]
+    pred['anomaly'] = tmRegion.output('anomaly')[0]
     if pred.get('title'):
       predictions.append(pred['title'])
     else:
