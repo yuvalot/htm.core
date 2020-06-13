@@ -35,7 +35,7 @@ def request(method, url, data=None, verbose=False):
   return json.loads('[' + data + ']')
 
 
-class NetworkREST(object):
+class NetworkRESTBase(object):
   def __init__(self,
                config,
                id=None,
@@ -44,7 +44,6 @@ class NetworkREST(object):
 
     if isinstance(config, NetworkConfig):
       config.set_net(self)
-      config = str(config)
 
     self.config = config
     self.id = id
@@ -65,7 +64,10 @@ class NetworkREST(object):
     if self.id:
       query['id'] = self.id
     url = self.api('', query)
-    id = request('POST', url, self.config, verbose=self.verbose)
+    config = self.config
+    if isinstance(config, NetworkConfig):
+      config = str(config)
+    id = request('POST', url, config, verbose=self.verbose)
 
     if self.verbose:
       print('Resource ID: ' + id)
@@ -248,3 +250,12 @@ class NetworkConfig(object):
       network.append({'addLink': {'src': link.src, 'dest': link.dest}})
 
     return json.dumps({'network': network}, indent=2)
+
+
+class NetworkREST(NetworkRESTBase, NetworkConfig):
+  def __init__(self, id=None, host='http://127.0.0.1:8050', verbose=False):
+    NetworkConfig.__init__(self)
+    NetworkRESTBase.__init__(self, self, id, host, verbose)
+
+  def __str__(self):
+    return NetworkConfig.__str__(self)

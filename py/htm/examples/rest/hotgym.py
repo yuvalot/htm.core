@@ -62,15 +62,15 @@ def main(parameters=default_parameters, argv=None, verbose=True):
     for record in reader:
       records.append(record)
 
-  config = NetworkConfig()
+  net = NetworkREST(verbose=verbose)
   # Make the Encoders.  These will convert input data into binary representations.
-  dateRegion = config.add_region(
+  dateRegion = net.add_region(
     'dateEncoder', 'DateEncoderRegion',
     dict(timeOfDay_width=parameters["enc"]["time"]["timeOfDay"][0],
          timeOfDay_radius=parameters["enc"]["time"]["timeOfDay"][1],
          weekend_width=parameters["enc"]["time"]["weekend"]))
 
-  scalarRegion = config.add_region(
+  scalarRegion = net.add_region(
     'scalarEncoder', 'RDSEEncoderRegion',
     dict(size=parameters["enc"]["value"]["size"],
          sparsity=parameters["enc"]["value"]["sparsity"],
@@ -78,7 +78,7 @@ def main(parameters=default_parameters, argv=None, verbose=True):
 
   # Make the HTM.  SpatialPooler & TemporalMemory & associated tools.
   spParams = parameters["sp"]
-  spRegion = config.add_region(
+  spRegion = net.add_region(
     'sp',
     'SPRegion',
     dict(
@@ -94,7 +94,7 @@ def main(parameters=default_parameters, argv=None, verbose=True):
       wrapAround=True))
 
   tmParams = parameters["tm"]
-  tmRegion = config.add_region(
+  tmRegion = net.add_region(
     'tm', 'TMRegion',
     dict(columnCount=spParams['columnCount'],
          cellsPerColumn=tmParams["cellsPerColumn"],
@@ -109,15 +109,13 @@ def main(parameters=default_parameters, argv=None, verbose=True):
          maxSegmentsPerCell=tmParams["maxSegmentsPerCell"],
          maxSynapsesPerSegment=tmParams["maxSynapsesPerSegment"]))
 
-  clsrRegion = config.add_region('clsr', 'ClassifierRegion', {'learn': True})
+  clsrRegion = net.add_region('clsr', 'ClassifierRegion', {'learn': True})
 
-  config.add_link(dateRegion, spRegion, 'encoded', 'bottomUpIn')
-  config.add_link(scalarRegion, spRegion, 'encoded', 'bottomUpIn')
-  config.add_link(spRegion, tmRegion, 'bottomUpOut', 'bottomUpIn')
-  config.add_link(tmRegion, clsrRegion, 'bottomUpOut', 'pattern')
-  config.add_link(scalarRegion, clsrRegion, 'bucket', 'bucket')
-
-  net = NetworkREST(config, verbose=verbose)
+  net.add_link(dateRegion, spRegion, 'encoded', 'bottomUpIn')
+  net.add_link(scalarRegion, spRegion, 'encoded', 'bottomUpIn')
+  net.add_link(spRegion, tmRegion, 'bottomUpOut', 'bottomUpIn')
+  net.add_link(tmRegion, clsrRegion, 'bottomUpOut', 'pattern')
+  net.add_link(scalarRegion, clsrRegion, 'bucket', 'bucket')
 
   net.create()
 
