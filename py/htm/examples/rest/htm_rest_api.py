@@ -130,7 +130,7 @@ def get_classifer_predict(net, region_name):
   return {'title': titles[pred[0]], 'prob': pdf[pred[0]]}
 
 
-class Region(object):
+class RegionREST(object):
   def __init__(self, name, type, params={}):
     self.name = name
     self.type = type
@@ -162,7 +162,7 @@ class Region(object):
     return self.net.delete_region(self.name)
 
 
-class Link(object):
+class LinkREST(object):
   def __init__(self, source_name, dest_name, source_output, dest_input):
     self.source_name = source_name
     self.dest_name = dest_name
@@ -211,7 +211,7 @@ class NetworkConfig(object):
     if self.has_region(name):
       raise NetworkRESTError('Region {} is already exists.'.format(name))
 
-    region = Region(name, type, params)
+    region = RegionREST(name, type, params)
     region.set_net(self.net)
 
     self.regions.append(region)
@@ -226,8 +226,8 @@ class NetworkConfig(object):
       raise NetworkRESTError('Region {} is not found.'.format(
         dest_region.name))
 
-    link = Link(source_region.name, dest_region.name, source_output,
-                dest_input)
+    link = LinkREST(source_region.name, dest_region.name, source_output,
+                    dest_input)
     link.set_net(self.net)
     self.links.append(link)
 
