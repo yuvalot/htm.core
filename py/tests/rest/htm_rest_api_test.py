@@ -196,8 +196,10 @@ class HtmRestApiTest(unittest.TestCase):
     self.assertEqual(r, 'OK')
 
   def tearDown(self):
-    r = requests.get('{}/stop'.format(HOST))
-    self._thread.join()
+    try:
+      r = requests.get('{}/stop'.format(HOST))
+    except:
+      pass
 
 
 if __name__ == "__main__":
