@@ -196,11 +196,7 @@ class HtmRestApiTest(unittest.TestCase):
     self.assertEqual(r, 'OK')
 
   def tearDown(self):
-    try:
-      r = requests.get('{}/stop'.format(HOST))
-      print(r)
-    except:
-      os.system("ps x | grep rest_server | grep -v grep | awk '{print $1}' | xargs kill -9")
+    r = requests.get('{}/stop'.format(HOST))
     self._thread.join()
 
 
