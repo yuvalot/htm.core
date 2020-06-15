@@ -272,7 +272,8 @@ TEST(RESTapiTest, alternative_ids) {
 
   res = client.Get("/stop"); // stop the server.
 
-  threadObj.join(); // wait until server thread has stopped.
+  // Note:  If the server thread did not stop for some reason
+  //        it will be killed when the main thread finishes.
 }
 
 

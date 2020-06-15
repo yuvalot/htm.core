@@ -24,7 +24,7 @@ Implementation of the RESTapi class
 #include <htm/engine/Network.hpp>
 
 #define RESOURCE_TIMEOUT 86400    // one day
-#define ID_MAX=9999               // maximum number of generated ids  (this is arbitrary)
+#define ID_MAX 9999               // maximum number of generated ids  (this is arbitrary)
 
 using namespace htm;
 
