@@ -23,7 +23,6 @@ Implementation of the RESTapi class
 #include <htm/engine/RESTapi.hpp>
 #include <htm/engine/Network.hpp>
 
-const size_t RESOURCE_TIMEOUT = 86400; // one day
 const size_t ID_MAX = 9999; // maximum number of generated ids  (this is arbitrary)
 
 using namespace htm;
@@ -55,7 +54,7 @@ RESTapi* RESTapi::getInstance() { return &rest; }
 
     // Make sure this new session id is not in use.
     itr = resource_.find(id);
-    if (itr == resource_.end() || (itr->second.t < time(0) - RESOURCE_TIMEOUT)) {
+    if (itr == resource_.end()) {
       // This is one we can use
       break;
     }
