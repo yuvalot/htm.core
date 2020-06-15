@@ -200,7 +200,7 @@ class HtmRestApiTest(unittest.TestCase):
       r = requests.get('{}/stop'.format(HOST))
       print(r)
     except:
-      pass
+      os.system("ps x | grep rest_server | grep -v grep | awk '{print $1}' | xargs kill -9")
     self._thread.join()
 
 
