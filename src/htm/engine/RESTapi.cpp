@@ -24,6 +24,7 @@ Implementation of the RESTapi class
 #include <htm/engine/Network.hpp>
 
 #define RESOURCE_TIMEOUT 86400    // one day
+#define ID_MAX=9999               // maximum number of generated ids  (this is arbitrary)
 
 using namespace htm;
 
@@ -44,10 +45,10 @@ RESTapi* RESTapi::getInstance() { return &rest; }
   
   std::map<std::string, ResourceContext>::iterator itr;
   std::string id;
-  while (rest.resource_.size() < UINT16_MAX - 1) {
+  while (rest.resource_.size() < ID_MAX) {  // limit the total number of generated resources
     unsigned int id_nbr = next_id++;
-    if (id_nbr == 0)
-      id_nbr = next_id++; // allow integer wrap of the id without a 0 value.
+    if (id_nbr > ID_MAX)
+      id_nbr = 1; // allow integer wrap of the id without a "0000" value.
     char buf[10];
     std::snprintf(buf, sizeof(buf), "%4.04x", id_nbr);
     id = buf;
