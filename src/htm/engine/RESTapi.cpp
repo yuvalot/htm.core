@@ -47,7 +47,7 @@ RESTapi* RESTapi::getInstance() { return &rest; }
   while (rest.resource_.size() < ID_MAX) {  // limit the total number of generated resources
     unsigned int id_nbr = next_id++;
     if (id_nbr > ID_MAX)
-      id_nbr = 1; // allow integer wrap of the id without a "0000" value.
+      id_nbr = 1; // allow integer wrap of the id without using a "0000" value.
     char buf[10];
     std::snprintf(buf, sizeof(buf), "%4.04x", id_nbr);
     id = buf;
