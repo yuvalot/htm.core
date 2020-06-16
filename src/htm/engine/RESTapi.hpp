@@ -36,11 +36,11 @@
  *       message should apply to. Since the protocol is stateless, the "run" 
  *       messages must carry their own state or context. That context is a 
  *       resouce id that was returned from a previous "network create"  message 
- *       that created a Network context and stashed it in resouces map
+ *       that created a Network context and stashed it in a resouces map
  *       indexed by id.
  *
- *       There is a maximum of 65535 active Network class resources.
- *       A Network resource will timeout without activity in 24 hrs.
+ *       There is a maximum of 9999 active Network class resources available
+ *       if you allow REST to assign the id's.  Otherwise the program imposes no limits.
  *
  *       The methods in the class are called from examples/rest/server_core.hpp
  *       which is compiled with the rest server.  An application can use the server
@@ -80,8 +80,11 @@ public:
   * Handler for a "create network resource" request message.
   * This will create a new Network object for this context and configure it.
   *
-  * @param id  A client should use a id of "0" on the first call.  All subsequet calls
-  * of any message type should use the id returned by this function.
+  * @param id  The id to use for this new Network object.  If this is an empty string
+  *         the next available id will be used.  All subsequet calls
+  *         of any message type should use the id returned by this function.
+  *         NOTE: if there is already a Network object corresponding to a specified id
+  *               that Network object will be deleted and a new one created.
   *
   * @param conf  A YAML or JSON string containing the configuration for the Network class.
   *              See Network::configure() for syntax.
@@ -114,10 +117,21 @@ public:
    *                    If blank, no data is set.
    *
    * @param id          Identifier for the resource context (a Network class instance).
-   *                    Client should pass the id returned by the previous "configure"
-   *                    request message.
+   *                    Subsequent calls related to this Network object should use this id.
+   *                    Note: the id parameter can be an empty string.  If empty the program
+   *                          will generate and use the next available id; a four digit string
+   *                          between "0001" and "9999".  If the id exceeds "9999" it will
+   *                          wrap and re-use id's for which Network objects have been deleted.
    *
-   * @retval            If success returns "OK".
+   *                          Otherwise it will use and return the specified id. The specified id 
+   *                          does not have to be numeric.  However, if it is not compatible with 
+   *                          URL syntax the returned id will be a URLencoded copy of the requested id.
+   *
+   *                          If a Network object is already associated with the specified id the 
+   *                          program will remove the existing Network object and create a new one.
+   *
+   *
+   * @retval            If successful it returns the id used.
    *                    Otherwise returns error message starting with "ERROR: ".
    */
   std::string put_input_request(const std::string &id, 
@@ -354,7 +368,7 @@ private:
 
   // A map of open resources. 
   std::map<std::string, ResourceContext> resource_;
-  std::string get_new_id_(const std::string &old_id);
+  std::string get_new_id_(); 
 };
 
 } // namespace htm

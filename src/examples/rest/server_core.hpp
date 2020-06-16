@@ -22,11 +22,16 @@
 //
 // The expected protocol for the NetworkAPI application is as follows:
 //
-//  POST /network?id=<previous id>
+//  POST /network
+//     or
+//       /network/<id>
+//     or
+//       /network?id=<id>
 //       Create a new Network class object as a resource identified by id.
-//       The id field is optional. If given a new network object will replace that id.
+//       The id field is optional. If the id is given the new network object will be
+//       assigned to this id.  Otherwise it will be assigned to the next available id.
 //       The body of the POST is JSON formatted configuration string
-//       Returns a new id for the created resouce or an Error message.
+//       Returns the id for the created resouce or an Error message.
 //  PUT  /network/<id>/region/<region name/param/<param name>?data=<JSON encoded data>
 //       Set the value of a region's parameter. The <data> could also be in the body.
 //  GET  /network/<id>/region/<region name>/param/<param name>
@@ -55,16 +60,19 @@
 //  GET  /stop
 //       Stop the server.  All resources are released.
 
-
+#include <cctype>
 #include <chrono>
 #include <cstdio>
-#include <httplib.h>
 #include <htm/engine/Network.hpp>
 #include <htm/engine/RESTapi.hpp>
+#include <httplib.h>
+#include <iomanip>
+#include <sstream>
+#include <string>
 
 #define SERVER_CERT_FILE "./cert.pem"
 #define SERVER_PRIVATE_KEY_FILE "./key.pem"
-#define DEFAULT_PORT 8050  // default port to listen on
+#define DEFAULT_PORT 8050 // default port to listen on
 #define DEFAULT_INTERFACE "127.0.0.1"
 
 using namespace httplib;
@@ -72,35 +80,63 @@ using namespace htm;
 
 class RESTserver {
 
-
 public:
   RESTserver() {
-    
+
     /*** Register all of the handlers ***/
 
     //  GET  /hi    ==>  "Hello World!\n"
-    svr.Get("/hi", [](const Request & /*req*/, Response &res) { 
-      res.set_content("Hello World!\n", "text/plain"); 
-      });
+    svr.Get("/hi", [](const Request & /*req*/, Response &res) { res.set_content("Hello World!\n", "text/plain"); });
     if (!svr.is_valid()) {
       NTA_THROW << "server could not be created...\n";
     }
 
-
-    //  POST /network?id=<previous id>
-    //  Configure a Network resource (with JSON configuration in POST body) ==> token
-    //  Note: the id parameter is optional.  If given it will re-use (replace) a previous id or use it.
+    //  POST /network?id=<specified id>
+    // or
+    //  POST /network/<specified id>
+    // or
+    //  POST /network
+    //  Create and configure a Network resource indexed by an id.
+    //  The configuration string is passed in the POST body, JSON encoded.
+    //  Returns the id used (URLencoded).  Subsequent calls should use this id.
+    //  Note: the id parameter is optional.  If not provided it will use the next
+    //        available id.  Otherwise it will use and return the specified id.
+    //        If a Network object is already associated with the specified id
+    //        the program will remove the existing Network object and create a new one.
+    //
+    //        The specified id does not have to be numeric.  However, if it is
+    //        not compatible with URL syntax the returned id will be a URLencoded
+    //        copy of the id.
+    //
     svr.Post("/network", [&](const Request &req, Response &res) {
       std::string id;
       auto itr = req.params.find("id");
       if (itr != req.params.end())
-        id = itr->second;
+        id = url_encode(itr->second); // the returned parameter value gets url decoded so must re-encode it.
+
+      std::string data = res.body;
+      auto ix = req.params.find("data"); // The body could optionally be encoded in a parameter
+      if (ix != req.params.end())
+        data = ix->second;
 
       RESTapi *interface = RESTapi::getInstance();
       std::string token = interface->create_network_request(id, req.body);
-      res.set_content(token+"\n", "text/plain");
+      res.set_content(token + "\n", "text/plain");
     });
-    
+    svr.Post("/network/[^/]*", [&](const Request &req, Response &res) {
+      std::vector<std::string> flds = split(req.path, '/');
+      std::string id = flds[2];
+
+      std::string data = res.body;
+      auto ix = req.params.find("data");
+      if (ix != req.params.end())
+        data = ix->second;
+
+      RESTapi *interface = RESTapi::getInstance();
+      std::string token = interface->create_network_request(id, req.body);
+      res.set_content(token + "\n", "text/plain");
+    });
+
     //  PUT  /network/<id>/region/<region name>/param/<param name>?data=<JSON encoded data>
     // Set the value of a ReadWrite Parameter on a Region.  Alternatively, the data could be in the body.
     svr.Put("/network/.*/region/.*/param/.*", [&](const Request &req, Response &res) {
@@ -112,7 +148,7 @@ public:
       auto ix = req.params.find("data");
       if (ix != req.params.end())
         data = ix->second;
-      
+
       RESTapi *interface = RESTapi::getInstance();
       std::string result = interface->put_param_request(id, region_name, param_name, data);
       res.set_content(result + "\n", "text/plain");
@@ -174,7 +210,7 @@ public:
       std::string result = interface->get_output_request(id, region_name, output_name);
       res.set_content(result + "\n", "text/plain");
     });
-    
+
     //  DELETE /network/<id>/region/<region name>
     //       Deletes a region. Must not be in any links.
     svr.Delete("/network/.*/region/.*", [](const Request &req, Response &res) {
@@ -199,7 +235,7 @@ public:
       std::string result = interface->delete_link_request(id, source_name, dest_name);
       res.set_content(result + "\n", "text/plain");
     });
-    
+
     //  DELETE /network/<id>/ALL
     //       Deletes the entire Network object
     svr.Delete("/network/.*/ALL", [](const Request &req, Response &res) {
@@ -210,7 +246,6 @@ public:
       std::string result = interface->delete_network_request(id);
       res.set_content(result + "\n", "text/plain");
     });
-
 
     // GET /network/<id>/run?iterations=<iterations>
     //    Execute the NetworkAPI <iterations> times.
@@ -225,7 +260,7 @@ public:
 
       RESTapi *interface = RESTapi::getInstance();
       std::string result = interface->run_request(id, iterations);
-      res.set_content(result+"\n", "text/plain");
+      res.set_content(result + "\n", "text/plain");
     });
 
     //  GET  /network/<id>/region/<region name>/command?data=<command>
@@ -246,12 +281,9 @@ public:
       res.set_content(result + "\n", "text/plain");
     });
 
-
-
-    //  GET /stop  
+    //  GET /stop
     //    Halt the server.
-    svr.Get("/stop",  [&](const Request & /*req*/, Response & /*res*/) { svr.stop(); });
-
+    svr.Get("/stop", [&](const Request & /*req*/, Response & /*res*/) { svr.stop(); });
 
     // What to do if there is an error in the server.
     svr.set_error_handler([](const Request & /*req*/, Response &res) {
@@ -260,25 +292,46 @@ public:
       snprintf(buf, sizeof(buf), fmt, res.status);
       res.set_content(buf, "text/html");
     });
-
   }
-
 
   // How to perform logging.
-  inline void set_logger(httplib::Logger logger) {
-      svr.set_logger(logger);
-  }
+  inline void set_logger(httplib::Logger logger) { svr.set_logger(logger); }
 
   inline void listen(int port, std::string net_interface) {
-      // Enter the server listen loop.
-      svr.listen(net_interface.c_str(), port);
+    // Enter the server listen loop.
+    svr.listen(net_interface.c_str(), port);
   }
 
+  inline std::string url_encode(const std::string &value) {
+    std::ostringstream escaped;
+    escaped.fill('0');
+    escaped << std::hex;
+
+    for (std::string::const_iterator i = value.begin(), n = value.end(); i != n; ++i) {
+      std::string::value_type c = (*i);
+
+      // Keep alphanumeric and other accepted characters intact
+      if (std::isalnum(c) || c == '-' || c == '_' || c == '.' || c == '~') {
+        escaped << c;
+        continue;
+      }
+
+      // Any other characters are percent-encoded
+      escaped << std::uppercase;
+      escaped << '%' << std::setw(2) << int((unsigned char)c);
+      escaped << std::nouppercase;
+    }
+
+    return escaped.str();
+  }
+
+  inline bool is_running() { return svr.is_running(); }
+  inline void stop() { svr.stop(); }
+
 private:
-  #ifdef CPPHTTPLIB_OPENSSL_SUPPORT
-    SSLServer svr(SERVER_CERT_FILE, SERVER_PRIVATE_KEY_FILE);
-  #else
-    Server svr;
-  #endif
-  
+#ifdef CPPHTTPLIB_OPENSSL_SUPPORT
+  SSLServer svr(SERVER_CERT_FILE, SERVER_PRIVATE_KEY_FILE);
+#else
+  Server svr;
+#endif
 };
