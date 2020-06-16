@@ -1,5 +1,4 @@
 import sys
-import threading
 import requests
 import subprocess
 import unittest
@@ -24,15 +23,9 @@ HOST = 'http://127.0.0.1:8050'
 EPOCHS = 3
 
 
-class RestServerThread(threading.Thread):
-  def run(self):
-    subprocess.run(REST_SERVER + ' 8050 127.0.0.1', shell=True)
-
-
 class HtmRestApiTest(unittest.TestCase):
   def setUp(self):
-    self._thread = RestServerThread()
-    self._thread.start()
+    self._process = subprocess.Popen([REST_SERVER, '8050', '127.0.0.1'])
     sleep(0.1)
 
   def testNetworkRESTBaseExample(self):
@@ -200,6 +193,10 @@ class HtmRestApiTest(unittest.TestCase):
       r = requests.get('{}/stop'.format(HOST))
     except:
       pass
+    sleep(0.1)
+    self._process.terminate()
+
+    self._process.wait(1)
 
 
 if __name__ == "__main__":
