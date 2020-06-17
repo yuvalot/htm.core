@@ -210,6 +210,25 @@ TEST(ValueTest, inserts) {
   EXPECT_ANY_THROW(vm[3]["hello"] = std::string("world"));
 }
 
+TEST(ValueTest, insertParsedValue) {
+  ValueMap vm;
+  std::string tree_src = "{param1: \"first node\", param2: \"second node\", param3: \"third node\"}";
+  vm.parse(tree_src);
+  // std::cout << "initial tree: " << vm << "\n";
+  EXPECT_STREQ(tree_src.c_str(), vm.to_json().c_str());
+
+  // Replace param2 with a sequence.
+  std::string insert_seq = "[ 1, 2, 3, 4 ]";
+  vm["param2"].parse(insert_seq);
+  EXPECT_STREQ("{param1: \"first node\", param2: [1, 2, 3, 4], param3: \"third node\"}", vm.to_json().c_str());
+
+  // Add a map to the sequence just added.
+  std::string insert_map = "{ a: \"value a\", b: \"value b\"}";
+  vm["param2"][4].parse(insert_map);
+  EXPECT_STREQ(
+      "{param1: \"first node\", param2: [1, 2, 3, 4, {a: \"value a\", b: \"value b\"}], param3: \"third node\"}",
+      vm.to_json().c_str());
+}
 
 TEST(ValueTest, ValueMapTest) {
   std::vector<UInt32> a = {1, 2, 3, 4};

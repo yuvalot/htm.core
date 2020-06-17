@@ -202,13 +202,10 @@ public:
       : ArrayBase(BasicType::getType<T>()) {
     allocateBuffer(vect.size());
     if (has_buffer()) {
-      if (type_ == NTA_BasicType_Str) { // cannot use memcpy on strings so iterate.
-        T *ptr = (T *)getBuffer();
-        for (size_t i = 0; i < count_; i++) {
-          ptr[i] = vect[i];
-        }
-      } else {
-        memcpy(getBuffer(), vect.data(), count_ * BasicType::getSize(type_));
+      // iterate the elements in the vector so we don't need to worry about the size of it's internal elements.
+      T *ptr = (T *)getBuffer();
+      for (size_t i = 0; i < count_; i++) {
+        ptr[i] = vect[i];
       }
     }
 

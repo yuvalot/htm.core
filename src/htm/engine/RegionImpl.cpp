@@ -281,9 +281,10 @@ ValueMap RegionImpl::ValidateParameters(const ValueMap &vm, Spec* ns) {
     std::string key = p.first;
     ParameterSpec &ps = p.second;
     if (!ps.defaultValue.empty()) {
-      if (new_vm.getString(key, "").length() == 0) {
+      if (!new_vm.contains(key) || new_vm.getString(key, "").length() == 0) {
         // a missing or empty parameter.
-        new_vm[key] = ps.defaultValue;
+        new_vm[key].parse(ps.defaultValue);
+        std::string x = new_vm.to_json();
       }
     }
   }

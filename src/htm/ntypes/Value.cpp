@@ -84,6 +84,8 @@ Value &Value::parse(const std::string &yaml_string) {
   yaml_event_type_e event_type = YAML_NO_EVENT;
   std::string key;
 
+  VERBOSE << "parsing: " << yaml_string << std::endl;
+
   yaml_parser_initialize(&parser);
   yaml_parser_set_input_string(&parser, (const unsigned char *)yaml_string.c_str(), yaml_string.size());
 
@@ -119,7 +121,7 @@ Value &Value::parse(const std::string &yaml_string) {
       case YAML_STREAM_START_EVENT: break;
       case YAML_STREAM_END_EVENT: break;
       case YAML_DOCUMENT_START_EVENT:  state = start_state; break;
-      case YAML_DOCUMENT_END_EVENT:  NTA_CHECK(node->isRoot()); break;
+      case YAML_DOCUMENT_END_EVENT:  break;
       case YAML_ALIAS_EVENT: break;
       case YAML_MAPPING_START_EVENT:
       case YAML_SEQUENCE_START_EVENT:
@@ -579,7 +581,7 @@ bool Value::operator==(const Value &v) const { return equals(*this, v); }
 // Explicit implementations for as<T>()
 #define NTA_CONVERT(T, I)                                                                                              \
   if (core_->type_ != Value::Category::Scalar)                                                                         \
-    NTA_THROW << "value not found.";                                                                                   \
+    NTA_THROW << "scalar value not found for \"" << core_->key_ << "\".";                                              \
   errno = 0;                                                                                                           \
   char *end;                                                                                                           \
   T val = (T)I;                                                                                                        \
@@ -600,19 +602,20 @@ float Value::asFloat() const { NTA_CONVERT(float, std::strtof(core_->scalar_.c_s
 double Value::asDouble() const { NTA_CONVERT(double, std::strtod(core_->scalar_.c_str(), &end)); }
 std::string Value::asString() const {
   if (core_->type_ != Value::Category::Scalar)
-    NTA_THROW << "value not found.";
+    NTA_THROW << "scalar value not found for \"" << core_->key_ << "\".";
   return core_->scalar_;
 }
 bool Value::asBool() const {
   if (core_->type_ != Value::Category::Scalar)
-    NTA_THROW << "value not found. " << core_->scalar_;
+    NTA_THROW << "scalar value not found for \"" << core_->key_ << "\".";
   std::string val = str();
   transform(val.begin(), val.end(), val.begin(), ::tolower);
   if (val == "true" || val == "on" || val == "1" || val == "yes")
     return true;
   if (val == "false" || val == "off" || val == "0" || val == "no")
     return false;
-  NTA_THROW << "Invalid value for a boolean. " << val;
+  NTA_THROW << "Invalid value for a boolean. " << val << " \"" << core_->key_ << "\".";
+  ;
 }
 
 /**

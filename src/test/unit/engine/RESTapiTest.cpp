@@ -131,10 +131,10 @@ protected:
     // We do this here just to test that the server does shut down.
 
     client->Get("/stop");                                        // stop the server.
-    std::this_thread::sleep_for(std::chrono::milliseconds(100)); // yield to give server time to stop
+    std::this_thread::sleep_for(std::chrono::milliseconds(500)); // yield to give server time to stop
 
     if (server.is_running()) {
-      ASSERT_TRUE(false) << "The server did not shut down with the /stop command within 100ms.";
+      ASSERT_TRUE(false) << "The server did not shut down with the /stop command within 500ms.";
       server.stop();  
     }
     serverThreadObj.join(); // wait until server thread has stopped.
@@ -206,8 +206,7 @@ TEST_F(RESTapiTest, example) {
   snprintf(message, sizeof(message), "/network/%s/region/tm/output/anomaly", id.c_str());
   res = client->Get(message);
   ASSERT_TRUE(res && res->status / 100 == 2) << " GET output message failed.";
-  EXPECT_STREQ(trim(res->body).c_str(), "{type: \"Real32\",data: [1]}")
-      << "Response to GET output request (The Anomaly Score)";
+  EXPECT_STREQ(trim(res->body).c_str(), "[1]") << "Response to GET output request (The Anomaly Score)";
 
 
 
