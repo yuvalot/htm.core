@@ -38,6 +38,7 @@ namespace htm {
 TestNode::TestNode(const ValueMap &par, Region *region)
     : RegionImpl(region), computeCallback_(nullptr), nodeCount_(1)
 {
+  outputElementCount_ = 0;
   spec_.reset(createSpec());
   ValueMap params = ValidateParameters(par, spec_.get());
 
@@ -220,23 +221,22 @@ Spec *TestNode::createSpec() {
 
   /* ---- parameters ------ */
   ns->parameters.add( "count",
-                     ParameterSpec(
-							                   "Buffer size for bottomUpOut Output. "
-                                 "To set it, use dim parameter, i.e. {dim: [64]}",  // description
-	                               NTA_BasicType_UInt32,
-							                   1,                         // elementCount 
-							                   "",                        // constraints
-							                   "",                        // defaultValue
-							                   ParameterSpec::ReadOnlyAccess));
+                     ParameterSpec( "Buffer size for bottomUpOut Output. "
+                                    "To set it, use 'dim' parameter, i.e. {dim: [64]}",  // description
+	                                  NTA_BasicType_UInt32,
+							                      1,                         // elementCount 
+							                      "",                        // constraints
+							                      "",                        // defaultValue
+							                      ParameterSpec::ReadOnlyAccess));
 
 
   ns->parameters.add("int32Param",
                      ParameterSpec("Int32 scalar parameter", // description
-                                   NTA_BasicType_Int32,
-                                   1,    // elementCount
-                                   "",   // constraints
-                                   "32", // defaultValue
-                                   ParameterSpec::ReadWriteAccess));
+                                    NTA_BasicType_Int32,
+                                    1,    // elementCount
+                                    "",   // constraints
+                                    "32", // defaultValue
+                                    ParameterSpec::ReadWriteAccess));
 
   ns->parameters.add("uint32Param",
                      ParameterSpec("UInt32 scalar parameter", // description
@@ -293,36 +293,36 @@ Spec *TestNode::createSpec() {
                                    "", "", ParameterSpec::ReadWriteAccess));
 
   ns->parameters.add("int64ArrayParam",
-                     ParameterSpec("int64 array parameter",  // description
-					               NTA_BasicType_Int64,
-                                   0, // array
-                                   "", // constraints
-								   "", // default Value
-								   ParameterSpec::ReadWriteAccess));
+                     ParameterSpec( "int64 array parameter",  // description
+                                    NTA_BasicType_Int64,
+                                    0, // array
+                                    "", // constraints
+                                    "", // default Value
+                                    ParameterSpec::ReadWriteAccess));
 
   ns->parameters.add("boolArrayParam",
-                   ParameterSpec("bool array parameter", // description
-					         NTA_BasicType_Bool,
-                   0, // array
-                   "", // constraints
-								   "[false, true, false, true]", // default Value, array in JSON syntax
-								   ParameterSpec::ReadOnlyAccess));
+                   ParameterSpec( "bool array parameter", // description
+					                         NTA_BasicType_Bool,
+                                   0, // array
+                                   "", // constraints
+								                   "[false, true, false, true]", // default Value, array in JSON syntax
+								                   ParameterSpec::ReadOnlyAccess));
 
   ns->parameters.add("computeCallback",
                      ParameterSpec("address of a function that is called at every compute()",
-                     NTA_BasicType_UInt64,
-					           1,  // element count
-					           "", // constraints
-                     "", // handles must not have a default value
-                     ParameterSpec::ReadWriteAccess));
+                                   NTA_BasicType_UInt64,
+					                         1,  // element count
+					                         "", // constraints
+                                   "", // handles must not have a default value
+                                   ParameterSpec::ReadWriteAccess));
 
   ns->parameters.add("stringParam",
                      ParameterSpec("string parameter",
-					               NTA_BasicType_Byte,
-                                   0, // length=0 required for strings
-                                   "",
-								   "nodespec value",
-                                   ParameterSpec::ReadWriteAccess));
+                                    NTA_BasicType_Str,
+                                    1, // a scalar string
+                                    "",
+                                    "nodespec value",
+                                    ParameterSpec::ReadWriteAccess));
 
   ns->parameters.add("unclonedParam",
                      ParameterSpec("has a separate value for each node", // description
@@ -333,28 +333,28 @@ Spec *TestNode::createSpec() {
                                    ParameterSpec::ReadWriteAccess));
 
   ns->parameters.add("shouldCloneParam",
-				      ParameterSpec("whether possiblyUnclonedParam should clone", // description
-				                    NTA_BasicType_UInt32,
-				                    1,            // elementCount
-				                    "enum: 0, 1", // constraints
-				                    "1",          // defaultValue
-				                    ParameterSpec::ReadWriteAccess));
+				            ParameterSpec("whether possiblyUnclonedParam should clone", // description
+				                          NTA_BasicType_UInt32,
+				                          1,            // elementCount
+				                          "enum: 0, 1", // constraints
+				                          "1",          // defaultValue
+				                          ParameterSpec::ReadWriteAccess));
 
   ns->parameters.add("possiblyUnclonedParam",
-				      ParameterSpec("cloned if shouldCloneParam is true", // description
-				                    NTA_BasicType_UInt32,
-				                    1,  // elementCount
-				                    "", // constraints
-				                    "", // defaultValue
-				                    ParameterSpec::ReadWriteAccess));
+				            ParameterSpec("cloned if shouldCloneParam is true", // description
+				                          NTA_BasicType_UInt32,
+				                          1,  // elementCount
+				                          "", // constraints
+				                          "", // defaultValue
+				                          ParameterSpec::ReadWriteAccess));
 
   ns->parameters.add("unclonedInt64ArrayParam",
-				      ParameterSpec("has a separate array for each node", // description
-				                    NTA_BasicType_Int64,
-				                    0,  // array                            //elementCount
-				                    "", // constraints
-				                    "", // defaultValue
-				                    ParameterSpec::ReadWriteAccess));
+				            ParameterSpec("has a separate array for each node", // description
+				                          NTA_BasicType_Int64,
+				                          0,  // array                            //elementCount
+				                          "", // constraints
+				                          "", // defaultValue
+				                          ParameterSpec::ReadWriteAccess));
 
   /* ----- inputs ------- */
   ns->inputs.add("bottomUpIn",

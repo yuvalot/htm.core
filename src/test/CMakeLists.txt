@@ -27,7 +27,7 @@ message(STATUS "Configuring htm_core tests")
 #   ${core_library}  references the htm_core  static library which includes depencancy libraries
 #
 
-set(CMAKE_VERBOSE_MAKEFILE ON) # toggle for cmake debug 
+set(CMAKE_VERBOSE_MAKEFILE OFF) # toggle for cmake debug 
 
 
 

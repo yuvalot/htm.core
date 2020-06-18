@@ -163,7 +163,7 @@ TEST(CppRegionTest, testYAML) {
   Network net;
   std::shared_ptr<Region> level1;
 
-  EXPECT_NO_THROW({level1 = net.addRegion("level1", "TestNode", params);});
+  level1 = net.addRegion("level1", "TestNode", params);
 
   net.initialize();
 
@@ -295,6 +295,7 @@ TEST(CppRegionTest, ValidateParameters) {
   EXPECT_STREQ("[\"false\", \"true\", \"false\", \"true\"]", a.toJSON().c_str());
 
   EXPECT_ANY_THROW(std::shared_ptr<Region> r2 = n.addRegion("testnode", "TestNode", "{invalid_field_name: \"abc\", dim: [2]}"));
+  
 }
 
 } // namespace testing

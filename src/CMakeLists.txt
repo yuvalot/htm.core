@@ -20,7 +20,7 @@ project(htm_core CXX)
 
 message(STATUS "Configuring htm_core src")
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
-set(CMAKE_VERBOSE_MAKEFILE ON) # toggle for cmake debug
+set(CMAKE_VERBOSE_MAKEFILE OFF) # toggle for cmake debug
 include(src/NupicLibraryUtils) # for combining static libs
 include(src/ExpandStaticLib)   # for creating objects from a static lib
 

@@ -1,6 +1,7 @@
 from urllib.parse import urlencode
 import requests
 import json
+import re
 
 
 class NetworkRESTError(Exception):
@@ -22,17 +23,11 @@ def request(method, url, data=None, verbose=False):
   if text[0:6] == 'ERROR:':
     raise NetworkRESTError(text[6:].strip())
 
-  if text == 'OK':
+  # determine if result contains JSON i.e. it starts with '{' for a map or '[' for an array
+  if text[0:1] == '[' or text[0:1] == '{':
+    return json.loads( text )
+  else:
     return text
-
-  idx = text.find('[')
-
-  if idx == -1:
-    return text
-
-  data = text[idx + 1:].replace(']}', '')
-
-  return json.loads('[' + data + ']')
 
 
 class NetworkRESTBase(object):
