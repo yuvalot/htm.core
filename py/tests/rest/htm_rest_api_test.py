@@ -26,7 +26,7 @@ EPOCHS = 3
 class HtmRestApiTest(unittest.TestCase):
   def setUp(self):
     self._process = subprocess.Popen([REST_SERVER, '8050', '127.0.0.1'])
-    sleep(0.1)
+    sleep(0.2)
 
   def testNetworkRESTBaseExample(self):
     rsp = requests.get(HOST + '/hi')
@@ -193,8 +193,9 @@ class HtmRestApiTest(unittest.TestCase):
       r = requests.get('{}/stop'.format(HOST))
     except:
       pass
-    sleep(0.1)
+    sleep(0.01)
     self._process.terminate()
+    sleep(0.1)
 
     self._process.wait(1)
 
