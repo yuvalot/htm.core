@@ -672,7 +672,7 @@ std::string Value::json_string(const std::string &str) {
       if (*c <= '\x1f' || *c == '\x7f') { 
         //control characters -> convert to hex.
         char buf[10];
-        snprintf(buf, sizeof(buf), "\\u%04.04x", (unsigned int)*c);
+        snprintf(buf, sizeof(buf), "\\u%04x", (unsigned int)*c);
         o.append(buf);
       } else {
         o.push_back(*c); 
