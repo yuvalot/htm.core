@@ -707,10 +707,10 @@ std::string ArrayBase::toJSON() const {
         json << ((Real64 *)inbuf)[i];
         break;
       case NTA_BasicType_Bool: 
-          json << ((((bool *)inbuf)[i]) ? "\"true\"" : "\"false\"");
+          json << ((((bool *)inbuf)[i]) ? "true" : "false");
         break;
       case NTA_BasicType_Str:
-        json << "\"" << ((std::string *)inbuf)[i] << "\"";
+        json << Value::json_string(((std::string *)inbuf)[i]);
         break;
       default:
         NTA_THROW << "Unexpected Element Type: " << type_;

@@ -21,6 +21,8 @@
 //            dest_name   syntax is "region_name.input_name"
 //
 // The expected protocol for the NetworkAPI application is as follows:
+// All responces are JSON encoded except Errors responses which are text
+// with a prefix of "ERROR: ".
 //
 //  POST /network
 //     or
@@ -85,11 +87,12 @@ public:
 
     /*** Register all of the handlers ***/
 
-    //  GET  /hi    ==>  "Hello World!\n"
-    svr.Get("/hi", [](const Request & /*req*/, Response &res) { res.set_content("Hello World!\n", "text/plain"); });
+    //  GET  /hi    ==>  "Hello World!"\n
+    svr.Get("/hi", [](const Request & /*req*/, Response &res) { res.set_content("\"Hello World!\"\n", "application/json"); });
     if (!svr.is_valid()) {
       NTA_THROW << "server could not be created...\n";
     }
+    
 
     //  POST /network?id=<specified id>
     // or
@@ -120,11 +123,11 @@ public:
         data = ix->second;
 
       RESTapi *interface = RESTapi::getInstance();
-      std::string token = interface->create_network_request(id, req.body);
-      res.set_content(token + "\n", "text/plain");
+      std::string result = interface->create_network_request(id, req.body);
+      res.set_content(result + "\n", "application/json");
     });
     svr.Post("/network/[^/]*", [&](const Request &req, Response &res) {
-      std::vector<std::string> flds = split(req.path, '/');
+      std::vector<std::string> flds = Path::split(req.path, '/');
       std::string id = flds[2];
 
       std::string data = res.body;
@@ -133,14 +136,14 @@ public:
         data = ix->second;
 
       RESTapi *interface = RESTapi::getInstance();
-      std::string token = interface->create_network_request(id, req.body);
-      res.set_content(token + "\n", "text/plain");
+      std::string result = interface->create_network_request(id, req.body);
+      res.set_content(result + "\n", "application/json");
     });
 
     //  PUT  /network/<id>/region/<region name>/param/<param name>?data=<JSON encoded data>
     // Set the value of a ReadWrite Parameter on a Region.  Alternatively, the data could be in the body.
     svr.Put("/network/.*/region/.*/param/.*", [&](const Request &req, Response &res) {
-      std::vector<std::string> flds = split(req.path, '/');
+      std::vector<std::string> flds = Path::split(req.path, '/');
       std::string id = flds[2];
       std::string region_name = flds[4];
       std::string param_name = flds[6];
@@ -151,27 +154,27 @@ public:
 
       RESTapi *interface = RESTapi::getInstance();
       std::string result = interface->put_param_request(id, region_name, param_name, data);
-      res.set_content(result + "\n", "text/plain");
+      res.set_content(result + "\n", "application/json");
     });
 
     //  GET  /network/<id>/region/<region name>/param/<param name>
     //     Get the value of a Parameter on a Region.
     svr.Get("/network/.*/region/.*/param/.*", [](const Request &req, Response &res) {
-      std::vector<std::string> flds = split(req.path, '/');
+      std::vector<std::string> flds = Path::split(req.path, '/');
       std::string id = flds[2];
       std::string region_name = flds[4];
       std::string param_name = flds[6];
 
       RESTapi *interface = RESTapi::getInstance();
       std::string result = interface->get_param_request(id, region_name, param_name);
-      res.set_content(result + "\n", "text/plain");
+      res.set_content(result + "\n", "application/json");
     });
 
     //  PUT  /network/<id>/region/<region name>/input/<input name>?data=<url encoded JSON data>
     //       Set the value of a region's input. The <data> could also be in the body.
     //  The data is a JSON encoded Array object which includes the type specifier;
     svr.Put("/network/.*/region/.*/input/.*", [](const Request &req, Response &res) {
-      std::vector<std::string> flds = split(req.path, '/');
+      std::vector<std::string> flds = Path::split(req.path, '/');
       std::string id = flds[2];
       std::string region_name = flds[4];
       std::string input_name = flds[6];
@@ -182,76 +185,76 @@ public:
 
       RESTapi *interface = RESTapi::getInstance();
       std::string result = interface->put_input_request(id, region_name, input_name, data);
-      res.set_content(result + "\n", "text/plain");
+      res.set_content(result + "\n", "application/json");
     });
 
     //  GET  /network/<id>/region/<region name>/input/<input name>
     //       Get the value of a region's input. Returns a JSON ecoded Array object.
     svr.Get("/network/.*/region/.*/input/.*", [](const Request &req, Response &res) {
-      std::vector<std::string> flds = split(req.path, '/');
+      std::vector<std::string> flds = Path::split(req.path, '/');
       std::string id = flds[2];
       std::string region_name = flds[4];
       std::string input_name = flds[6];
 
       RESTapi *interface = RESTapi::getInstance();
       std::string result = interface->get_input_request(id, region_name, input_name);
-      res.set_content(result + "\n", "text/plain");
+      res.set_content(result + "\n", "application/json");
     });
 
     //  GET  /network/<id>/region/<region name>/output/<output name>
     // Get a specific Output of a region. Returns a JSON encoded Array object.
     svr.Get("/network/.*/region/.*/output/.*", [](const Request &req, Response &res) {
-      std::vector<std::string> flds = split(req.path, '/');
+      std::vector<std::string> flds = Path::split(req.path, '/');
       std::string id = flds[2];
       std::string region_name = flds[4];
       std::string output_name = flds[6];
 
       RESTapi *interface = RESTapi::getInstance();
       std::string result = interface->get_output_request(id, region_name, output_name);
-      res.set_content(result + "\n", "text/plain");
+      res.set_content(result + "\n", "application/json");
     });
 
     //  DELETE /network/<id>/region/<region name>
     //       Deletes a region. Must not be in any links.
     svr.Delete("/network/.*/region/.*", [](const Request &req, Response &res) {
-      std::vector<std::string> flds = split(req.path, '/');
+      std::vector<std::string> flds = Path::split(req.path, '/');
       std::string id = flds[2];
       std::string region_name = flds[4];
 
       RESTapi *interface = RESTapi::getInstance();
       std::string result = interface->delete_region_request(id, region_name);
-      res.set_content(result + "\n", "text/plain");
+      res.set_content(result + "\n", "application/json");
     });
 
     //  DELETE /network/<id>/link/<name>
     //       Deletes a link.
     svr.Delete("/network/.*/link/.*/.*", [](const Request &req, Response &res) {
-      std::vector<std::string> flds = split(req.path, '/');
+      std::vector<std::string> flds = Path::split(req.path, '/');
       std::string id = flds[2];
       std::string source_name = flds[4];
       std::string dest_name = flds[5];
 
       RESTapi *interface = RESTapi::getInstance();
       std::string result = interface->delete_link_request(id, source_name, dest_name);
-      res.set_content(result + "\n", "text/plain");
+      res.set_content(result + "\n", "application/json");
     });
 
     //  DELETE /network/<id>/ALL
     //       Deletes the entire Network object
     svr.Delete("/network/.*/ALL", [](const Request &req, Response &res) {
-      std::vector<std::string> flds = split(req.path, '/');
+      std::vector<std::string> flds = Path::split(req.path, '/');
       std::string id = flds[2];
 
       RESTapi *interface = RESTapi::getInstance();
       std::string result = interface->delete_network_request(id);
-      res.set_content(result + "\n", "text/plain");
+      res.set_content(result + "\n", "application/json");
     });
 
     // GET /network/<id>/run?iterations=<iterations>
     //    Execute the NetworkAPI <iterations> times.
     //           iterations are optional; defaults to 1.
     svr.Get("/network/.*/run", [](const Request &req, Response &res) {
-      std::vector<std::string> flds = split(req.path, '/');
+      std::vector<std::string> flds = Path::split(req.path, '/');
       std::string id = flds[2];
       std::string iterations = "1";
       auto ix = req.params.find("iterations");
@@ -260,7 +263,7 @@ public:
 
       RESTapi *interface = RESTapi::getInstance();
       std::string result = interface->run_request(id, iterations);
-      res.set_content(result + "\n", "text/plain");
+      res.set_content(result + "\n", "application/json");
     });
 
     //  GET  /network/<id>/region/<region name>/command?data=<command>
@@ -268,7 +271,7 @@ public:
     //       command name followed by the arguments.
     //       The data could also be in the body.
     svr.Get("/network/.*/region/.*/command", [](const Request &req, Response &res) {
-      std::vector<std::string> flds = split(req.path, '/');
+      std::vector<std::string> flds = Path::split(req.path, '/');
       std::string id = flds[2];
       std::string region_name = flds[4];
       std::string command = req.body;
@@ -278,7 +281,7 @@ public:
 
       RESTapi *interface = RESTapi::getInstance();
       std::string result = interface->command_request(id, region_name, command);
-      res.set_content(result + "\n", "text/plain");
+      res.set_content(result + "\n", "application/json");
     });
 
     //  GET /stop
@@ -287,10 +290,10 @@ public:
 
     // What to do if there is an error in the server.
     svr.set_error_handler([](const Request & /*req*/, Response &res) {
-      const char *fmt = "ERROR Status: %d";
+      const char *fmt = "ERROR: Status %d";
       char buf[BUFSIZ];
       snprintf(buf, sizeof(buf), fmt, res.status);
-      res.set_content(buf, "text/html");
+      res.set_content(buf, "application/json");
     });
   }
 

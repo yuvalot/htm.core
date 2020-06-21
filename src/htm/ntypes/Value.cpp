@@ -21,6 +21,7 @@
 #include <htm/ntypes/BasicType.hpp>
 #include <htm/ntypes/Value.hpp>
 #include <htm/utils/Log.hpp>
+#include <htm/os/Path.hpp>  // for trim()
 
 #include <algorithm> // transform
 #include <cerrno>
@@ -619,42 +620,67 @@ bool Value::asBool() const {
 }
 
 /**
- * a local function to apply escapes for a JSON string.
- See: http://www.ecma-international.org/publications/files/ECMA-ST/ECMA-404.pdf
+ * A function to apply escapes for a JSON string.
+ * It is assumed that std::strings are UTF8.
+ * See: http://www.ecma-international.org/publications/files/ECMA-ST/ECMA-404.pdf
  */
-static void escape_json(std::ostream &o, const std::string &s) {
+std::string Value::json_string(const std::string &str) {
+  std::string s = Path::trim(str);
+  if (s.empty()) 
+    return "null";  // The JSON identifier for empty.
+    
+  if (std::regex_match(s, std::regex("^[-+]?[0-9]+([.][0-9]+)?$"))) {
+    // This is numeric so does not need quotes or escapes.
+    return s;
+  }
+  
+  if (s == "true" || s == "false")
+    // This is boolean so soes not need quotes or escapes
+    return s;
+  
+  std::string o;
+  o.push_back('\"');
   for (auto c = s.cbegin(); c != s.cend(); c++) {
     switch (*c) {
     case '"':
-      o << "\\\"";
+      o.push_back('\\');
+      o.push_back('\"');
       break;
     case '\\':
-      o << "\\\\";
+      o.push_back('\\');
+      o.push_back('\\');
       break;
     case '\b':
-      o << "\\b";
+      o.push_back('\\');
+      o.push_back('b');
       break;
     case '\f':
-      o << "\\f";
+      o.push_back('\\');
+      o.push_back('f');
       break;
     case '\n':
-      o << "\\n";
+      o.push_back('\\');
+      o.push_back('n');
       break;
     case '\r':
-      o << "\\r";
       break;
     case '\t':
-      o << "\\t";
+      o.push_back('\\');
+      o.push_back('t');
       break;
     default:
       if (*c <= '\x1f' || *c == '\x7f') { 
         //control characters -> convert to hex.
-        o << "\\u" << std::hex << std::setw(4) << std::setfill('0') << (int)*c;
+        char buf[10];
+        snprintf(buf, sizeof(buf), "\\u%04.04x", (unsigned int)*c);
+        o.append(buf);
       } else {
-        o << *c; 
+        o.push_back(*c); 
       }
     }
   }
+  o.push_back('\"');
+  return o;
 }
 
 static void to_json(std::ostream &f, const htm::Value &v) {
@@ -664,14 +690,7 @@ static void to_json(std::ostream &f, const htm::Value &v) {
   case Value::Empty:
     return;
   case Value::Scalar:
-    s = v.str();
-    if (std::regex_match(s, std::regex("^[-+]?[0-9]+([.][0-9]+)?$"))) {
-      escape_json(f, s);
-    } else {
-      f << '"';
-      escape_json(f, s);
-      f << '"';
-    }
+    f << Value::json_string(v.str());
     break;
   case Value::Sequence:
     f << "[";
@@ -691,7 +710,7 @@ static void to_json(std::ostream &f, const htm::Value &v) {
         f << ", ";
       first = false;
       const Value &n = v[i];
-      f << n.key() << ": ";
+      f << Value::json_string(n.key()) << ": ";
       to_json(f, n);
     }
     f << "}";

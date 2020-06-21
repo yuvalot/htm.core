@@ -7,7 +7,7 @@ import re
 class NetworkRESTError(Exception):
   pass
 
-
+# returns the decoded JSON response from the server.
 def request(method, url, data=None, verbose=False):
   if verbose:
     if data:
@@ -18,16 +18,14 @@ def request(method, url, data=None, verbose=False):
   if rsp.status_code != requests.codes.ok:
     raise NetworkRESTError('HTTP Error')
 
-  text = rsp.text.strip()
+  # all responses are JSON encoded.
+  text = rsp.text.strip()  # removes the trailing \n
+  result = json.loads( text );
 
-  if text[0:6] == 'ERROR:':
-    raise NetworkRESTError(text[6:].strip())
+  if type(result) == str and result[0:6] == 'ERROR:':
+    raise NetworkRESTError(result[6:].strip())
 
-  # determine if result contains JSON i.e. it starts with '{' for a map or '[' for an array
-  if text[0:1] == '[' or text[0:1] == '{':
-    return json.loads( text )
-  else:
-    return text
+  return result
 
 
 class NetworkRESTBase(object):
@@ -62,7 +60,7 @@ class NetworkRESTBase(object):
     config = self.config
     if isinstance(config, NetworkConfig):
       config = str(config)
-    id = request('POST', url, config, verbose=self.verbose)
+    id = str(request('POST', url, config, verbose=self.verbose))
 
     if self.verbose:
       print('Resource ID: ' + id)

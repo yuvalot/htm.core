@@ -281,18 +281,18 @@ TEST(CppRegionTest, ValidateParameters) {
   vm.parse("[true,false]");
   EXPECT_TRUE(vm[0].as<bool>());
   EXPECT_FALSE(vm[1].as<bool>());
-  EXPECT_STREQ("[\"true\", \"false\"]", vm.to_json().c_str());
+  EXPECT_STREQ("[true, false]", vm.to_json().c_str());
 
   bool buf[] = {true, false};
   Array va(NTA_BasicType_Bool, &buf[0], 2);
-  EXPECT_STREQ("[\"true\", \"false\"]", va.toJSON().c_str());
+  EXPECT_STREQ("[true, false]", va.toJSON().c_str());
 
   Network n;
   std::shared_ptr<Region> r1 = n.addRegion("testnode", "TestNode", "{dim: [2]}");
   Array a;
   // The default value for 'boolArrayParam' is an array [false, true, false, true].
   r1->getParameterArray("boolArrayParam", a);
-  EXPECT_STREQ("[\"false\", \"true\", \"false\", \"true\"]", a.toJSON().c_str());
+  EXPECT_STREQ("[false, true, false, true]", a.toJSON().c_str());
 
   EXPECT_ANY_THROW(std::shared_ptr<Region> r2 = n.addRegion("testnode", "TestNode", "{invalid_field_name: \"abc\", dim: [2]}"));
   

@@ -155,7 +155,7 @@ TEST_F(RESTapiTest, example) {
   auto res = client->Get("/hi");
   ASSERT_TRUE(res) << "No response from server.";
   ASSERT_EQ(res->status,200) << "Unexpected status returned: " << res->status << std::endl;
-  EXPECT_STREQ(res->body.c_str(), "Hello World!\n") << "Response to GET /hi request";
+  EXPECT_STREQ(res->body.c_str(), "\"Hello World!\"\n") << "Response to GET /hi request";
 
   // Configure a NetworkAPI example
   // See Network.configure() for syntax.
@@ -172,15 +172,15 @@ TEST_F(RESTapiTest, example) {
 
   // create the network object
   res = client->Post("/network", config, "application/json");
-  ASSERT_TRUE(res && res->status/100 == 2 && res->body.size() == 5) << "Failed Response to POST /network request.";
-  std::string id = res->body.substr(0,4);
-  ASSERT_STREQ(id.c_str(), "0001");
+  ASSERT_TRUE(res && res->status/100 == 2) << "Failed Response to POST /network request.";
+  std::string id = Path::trim(res->body);
+  ASSERT_STREQ(id.c_str(), "1");
 
   // Send GET parameter message to retreive "tm.cellsPerColumn" parameter from the tm region.
   snprintf(message, sizeof(message), "/network/%s/region/tm/param/cellsPerColumn", id.c_str());
   res = client->Get(message);
   ASSERT_TRUE(res && res->status/100 == 2) << " GET param message failed.";
-  EXPECT_TRUE(trim(res->body) == "8") << "Response to GET param request";
+  EXPECT_TRUE(Path::trim(res->body) == "8") << "Response to GET param request";
 
 
   // execute
@@ -194,19 +194,19 @@ TEST_F(RESTapiTest, example) {
     snprintf(message, sizeof(message), "/network/%s/region/encoder/param/sensedValue?data=%.02f", id.c_str() , s);
     res = client->Put(message, noParams);
     ASSERT_TRUE(res && res->status / 100 == 2) << " PUT param message failed.";
-    EXPECT_STREQ(trim(res->body).c_str(), "OK") << "Response to PUT param request";
+    EXPECT_STREQ(Path::trim(res->body).c_str(), "\"OK\"") << "Response to PUT param request";
 
     // Execute an iteration
     snprintf(message, sizeof(message), "/network/%s/run", id.c_str());
     res = client->Get(message);
-    EXPECT_STREQ(trim(res->body).c_str(), "OK") << "Response to GET run";
+    EXPECT_STREQ(Path::trim(res->body).c_str(), "\"OK\"") << "Response to GET run";
   }
 
   // Retreive the final anomaly score from the TM object, 'tm.anomaly'.
   snprintf(message, sizeof(message), "/network/%s/region/tm/output/anomaly", id.c_str());
   res = client->Get(message);
   ASSERT_TRUE(res && res->status / 100 == 2) << " GET output message failed.";
-  EXPECT_STREQ(trim(res->body).c_str(), "[1]") << "Response to GET output request (The Anomaly Score)";
+  EXPECT_STREQ(Path::trim(res->body).c_str(), "[1]") << "Response to GET output request (The Anomaly Score)";
 
 
 
@@ -233,26 +233,26 @@ TEST_F(RESTapiTest, test_delete) {
 
   // create the network object
   auto res = client->Post("/network", config, "application/json");
-  ASSERT_TRUE(res && res->status / 100 == 2 && res->body.size() == 5) << "Failed Response to POST /network request.";
-  std::string id = res->body.substr(0, 4);
+  ASSERT_TRUE(res && res->status / 100 == 2) << "Failed Response to POST /network request.";
+  std::string id = Path::trim(res->body);
 
   // Now delete the second link.
   snprintf(message, sizeof(message), "/network/%s/link/sp.bottomUpOut/tm.bottomUpIn", id.c_str());
   res = client->Delete(message);
   ASSERT_TRUE(res && res->status / 100 == 2) << " DELETE link message failed.";
-  EXPECT_STREQ(trim(res->body).c_str(), "OK") << "Response to DELETE Link request";
+  EXPECT_STREQ(Path::trim(res->body).c_str(), "\"OK\"") << "Response to DELETE Link request";
 
   // Delete a region
   snprintf(message, sizeof(message), "/network/%s/region/tm", id.c_str());
   res = client->Delete(message);
   ASSERT_TRUE(res && res->status / 100 == 2) << " DELETE region message failed.";
-  EXPECT_STREQ(trim(res->body).c_str(), "OK") << "Response to DELETE Link request";
+  EXPECT_STREQ(Path::trim(res->body).c_str(), "\"OK\"") << "Response to DELETE Link request";
   
   // Delete a Network
   snprintf(message, sizeof(message), "/network/%s/ALL", id.c_str());
   res = client->Delete(message);
   ASSERT_TRUE(res && res->status / 100 == 2) << " DELETE region message failed.";
-  EXPECT_STREQ(trim(res->body).c_str(), "OK") << "Response to DELETE Link request";
+  EXPECT_STREQ(Path::trim(res->body).c_str(), "\"OK\"") << "Response to DELETE Link request";
   
   
 }
@@ -272,26 +272,26 @@ TEST_F(RESTapiTest, alternative_ids) {
   // create a Network object using a numeric id as a URL parameter
   auto res = client->Post("/network?id=123", config, "application/json");
   ASSERT_TRUE(res && res->status/100 == 2 && res->body.size() > 0) << "Failed Response to POST /network?id=123 request.";
-  std::string id = res->body.substr(0, res->body.length() - 1); // remove the \n
+  std::string id = Path::trim(res->body); // remove the \n
   EXPECT_STREQ(id.c_str(), "123");
   
   // create a Network object using a numeric id as a URL field
   res = client->Post("/network/456", config, "application/json");
   ASSERT_TRUE(res && res->status/100 == 2 && res->body.size() > 0) << "Failed Response to POST /network/456 request.";
-  id = res->body.substr(0, res->body.length() - 1); // remove the \n
+  id = Path::trim(res->body); // remove the \n
   EXPECT_STREQ(id.c_str(), "456");
 
   // create a Network object using a non-numeric id as a URL field
   res = client->Post("/network/TestObj", config, "application/json");
   ASSERT_TRUE(res && res->status/100 == 2 && res->body.size() > 0) << "Failed Response to POST /network/TestObj request.";
-  id = res->body.substr(0, res->body.length() - 1); // remove the \n
-  EXPECT_STREQ(id.c_str(), "TestObj");
+  id = Path::trim(res->body); // remove the \n
+  EXPECT_STREQ(id.c_str(), "\"TestObj\"");
 
   // create a Network object using a non-numeric id as a URL parameter that contains URL encoding.
   res = client->Post("/network?id=%20abc", config, "application/json");
   ASSERT_TRUE(res && res->status/100 == 2 && res->body.size() > 0) << "Failed Response to POST /network?id=%20abc request.";
-  id = res->body.substr(0, res->body.length() - 1); // remove the \n
-  EXPECT_STREQ(id.c_str(), "%20abc");
+  id = Path::trim(res->body); // remove the \n
+  EXPECT_STREQ(id.c_str(), "\"%20abc\"");
 }
 
 

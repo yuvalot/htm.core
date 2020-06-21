@@ -89,8 +89,8 @@ public:
   * @param conf  A YAML or JSON string containing the configuration for the Network class.
   *              See Network::configure() for syntax.
   *
-  * @retval On success it returns the id to use with this resource context. 
-  *         Otherwise it returns the error message starting with "ERROR".
+  * @retval On success it returns the id (JSON encoded) to use with this resource context. 
+  *         Otherwise it returns the JSON encoded error message starting with "ERROR: ".
   */
   std::string create_network_request(const std::string &id, const std::string &conf);
 
@@ -131,8 +131,8 @@ public:
    *                          program will remove the existing Network object and create a new one.
    *
    *
-   * @retval            If successful it returns the id used.
-   *                    Otherwise returns error message starting with "ERROR: ".
+   * @retval            If successful it returns "OK".
+   *                    Otherwise returns JSON encoded error message starting with "ERROR: ".
    */
   std::string put_input_request(const std::string &id, 
                                 const std::string &region_name, 
@@ -158,14 +158,8 @@ public:
    *                    Client should pass the id returned by the previous "configure"
    *                    request message.
    *
-   * @retval            If success returns JSON encoded data.
-   *                    The JSON serialized data format:
-   *                      "{type: <type>, data: [ <array of elements comma seprated> ]}"
-   *                       The <type> values are one of the following:
-   *                       "Byte",   "Int16",  "UInt16", "Int32",  "UInt32", "Int64",
-   *                       "UInt64", "Real32", "Real64", "Handle", "Bool", "SDR", "String"
-   *                    The data portion is a comma separated sequence, even if only one element.
-   *                    Otherwise returns error message starting with "ERROR: ".
+   * @retval            If success returns JSON encoded sequence containing the input array.
+   *                    Otherwise returns a JSON encoded error message starting with "ERROR: ".
    */
   std::string get_input_request(const std::string &id, 
                                 const std::string &region_name, 
@@ -192,14 +186,8 @@ public:
    *                    the region you are configuring.
    *                    For example;  For a TMRegion region, such a parameter is "activeCells".
    *
-   * @retval            If success returns the requested data which is an Array object.
-   *                    The JSON serialized data format:
-   *                      "{type: <type>, data: [ <array of elements comma seprated> ]}"
-   *                       The <type> values are one of the following:
-   *                       "Byte",   "Int16",  "UInt16", "Int32",  "UInt32", "Int64",
-   *                       "UInt64", "Real32", "Real64", "Handle", "Bool", "SDR", "String"
-   *                    The data portion is a comma separated sequence, even if only one element.
-   *                    Otherwise returns error message starting with "ERROR: ".
+   * @retval            If success returns JSON encoded sequence containing the output array.
+   *                    Otherwise returns a JSON encoded error message starting with "ERROR: ".
    */
   std::string get_output_request(const std::string &id, 
                                  const std::string &region_name, 
@@ -223,13 +211,10 @@ public:
    *                    the region you are configuring. Must be a ReadWrite parameter.
    *                    For example;  For an SPRegion region, such a parameter is "potentialRadius".
    *
-   * @param data        The serialized data itself in JSON format. The following is expected:
-   *                      {type: <type>, data: [ <array of elements comma seprated> ]}
-   *                       The <type> values are one of the following:
-   *                       "Byte",   "Int16",  "UInt16", "Int32",  "UInt32", "Int64",
-   *                       "UInt64", "Real32", "Real64", "Handle", "Bool", "SDR", "String"
+   * @retval            If success returns JSON encoded sequence containing the parameter data.
+   *                    Otherwise returns a JSON encoded error message starting with "ERROR: ".
    *                    The data portion must be a sequence, even if only one element.
-   *                    If blank, no data is set.
+   *                    If blank, it returns JSON null.
    *
    * @retval            If success returns "OK".
    *                    Otherwise returns error message starting with "ERROR: ".

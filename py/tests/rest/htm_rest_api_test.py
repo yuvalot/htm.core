@@ -31,7 +31,7 @@ class HtmRestApiTest(unittest.TestCase):
   def testNetworkRESTBaseExample(self):
     rsp = requests.get(HOST + '/hi')
     self.assertEqual(rsp.status_code, requests.codes.ok)
-    self.assertEqual(rsp.text, 'Hello World!\n')
+    self.assertEqual(rsp.text, '\"Hello World!\"\n')
 
     config = '''
         {network: [
@@ -47,7 +47,7 @@ class HtmRestApiTest(unittest.TestCase):
     net.create()
 
     r = net.get_region_param('tm', 'cellsPerColumn')
-    self.assertEqual(r, '8')
+    self.assertEqual(r, 8)
     # iterate EPOCHS times
     x = 0.00
     for e in range(EPOCHS):
@@ -99,7 +99,7 @@ class HtmRestApiTest(unittest.TestCase):
   def testNetworkRESTExample(self):
     rsp = requests.get(HOST + '/hi')
     self.assertEqual(rsp.status_code, requests.codes.ok)
-    self.assertEqual(rsp.text, 'Hello World!\n')
+    self.assertEqual(rsp.text, '\"Hello World!\"\n')
 
     net = NetworkREST(host=HOST, verbose=True)
 
@@ -127,7 +127,7 @@ class HtmRestApiTest(unittest.TestCase):
     net.create()
 
     r = tm.param('cellsPerColumn')
-    self.assertEqual(r, '8')
+    self.assertEqual(r, 8)
     # iterate EPOCHS times
     x = 0.00
     for e in range(EPOCHS):

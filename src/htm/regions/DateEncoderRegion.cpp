@@ -118,7 +118,7 @@ DateEncoderRegion::DateEncoderRegion(const ValueMap &par, Region *region) : Regi
 
   //parse custom_days
   std::string days = params.getString("custom_days", "");
-  args.custom_days = split(days, ',');
+  args.custom_days = Path::split(days, ',');
 
   encoder_ = std::make_shared<DateEncoder>(args);
 }

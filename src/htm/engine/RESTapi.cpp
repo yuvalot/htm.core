@@ -36,20 +36,20 @@ RESTapi::~RESTapi() { }
 
 RESTapi* RESTapi::getInstance() { return &rest; }
 
-  std::string RESTapi::get_new_id_() {
+std::string RESTapi::get_new_id_() {
   // No id was provided so find the next available number.
-  // Note: This will return a 4 digit number as a string, 
-  //       starting with "0001" and incrementing on each use. 
-  //       This will never return "0000" 
+  // Note: This will return a number between 1 and 9999, 
+  //       starting with "1" and incrementing on each use with wrap at "9999". 
+  //       This will never return "0" 
   
   std::map<std::string, ResourceContext>::iterator itr;
   std::string id;
   while (rest.resource_.size() < ID_MAX) {  // limit the total number of generated resources
     unsigned int id_nbr = next_id++;
     if (id_nbr > ID_MAX)
-      id_nbr = 1; // allow integer wrap of the id without using a "0000" value.
+      id_nbr = 1; // allow integer wrap of the id without using a "0" value.
     char buf[10];
-    std::snprintf(buf, sizeof(buf), "%4.04x", id_nbr);
+    std::snprintf(buf, sizeof(buf), "%d", id_nbr);
     id = buf;
 
     // Make sure this new session id is not in use.
@@ -75,13 +75,13 @@ std::string RESTapi::create_network_request(const std::string &specified_id, con
 
     obj.net->configure(config);
     resource_[id] = obj;              // assign the resource (deleting any previous value)
-    return id;
+    return Value::json_string(id);
   } catch (Exception& e) {
-    return std::string("ERROR: ") + e.getMessage();
+    return Value::json_string("ERROR: ") + e.getMessage();
   } catch (std::exception& e) {
-    return std::string("ERROR: ") + e.what();
+    return Value::json_string("ERROR: ") + e.what();
   } catch (...) {
-    return std::string("ERROR: Unknown Exception.");
+    return Value::json_string("ERROR: Unknown Exception.");
   }
 }
 
@@ -99,10 +99,10 @@ std::string RESTapi::put_input_request(const std::string &id,
 
     itr->second.net->getRegion(region_name)->setInputData(input_name, a);
 
-    return "OK";
+    return Value::json_string("OK");
   }
   catch (Exception &e) {
-    return std::string("ERROR: ") + e.getMessage();
+    return Value::json_string(std::string("ERROR: ") + e.getMessage());
   }
 }
 
@@ -118,8 +118,9 @@ std::string RESTapi::get_input_request(const std::string &id,
 
     std::string response = b.toJSON();
     return response;
+
   } catch (Exception &e) {
-    return std::string("ERROR: ") + e.getMessage();
+    return Value::json_string(std::string("ERROR: ") + e.getMessage());
   }
 }
 
@@ -134,10 +135,10 @@ std::string RESTapi::get_output_request(const std::string &id,
     std::string response;
     const Array &b = itr->second.net->getRegion(region_name)->getOutputData(output_name);
     response = b.toJSON();
-    
     return response;
+
   } catch (Exception &e) {
-    return std::string("ERROR: ") + e.getMessage();
+    return Value::json_string(std::string("ERROR: ") + e.getMessage());
   }
 }
 
@@ -152,9 +153,9 @@ std::string RESTapi::put_param_request(const std::string &id,
 
     itr->second.net->getRegion(region_name)->setParameterJSON(param_name, data);
 
-    return "OK";
+    return Value::json_string("OK");
   } catch (Exception &e) {
-    return std::string("ERROR: ") + e.getMessage();
+    return Value::json_string(std::string("ERROR: ") + e.getMessage());
   }
 }
 
@@ -171,7 +172,7 @@ std::string RESTapi::get_param_request(const std::string &id,
     
     return response;
   } catch (Exception &e) {
-    return std::string("ERROR: ") + e.getMessage();
+    return Value::json_string(std::string("ERROR: ") + e.getMessage());
   }
 }
 
@@ -181,12 +182,12 @@ std::string RESTapi::delete_region_request(const std::string &id, const std::str
     NTA_CHECK(itr != resource_.end()) << "Context for resource '" + id + "' not found.";
     itr->second.t = time(0);
 
-    std::string response = "OK";
     itr->second.net->removeRegion(region_name);
 
+    std::string response = Value::json_string("OK");
     return response;
   } catch (Exception &e) {
-    return std::string("ERROR: ") + e.getMessage();
+    return Value::json_string(std::string("ERROR: ") + e.getMessage());
   }
 }
 
@@ -199,31 +200,38 @@ std::string RESTapi::delete_link_request(const std::string &id,
     itr->second.t = time(0);
 
     std::vector<std::string> args;
-    args = split(source_name, '.');
+    args = Path::split(source_name, '.');
     NTA_CHECK(args.size() == 2) << "Expected syntax <region>.<output> for source name. Found " << source_name;
     std::string source_region = args[0];
     std::string source_output = args[1];
 
-    args = split(dest_name, '.');
+    args = Path::split(dest_name, '.');
     NTA_CHECK(args.size() == 2) << "Expected syntax <region>.<input> for destination name. Found " << dest_name;
     std::string dest_region = args[0];
     std::string dest_input = args[1];
 
-    std::string response = "OK";
     itr->second.net->removeLink(source_region, dest_region, source_output, dest_input);
+
+    std::string response = Value::json_string("OK");
     return response;
 
   } catch (Exception &e) {
-    return std::string("ERROR: ") + e.getMessage();
+    return Value::json_string(std::string("ERROR: ") + e.getMessage());
   }
 }
 
 std::string RESTapi::delete_network_request(const std::string &id) {
+  try {
+
     auto itr = resource_.find(id);
     NTA_CHECK(itr != resource_.end()) << "Context for resource '" + id + "' not found.";
-    
+
     resource_.erase(itr);
-    return "OK";
+
+    return Value::json_string("OK");
+  } catch (Exception &e) {
+    return Value::json_string(std::string("ERROR: ") + e.getMessage());
+  }
 }
 
 
@@ -238,10 +246,10 @@ std::string RESTapi::run_request(const std::string &id, const std::string &itera
       iter = std::strtol(iterations.c_str(), nullptr, 10);
     }
     itr->second.net->run(iter);
-    return "OK";
+    return Value::json_string("OK");
   }
   catch (Exception &e) {
-    return std::string("ERROR: ") + e.getMessage();
+    return Value::json_string(std::string("ERROR: ") + e.getMessage());
   }
 }
 
@@ -255,11 +263,11 @@ std::string RESTapi::command_request(const std::string& id,
 
     std::string response;
     std::vector<std::string> args;
-    args = split(command, ' ');
+    args = Path::split(command, ' ');
     response = itr->second.net->getRegion(region_name)->executeCommand(args);
 
-    return response;
+    return Value::json_string(response);
   } catch (Exception &e) {
-    return std::string("ERROR: ") + e.getMessage();
+    return Value::json_string(std::string("ERROR: ") + e.getMessage());
   }
 }
