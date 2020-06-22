@@ -199,50 +199,6 @@ Value &Value::parse(const std::string &yaml_string) {
   return *this;
 }
 
-/////////////////////////////////////////////////////////////////////////////////////////
-#else // YAML_PARSER_yamlcpp
-
-// All interface for yaml-cpp parser must be encapulated in this section.
-#include <yaml-cpp/yaml.h>
-static void setNode(Value &val, const YAML::Node &node);
-
-// Parse YAML or JSON string document into the tree.
-Value &Value::parse(const std::string &yaml_string) {
-  if (assigned_)
-    return assigned_->parse(yaml_string);
-  // If this Value node is being re-used (like in unit tests)
-  // we need to clear variables.
-  vec_.clear();
-  map_.clear();
-  scalar_ = "";
-  type_ = Value::Category::Empty;
-  parent_ = nullptr;
-
-  YAML::Node node = YAML::Load(yaml_string);
-  // walk the tree and copy data into our structure
-
-  setNode(*this, node);
-  this->cleanup();
-  return *this;
-}
-
-// Copy a yaml-cpp node to a Value node recursively.
-static void setNode(Value &val, const YAML::Node &node) {
-  std::pair<std::map<std::string, Value>::iterator, bool> ret;
-  if (node.IsScalar()) {
-    val = node.as<std::string>();
-  } else if (node.IsSequence()) {
-    for (size_t i = 0; i < node.size(); i++) {
-      setNode(val[i], node[i]);
-    }
-  } else if (node.IsMap()) {
-    for (auto it = node.begin(); it != node.end(); it++) {
-      std::string key = it->first.as<std::string>();
-      setNode(val[key], it->second);
-    }
-  }
-}
-
 #endif // YAML_PARSER_yamlcpp
 /////////////////////////////////////////////////////////////////////////////////////////
 
