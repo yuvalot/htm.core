@@ -79,11 +79,6 @@ FILE(REMOVE "${EXPORT_FILE_NAME}")
 include(common.cmake)
 
 
-################
-# Yaml Parser
-# you can select either Yaml-cpp or libYaml but not both.
-# Yaml-cpp
-###include(YamlCppLib.cmake)
 
 # LibYaml
 include(libYaml.cmake)
