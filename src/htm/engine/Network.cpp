@@ -130,8 +130,8 @@ void Network::configure(const std::string &yaml) {
       } else if (cmd.first == "addLink") {
         std::string src = cmd.second["src"].str();
         std::string dest = cmd.second["dest"].str();
-        std::vector<std::string> vsrc = split(src, '.');
-        std::vector<std::string> vdest = split(dest, '.');
+        std::vector<std::string> vsrc = Path::split(src, '.');
+        std::vector<std::string> vdest = Path::split(dest, '.');
         int propagationDelay = 0;
         if (cmd.second.contains("delay"))
           propagationDelay = cmd.second["delay"].as<int>();
