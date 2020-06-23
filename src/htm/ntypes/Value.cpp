@@ -323,11 +323,13 @@ const Value &Value::operator[](size_t index) const {
 }
 
 std::string Value::str() const {
-  NTA_CHECK(core_->type_ == Value::Category::Scalar);
+  NTA_CHECK(core_->type_ == Value::Category::Scalar)
+     << ((core_->type_ == Value::Category::Empty) ? ("Key '" + core_->key_ + "' not found.") : "Not a scalar.");
   return core_->scalar_;
 }
 const char *Value::c_str() const {
-  NTA_CHECK(core_->type_ == Value::Category::Scalar);
+  NTA_CHECK(core_->type_ == Value::Category::Scalar) 
+    << ((core_->type_ == Value::Category::Empty)?("Key '"+core_->key_+"' not found."):"Not a scalar.");
   return core_->scalar_.c_str();
 }
 

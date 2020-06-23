@@ -75,13 +75,14 @@ std::string RESTapi::create_network_request(const std::string &specified_id, con
 
     obj.net->configure(config);
     resource_[id] = obj;              // assign the resource (deleting any previous value)
-    return Value::json_string(id);
+    
+    return "{\"result\": " + Value::json_string(id) + "}";
   } catch (Exception& e) {
-    return Value::json_string("ERROR: ") + e.getMessage();
+    return "{\"err\": " + Value::json_string(e.getMessage()) + "}";
   } catch (std::exception& e) {
-    return Value::json_string("ERROR: ") + e.what();
+    return "{\"err\": " + Value::json_string(e.what()) + "}";
   } catch (...) {
-    return Value::json_string("ERROR: Unknown Exception.");
+    return "{\"err\": " + Value::json_string("Unknown Exception.") + "}";
   }
 }
 
@@ -99,10 +100,14 @@ std::string RESTapi::put_input_request(const std::string &id,
 
     itr->second.net->getRegion(region_name)->setInputData(input_name, a);
 
-    return Value::json_string("OK");
+    return "{\"result\": \"OK\"}";
   }
   catch (Exception &e) {
-    return Value::json_string(std::string("ERROR: ") + e.getMessage());
+    return "{\"err\": " + Value::json_string(e.getMessage()) + "}";
+  } catch (std::exception& e) {
+    return "{\"err\": " + Value::json_string(e.what()) + "}";
+  } catch (...) {
+    return "{\"err\": " + Value::json_string("Unknown Exception.") + "}";
   }
 }
 
@@ -117,10 +122,14 @@ std::string RESTapi::get_input_request(const std::string &id,
     const Array &b = itr->second.net->getRegion(region_name)->getInputData(input_name);
 
     std::string response = b.toJSON();
-    return response;
+    return "{\"result\": " + response + "}";
 
   } catch (Exception &e) {
-    return Value::json_string(std::string("ERROR: ") + e.getMessage());
+    return "{\"err\": " + Value::json_string(e.getMessage()) + "}";
+  } catch (std::exception& e) {
+    return "{\"err\": " + Value::json_string(e.what()) + "}";
+  } catch (...) {
+    return "{\"err\": " + Value::json_string("Unknown Exception.") + "}";
   }
 }
 
@@ -135,10 +144,14 @@ std::string RESTapi::get_output_request(const std::string &id,
     std::string response;
     const Array &b = itr->second.net->getRegion(region_name)->getOutputData(output_name);
     response = b.toJSON();
-    return response;
+    return "{\"result\": " + response + "}";
 
   } catch (Exception &e) {
-    return Value::json_string(std::string("ERROR: ") + e.getMessage());
+    return "{\"err\": " + Value::json_string(e.getMessage()) + "}";
+  } catch (std::exception& e) {
+    return "{\"err\": " + Value::json_string(e.what()) + "}";
+  } catch (...) {
+    return "{\"err\": " + Value::json_string("Unknown Exception.") + "}";
   }
 }
 
@@ -153,9 +166,13 @@ std::string RESTapi::put_param_request(const std::string &id,
 
     itr->second.net->getRegion(region_name)->setParameterJSON(param_name, data);
 
-    return Value::json_string("OK");
+    return "{\"result\": \"OK\"}";
   } catch (Exception &e) {
-    return Value::json_string(std::string("ERROR: ") + e.getMessage());
+    return "{\"err\": " + Value::json_string(e.getMessage()) + "}";
+  } catch (std::exception& e) {
+    return "{\"err\": " + Value::json_string(e.what()) + "}";
+  } catch (...) {
+    return "{\"err\": " + Value::json_string("Unknown Exception.") + "}";
   }
 }
 
@@ -170,9 +187,13 @@ std::string RESTapi::get_param_request(const std::string &id,
     std::string response;
     response = itr->second.net->getRegion(region_name)->getParameterJSON(param_name);
     
-    return response;
+    return "{\"result\": " + response + "}";
   } catch (Exception &e) {
-    return Value::json_string(std::string("ERROR: ") + e.getMessage());
+    return "{\"err\": " + Value::json_string(e.getMessage()) + "}";
+  } catch (std::exception& e) {
+    return "{\"err\": " + Value::json_string(e.what()) + "}";
+  } catch (...) {
+    return "{\"err\": " + Value::json_string("Unknown Exception.") + "}";
   }
 }
 
@@ -184,10 +205,13 @@ std::string RESTapi::delete_region_request(const std::string &id, const std::str
 
     itr->second.net->removeRegion(region_name);
 
-    std::string response = Value::json_string("OK");
-    return response;
+    return "{\"result\": \"OK\"}";
   } catch (Exception &e) {
-    return Value::json_string(std::string("ERROR: ") + e.getMessage());
+    return "{\"err\": " + Value::json_string(e.getMessage()) + "}";
+  } catch (std::exception& e) {
+    return "{\"err\": " + Value::json_string(e.what()) + "}";
+  } catch (...) {
+    return "{\"err\": " + Value::json_string("Unknown Exception.") + "}";
   }
 }
 
@@ -212,11 +236,13 @@ std::string RESTapi::delete_link_request(const std::string &id,
 
     itr->second.net->removeLink(source_region, dest_region, source_output, dest_input);
 
-    std::string response = Value::json_string("OK");
-    return response;
-
+    return "{\"result\": \"OK\"}";
   } catch (Exception &e) {
-    return Value::json_string(std::string("ERROR: ") + e.getMessage());
+    return "{\"err\": " + Value::json_string(e.getMessage()) + "}";
+  } catch (std::exception& e) {
+    return "{\"err\": " + Value::json_string(e.what()) + "}";
+  } catch (...) {
+    return "{\"err\": " + Value::json_string("Unknown Exception.") + "}";
   }
 }
 
@@ -228,9 +254,13 @@ std::string RESTapi::delete_network_request(const std::string &id) {
 
     resource_.erase(itr);
 
-    return Value::json_string("OK");
+    return "{\"result\": \"OK\"}";
   } catch (Exception &e) {
-    return Value::json_string(std::string("ERROR: ") + e.getMessage());
+    return "{\"err\": " + Value::json_string(e.getMessage()) + "}";
+  } catch (std::exception& e) {
+    return "{\"err\": " + Value::json_string(e.what()) + "}";
+  } catch (...) {
+    return "{\"err\": " + Value::json_string("Unknown Exception.") + "}";
   }
 }
 
@@ -246,10 +276,14 @@ std::string RESTapi::run_request(const std::string &id, const std::string &itera
       iter = std::strtol(iterations.c_str(), nullptr, 10);
     }
     itr->second.net->run(iter);
-    return Value::json_string("OK");
+    return "{\"result\": \"OK\"}";
   }
   catch (Exception &e) {
-    return Value::json_string(std::string("ERROR: ") + e.getMessage());
+    return "{\"err\": " + Value::json_string(e.getMessage()) + "}";
+  } catch (std::exception& e) {
+    return "{\"err\": " + Value::json_string(e.what()) + "}";
+  } catch (...) {
+    return "{\"err\": " + Value::json_string("Unknown Exception.") + "}";
   }
 }
 
@@ -266,8 +300,12 @@ std::string RESTapi::command_request(const std::string& id,
     args = Path::split(command, ' ');
     response = itr->second.net->getRegion(region_name)->executeCommand(args);
 
-    return Value::json_string(response);
+    return "{\"result\": " + response + "}";
   } catch (Exception &e) {
-    return Value::json_string(std::string("ERROR: ") + e.getMessage());
+    return "{\"err\": " + Value::json_string(e.getMessage()) + "}";
+  } catch (std::exception& e) {
+    return "{\"err\": " + Value::json_string(e.what()) + "}";
+  } catch (...) {
+    return "{\"err\": " + Value::json_string("Unknown Exception.") + "}";
   }
 }

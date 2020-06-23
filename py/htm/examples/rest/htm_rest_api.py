@@ -18,14 +18,14 @@ def request(method, url, data=None, verbose=False):
   if rsp.status_code != requests.codes.ok:
     raise NetworkRESTError('HTTP Error')
 
-  # all responses are JSON encoded.
-  text = rsp.text.strip()  # removes the trailing \n
-  result = json.loads( text );
+  # all responses are JSON encoded.  
+  # Expecting {"err": message} or {"result": result value}
+  result = json.loads( rsp.text.strip() ); # removes trailing \n and parses JSON.
 
-  if type(result) == str and result[0:6] == 'ERROR:':
-    raise NetworkRESTError(result[6:].strip())
+  if result.get('err'):
+    raise NetworkRESTError(result['err'])
 
-  return result
+  return result['result']
 
 
 class NetworkRESTBase(object):

@@ -27,11 +27,13 @@ class HtmRestApiTest(unittest.TestCase):
   def setUp(self):
     self._process = subprocess.Popen([REST_SERVER, '8050', '127.0.0.1'])
     sleep(0.2)
-
-  def testNetworkRESTBaseExample(self):
+    
+  def testNetworkRESTHelloWorld(self):
     rsp = requests.get(HOST + '/hi')
     self.assertEqual(rsp.status_code, requests.codes.ok)
-    self.assertEqual(rsp.text, '\"Hello World!\"\n')
+    self.assertEqual(rsp.text, '{"result": "Hello World!"}\n')
+
+  def testNetworkRESTBaseExample(self):
 
     config = '''
         {network: [
@@ -97,9 +99,6 @@ class HtmRestApiTest(unittest.TestCase):
     self.assertEqual(r, 'OK')
 
   def testNetworkRESTExample(self):
-    rsp = requests.get(HOST + '/hi')
-    self.assertEqual(rsp.status_code, requests.codes.ok)
-    self.assertEqual(rsp.text, '\"Hello World!\"\n')
 
     net = NetworkREST(host=HOST, verbose=True)
 

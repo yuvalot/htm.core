@@ -88,7 +88,7 @@ public:
     /*** Register all of the handlers ***/
 
     //  GET  /hi    ==>  "Hello World!"\n
-    svr.Get("/hi", [](const Request & /*req*/, Response &res) { res.set_content("\"Hello World!\"\n", "application/json"); });
+    svr.Get("/hi", [](const Request & /*req*/, Response &res) { res.set_content("{\"result\": \"Hello World!\"}\n", "application/json"); });
     if (!svr.is_valid()) {
       NTA_THROW << "server could not be created...\n";
     }
