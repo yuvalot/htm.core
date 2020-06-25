@@ -658,13 +658,13 @@ std::string ArrayBase::toJSON() const {
     const SDR &sdr = getSDR();
     json << "[";
     bool first = true;
-    SDR_sparse_t sparse = sdr.getSparse();
-    for (size_t i = 0; i < sparse.size(); i++) {
+    auto dense = sdr.getDense();
+    for (size_t i = 0; i < dense.size(); i++) {
       if (first) {
-        json << sparse[i];
+        json << dense[i];
         first = false;
       } else
-        json << ", " << sparse[i];
+        json << ", " << dense[i];
     }
     json << "]";
   } else {

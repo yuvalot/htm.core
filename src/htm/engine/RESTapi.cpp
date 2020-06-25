@@ -118,11 +118,13 @@ std::string RESTapi::get_input_request(const std::string &id,
     auto itr = resource_.find(id);
     NTA_CHECK(itr != resource_.end()) << "Context for resource '" + id + "' not found.";
     itr->second.t = time(0);
-
-    const Array &b = itr->second.net->getRegion(region_name)->getInputData(input_name);
-
-    std::string response = b.toJSON();
-    return "{\"result\": " + response + "}";
+    auto region = itr->second.net->getRegion(region_name);
+    const Array &b = region->getInputData(input_name);
+    std::string data = b.toJSON();
+    std::string type = BasicType::getName(b.getType());
+    std::string dim = region->getInputDimensions(input_name).toString(false);
+    
+    return "{\"result\": " + data + ", \"type\": \"" + type + "\", \"dim\": " + dim +"}";
 
   } catch (Exception &e) {
     return "{\"err\": " + Value::json_string(e.getMessage()) + "}";
@@ -140,12 +142,13 @@ std::string RESTapi::get_output_request(const std::string &id,
     auto itr = resource_.find(id);
     NTA_CHECK(itr != resource_.end()) << "Context for resource '" + id + "' not found.";
     itr->second.t = time(0);
-
-    std::string response;
-    const Array &b = itr->second.net->getRegion(region_name)->getOutputData(output_name);
-    response = b.toJSON();
-    return "{\"result\": " + response + "}";
-
+    auto region = itr->second.net->getRegion(region_name);
+    const Array &b = region->getOutputData(output_name);
+    std::string data = b.toJSON();
+    std::string type = BasicType::getName(b.getType());
+    std::string dim = region->getOutputDimensions(output_name).toString(false);
+    
+    return "{\"result\": " + data + ", \"type\": \"" + type + "\", \"dim\": " + dim +"}";
   } catch (Exception &e) {
     return "{\"err\": " + Value::json_string(e.getMessage()) + "}";
   } catch (std::exception& e) {
@@ -185,9 +188,9 @@ std::string RESTapi::get_param_request(const std::string &id,
     itr->second.t = time(0);
 
     std::string response;
-    response = itr->second.net->getRegion(region_name)->getParameterJSON(param_name);
+    response = itr->second.net->getRegion(region_name)->getParameterJSON(param_name, "result");
     
-    return "{\"result\": " + response + "}";
+    return response;
   } catch (Exception &e) {
     return "{\"err\": " + Value::json_string(e.getMessage()) + "}";
   } catch (std::exception& e) {

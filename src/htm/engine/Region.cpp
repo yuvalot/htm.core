@@ -38,6 +38,7 @@ Methods related to inputs and outputs are in Region_io.cpp
 #include <htm/engine/Spec.hpp>
 #include <htm/ntypes/Array.hpp>
 #include <htm/ntypes/BasicType.hpp>
+#include <htm/types/Sdr.hpp>
 #include <htm/utils/Log.hpp>
 
 namespace htm {
@@ -548,41 +549,84 @@ Real64 Region::getParameterReal64(const std::string &name) const { return impl_-
 
 bool Region::getParameterBool(const std::string &name) const { return impl_->getParameterBool(name, (Int64)-1); }
 
-std::string Region::getParameterJSON(const std::string &name) const {
+std::string Region::getParameterJSON(const std::string &name, const std::string &tag = std::string()) const {
+  NTA_BasicType type = NTA_BasicType_Last; // initialize to an invalid type.
+  UInt dim = 1;
   Value vm;
   try {
-    NTA_BasicType type = spec_->parameters.getByName(name).dataType;
-    switch (type) {
-    case NTA_BasicType_Int32:
-      vm = getParameterInt32(name);
-      break;
-    case NTA_BasicType_UInt32:
-      vm = getParameterUInt32(name);
-      break;
-    case NTA_BasicType_Int64:
-      vm = getParameterInt64(name);
-      break;
-    case NTA_BasicType_UInt64:
-      vm = getParameterUInt64(name);
-      break;
-    case NTA_BasicType_Real32:
-      vm = getParameterReal32(name);
-      break;
-    case NTA_BasicType_Real64:
-      vm = getParameterReal64(name);
-      break;
-    case NTA_BasicType_Bool:
-      vm = getParameterBool(name);
-      break;
+    type = spec_->parameters.getByName(name).dataType;
+    size_t dim = spec_->parameters.getByName(name).count;
+    if (dim == 1) {
+      // This is a scalar value, not an array.
 
-    default:
-      NTA_THROW << "Unknow parameter type '" + std::string(BasicType::getName(type)) + "'";
-      break;
+      switch (type) {
+      case NTA_BasicType_Int32:
+        vm = getParameterInt32(name);
+        break;
+      case NTA_BasicType_UInt32:
+        vm = getParameterUInt32(name);
+        break;
+      case NTA_BasicType_Int64:
+        vm = getParameterInt64(name);
+        break;
+      case NTA_BasicType_UInt64:
+        vm = getParameterUInt64(name);
+        break;
+      case NTA_BasicType_Real32:
+        vm = getParameterReal32(name);
+        break;
+      case NTA_BasicType_Real64:
+        vm = getParameterReal64(name);
+        break;
+      case NTA_BasicType_Bool:
+        vm = getParameterBool(name);
+        break;
+      case NTA_BasicType_Str:
+        vm = getParameterString(name);
+        break;
+
+      default:
+        NTA_THROW << "Unknow parameter type '" + std::string(BasicType::getName(type)) + "'";
+        break;
+      }
+      if (tag.empty())
+        return vm.to_json();
+      else
+        return "{\"" + tag + "\": " + vm.to_json() + ", \"type\": \"" + std::string(BasicType::getName(type)) + "\"}";
+
+    } else {
+      Array a;
+      getParameterArray(name, a);
+      std::string data = a.toJSON();
+      if (tag.empty())
+        return data;
+
+      std::string dimStr;
+      type = a.getType();
+      if (type == NTA_BasicType_SDR) {
+        const SDR& sdr = a.getSDR();
+        auto d = sdr.dimensions;
+        dimStr = "[";
+        bool first = true;
+        for (UInt item : d) {
+          if (!first)
+            dimStr.append(", ");
+          first = false;
+          dimStr.append(std::to_string(item));
+        }
+        dimStr.append("]");
+      }
+      else
+        dimStr = "[" + std::to_string(a.getCount()) + "]";
+
+      return "{\"" + tag + "\": " + data + 
+              ", \"type\": \"" + std::string(BasicType::getName(type)) + 
+              ", \"dim\": " + dimStr + "}";
+
     }
   } catch (Exception &e) {
     NTA_THROW << "Error setting parameter " + getName() + "." + name + "; " + e.getMessage();
   }
-  return vm.to_json();
 }
 
 // array parameters
@@ -603,7 +647,7 @@ void Region::setParameterString(const std::string &name, const std::string &s) {
   impl_->setParameterString(name, (Int64)-1, s);
 }
 
-std::string Region::getParameterString(const std::string &name) {
+std::string Region::getParameterString(const std::string &name) const {
   return impl_->getParameterString(name, (Int64)-1);
 }
 

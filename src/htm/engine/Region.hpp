@@ -143,7 +143,7 @@ public:
   Real32 getParameterReal32(const std::string &name) const;
   Real64 getParameterReal64(const std::string &name) const;
   bool getParameterBool(const std::string &name) const;
-  std::string getParameterJSON(const std::string &name) const;
+  std::string getParameterJSON(const std::string &name, const std::string &tag) const;
 
   /**
    * Set the parameter value of a specific type.
@@ -267,7 +267,7 @@ public:
    *
    * @see setParameterString()
    */
-  std::string getParameterString(const std::string &name);
+  std::string getParameterString(const std::string &name) const;
 
   /**
    * Tells whether the parameter is shared.
