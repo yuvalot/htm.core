@@ -4,7 +4,7 @@
 
 [![CI Build Status](https://github.com/htm-community/htm.core/workflows/build/badge.svg)](https://github.com/htm-community/htm.core/actions)
 
-This is a Community Fork of the [nupic.core](https://github.com/numenta/nupic.core) C++ repository, with Python bindings. This implements the theory as described in [Numnta's BAMI](https://numenta.com/resources/biological-and-machine-intelligence/).
+This is a Community Fork of the [nupic.core](https://github.com/numenta/nupic.core) C++ repository, with Python bindings. This implements the theory as described in [Numenta's BAMI](https://numenta.com/resources/biological-and-machine-intelligence/).
 
 ## Project Goals
 
@@ -292,10 +292,10 @@ For Ubuntu and OSx:
 #### For Eclipse as the IDE
  * File - new C/C++Project - Empty or Existing CMake Project
  * Location: (`$HTM_CORE`) - Finish
- * Project properties - C/C++ Build - build command set "make -C build/scripts VERBOSE=1 install -j 6"
+ * Project properties - C/C++ Build - build command set "make -C build/scripts VERBOSE=1 install -j [number of your's CPU cores]"
  * There can be issue with indexer and boost library, which can cause OS memory to overflow -> add exclude filter to
    your project properties - Resource Filters - Exclude all folders that matches boost, recursively
- * (Eclipse IDE for C/C++ Developers, 2019-03)
+ * (Eclipse IDE for C/C++ Developers, 2019-03 on Ubuntu 18.04)
 
 For all new work, tab settings are at 2 characters, replace tabs with spaces.
 The clang-format is LLVM style.
