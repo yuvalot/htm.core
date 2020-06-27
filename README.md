@@ -35,6 +35,7 @@ in C++ library.
    This is a priority for the `NetworkAPI`.
    The algorithms APIs on the other hand have deviated from their original API (but their logic is the same as Numenta's).
    If you are porting your code to this codebase, please follow the [API Differences](API_DIFFERENCES.md) and consult the [API Changelog](API_CHANGELOG.md).
+ * The 'NetworkAPI' as originally defined by the NuPIC library includes a set of build-in Regions. These   are described in [NetworkAPI docs](docs/NetworkAPI.md) 
  * REST interface for `NetworkAPI` with a REST server.
 
 ## Installation
@@ -231,8 +232,8 @@ This uses Docker and QEMU to achieve an ARM64 build on Actions' x86_64/amd64 har
 
 
 ### Documentation
-
-See file [docs/README.md](docs/README.md)
+For Doxygen see [docs README](docs/README.md).
+For NetworkAPI see [NetworkAPI docs](docs/NetworkAPI.md).
 
 
 
