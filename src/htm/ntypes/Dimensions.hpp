@@ -145,7 +145,7 @@ private:
   
 
   inline std::ostream &operator<<(std::ostream &f, const Dimensions& d) {
-    f << d.toString(false) << " ";
+    f << d.toString(true) << " ";
     return f;
   }
   inline std::istream &operator>>(std::istream &f, Dimensions& d) { 

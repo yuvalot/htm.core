@@ -173,7 +173,7 @@ TEST_F(RESTapiTest, example) {
   std::string config = R"(
    {network: [
        {addRegion: {name: "encoder", type: "RDSEEncoderRegion", params: {size: 1000, sparsity: 0.2, radius: 0.03, seed: 2019, noise: 0.01}}},
-       {addRegion: {name: "sp", type: "SPRegion", params: {columnCount: 2048, globalInhibition: true}}},
+       {addRegion: {name: "sp", type: "SPRegion", params: {dim: [2,1024], globalInhibition: true}}},
        {addRegion: {name: "tm", type: "TMRegion", params: {cellsPerColumn: 8, orColumnOutputs: true}}},
        {addLink:   {src: "encoder.encoded", dest: "sp.bottomUpIn"}},
        {addLink:   {src: "sp.bottomUpOut", dest: "tm.bottomUpIn"}}
@@ -232,6 +232,17 @@ TEST_F(RESTapiTest, example) {
   EXPECT_EQ(dim[0], 1u) << "response to GET output request did not have the correct dimensions.";
 
 
+  // Get the output of the SP
+  snprintf(message, sizeof(message), "/network/%s/region/sp/output/bottomUpOut", id.c_str());
+  res = client->Get(message);
+  ASSERT_TRUE(res && res->status / 100 == 2) << " GET output message failed.";
+  vm.parse(res->body);
+  ASSERT_FALSE(vm.contains("err")) << "An error returned. " << vm["err"].str();
+  EXPECT_STREQ(vm["type"].c_str(), "SDR") << "Type of response to GET region sp output bottomUpOut";
+  dim = vm["dim"].asVector<UInt>();
+  EXPECT_EQ(dim.size(), 2u) << " number of dimensions.";
+  EXPECT_EQ(dim[0], 2u) << "First dim.";
+  EXPECT_EQ(dim[1], 1024u) << "second dim.";
 
 
 }

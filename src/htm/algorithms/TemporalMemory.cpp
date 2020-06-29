@@ -550,7 +550,8 @@ vector<CellIdx> TemporalMemory::getActiveCells() const { return activeCells_; }
 
 void TemporalMemory::getActiveCells(SDR &activeCells) const
 {
-  NTA_CHECK( activeCells.size == numberOfCells() );
+  UInt nbr_cells = static_cast<UInt>(numberOfCells());
+  NTA_CHECK( activeCells.size == nbr_cells );
   activeCells.setSparse( getActiveCells() );
 }
 

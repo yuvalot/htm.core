@@ -551,7 +551,6 @@ bool Region::getParameterBool(const std::string &name) const { return impl_->get
 
 std::string Region::getParameterJSON(const std::string &name, const std::string &tag = std::string()) const {
   NTA_BasicType type = NTA_BasicType_Last; // initialize to an invalid type.
-  UInt dim = 1;
   Value vm;
   try {
     type = spec_->parameters.getByName(name).dataType;
@@ -595,6 +594,7 @@ std::string Region::getParameterJSON(const std::string &name, const std::string 
         return "{\"" + tag + "\": " + vm.to_json() + ", \"type\": \"" + std::string(BasicType::getName(type)) + "\"}";
 
     } else {
+      // This is an array, not a scalar.
       Array a;
       getParameterArray(name, a);
       std::string data = a.toJSON();
