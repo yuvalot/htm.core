@@ -228,7 +228,7 @@ TEST_F(RESTapiTest, example) {
   EXPECT_STREQ(vm["result"][0].c_str(), "1") << "Response to GET output request (The Anomaly Score)";
   EXPECT_STREQ(vm["type"].c_str(), "Real32") << "response to GET output request did not have the right type.";
   std::vector<UInt> dim = vm["dim"].asVector<UInt>();
-  EXPECT_EQ(dim.size(), 1) << "response to GET output request did not have the correct number of dimensions.";
+  EXPECT_EQ(dim.size(), 1u) << "response to GET output request did not have the correct number of dimensions.";
   EXPECT_EQ(dim[0], 1u) << "response to GET output request did not have the correct dimensions.";
 
 
