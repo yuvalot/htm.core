@@ -1,4 +1,4 @@
-﻿# How to create C++ Regions for NetorkAPI
+﻿# How to create C++ Regions for NetworkAPI
 
 This doc is for those that would like to create a new Region using C++.  
 
