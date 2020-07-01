@@ -657,14 +657,13 @@ std::string ArrayBase::toJSON() const {
   if (type_ == NTA_BasicType_SDR) {
     const SDR &sdr = getSDR();
     json << "[";
-    bool first = true;
-    SDR_sparse_t sparse = sdr.getSparse();
-    for (size_t i = 0; i < sparse.size(); i++) {
-      if (first) {
-        json << sparse[i];
-        first = false;
+    auto dense = sdr.getDense();
+    for (size_t i = 0; i < dense.size(); i++) {
+      int v = (dense[i]) ? 1 : 0;
+      if (i == 0) {
+        json << v;
       } else
-        json << ", " << sparse[i];
+        json << ", " << v;
     }
     json << "]";
   } else {
@@ -680,7 +679,7 @@ std::string ArrayBase::toJSON() const {
         json << ", ";
       switch (type_) {
       case NTA_BasicType_Byte:
-        json << ((Byte *)inbuf)[i];
+        json << (int)((Byte *)inbuf)[i];
         break;
       case NTA_BasicType_Int16:
         json << ((Int16 *)inbuf)[i];
