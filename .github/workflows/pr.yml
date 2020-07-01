@@ -76,6 +76,7 @@ jobs:
       run: ./build/Release/bin/napi_hello 1000 || exit 3
 
     - name: Hello example (dynamically linked)
+      if: matrix.os == 'ubuntu-18.04'
       run: LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:${PWD}/build/Release/lib ./build/Release/bin/dynamic_hello 1000 || exit 4
 
     - uses: actions/upload-artifact@v2
