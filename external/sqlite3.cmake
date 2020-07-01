@@ -47,7 +47,7 @@ download_project(PROJ sqlite3
 # SQLite does not provide a CMakeList.txt to buld with so we provide the following lines to perform the compile here.
 # Since we are building here and not in the source folder, the library will show up directly under build/ThirdParty.
 set(CMAKE_C_COMPILE_OBJECT on)
-set(CMAKE_C_CREATE_STATIC_LIB on)
+set(CMAKE_C_CREATE_STATIC_LIBRARY on)
 set(SRCS ${sqlite3_SOURCE_DIR}/sqlite3.c ${sqlite3_SOURCE_DIR}/sqlite3.h)
 add_library(sqlite3 STATIC  ${SRCS} )
 target_compile_definitions(sqlite3 PRIVATE ${COMMON_COMPILER_DEFINITIONS})
