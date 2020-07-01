@@ -125,3 +125,8 @@ include(digestpp.cmake)
 # cpp-httplib webserver and client
 include(cpp-httplib.cmake)
 
+#################
+#  Sqlite3  SQL Database
+include(sqlite3.cmake)
+
+

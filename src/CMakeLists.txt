@@ -268,6 +268,7 @@ endif()
 set(src_combined_htmcore_source_archives
     ${src_lib_static}
     ${yaml_LIBRARIES}
+    ${sqlite3_LIBRARIES}
     ${Boost_LIBRARIES}
     ${common_LIBRARIES}
     )
@@ -288,6 +289,7 @@ else()
 	set(all_object_locations)
 	set(src_externLibs
             ${yaml_LIBRARIES}
+            ${sqlite3_LIBRARIES}
             ${Boost_LIBRARIES}
             ${common_LIBRARIES}
             )
