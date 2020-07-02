@@ -80,9 +80,8 @@ class NetworkRESTBase(object):
     return request('GET', url, verbose=self.verbose)
 
   def put_region_input(self, region_name, input_name, data):
-    url = self.api1('/region/{}/input/{}'.format(region_name, input_name),
-                    {'data': data})
-    return request('PUT', url, verbose=self.verbose)
+    url = self.api1('/region/{}/input/{}'.format(region_name, input_name))
+    return request('PUT', url, verbose=self.verbose, data=data)
 
   def get_region_input(self, region_name, input_name):
     url = self.api1('/region/{}/input/{}'.format(region_name, input_name))
