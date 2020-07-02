@@ -537,9 +537,10 @@ void ArrayBase::fromYAML(const std::string &data) { // handles both YAML and JSO
   vm1 = vm["type"];
   NTA_CHECK(vm1 && vm1.isScalar())
       << "Unexpected YAML or JSON format. Expecting something like {type: \"Int32\", data: [1,0,1]}";
+
   vm2 = vm["data"];
-  NTA_CHECK(vm2 && vm.isSequence())
-      << "Unexpected YAML or JSON format. Expecting something like {type: \"SDR(1000)\", data: [1,2,3]}";
+  NTA_CHECK(vm2 && vm2.isSequence())
+      << "Unexpected YAML or JSON format. Expecting something like {type: \"SDR\", data: [1,2,3], dim: [1000]}";
 
   if (vm.contains("dim")) {
     std::vector<UInt> dim;
