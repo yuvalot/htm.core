@@ -86,6 +86,8 @@ class NetworkRESTBase(object):
                        type='Real32',
                        dim=None):
     url = self.api1('/region/{}/input/{}'.format(region_name, input_name))
+    if not isinstance(data, list):
+      data = [data]
     body = {'data': data, 'type': type}
     if dim is not None:
       body['dim'] = dim

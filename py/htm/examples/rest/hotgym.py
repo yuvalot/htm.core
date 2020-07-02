@@ -115,7 +115,6 @@ def main(parameters=default_parameters, argv=None, verbose=True):
   net.add_link(scalarRegion, spRegion, 'encoded', 'bottomUpIn')
   net.add_link(spRegion, tmRegion, 'bottomUpOut', 'bottomUpIn')
   net.add_link(tmRegion, clsrRegion, 'bottomUpOut', 'pattern')
-  net.add_link(scalarRegion, clsrRegion, 'bucket', 'bucket')
 
   net.create()
 
@@ -135,6 +134,7 @@ def main(parameters=default_parameters, argv=None, verbose=True):
     # Call the encoders to create bit representations for each value.  These are SDR objects.
     dateRegion.param('sensedTime', int(dateString.timestamp()))
     scalarRegion.param('sensedValue', consumption)
+    clsrRegion.input('bucket', consumption)
 
     # Predict what will happen, and then train the predictor based on what just happened.
     net.run()
