@@ -98,6 +98,7 @@ std::string RESTapi::put_input_request(const std::string &id,
     Array a;
     a.fromJSON(data);
 
+    itr->second.net->initialize();
     itr->second.net->getRegion(region_name)->setInputData(input_name, a);
 
     return "{\"result\": \"OK\"}";
