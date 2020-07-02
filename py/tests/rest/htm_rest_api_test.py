@@ -187,6 +187,37 @@ class HtmRestApiTest(unittest.TestCase):
     r = net.delete_all()
     self.assertEqual(r, 'OK')
 
+  def testNetworkRESTSetInputScalar(self):
+
+    net = NetworkREST(host=HOST, verbose=True)
+
+    encoder = net.add_region('encoder', 'RDSEEncoderRegion', {
+      'size': 1000,
+      'sparsity': 0.2,
+      'radius': 0.03,
+      'seed': 2019,
+      'noise': 0.01
+    })
+
+    clsr = net.add_region('clsr', 'ClassifierRegion', {'learn': True})
+
+    net.add_link(encoder, clsr, 'encoded', 'pattern')
+
+    net.create()
+
+    s = 0.1
+    # Send set parameter message to feed "sensedValue" parameter data into RDSE encoder for this iteration.
+    r = encoder.param('sensedValue', '{:.2f}'.format(s))
+    self.assertEqual(r, 'OK')
+
+    r = clsr.input('bucket', [s])
+    self.assertEqual(r, 'OK')
+
+    # Execute one iteration of the Network object
+    r = net.run(1)
+    self.assertEqual(r, 'OK')
+    self.assertEqual(clsr.output('predicted'), [0])
+
   def tearDown(self):
     try:
       r = requests.get('{}/stop'.format(HOST))

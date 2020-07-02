@@ -79,9 +79,17 @@ class NetworkRESTBase(object):
     url = self.api1('/region/{}/param/{}'.format(region_name, param_name))
     return request('GET', url, verbose=self.verbose)
 
-  def put_region_input(self, region_name, input_name, data):
+  def put_region_input(self,
+                       region_name,
+                       input_name,
+                       data,
+                       type='Real32',
+                       dim=None):
     url = self.api1('/region/{}/input/{}'.format(region_name, input_name))
-    return request('PUT', url, verbose=self.verbose, data=data)
+    body = {'data': data, 'type': type}
+    if dim is not None:
+      body['dim'] = dim
+    return request('PUT', url, verbose=self.verbose, data=json.dumps(body))
 
   def get_region_input(self, region_name, input_name):
     url = self.api1('/region/{}/input/{}'.format(region_name, input_name))
@@ -134,11 +142,11 @@ class RegionREST(object):
   def set_net(self, net):
     self.net = net
 
-  def input(self, input_name, data=None):
+  def input(self, input_name, data=None, type='Real32', dim=None):
     if data is None:
       return self.net.get_region_input(self.name, input_name)
 
-    return self.net.put_region_input(self.name, input_name, data)
+    return self.net.put_region_input(self.name, input_name, data, type, dim)
 
   def param(self, param_name, data=None):
     if data is None:
