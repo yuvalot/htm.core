@@ -542,9 +542,14 @@ void ArrayBase::fromYAML(const std::string &data) { // handles both YAML and JSO
   NTA_CHECK(vm2 && vm2.isSequence())
       << "Unexpected YAML or JSON format. Expecting something like {type: \"SDR\", data: [1,2,3], dim: [1000]}";
 
+  std::string typeStr = vm1.as<std::string>();
+  type_ = BasicType::parse(typeStr);
+
   if (vm.contains("dim")) {
     std::vector<UInt> dim;
     Value vm3 = vm["dim"];
+    NTA_CHECK(vm3 && vm3.isSequence())
+      << "Unexpected YAML or JSON format. Expecting something like {type: \"SDR\", data: [1,2,3], dim: [1000]}";
     for (size_t i = 0; i < vm3.size(); i++) {
       dim.push_back(vm2[i].as<UInt>());
     }
@@ -552,9 +557,6 @@ void ArrayBase::fromYAML(const std::string &data) { // handles both YAML and JSO
   } else {
     allocateBuffer(vm2.size());
   }
-
-  std::string typeStr = vm1.as<std::string>();
-  type_ = BasicType::parse(typeStr);
 
   num = vm2.size();
   void *inbuf = getBuffer();
