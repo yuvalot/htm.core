@@ -525,31 +525,6 @@ std::istream &operator>>(std::istream &inStream, ArrayBase &a) {
   return inStream;
 }
 
-// a helper function to parse the type for an SDR in a JSON serialization of an Array.
-//  syntax "SDR(dim1[, dim2[, dim3]])"
-static std::vector<UInt> parseDim(const std::string &type) {
-  std::vector<UInt> dim;
-  char *end;
-  const char *p1 = strchr(type.c_str(), '(');
-  if (p1) {
-    const char *p2 = strchr(p1, ')');
-    if (p2) {
-      while (true) {
-        while (p1 < p2 && !isdigit(*p1))
-          p1++;
-        if (p1 >= p2)
-          break;
-        UInt i = strtoul(p1, &end, 0);
-        dim.push_back(i);
-        p1 = end;
-      }
-    }
-  }
-  NTA_CHECK(dim.size() > 0)
-      << "In parse of Array object from JSON, SDR type does not include dimensions.  Expected SDR(nnn[,nnn[,nnn]])";
-  return dim;
-}
-
 // Serialization and Deserialization using YAML parser
 // For JSON, expecting something like {type: "Int32", data: [1, 0, 1]}
 void ArrayBase::fromYAML(const std::string &data) { // handles both YAML and JSON
@@ -566,15 +541,19 @@ void ArrayBase::fromYAML(const std::string &data) { // handles both YAML and JSO
   NTA_CHECK(vm2 && vm.isSequence())
       << "Unexpected YAML or JSON format. Expecting something like {type: \"SDR(1000)\", data: [1,2,3]}";
 
-  std::string typeStr = vm1.as<std::string>();
-  if (typeStr.size() >= 3 && typeStr.substr(0, 3) == "SDR") {
-    type_ = NTA_BasicType_SDR;
-    allocateBuffer(parseDim(typeStr));
+  if (vm.contains("dim")) {
+    std::vector<UInt> dim;
+    Value vm3 = vm["dim"];
+    for (size_t i = 0; i < vm3.size(); i++) {
+      dim.push_back(vm2[i].as<UInt>());
+    }
+    allocateBuffer(dim);
   } else {
-    type_ = BasicType::parse(typeStr);
-    size_t num = vm2.size();
-    allocateBuffer(num);
+    allocateBuffer(vm2.size());
   }
+
+  std::string typeStr = vm1.as<std::string>();
+  type_ = BasicType::parse(typeStr);
 
   num = vm2.size();
   void *inbuf = getBuffer();
