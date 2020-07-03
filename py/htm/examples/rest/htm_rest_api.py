@@ -83,15 +83,13 @@ class NetworkRESTBase(object):
                        region_name,
                        input_name,
                        data,
-                       type='Real32',
                        dim=None):
     url = self.api1('/region/{}/input/{}'.format(region_name, input_name))
     if not isinstance(data, list):
       data = [data]
-    body = {'data': data, 'type': type}
     if dim is not None:
-      body['dim'] = dim
-    return request('PUT', url, verbose=self.verbose, data=json.dumps(body))
+      data = {'data': data, 'dim': dim}
+    return request('PUT', url, verbose=self.verbose, data=json.dumps(data))
 
   def get_region_input(self, region_name, input_name):
     url = self.api1('/region/{}/input/{}'.format(region_name, input_name))
@@ -144,11 +142,11 @@ class RegionREST(object):
   def set_net(self, net):
     self.net = net
 
-  def input(self, input_name, data=None, type='Real32', dim=None):
+  def input(self, input_name, data=None, dim=None):
     if data is None:
       return self.net.get_region_input(self.name, input_name)
 
-    return self.net.put_region_input(self.name, input_name, data, type, dim)
+    return self.net.put_region_input(self.name, input_name, data, dim)
 
   def param(self, param_name, data=None):
     if data is None:

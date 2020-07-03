@@ -528,7 +528,6 @@ std::istream &operator>>(std::istream &inStream, ArrayBase &a) {
 // Serialization and Deserialization using YAML parser
 // For JSON, expecting something like {type: "Int32", data: [1, 0, 1]}
 void ArrayBase::fromYAML(const std::string &data) { // handles both YAML and JSON
-  size_t num;
   Value vm, vm1, vm2;
   vm.parse(data);
   NTA_CHECK(vm.contains("type") && vm.contains("data"))
@@ -545,87 +544,99 @@ void ArrayBase::fromYAML(const std::string &data) { // handles both YAML and JSO
   std::string typeStr = vm1.as<std::string>();
   type_ = BasicType::parse(typeStr);
 
-  if (vm.contains("dim")) {
-    std::vector<UInt> dim;
-    Value vm3 = vm["dim"];
-    NTA_CHECK(vm3 && vm3.isSequence())
-      << "Unexpected YAML or JSON format. Expecting something like {type: \"SDR\", data: [1,2,3], dim: [1000]}";
-    for (size_t i = 0; i < vm3.size(); i++) {
-      dim.push_back(vm2[i].as<UInt>());
-    }
-    allocateBuffer(dim);
+  if (type_ == NTA_BasicType_SDR) { //  Expecting sparse data
+    fromValue(vm);
   } else {
-    allocateBuffer(vm2.size());
+    fromValue(vm2);
+  }
+}
+
+void ArrayBase::fromValue(const Value &vm) {
+  if (type_ == NTA_BasicType_SDR) { //  Expecting sparse data
+    NTA_CHECK(vm.contains("dim") && vm.contains("data"))
+        << "Unexpected YAML or JSON format. Expecting something like {data: [1,2,3], dim: [1000]}";
+    Value vm1 = vm["data"];
+    NTA_CHECK(vm1 && vm1.isSequence())
+      << "Unexpected YAML or JSON format. Expecting something like {data: [1,2,3], dim: [1000]}";
+    Value vm2 = vm["dim"];
+    NTA_CHECK(vm2 && vm2.isSequence())
+      << "Unexpected YAML or JSON format. Expecting something like {data: [1,2,3], dim: [1000]}";
+     std::vector<UInt> dim;
+     for (size_t i = 0; i < vm2.size(); i++) {
+       dim.push_back(vm2[i].as<UInt>());
+     }
+     allocateBuffer(dim);
+     SDR &sdr = getSDR();
+     SDR_sparse_t sparse;
+     for (size_t i = 0; i < vm1.size(); i++) {
+       UInt x = vm1[i].as<UInt>();
+       sparse.push_back(x);
+     }
+     sdr.setSparse(sparse);
+     return;
+  } else {
+    NTA_CHECK(vm && vm.isSequence())
+      << "Unexpected YAML or JSON format. Expecting something like [1,2,3]";
+    allocateBuffer(vm.size());
   }
 
-  num = vm2.size();
+  size_t num = vm.size();
   void *inbuf = getBuffer();
 
   switch (type_) {
   case NTA_BasicType_Byte:
     for (size_t i = 0; i < num; i++) {
-      ((Byte *)inbuf)[i] = vm2[i].as<Byte>();
+      ((Byte *)inbuf)[i] = vm[i].as<Byte>();
     }
     break;
   case NTA_BasicType_Int16:
     for (size_t i = 0; i < num; i++) {
-      ((Int16 *)inbuf)[i] = vm2[i].as<Int16>();
+      ((Int16 *)inbuf)[i] = vm[i].as<Int16>();
     }
     break;
   case NTA_BasicType_UInt16:
     for (size_t i = 0; i < num; i++) {
-      ((UInt16 *)inbuf)[i] = vm2[i].as<UInt16>();
+      ((UInt16 *)inbuf)[i] = vm[i].as<UInt16>();
     }
     break;
   case NTA_BasicType_Int32:
     for (size_t i = 0; i < num; i++) {
-      ((Int32 *)inbuf)[i] = vm2[i].as<Int32>();
+      ((Int32 *)inbuf)[i] = vm[i].as<Int32>();
     }
     break;
   case NTA_BasicType_UInt32:
     for (size_t i = 0; i < num; i++) {
-      ((UInt32 *)inbuf)[i] = vm2[i].as<UInt32>();
+      ((UInt32 *)inbuf)[i] = vm[i].as<UInt32>();
     }
     break;
   case NTA_BasicType_Int64:
     for (size_t i = 0; i < num; i++) {
-      ((Int64 *)inbuf)[i] = vm2[i].as<Int64>();
+      ((Int64 *)inbuf)[i] = vm[i].as<Int64>();
     }
     break;
   case NTA_BasicType_UInt64:
     for (size_t i = 0; i < num; i++) {
-      ((UInt64 *)inbuf)[i] = vm2[i].as<UInt64>();
+      ((UInt64 *)inbuf)[i] = vm[i].as<UInt64>();
     }
     break;
   case NTA_BasicType_Real32:
     for (size_t i = 0; i < num; i++) {
-      ((Real32 *)inbuf)[i] = vm2[i].as<Real32>();
+      ((Real32 *)inbuf)[i] = vm[i].as<Real32>();
     }
     break;
   case NTA_BasicType_Real64:
     for (size_t i = 0; i < num; i++) {
-      ((Real64 *)inbuf)[i] = vm2[i].as<Real64>();
+      ((Real64 *)inbuf)[i] = vm[i].as<Real64>();
     }
     break;
   case NTA_BasicType_Bool:
     for (size_t i = 0; i < num; i++) {
-      ((bool *)inbuf)[i] = vm2[i].as<bool>();
+      ((bool *)inbuf)[i] = vm[i].as<bool>();
     }
     break;
-  case NTA_BasicType_SDR: //  Expecting sparse data
-  {
-    SDR &sdr = getSDR();
-    SDR_sparse_t sparse;
+  case NTA_BasicType_Str:
     for (size_t i = 0; i < num; i++) {
-      UInt x = vm2[i].as<UInt>();
-      sparse.push_back(x);
-    }
-    sdr.setSparse(sparse);
-    break;
-  }
-  case NTA_BasicType_Str: 
-    for (size_t i = 0; i < num; i++) {
-      ((std::string *)inbuf)[i] = vm2[i].as<std::string>();
+      ((std::string *)inbuf)[i] = vm[i].as<std::string>();
     }
     break;
   default:

@@ -86,19 +86,19 @@ std::string RESTapi::create_network_request(const std::string &specified_id, con
   }
 }
 
-std::string RESTapi::put_input_request(const std::string &id, 
+std::string RESTapi::put_input_request(const std::string &id,
                                        const std::string &region_name,
-                                       const std::string &input_name, 
+                                       const std::string &input_name,
                                        const std::string &data) {
   try {
     auto itr = resource_.find(id);
     NTA_CHECK(itr != resource_.end()) << "Context for resource '" + id + "' not found.";
     itr->second.t = time(0);
 
-    Array a;
-    a.fromJSON(data);
+    Value vm;
+    vm.parse(data);
 
-    itr->second.net->getRegion(region_name)->setInputData(input_name, a);
+    itr->second.net->getRegion(region_name)->setInputData(input_name, vm);
 
     return "{\"result\": \"OK\"}";
   }
