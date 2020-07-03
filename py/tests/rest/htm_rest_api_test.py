@@ -218,6 +218,24 @@ class HtmRestApiTest(unittest.TestCase):
     self.assertEqual(r, 'OK')
     self.assertEqual(clsr.output('predicted'), [0])
 
+  def testNetworkRESTSetInputSdr(self):
+
+    net = NetworkREST(host=HOST, verbose=True)
+
+    sp = net.add_region('sp', 'SPRegion', {
+      'columnCount': 2048,
+      'globalInhibition': True
+    })
+
+    net.create()
+
+    r = sp.input('bottomUpIn', [1,2], [100])
+    self.assertEqual(r, 'OK')
+
+    # Execute one iteration of the Network object
+    r = net.run(1)
+    self.assertEqual(r, 'OK')
+
   def tearDown(self):
     try:
       r = requests.get('{}/stop'.format(HOST))

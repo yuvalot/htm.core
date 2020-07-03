@@ -98,10 +98,10 @@ void SPRegion::initialize() {
   // algorithm requires input.
   //
   // If there are more than one input link (FAN-IN), the input buffer will be the
-  // concatination of all incomming buffers.  
+  // concatination of all incomming buffers.
   std::shared_ptr<Input> in = getInput("bottomUpIn");
   NTA_CHECK(in != nullptr);
-  if (!in->hasIncomingLinks())
+  if (!in->hasIncomingLinks() && !in->isInitialized())
      NTA_THROW << "SPRegion::initialize - No input links were configured for this SP region.\n";
   Array &inputBuffer = in->getData();
   NTA_CHECK(inputBuffer.getType() == NTA_BasicType_SDR);
