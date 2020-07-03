@@ -452,9 +452,10 @@ void Region::setInputData(const std::string &inputName, const Array& data) {
     NTA_THROW << "setInputData -- unknown input '" << inputName << "' on region "
               << getName();
   std::shared_ptr<Input> in = ii->second;
-	in->setDimensions( { (UInt)data.getCount() } );
+  in->initialize();
+  in->setDimensions( { (UInt)data.getCount() } );
   Array& a = in->getData();
-	data.convertInto(a);
+  data.convertInto(a);
 }
 
 void Region::prepareInputs() {
