@@ -22,6 +22,7 @@ Implementation of the RESTapi class
 */
 #include <htm/engine/RESTapi.hpp>
 #include <htm/engine/Network.hpp>
+#include <htm/engine/Spec.hpp>
 
 const size_t ID_MAX = 9999; // maximum number of generated ids  (this is arbitrary)
 
@@ -97,8 +98,13 @@ std::string RESTapi::put_input_request(const std::string &id,
 
     Value vm;
     vm.parse(data);
+    std::shared_ptr<Region> region = itr->second.net->getRegion(region_name);
+    const std::shared_ptr<Spec> &destSpec = region->getSpec();
+    Array a(destSpec->inputs.getByName(input_name).dataType);
 
-    itr->second.net->getRegion(region_name)->setInputData(input_name, vm);
+    a.fromValue(vm);
+
+    region->setInputData(input_name, a);
 
     return "{\"result\": \"OK\"}";
   }

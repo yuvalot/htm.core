@@ -446,17 +446,16 @@ const Array& Region::getInputData(const std::string &inputName) const {
   const Array & data = ii->second->getData();
   return data;
 }
-void Region::setInputData(const std::string &inputName, const Value &data) {
+void Region::setInputData(const std::string &inputName, const Array &data) {
   auto ii = inputs_.find(inputName);
   if (ii == inputs_.end())
     NTA_THROW << "setInputData -- unknown input '" << inputName << "' on region "
               << getName();
   std::shared_ptr<Input> in = ii->second;
   in->initialize();
-
+  in->setDimensions( { (UInt)data.getCount() } );
   Array& a = in->getData();
-  a.fromValue(data);
-  in->setDimensions( { (UInt)a.getCount() } );
+  data.convertInto(a);
 }
 
 void Region::prepareInputs() {

@@ -330,7 +330,7 @@ public:
 	 * Set the input data.  The input buffer type remains, data is copied in
 	 * with conversion if needed.
 	 */
-	virtual void setInputData(const std::string &inputName, const Value &data);
+	virtual void setInputData(const std::string &inputName, const Array &data);
 
 
   /**
