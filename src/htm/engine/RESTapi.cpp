@@ -100,8 +100,22 @@ std::string RESTapi::put_input_request(const std::string &id,
     vm.parse(data);
     std::shared_ptr<Region> region = itr->second.net->getRegion(region_name);
     const std::shared_ptr<Spec> &destSpec = region->getSpec();
-    Array a(destSpec->inputs.getByName(input_name).dataType);
+    NTA_BasicType type = destSpec->inputs.getByName(input_name).dataType;
 
+    NTA_CHECK(vm.contains("data"))
+        << "Unexpected YAML or JSON format. Expecting something like {data: [1,0,1]}";
+
+    NTA_CHECK(vm["data"].isSequence())
+        << "Unexpected YAML or JSON format. Expecting something like {data: [1,0,1]}";
+
+    if (type == NTA_BasicType_SDR) {
+      NTA_CHECK(vm.contains("dim"))
+          << "Unexpected YAML or JSON format. Expecting something like {data: [1,0,1], dim: [1000]}";
+      NTA_CHECK(vm["dim"].isSequence())
+          << "Unexpected YAML or JSON format. Expecting something like {data: [1,0,1], dim: [1000]}";
+    }
+
+    Array a(type);
     a.fromValue(vm);
 
     region->setInputData(input_name, a);
