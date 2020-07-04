@@ -18,7 +18,7 @@
  * --------------------------------------------------------------------- */
 
 
-#include <htm/utils/log.hpp>
+#include <htm/utils/Log.hpp>
 #include "sqlite3.h"
 #include "gtest/gtest.h"
 
