@@ -525,6 +525,31 @@ std::istream &operator>>(std::istream &inStream, ArrayBase &a) {
   return inStream;
 }
 
+// a helper function to parse the type for an SDR in a JSON serialization of an Array.
+//  syntax "SDR(dim1[, dim2[, dim3]])"
+static std::vector<UInt> parseDim(const std::string &type) {
+  std::vector<UInt> dim;
+  char *end;
+  const char *p1 = strchr(type.c_str(), '(');
+  if (p1) {
+    const char *p2 = strchr(p1, ')');
+    if (p2) {
+      while (true) {
+        while (p1 < p2 && !isdigit(*p1))
+          p1++;
+        if (p1 >= p2)
+          break;
+        UInt i = strtoul(p1, &end, 0);
+        dim.push_back(i);
+        p1 = end;
+      }
+    }
+  }
+  NTA_CHECK(dim.size() > 0)
+      << "In parse of Array object from JSON, SDR type does not include dimensions.  Expected SDR(nnn[,nnn[,nnn]])";
+  return dim;
+}
+
 // Serialization and Deserialization using YAML parser
 // For JSON, expecting something like {type: "Int32", data: [1, 0, 1]}
 void ArrayBase::fromYAML(const std::string &data) { // handles both YAML and JSON
@@ -538,49 +563,39 @@ void ArrayBase::fromYAML(const std::string &data) { // handles both YAML and JSO
       << "Unexpected YAML or JSON format. Expecting something like {type: \"Int32\", data: [1,0,1]}";
 
   vm2 = vm["data"];
-  NTA_CHECK(vm2 && vm2.isSequence())
-      << "Unexpected YAML or JSON format. Expecting something like {type: \"SDR\", data: [1,2,3], dim: [1000]}";
+  NTA_CHECK(vm2 && vm.isSequence())
+      << "Unexpected YAML or JSON format. Expecting something like {type: \"SDR(1000)\", data: [1,2,3]}";
 
   std::string typeStr = vm1.as<std::string>();
-  type_ = BasicType::parse(typeStr);
-
-  if (type_ == NTA_BasicType_SDR) { //  Expecting sparse data
-    fromValue(vm);
+  if (typeStr.size() >= 3 && typeStr.substr(0, 3) == "SDR") {
+    type_ = NTA_BasicType_SDR;
+    allocateBuffer(parseDim(typeStr));
   } else {
-    fromValue(vm2);
+    type_ = BasicType::parse(typeStr);
+    size_t num = vm2.size();
+    allocateBuffer(num);
   }
+
+  fromValue(vm);
 }
 
-void ArrayBase::fromValue(const Value &vm) {
-  if (type_ == NTA_BasicType_SDR) { //  Expecting sparse data
-    NTA_CHECK(vm.contains("dim") && vm.contains("data"))
-        << "Unexpected YAML or JSON format. Expecting something like {data: [1,2,3], dim: [1000]}";
-    Value vm1 = vm["data"];
-    NTA_CHECK(vm1 && vm1.isSequence())
-      << "Unexpected YAML or JSON format. Expecting something like {data: [1,2,3], dim: [1000]}";
-    Value vm2 = vm["dim"];
-    NTA_CHECK(vm2 && vm2.isSequence())
-      << "Unexpected YAML or JSON format. Expecting something like {data: [1,2,3], dim: [1000]}";
-     std::vector<UInt> dim;
-     for (size_t i = 0; i < vm2.size(); i++) {
-       dim.push_back(vm2[i].as<UInt>());
-     }
-     allocateBuffer(dim);
-     SDR &sdr = getSDR();
-     SDR_sparse_t sparse;
-     for (size_t i = 0; i < vm1.size(); i++) {
-       UInt x = vm1[i].as<UInt>();
-       sparse.push_back(x);
-     }
-     sdr.setSparse(sparse);
-     return;
-  } else {
-    NTA_CHECK(vm && vm.isSequence())
-      << "Unexpected YAML or JSON format. Expecting something like [1,2,3]";
-    allocateBuffer(vm.size());
+void ArrayBase::fromValue(const Value &vm_) {
+  Value vm = vm_["data"];
+  size_t num = vm.size();
+
+  if (getCount() == 0) {
+    if (type_ == NTA_BasicType_SDR) {
+      Value vm1 = vm_["dim"];
+      std::vector<UInt> dim;
+      for (size_t i = 0; i < vm1.size(); i++) {
+        dim.push_back(vm1[i].as<UInt>());
+      }
+      allocateBuffer(dim);
+    } else {
+      allocateBuffer(num);
+    }
   }
 
-  size_t num = vm.size();
   void *inbuf = getBuffer();
 
   switch (type_) {
@@ -634,6 +649,17 @@ void ArrayBase::fromValue(const Value &vm) {
       ((bool *)inbuf)[i] = vm[i].as<bool>();
     }
     break;
+  case NTA_BasicType_SDR: //  Expecting sparse data
+  {
+    SDR &sdr = getSDR();
+    SDR_sparse_t sparse;
+    for (size_t i = 0; i < vm.size(); i++) {
+      UInt x = vm[i].as<UInt>();
+      sparse.push_back(x);
+    }
+    sdr.setSparse(sparse);
+    break;
+  }
   case NTA_BasicType_Str:
     for (size_t i = 0; i < num; i++) {
       ((std::string *)inbuf)[i] = vm[i].as<std::string>();

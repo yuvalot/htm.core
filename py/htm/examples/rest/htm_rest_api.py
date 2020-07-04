@@ -87,8 +87,9 @@ class NetworkRESTBase(object):
     url = self.api1('/region/{}/input/{}'.format(region_name, input_name))
     if not isinstance(data, list):
       data = [data]
+    data = {'data': data}
     if dim is not None:
-      data = {'data': data, 'dim': dim}
+      data['dim'] = dim
     return request('PUT', url, verbose=self.verbose, data=json.dumps(data))
 
   def get_region_input(self, region_name, input_name):
