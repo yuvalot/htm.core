@@ -336,6 +336,7 @@ The installation scripts will automatically download and build the dependencies 
  * [gtest](https://github.com/google/googletest)
  * [cereal](https://uscilab.github.io/cereal/)
  * [mnist test data](https://github.com/wichtounet/mnist)
+ * [sqlite3](https://www.sqlite.org/2020/sqlite-autoconf-3320300.tar.gz)
  * [digestpp](https://github.com/kerukuro/digestpp) (for SimHash encoders)
  * and [python requirements.txt](./requirements.txt)
 
@@ -357,6 +358,7 @@ distribution packages as listed and rename them as indicated. Copy these to
 | mnist.zip     (*note4) | https://github.com/wichtounet/mnist/archive/master.zip |
 | pybind11.tar.gz        | https://github.com/pybind/pybind11/archive/v2.4.2.tar.gz |
 | cereal.tar.gz          | https://github.com/USCiLab/cereal/archive/v1.2.2.tar.gz |
+| sqlite3.tar.gz         | https://www.sqlite.org/2020/sqlite-autoconf-3320300.tar.gz |
 | digestpp.zip           | https://github.com/kerukuro/digestpp/archive/36fa6ca2b85808bd171b13b65a345130dbe1d774.zip |
 | cpp-httplib.zip(*node4)| https://github.com/yhirose/cpp-httplib/archive/v0.5.5.zip |
 
