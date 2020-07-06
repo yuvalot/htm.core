@@ -36,7 +36,7 @@ TEST(SQLiteTest, hello)
   sqlite3 *db;
   char *zErrMsg = 0;
   int rc;
-  const char *dbName = ":memory:";  // A private temprary database is created in memory and is deleted on close.
+  const char *dbName = ":memory:";  // A private temporary database is created in memory and is deleted on close.
   
 
   rc = sqlite3_open(dbName, &db);

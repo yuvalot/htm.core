@@ -32,9 +32,7 @@
 #include <htm/types/Serializable.hpp>
 #include <htm/ntypes/Value.hpp>
 
-extern "C" {
 #include <sqlite3.h>
-}
 
 namespace htm {
 
@@ -106,8 +104,7 @@ public:
 private:
   void closeFile();
   void openFile(const std::string &filename);
-
-    Array dataIn_;
+  void createTable(const std::string &sTableName);
     std::string filename_;          // Name of the output file
 
     sqlite3 *dbHandle;		//Sqlite3 connection handle

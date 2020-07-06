@@ -37,6 +37,7 @@
 #include <htm/regions/RDSEEncoderRegion.hpp>
 #include <htm/regions/FileOutputRegion.hpp>
 #include <htm/regions/FileInputRegion.hpp>
+#include <htm/regions/DatabaseOutRegion.hpp>
 #include <htm/regions/SPRegion.hpp>
 #include <htm/regions/TMRegion.hpp>
 #include <htm/regions/ClassifierRegion.hpp>
@@ -95,6 +96,7 @@ RegionImplFactory &RegionImplFactory::getInstance() {
     instance.addRegionType("TestNode",           new RegisteredRegionImplCpp<TestNode>());
     instance.addRegionType("FileOutputRegion", new RegisteredRegionImplCpp<FileOutputRegion>());
     instance.addRegionType("FileInputRegion",   new RegisteredRegionImplCpp<FileInputRegion>());
+    instance.addRegionType("DatabaseOutRegion", new RegisteredRegionImplCpp<DatabaseOutRegion>());
     instance.addRegionType("SPRegion",           new RegisteredRegionImplCpp<SPRegion>());
     instance.addRegionType("TMRegion",           new RegisteredRegionImplCpp<TMRegion>());
     instance.addRegionType("ClassifierRegion",   new RegisteredRegionImplCpp<ClassifierRegion>());

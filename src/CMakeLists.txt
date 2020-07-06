@@ -164,8 +164,8 @@ set(regions_files
     htm/regions/FileOutputRegion.hpp
     htm/regions/FileInputRegion.cpp
     htm/regions/FileInputRegion.hpp  
-    htm/requions/DatabaseOutRegion.cpp
-    htm/requions/DatabaseOutRegion.hpp
+    htm/regions/DatabaseOutRegion.cpp
+    htm/regions/DatabaseOutRegion.hpp
 )
 
 set(types_files
