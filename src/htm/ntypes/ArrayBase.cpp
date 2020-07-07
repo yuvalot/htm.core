@@ -585,10 +585,14 @@ void ArrayBase::fromValue(const Value &vm_) {
 
   if (getCount() == 0) {
     if (type_ == NTA_BasicType_SDR) {
-      Value vm1 = vm_["dim"];
       std::vector<UInt> dim;
-      for (size_t i = 0; i < vm1.size(); i++) {
-        dim.push_back(vm1[i].as<UInt>());
+      if (vm_.contains("dim")) {
+        Value vm1 = vm_["dim"];
+        for (size_t i = 0; i < vm1.size(); i++) {
+          dim.push_back(vm1[i].as<UInt>());
+        }
+      } else {
+        dim.push_back(num);
       }
       allocateBuffer(dim);
     } else {
@@ -652,12 +656,34 @@ void ArrayBase::fromValue(const Value &vm_) {
   case NTA_BasicType_SDR: //  Expecting sparse data
   {
     SDR &sdr = getSDR();
-    SDR_sparse_t sparse;
-    for (size_t i = 0; i < vm.size(); i++) {
-      UInt x = vm[i].as<UInt>();
-      sparse.push_back(x);
+    bool isDense = false;
+    if (num == getCount()) {
+      if (num == 1) {
+        isDense = true;
+      } else if (num == 2) { // maybe problem here
+        isDense = true;
+      } else {
+        if (vm[0] == vm[1] || vm[0] == vm[2] || vm[1] == vm[2]) {
+          isDense = true;
+        }
+      }
     }
-    sdr.setSparse(sparse);
+
+    if (isDense) {
+      SDR_dense_t dense;
+      for (size_t i = 0; i < vm.size(); i++) {
+        UInt x = vm[i].as<Byte>();
+        dense.push_back(x);
+      }
+      sdr.setDense(dense);
+    } else {
+      SDR_sparse_t sparse;
+      for (size_t i = 0; i < vm.size(); i++) {
+        UInt x = vm[i].as<UInt>();
+        sparse.push_back(x);
+      }
+      sdr.setSparse(sparse);
+    }
     break;
   }
   case NTA_BasicType_Str:
