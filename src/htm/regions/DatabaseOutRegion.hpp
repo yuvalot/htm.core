@@ -105,9 +105,12 @@ private:
   void closeFile();
   void openFile(const std::string &filename);
   void createTable(const std::string &sTableName);
+  void insertData(const std::string &sTableName, unsigned int iIteration, const std::shared_ptr<Input> inputData);
     std::string filename_;          // Name of the output file
 
     sqlite3 *dbHandle;		//Sqlite3 connection handle
+
+    unsigned int iIterationCounter;
 
   /// Disable unsupported default constructors
     DatabaseOutRegion(const DatabaseOutRegion &);

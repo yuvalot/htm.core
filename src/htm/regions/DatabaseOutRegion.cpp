@@ -46,6 +46,7 @@ DatabaseOutRegion::DatabaseOutRegion(const ValueMap &params, Region* region)
   }
   else
     filename_ = "";
+
 }
 
 DatabaseOutRegion::DatabaseOutRegion(ArWrapper& wrapper, Region* region)
@@ -90,6 +91,25 @@ void DatabaseOutRegion::createTable(const std::string &sTableName){
 	}
 }
 
+void DatabaseOutRegion::insertData(const std::string &sTableName, unsigned int iIteration, const std::shared_ptr<Input> inputData){
+
+	NTA_ASSERT(inputData->getData().getCount()==1);
+
+	Real32* value = (Real32 *)inputData->getData().getBuffer();
+	/* Create SQL statement */
+	std::string  sql = "INSERT INTO "+sTableName+" VALUES ("+std::to_string(iIteration)+","+ std::to_string(*value) + ");";
+
+	char *zErrMsg;
+
+	int returnCode = sqlite3_exec(dbHandle, sql.c_str(), nullptr, 0, &zErrMsg);
+
+	if( returnCode != SQLITE_OK ){
+		NTA_THROW << "Error inserting data to SQL table, message:"
+				  << zErrMsg;
+		sqlite3_free(zErrMsg);
+	}
+}
+
 void DatabaseOutRegion::compute() {
 
 
@@ -100,58 +120,13 @@ void DatabaseOutRegion::compute() {
 
 	for (const auto & inp : inputs)
 	{
-		std::cout << "compute: " << *inp.second  << " \n ";
-
 		const auto inObj = inp.second;
 		if (inObj->hasIncomingLinks() && inObj->getData().getCount() != 0) { //create tables only for those, whose was configured
-			insertData("dataStream_" + inp.first, *inp.second);
+			insertData("dataStream_" + inp.first, iIterationCounter, inObj);
 		}
-
-		//NTA_DEBUG << "compute " << *inp.second << "\n";
 	}
-//  // trace facility
-//  //NTA_DEBUG << "compute " << *region_->getInput("dataIn") << "\n";
-//  dataIn_ = region_->getInput("dataIn")->getData();
-//  // It's not necessarily an error to have no inputs. In this case we just
-//  // return
-//  if (dataIn_.getCount() == 0)
-//    return;
-//
-//  // Don't write if there is no open file.
-//  if (dbHandle == nullptr) {
-//    NTA_WARN
-//        << "DatabaseOutRegion (Warning) compute() called, but there is no open file";
-//    return;
-//  }
-//
-//
-//	char *zErrMsg;
-//	/* Execute SQL statement */
-//	int returnCode = sqlite3_exec(dbHandle, sql.c_str(), nullptr, 0, &zErrMsg);
-//
-//	if( returnCode != SQLITE_OK ){
-//		NTA_THROW << "SQL error:"
-//				  << zErrMsg;
-//		sqlite3_free(zErrMsg);
-//	}
-//
-//  // Ensure we can write to it
-//  /*if (outFile_->fail()) {
-//    NTA_THROW << "DatabaseOutRegion: There was an error writing to the file "
-//              << filename_.c_str() << "\n";
-//  }*/
-//
-//
-//  Real *inputVec = (Real *)(dataIn_.getBuffer());
-//  /*NTA_CHECK(inputVec != nullptr);
-//  std::ofstream &outFile = *outFile_;
-//  for (Size offset = 0; offset < dataIn_.getCount(); ++offset) {
-//    if (offset == 0)
-//      outFile << inputVec[offset];
-//    else
-//      outFile << "," << inputVec[offset];
-//  }
-//  outFile << "\n";*/
+
+	iIterationCounter += 1; // increase inner counter of iteration by one
 }
 
 void DatabaseOutRegion::closeFile() {
@@ -197,6 +172,9 @@ void DatabaseOutRegion::openFile(const std::string &filename) {
 		<< result;
   }
   filename_ = filename;
+
+  iIterationCounter = 0; // set iteration counter to 0
+
 }
 
 void DatabaseOutRegion::setParameterString(const std::string &paramName,
@@ -225,29 +203,13 @@ std::string DatabaseOutRegion::getParameterString(const std::string &paramName,
 std::string
 DatabaseOutRegion::executeCommand(const std::vector<std::string> &args,
                                    Int64 index) {
-  /*NTA_CHECK(args.size() > 0);
+  NTA_CHECK(args.size() > 0);
   // Process the flushFile command
-  if (args[0] == "flushFile") {
-    // Ensure we have a valid file before flushing, otherwise fail silently.
-    if (!((outFile_ == nullptr) || (outFile_->fail()))) {
-      outFile_->flush();
-    }
-  } else if (args[0] == "closeFile") {
+  if (args[0] == "closeFile") {
     closeFile();
-  } else if (args[0] == "echo") {
-    // Ensure we have a valid file before flushing, otherwise fail silently.
-    if ((outFile_ == nullptr) || (outFile_->fail())) {
-      NTA_THROW << "DatabaseOutRegion: echo command failed because there is "
-                   "no file open";
-    }
-
-    for (size_t i = 1; i < args.size(); i++) {
-      *outFile_ << args[i];
-    }
-    *outFile_ << "\n";
   } else {
     NTA_THROW << "DatabaseOutRegion: Unknown execute '" << args[0] << "'";
-  }*/
+  }
 
   return "";
 }
@@ -256,10 +218,10 @@ Spec *DatabaseOutRegion::createSpec() {
 
   auto ns = new Spec;
   ns->description =
-      "DatabaseOutRegion is a node that writes its "
-      "input scalar stream to a SQLite3 database file (.db). The target filename is specified "
+      "DatabaseOutRegion is a node that writes multiple scalar streams "
+      "to a SQLite3 database file (.db). The target filename is specified "
       "using the 'outputFile' parameter at run time. On each "
-      "compute, all inputs are written (but not flushed) "
+      "compute, all inputs are written "
       "to the database.\n";
 
   for (int i = 0; i< MAX_NUMBER_OF_INPUTS; i ++){ // create 10 inputs, user don't have to use them all
@@ -285,8 +247,6 @@ Spec *DatabaseOutRegion::createSpec() {
                             "", // constraints
                             "", // defaultValue
                             ParameterSpec::ReadWriteAccess));
-
-  ns->commands.add("flushFile", CommandSpec("Flush database data to the file."));
 
   ns->commands.add("closeFile",
                    CommandSpec("Close the current database file, if open."));

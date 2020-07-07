@@ -79,6 +79,8 @@ int main(int argc, char* argv[]) {
     net.link("encoder",   "sp_global", "", "", "encoded", "bottomUpIn");
     net.link("sp_global", "tm",        "", "", "bottomUpOut", "bottomUpIn");
     net.link("tm", "output", "", "", "anomaly", "dataIn0");
+    net.link("encoder", "output", "", "", "bucket", "dataIn1");
+
 
     net.initialize();
 
