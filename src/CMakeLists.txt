@@ -395,6 +395,24 @@ target_include_directories(${src_executable_napi_hello} PRIVATE
 		)
 
 #########################################################
+## NetworkAPI version of hello with database
+
+set(src_executable_napi_hello_database napi_hello_database)
+add_executable(${src_executable_napi_hello_database} examples/napi_hello/napi_hello_database.cpp)
+# link with the static library
+target_link_libraries(${src_executable_napi_hello_database} 
+    ${INTERNAL_LINKER_FLAGS}
+    ${core_library}
+    ${COMMON_OS_LIBS}
+)                  
+target_compile_options( ${src_executable_napi_hello_database} PUBLIC ${INTERNAL_CXX_FLAGS})
+target_compile_definitions(${src_executable_napi_hello_database} PRIVATE ${COMMON_COMPILER_DEFINITIONS})
+target_include_directories(${src_executable_napi_hello_database} PRIVATE 
+		${CORE_LIB_INCLUDES} 
+		${EXTERNAL_INCLUDES}
+		)
+		
+#########################################################
 ## MNIST Spatial Pooler Example
 #
 set(src_executable_mnistsp mnist_sp)
@@ -457,6 +475,7 @@ install(TARGETS
 install(TARGETS
         ${src_executable_hello}
         ${src_executable_napi_hello}
+        ${src_executable_napi_hello_database}
         ${src_executable_mnistsp}
         ${src_executable_rest_server}
         ${src_executable_rest_client}
