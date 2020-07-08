@@ -27,3 +27,7 @@ Connections
 ===========
 A subclass of the htm.core Connections class can be found in htm.advanced.algorithms.connections.py. This subclass supplies APIs that were provided in nupic.core and were not yet implemented in htm.core as well as some additional convenience methods.
 Hopefully, for performance and completeness, these will be added to the htm.core cpp implementation.
+
+Install python dependencies
+===========
+In order to run this python code, one must install requirements in htm/advanced/requirements.txt.
