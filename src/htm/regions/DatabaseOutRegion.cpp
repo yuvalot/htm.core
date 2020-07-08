@@ -35,11 +35,15 @@
 
 #define MAX_NUMBER_OF_INPUTS 10 // maximal number of inputs/scalar streams in the database
 
+unsigned int auxRowCnt; // Auxiliary variable for getting row count from callback
+
 namespace htm {
+
+static int SQLcallback(void *data, int argc, char **argv, char **azColName);
 
 DatabaseOutRegion::DatabaseOutRegion(const ValueMap &params, Region* region)
     : RegionImpl(region), filename_(""),
-	  dbHandle(nullptr) {
+	  dbHandle(nullptr),xTransactionActive(false) {
   if (params.contains("outputFile")) {
     std::string s = params.getString("outputFile", "");
     openFile(s);
@@ -51,7 +55,7 @@ DatabaseOutRegion::DatabaseOutRegion(const ValueMap &params, Region* region)
 
 DatabaseOutRegion::DatabaseOutRegion(ArWrapper& wrapper, Region* region)
     : RegionImpl(region), filename_(""),
-	  dbHandle(nullptr) {
+	  dbHandle(nullptr),xTransactionActive(false) {
   cereal_adapter_load(wrapper);
 }
 
@@ -66,10 +70,12 @@ void DatabaseOutRegion::initialize() {
 
   NTA_ASSERT(inputs.size()!=0) << "DatabaseOutRegion::initialize - no inputs configured\n";
 
+  iTableCount = 0;
 	for (const auto & inp : inputs) {
 		const auto inObj = inp.second;
 		if (inObj->hasIncomingLinks() && inObj->getData().getCount() != 0) { //create tables only for those, whose was configured
 			createTable("dataStream_" + inp.first);
+			iTableCount++;
 		}
 	}
 
@@ -78,7 +84,7 @@ void DatabaseOutRegion::initialize() {
 void DatabaseOutRegion::createTable(const std::string &sTableName){
 
 	/* Create SQL statement */
-	std::string  sql = "CREATE TABLE "+sTableName+" (iteration INTEGER PRIMARY KEY, value);";
+	std::string  sql = "CREATE TABLE "+sTableName+" (iteration INTEGER PRIMARY KEY, value REAL);";
 
 	char *zErrMsg;
 	/* Execute SQL statement */
@@ -91,13 +97,19 @@ void DatabaseOutRegion::createTable(const std::string &sTableName){
 	}
 }
 
-void DatabaseOutRegion::insertData(const std::string &sTableName, unsigned int iIteration, const std::shared_ptr<Input> inputData){
+void DatabaseOutRegion::insertData(const std::string &sTableName, const std::shared_ptr<Input> inputData){
 
 	NTA_ASSERT(inputData->getData().getCount()==1);
 
+	if(!xTransactionActive){
+		//starts transaction, for speedup. Transaction ends by closing the file
+		ExecuteSQLcommand("BEGIN TRANSACTION");
+		xTransactionActive = true;
+	}
+
 	Real32* value = (Real32 *)inputData->getData().getBuffer();
 	/* Create SQL statement */
-	std::string  sql = "INSERT INTO "+sTableName+" VALUES ("+std::to_string(iIteration)+","+ std::to_string(*value) + ");";
+	std::string  sql = "INSERT INTO "+sTableName+"(value) VALUES ("+std::to_string(*value) + ");";
 
 	char *zErrMsg;
 
@@ -122,17 +134,35 @@ void DatabaseOutRegion::compute() {
 	{
 		const auto inObj = inp.second;
 		if (inObj->hasIncomingLinks() && inObj->getData().getCount() != 0) { //create tables only for those, whose was configured
-			insertData("dataStream_" + inp.first, iIterationCounter, inObj);
+			insertData("dataStream_" + inp.first, inObj);
 		}
 	}
+}
 
-	iIterationCounter += 1; // increase inner counter of iteration by one
+void DatabaseOutRegion::ExecuteSQLcommand(std::string sqlCommand){
+
+	char *zErrMsg;
+	int returnCode = sqlite3_exec(dbHandle, sqlCommand.c_str(), nullptr, 0, &zErrMsg);
+
+	if( returnCode != SQLITE_OK ){
+		NTA_THROW << "Error executing"
+				<< sqlCommand
+				<< ", message:"
+				<< zErrMsg;
+		sqlite3_free(zErrMsg);
+	}
 }
 
 void DatabaseOutRegion::closeFile() {
   if (dbHandle!=NULL) {
-	sqlite3_close(dbHandle);
-	dbHandle = nullptr;
+
+  	if(xTransactionActive){
+  		ExecuteSQLcommand("END TRANSACTION");//ends transaction. Now it flushes cache to the file for.
+  		xTransactionActive=false;
+  	}
+
+		sqlite3_close(dbHandle);
+		dbHandle = nullptr;
     filename_ = "";
   }
 }
@@ -173,8 +203,47 @@ void DatabaseOutRegion::openFile(const std::string &filename) {
   }
   filename_ = filename;
 
-  iIterationCounter = 0; // set iteration counter to 0
 
+  //number of disk pages that will be hold in memory, adjust this to set up size of the cache
+  ExecuteSQLcommand("PRAGMA cache_size=10000");
+
+}
+
+static int SQLcallback(void *data, int argc, char **argv, char **azColName){
+	//expecting to return rowcount only
+	if(argc==1){
+		std::stringstream strValue;//just convert string to unsigned int
+		strValue << argv[0];
+		strValue >> auxRowCnt;
+	}else auxRowCnt = 0;
+
+	return 0;
+}
+
+//iterates over all tables and sum up row count
+UInt DatabaseOutRegion::getRowCount(){
+
+	UInt sumRowCount = 0;
+
+	for (UInt i = 0; i< iTableCount; i ++){
+		std::string sTableName = "dataStream_dataIn"+std::to_string(i);
+
+		std::string sql = "SELECT COUNT(*) FROM "+sTableName+";";
+
+		char *zErrMsg;
+		int returnCode = sqlite3_exec(dbHandle, sql.c_str(), SQLcallback, 0, &zErrMsg);
+
+
+		if( returnCode != SQLITE_OK ){
+			NTA_THROW << "Error counting rows in SQL table, message:"
+						<< zErrMsg;
+			sqlite3_free(zErrMsg);
+			return 0;
+		}else{
+			sumRowCount+=auxRowCnt;
+		}
+	}
+	return sumRowCount;
 }
 
 void DatabaseOutRegion::setParameterString(const std::string &paramName,
@@ -207,7 +276,15 @@ DatabaseOutRegion::executeCommand(const std::vector<std::string> &args,
   // Process the flushFile command
   if (args[0] == "closeFile") {
     closeFile();
-  } else {
+  } else if (args[0] == "getRowCount") {
+    return std::to_string(getRowCount());
+  }else if (args[0] == "commitTransaction") {
+  	if(xTransactionActive){
+			ExecuteSQLcommand("END TRANSACTION");//ends transaction. Now it flushes cache to the file for.
+			xTransactionActive=false;
+		}else NTA_THROW << "DatabaseOutRegion: Cannot commit transaction, transaction is not active!";
+  }
+  else {
     NTA_THROW << "DatabaseOutRegion: Unknown execute '" << args[0] << "'";
   }
 
@@ -250,6 +327,12 @@ Spec *DatabaseOutRegion::createSpec() {
 
   ns->commands.add("closeFile",
                    CommandSpec("Close the current database file, if open."));
+  ns->commands.add("getRowCount",
+                     CommandSpec("Gets sum of row counts for all tables in opened database."));
+  ns->commands.add("commitTransaction",
+      CommandSpec("Commits currently active transaction. Speeding up write avoiding repeat writes in loop."
+      						"Transaction is started when databse is opened."));
+
 
   return ns;
 }

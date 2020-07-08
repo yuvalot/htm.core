@@ -92,6 +92,7 @@ set(regions_tests
 	   unit/regions/SPRegionTest.cpp
        unit/regions/TMRegionTest.cpp
        unit/regions/VectorFileTest.cpp
+       unit/regions/DatabaseOutRegionTest.cpp
 	   )
 
 	   

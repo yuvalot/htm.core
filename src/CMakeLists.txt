@@ -196,6 +196,7 @@ set(examples_files
     examples/hello/HelloSPTP.cpp
     examples/hello/HelloSPTP.hpp
     examples/napi_hello/napi_hello.cpp
+    examples/napi_hello/napi_hello_database.cpp
     examples/mnist/MNIST_SP.cpp
     examples/rest/server_core.hpp
     examples/rest/server.cpp

@@ -38,22 +38,15 @@ namespace htm {
 
 
 /**
- *  VectorFileEffector is a node that takes its input vectors and
- *  writes them sequentially to a file.
+ *  DatabaseOutRegion is region that takes inputs and writes them to
+ *  the SQLite3 database file.
  *
- *  The current input vector is written (but not flushed) to the file
- *  each time the effector's compute() method is called.
- *
- *  The file format for the file is a space-separated list of numbers, with
- *  one vector per line:
- *
- *        e11 e12 e13 ... e1N
- *        e21 e22 e23 ... e2N
- *           :
- *        eM1 eM2 eM3 ... eMN
- *
- *  VectorFileEffector implements the execute() commands as defined in the
- *  nodeSpec.
+ *  Inputs can be now scalars (floats). they have names like:
+ *  (dataIn0,dataIn1 ... up to MAX_NUMBER_OF_INPUTS)
+ *  For each dataIn input, new sole table will be created with prefix
+ *  'datastream_'. Each table has two columns, iteration number and
+ *  value. Iteration is incremented automatically by SQLite, since
+ *  it is INTEGER PRIMARY KEY.
  *
  */
 class DatabaseOutRegion : public RegionImpl, Serializable {
@@ -105,18 +98,21 @@ private:
   void closeFile();
   void openFile(const std::string &filename);
   void createTable(const std::string &sTableName);
-  void insertData(const std::string &sTableName, unsigned int iIteration, const std::shared_ptr<Input> inputData);
+  void insertData(const std::string &sTableName, const std::shared_ptr<Input> inputData);
+  UInt getRowCount();
+  void ExecuteSQLcommand(std::string sqlCommand);
+
     std::string filename_;          // Name of the output file
 
     sqlite3 *dbHandle;		//Sqlite3 connection handle
-
-    unsigned int iIterationCounter;
+    htm::UInt iTableCount;
+    bool xTransactionActive;
 
   /// Disable unsupported default constructors
     DatabaseOutRegion(const DatabaseOutRegion &);
     DatabaseOutRegion &operator=(const DatabaseOutRegion &);
 
-}; // end class VectorFileEffector
+}; // end class DatabaseOutRegion
 
 //----------------------------------------------------------------------
 
