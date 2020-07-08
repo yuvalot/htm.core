@@ -672,7 +672,8 @@ void ArrayBase::fromValue(const Value &vm_) {
     if (isDense) {
       SDR_dense_t dense;
       for (size_t i = 0; i < vm.size(); i++) {
-        UInt x = vm[i].as<Byte>();
+        bool b = vm[i].as<bool>();
+        Byte x = (b) ? 1u : 0u;
         dense.push_back(x);
       }
       sdr.setDense(dense);
