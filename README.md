@@ -4,7 +4,7 @@
 
 [![CI Build Status](https://github.com/htm-community/htm.core/workflows/build/badge.svg)](https://github.com/htm-community/htm.core/actions)
 
-This is a Community Fork of the [nupic.core](https://github.com/numenta/nupic.core) C++ repository, with Python bindings. This implements the theory as described in [Numnta's BAMI](https://numenta.com/resources/biological-and-machine-intelligence/).
+This is a Community Fork of the [nupic.core](https://github.com/numenta/nupic.core) C++ repository, with Python bindings. This implements the theory as described in [Numenta's BAMI](https://numenta.com/resources/biological-and-machine-intelligence/).
 
 ## Project Goals
 
@@ -35,6 +35,7 @@ in C++ library.
    This is a priority for the `NetworkAPI`.
    The algorithms APIs on the other hand have deviated from their original API (but their logic is the same as Numenta's).
    If you are porting your code to this codebase, please follow the [API Differences](API_DIFFERENCES.md) and consult the [API Changelog](API_CHANGELOG.md).
+ * The 'NetworkAPI' as originally defined by the NuPIC library includes a set of build-in Regions. These   are described in [NetworkAPI docs](docs/NetworkAPI.md) 
  * REST interface for `NetworkAPI` with a REST server.
 
 ## Installation
@@ -231,8 +232,8 @@ This uses Docker and QEMU to achieve an ARM64 build on Actions' x86_64/amd64 har
 
 
 ### Documentation
-
-See file [docs/README.md](docs/README.md)
+For Doxygen see [docs README](docs/README.md).
+For NetworkAPI see [NetworkAPI docs](docs/NetworkAPI.md).
 
 
 
@@ -292,10 +293,10 @@ For Ubuntu and OSx:
 #### For Eclipse as the IDE
  * File - new C/C++Project - Empty or Existing CMake Project
  * Location: (`$HTM_CORE`) - Finish
- * Project properties - C/C++ Build - build command set "make -C build/scripts VERBOSE=1 install -j 6"
+ * Project properties - C/C++ Build - build command set "make -C build/scripts VERBOSE=1 install -j [number of your's CPU cores]"
  * There can be issue with indexer and boost library, which can cause OS memory to overflow -> add exclude filter to
    your project properties - Resource Filters - Exclude all folders that matches boost, recursively
- * (Eclipse IDE for C/C++ Developers, 2019-03)
+ * (Eclipse IDE for C/C++ Developers, 2019-03 on Ubuntu 18.04)
 
 For all new work, tab settings are at 2 characters, replace tabs with spaces.
 The clang-format is LLVM style.
@@ -335,6 +336,7 @@ The installation scripts will automatically download and build the dependencies 
  * [gtest](https://github.com/google/googletest)
  * [cereal](https://uscilab.github.io/cereal/)
  * [mnist test data](https://github.com/wichtounet/mnist)
+ * [sqlite3](https://www.sqlite.org/2020/sqlite-autoconf-3320300.tar.gz)
  * [digestpp](https://github.com/kerukuro/digestpp) (for SimHash encoders)
  * and [python requirements.txt](./requirements.txt)
 
@@ -351,11 +353,12 @@ distribution packages as listed and rename them as indicated. Copy these to
 | :--------------------- | :----------------- |
 | libyaml.zip   (*node1) | https://github.com/yaml/libyaml/archive/master.zip |
 | boost.tar.gz  (*note3) | https://dl.bintray.com/boostorg/release/1.72.0/source/boost_1_72_0.tar.gz | 
-| eigen.tar.bz2          | http://bitbucket.org/eigen/eigen/get/3.3.7.tar.bz2 |
+| eigen.tar.bz2          | https://gitlab.com/libeigen/eigen/-/archive/3.3.7/eigen-3.3.7.tar.bz2 |
 | googletest.tar.gz      | https://github.com/abseil/googletest/archive/release-1.8.1.tar.gz |
 | mnist.zip     (*note4) | https://github.com/wichtounet/mnist/archive/master.zip |
 | pybind11.tar.gz        | https://github.com/pybind/pybind11/archive/v2.4.2.tar.gz |
 | cereal.tar.gz          | https://github.com/USCiLab/cereal/archive/v1.2.2.tar.gz |
+| sqlite3.tar.gz         | https://www.sqlite.org/2020/sqlite-autoconf-3320300.tar.gz |
 | digestpp.zip           | https://github.com/kerukuro/digestpp/archive/36fa6ca2b85808bd171b13b65a345130dbe1d774.zip |
 | cpp-httplib.zip(*node4)| https://github.com/yhirose/cpp-httplib/archive/v0.5.5.zip |
 
@@ -513,6 +516,9 @@ Community projects for working with HTM.
 ### Visualization
 #### HTMPandaVis
 This project aspires to create tool that helps **visualize HTM systems in 3D** by using opensource framework for 3D rendering https://www.panda3d.org/
+
+NetworkAPI has region called "DatabaseRegion". This region can be used for generating SQLite file and later on read by PandaVis - DashVis feature,
+to show interactive plots in web browser on localhost. See [napi_hello_database](https://github.com/htm-community/htm.core/tree/master/src/examples/napi_hello) for basic usage.
 
 For more info, visit [repository of the project](https://github.com/htm-community/HTMpandaVis)
 ![pandaVis1](docs/images/pandaVis1.png)
