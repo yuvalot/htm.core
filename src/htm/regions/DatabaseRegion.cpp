@@ -302,7 +302,7 @@ Spec *DatabaseRegion::createSpec() {
       "compute, all inputs are written "
       "to the database.\n";
 
-  for (int i = 0; i< MAX_NUMBER_OF_INPUTS; i ++){ // create 10 inputs, user don't have to use them all
+  for (UInt i = 0; i< MAX_NUMBER_OF_INPUTS; i ++){ // create 10 inputs, user don't have to use them all
 		ns->inputs.add("dataIn"+std::to_string(i),
 								InputSpec("Data scalar to be written to the database",
 													NTA_BasicType_Real32,
