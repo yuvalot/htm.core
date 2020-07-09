@@ -25,6 +25,8 @@ def extractList(listString, dataType=None):
                 
             except json.decoder.JSONDecodeError:
                 list_string = list_string.replace('.,', '.0,')
+                list_string = list_string.replace(',]', ']')
+                list_string = list_string.replace(',,', ',')
                 list_string = list_string.replace('.]', '.0]')
                 try:
                     data_list = json.loads(list_string)
