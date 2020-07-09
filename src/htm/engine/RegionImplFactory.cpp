@@ -131,9 +131,43 @@ RegionImpl *RegionImplFactory::createRegionImpl(const std::string nodeType,
   }
 
   // If the parameter 'dim' was defined, parse that out as a global parameter.
+  // This parameter can be used with any Region without the region needing to define it in its Spec.
+  // dim: [1,2]                 means set the default dimension for the region.
+  // dim: 25                    means set the default dimension to this single dimension.
+  // dim: {"bottomUpIn": [5]}   means set the dimensions on the input or output with the name "bottomUpIn"
+  // dim: {"bottomUpIn": [5], "bottomUpOut": [2000]}   means set both of these dimensions.
+
   if (vm.contains("dim")) {
-    std::vector<UInt32> dim = vm["dim"].asVector<UInt32>();
-    impl->setDimensions(dim);
+    const Value vm1 = vm["dim"];
+    if (vm1.isSequence()) {
+      Dimensions dim(vm1.asVector<UInt>());
+      impl->setDimensions(dim);
+    } else if (vm1.isScalar()) {
+      Dimensions dim(vm1.as<UInt>());
+      impl->setDimensions(dim);
+    } else if (vm1.isMap()) {
+      for (auto itr : vm1) {
+        std::string name = itr.first;
+        Value &vm3 = itr.second;
+        if (vm3.isScalar()) {
+          Dimensions dim(vm3.as<UInt>());
+          if (region->hasOutput(name))
+            region->setOutputDimensions(name, dim);
+          else if (region->hasInput(name))
+            region->setInputDimensions(name, dim);
+        } else if (vm3.isSequence()) {
+          Dimensions dim(vm3.asVector<UInt>());
+          if (region->hasOutput(name))
+            region->setOutputDimensions(name, dim);
+          else if (region->hasInput(name))
+            region->setInputDimensions(name, dim);
+        } else {
+          NTA_THROW << "Syntax error in parameter 'dim', name='" << name << "'";
+        }
+      }
+    } else {
+      NTA_THROW << "Syntax error in parameter 'dim'";
+    }
   }
 
   return impl;
@@ -161,6 +195,8 @@ std::shared_ptr<Spec>& RegionImplFactory::getSpec(const std::string nodeType) {
   }
   return it->second;
 }
+
+
 
 void RegionImplFactory::cleanup() {
   RegionImplFactory& instance = getInstance();

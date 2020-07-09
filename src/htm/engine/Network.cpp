@@ -130,15 +130,19 @@ void Network::configure(const std::string &yaml) {
       } else if (cmd.first == "addLink") {
         std::string src = cmd.second["src"].str();
         std::string dest = cmd.second["dest"].str();
+        std::string dim = "";
         std::vector<std::string> vsrc = Path::split(src, '.');
         std::vector<std::string> vdest = Path::split(dest, '.');
         int propagationDelay = 0;
         if (cmd.second.contains("delay"))
           propagationDelay = cmd.second["delay"].as<int>();
+        if (cmd.second.contains("dim")) {
+          dim = cmd.second.to_json();
+        }
         NTA_CHECK(vsrc.size() == 2) << "Expecting source domain name '.' output name.";
         NTA_CHECK(vdest.size() == 2) << "Expecting destination domain name '.' input name.";
 
-        link(vsrc[0], vdest[0], "", "", vsrc[1], vdest[1], propagationDelay);
+        link(vsrc[0], vdest[0], "", dim, vsrc[1], vdest[1], propagationDelay);
       }
     }
   }
@@ -311,11 +315,17 @@ std::shared_ptr<Link> Network::link(const std::string &srcRegionName,
                    const std::string &destInputName,
                    const size_t propagationDelay) {
 
+  std::shared_ptr<Region> srcRegion;
+
   // Find the regions
   auto itrSrc = regions_.find(srcRegionName);
-  if (itrSrc == regions_.end())
-    NTA_THROW << "Network::link -- source region '" << srcRegionName
-              << "' does not exist";
+  if (itrSrc == regions_.end()) {
+    if (srcRegionName != "INPUT")
+      NTA_THROW << "Network::link -- source region '" << srcRegionName << "' does not exist";
+    // Our special InputRegion does not exist. But we are using it so we need to create it.
+    ValueMap vm;  // Empty parameters.
+    Network::addRegion(srcRegionName, "InputRegion", vm);
+  }
   std::shared_ptr<Region> srcRegion = regions_[srcRegionName];
 
   auto itrDest = regions_.find(destRegionName);
@@ -325,6 +335,19 @@ std::shared_ptr<Link> Network::link(const std::string &srcRegionName,
   std::shared_ptr<Region> destRegion = regions_[destRegionName];
 
   // Find the inputs/outputs
+  // get the destination Input object
+  std::string inputName = destInputName;
+  if (inputName == "") {
+    const std::shared_ptr<Spec> &destSpec = destRegion->getSpec();
+    inputName = destSpec->getDefaultInputName();
+  }
+
+  std::shared_ptr<Input> destInput = destRegion->getInput(inputName);
+  if (destInput == nullptr) {
+    NTA_THROW << "Network::link -- input '" << inputName << " does not exist on region " << destRegionName;
+  }
+
+  // get the source Output object
   std::string outputName = srcOutputName;
   if (outputName == "") {
     const std::shared_ptr<Spec>& srcSpec = srcRegion->getSpec();
@@ -332,22 +355,17 @@ std::shared_ptr<Link> Network::link(const std::string &srcRegionName,
   }
 
   std::shared_ptr<Output> srcOutput = srcRegion->getOutput(outputName);
-  if (srcOutput == nullptr)
-    NTA_THROW << "Network::link -- output " << outputName
-              << " does not exist on region " << srcRegionName;
-
-  std::string inputName = destInputName;
-  if (inputName == "") {
-    const std::shared_ptr<Spec>& destSpec = destRegion->getSpec();
-    inputName = destSpec->getDefaultInputName();
+  if (srcOutput == nullptr) {
+    if (srcRegionName != "INPUT") {
+      // This is our special source region for manually setting inputs
+      // Get the data type from the destination Input object.
+      NTA_BasicType type = destInput->getDataType();
+      std::shared_ptr<Output> output = std::make_shared<Output>(this, outputName, type);
+      srcRegion->outputs_[outputName] = output;
+    } else {
+      NTA_THROW << "Network::link -- output " << outputName << " does not exist on region " << srcRegionName;
+    }
   }
-
-  std::shared_ptr<Input> destInput = destRegion->getInput(inputName);
-  if (destInput == nullptr) {
-    NTA_THROW << "Network::link -- input '" << inputName
-              << " does not exist on region " << destRegionName;
-  }
-
 
   // Create the link itself
   auto link = std::make_shared<Link>(linkType, linkParams, srcOutput, destInput, propagationDelay);

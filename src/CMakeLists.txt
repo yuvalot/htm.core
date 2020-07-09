@@ -144,6 +144,8 @@ set(os_files
 )
 
 set(regions_files
+    htm/regions/InputRegion.cpp
+    htm/regions/InputRegion.hpp
     htm/regions/DateEncoderRegion.cpp
     htm/regions/DateEncoderRegion.hpp    
     htm/regions/ClassifierRegion.cpp
