@@ -34,7 +34,7 @@ namespace testing {
 using namespace htm;
 
 
-TEST(DatabaseOutRegionTest, overall)
+TEST(DatabaseRegionTest, overall)
 {
 	htm::UInt EPOCHS = 20;      // number of iterations (calls to encoder/SP/TP compute() )
 
@@ -58,7 +58,7 @@ TEST(DatabaseOutRegionTest, overall)
 		std::shared_ptr<Region> encoder   = net.addRegion("encoder",   "RDSEEncoderRegion", encoder_params);
 		std::shared_ptr<Region> sp_global = net.addRegion("sp_global", "SPRegion",   sp_global_params);
 		std::shared_ptr<Region> tm        = net.addRegion("tm",        "TMRegion",   tm_params);
-		std::shared_ptr<Region> output 	  = net.addRegion("output",    "DatabaseOutRegion", "{outputFile: '"+ output_file + "'}");
+		std::shared_ptr<Region> output 	  = net.addRegion("output",    "DatabaseRegion", "{outputFile: '"+ output_file + "'}");
 
 		// Setup data flows between regions
 		net.link("encoder",   "sp_global", "", "", "encoded", "bottomUpIn");

@@ -16,7 +16,7 @@
  * --------------------------------------------------------------------- */
 
 /** @file
- * Implementation for DatabaseOutRegion class
+ * Implementation for DatabaseRegion class
  */
 
 #include <iostream>
@@ -30,18 +30,19 @@
 #include <htm/engine/Input.hpp>
 #include <htm/engine/Region.hpp>
 #include <htm/engine/Spec.hpp>
-#include <htm/regions/DatabaseOutRegion.hpp>
+#include <htm/regions/DatabaseRegion.hpp>
 #include <htm/utils/Log.hpp>
 
-#define MAX_NUMBER_OF_INPUTS 10 // maximal number of inputs/scalar streams in the database
-
-unsigned int auxRowCnt; // Auxiliary variable for getting row count from callback
 
 namespace htm {
 
+static const UInt MAX_NUMBER_OF_INPUTS = 10;// maximal number of inputs/scalar streams in the database
+static UInt auxRowCnt; // Auxiliary variable for getting row count from callback
+
 static int SQLcallback(void *data, int argc, char **argv, char **azColName);
 
-DatabaseOutRegion::DatabaseOutRegion(const ValueMap &params, Region* region)
+
+DatabaseRegion::DatabaseRegion(const ValueMap &params, Region* region)
     : RegionImpl(region), filename_(""),
 	  dbHandle(nullptr),xTransactionActive(false) {
   if (params.contains("outputFile")) {
@@ -53,22 +54,22 @@ DatabaseOutRegion::DatabaseOutRegion(const ValueMap &params, Region* region)
 
 }
 
-DatabaseOutRegion::DatabaseOutRegion(ArWrapper& wrapper, Region* region)
+DatabaseRegion::DatabaseRegion(ArWrapper& wrapper, Region* region)
     : RegionImpl(region), filename_(""),
 	  dbHandle(nullptr),xTransactionActive(false) {
   cereal_adapter_load(wrapper);
 }
 
 
-DatabaseOutRegion::~DatabaseOutRegion() { closeFile(); }
+DatabaseRegion::~DatabaseRegion() { closeFile(); }
 
-void DatabaseOutRegion::initialize() {
+void DatabaseRegion::initialize() {
   NTA_CHECK(region_ != nullptr);
   // We have no outputs or parameters; just need our input.
   const std::map<std::string, std::shared_ptr<Input>> inputs = region_->getInputs();
 
 
-  NTA_ASSERT(inputs.size()!=0) << "DatabaseOutRegion::initialize - no inputs configured\n";
+  NTA_ASSERT(inputs.size()!=0) << "DatabaseRegion::initialize - no inputs configured\n";
 
   iTableCount = 0;
 	for (const auto & inp : inputs) {
@@ -81,7 +82,7 @@ void DatabaseOutRegion::initialize() {
 
 }
 
-void DatabaseOutRegion::createTable(const std::string &sTableName){
+void DatabaseRegion::createTable(const std::string &sTableName){
 
 	/* Create SQL statement */
 	std::string  sql = "CREATE TABLE "+sTableName+" (iteration INTEGER PRIMARY KEY, value REAL);";
@@ -97,7 +98,7 @@ void DatabaseOutRegion::createTable(const std::string &sTableName){
 	}
 }
 
-void DatabaseOutRegion::insertData(const std::string &sTableName, const std::shared_ptr<Input> inputData){
+void DatabaseRegion::insertData(const std::string &sTableName, const std::shared_ptr<Input> inputData){
 
 	NTA_ASSERT(inputData->getData().getCount()==1);
 
@@ -122,13 +123,13 @@ void DatabaseOutRegion::insertData(const std::string &sTableName, const std::sha
 	}
 }
 
-void DatabaseOutRegion::compute() {
+void DatabaseRegion::compute() {
 
 
 	const std::map<std::string, std::shared_ptr<Input>> inputs = region_->getInputs();
 
 
-	NTA_ASSERT(inputs.size()!=0) << "DatabaseOutRegion::initialize - no inputs configured\n";
+	NTA_ASSERT(inputs.size()!=0) << "DatabaseRegion::initialize - no inputs configured\n";
 
 	for (const auto & inp : inputs)
 	{
@@ -139,7 +140,7 @@ void DatabaseOutRegion::compute() {
 	}
 }
 
-void DatabaseOutRegion::ExecuteSQLcommand(std::string sqlCommand){
+void DatabaseRegion::ExecuteSQLcommand(std::string sqlCommand){
 
 	char *zErrMsg;
 	int returnCode = sqlite3_exec(dbHandle, sqlCommand.c_str(), nullptr, 0, &zErrMsg);
@@ -153,7 +154,7 @@ void DatabaseOutRegion::ExecuteSQLcommand(std::string sqlCommand){
 	}
 }
 
-void DatabaseOutRegion::closeFile() {
+void DatabaseRegion::closeFile() {
   if (dbHandle!=NULL) {
 
   	if(xTransactionActive){
@@ -167,7 +168,7 @@ void DatabaseOutRegion::closeFile() {
   }
 }
 
-void DatabaseOutRegion::openFile(const std::string &filename) {
+void DatabaseRegion::openFile(const std::string &filename) {
 
   if (dbHandle != NULL)
     closeFile();
@@ -181,7 +182,7 @@ void DatabaseOutRegion::openFile(const std::string &filename) {
 		//file exits so delete it
 		ifile.close();
 		if(remove(filename.c_str())!=0)
-			NTA_THROW << "DatabaseOutRegion::openFile -- Error deleting existing database file! Filename:"
+			NTA_THROW << "DatabaseRegion::openFile -- Error deleting existing database file! Filename:"
 					  << filename;
 
 	} else {
@@ -196,7 +197,7 @@ void DatabaseOutRegion::openFile(const std::string &filename) {
   {
 
     NTA_THROW
-        << "DatabaseOutRegion::openFile -- unable to create database file: "
+        << "DatabaseRegion::openFile -- unable to create database file: "
         << filename.c_str()
 		<< " Error code:"
 		<< result;
@@ -221,7 +222,7 @@ static int SQLcallback(void *data, int argc, char **argv, char **azColName){
 }
 
 //iterates over all tables and sum up row count
-UInt DatabaseOutRegion::getRowCount(){
+UInt DatabaseRegion::getRowCount(){
 
 	UInt sumRowCount = 0;
 
@@ -246,7 +247,7 @@ UInt DatabaseOutRegion::getRowCount(){
 	return sumRowCount;
 }
 
-void DatabaseOutRegion::setParameterString(const std::string &paramName,
+void DatabaseRegion::setParameterString(const std::string &paramName,
                                             Int64 index, const std::string &s) {
 
   if (paramName == "outputFile") {
@@ -256,21 +257,21 @@ void DatabaseOutRegion::setParameterString(const std::string &paramName,
       closeFile();
     openFile(s);
   } else {
-    NTA_THROW << "DatabaseOutRegion -- Unknown string parameter " << paramName;
+    NTA_THROW << "DatabaseRegion -- Unknown string parameter " << paramName;
   }
 }
 
-std::string DatabaseOutRegion::getParameterString(const std::string &paramName,
+std::string DatabaseRegion::getParameterString(const std::string &paramName,
                                                    Int64 index) {
   if (paramName == "outputFile") {
     return filename_;
   } else {
-    NTA_THROW << "DatabaseOutRegion -- unknown parameter " << paramName;
+    NTA_THROW << "DatabaseRegion -- unknown parameter " << paramName;
   }
 }
 
 std::string
-DatabaseOutRegion::executeCommand(const std::vector<std::string> &args,
+DatabaseRegion::executeCommand(const std::vector<std::string> &args,
                                    Int64 index) {
   NTA_CHECK(args.size() > 0);
   // Process the flushFile command
@@ -280,22 +281,22 @@ DatabaseOutRegion::executeCommand(const std::vector<std::string> &args,
     return std::to_string(getRowCount());
   }else if (args[0] == "commitTransaction") {
   	if(xTransactionActive){
-			ExecuteSQLcommand("END TRANSACTION");//ends transaction. Now it flushes cache to the file for.
+			ExecuteSQLcommand("END TRANSACTION");//ends transaction. Now it flushes cache to the file.
 			xTransactionActive=false;
-		}else NTA_THROW << "DatabaseOutRegion: Cannot commit transaction, transaction is not active!";
+		}else NTA_THROW << "DatabaseRegion: Cannot commit transaction, transaction is not active!";
   }
   else {
-    NTA_THROW << "DatabaseOutRegion: Unknown execute '" << args[0] << "'";
+    NTA_THROW << "DatabaseRegion: Unknown execute '" << args[0] << "'";
   }
 
   return "";
 }
 
-Spec *DatabaseOutRegion::createSpec() {
+Spec *DatabaseRegion::createSpec() {
 
   auto ns = new Spec;
   ns->description =
-      "DatabaseOutRegion is a node that writes multiple scalar streams "
+      "DatabaseRegion is a node that writes multiple scalar streams "
       "to a SQLite3 database file (.db). The target filename is specified "
       "using the 'outputFile' parameter at run time. On each "
       "compute, all inputs are written "
@@ -337,16 +338,16 @@ Spec *DatabaseOutRegion::createSpec() {
   return ns;
 }
 
-size_t DatabaseOutRegion::getNodeOutputElementCount(const std::string &outputName) const {
+size_t DatabaseRegion::getNodeOutputElementCount(const std::string &outputName) const {
   NTA_THROW
-      << "DatabaseOutRegion::getNodeOutputElementCount -- unknown output '"
+      << "DatabaseRegion::getNodeOutputElementCount -- unknown output '"
       << outputName << "'";
 }
 
 
-bool DatabaseOutRegion::operator==(const RegionImpl &o) const {
-  if (o.getType() != "DatabaseOutRegion") return false;
-  DatabaseOutRegion& other = (DatabaseOutRegion&)o;
+bool DatabaseRegion::operator==(const RegionImpl &o) const {
+  if (o.getType() != "DatabaseRegion") return false;
+  DatabaseRegion& other = (DatabaseRegion&)o;
   if (filename_ != other.filename_) return false;
 
   return true;

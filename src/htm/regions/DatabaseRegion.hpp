@@ -16,13 +16,13 @@
  * --------------------------------------------------------------------- */
 
 /** @file
- * Declarations for DatabaseOutRegion class
+ * Declarations for DatabaseRegion class
  */
 
 //----------------------------------------------------------------------
 
-#ifndef SRC_HTM_REGIONS_DATABASEOUTREGION_HPP_
-#define SRC_HTM_REGIONS_DATABASEOUTREGION_HPP_
+#ifndef SRC_HTM_REGIONS_DatabaseRegion_HPP_
+#define SRC_HTM_REGIONS_DatabaseRegion_HPP_
 
 //----------------------------------------------------------------------
 
@@ -38,8 +38,11 @@ namespace htm {
 
 
 /**
- *  DatabaseOutRegion is region that takes inputs and writes them to
+ *  DatabaseRegion is region that takes inputs and writes them to
  *  the SQLite3 database file.
+ *
+ *  The recorded database file can be visualized using HTMPandaVis at
+ *  https://github.com/htm-community/HTMpandaVis
  *
  *  Inputs can be now scalars (floats). they have names like:
  *  (dataIn0,dataIn1 ... up to MAX_NUMBER_OF_INPUTS)
@@ -49,7 +52,7 @@ namespace htm {
  *  it is INTEGER PRIMARY KEY.
  *
  */
-class DatabaseOutRegion : public RegionImpl, Serializable {
+class DatabaseRegion : public RegionImpl, Serializable {
 public:
   static Spec *createSpec();
   size_t getNodeOutputElementCount(const std::string &outputName) const override;
@@ -59,11 +62,11 @@ public:
 
   void initialize() override;
 
-  DatabaseOutRegion(const ValueMap &params, Region *region);
+  DatabaseRegion(const ValueMap &params, Region *region);
 
-  DatabaseOutRegion(ArWrapper& wrapper, Region *region);
+  DatabaseRegion(ArWrapper& wrapper, Region *region);
 
-  virtual ~DatabaseOutRegion();
+  virtual ~DatabaseRegion();
 
 
 	CerealAdapter;  // see Serializable.hpp
@@ -84,7 +87,7 @@ public:
   }
 
   bool operator==(const RegionImpl &other) const override;
-  inline bool operator!=(const DatabaseOutRegion &other) const {
+  inline bool operator!=(const DatabaseRegion &other) const {
     return !operator==(other);
   }
 
@@ -109,14 +112,14 @@ private:
     bool xTransactionActive;
 
   /// Disable unsupported default constructors
-    DatabaseOutRegion(const DatabaseOutRegion &);
-    DatabaseOutRegion &operator=(const DatabaseOutRegion &);
+    DatabaseRegion(const DatabaseRegion &);
+    DatabaseRegion &operator=(const DatabaseRegion &);
 
-}; // end class DatabaseOutRegion
+}; // end class DatabaseRegion
 
 //----------------------------------------------------------------------
 
 } // namespace htm
 
 
-#endif /* SRC_HTM_REGIONS_DATABASEOUTREGION_HPP_ */
+#endif /* SRC_HTM_REGIONS_DatabaseRegion_HPP_ */

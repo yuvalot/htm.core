@@ -66,7 +66,7 @@ Each "region" is a wrapper around an algorithm.  This wrapper provides a uniform
 		<td>for writing to a file</td>
 	</tr>
 	<tr>
-		<td>DatabaseOutRegion</td>
+		<td>DatabaseRegion</td>
 		<td>for writing to a SQLite3 database file</td>
 	</tr>
 </tbody>
