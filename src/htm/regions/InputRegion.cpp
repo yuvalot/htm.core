@@ -38,8 +38,7 @@
  *                          The <data> will be in the body.
  * The source name will identify the Link to use to direct the data to the target region's input. 
  */
-
-#include <htm/regions/InputRegion.hpp>
+#include <memory>
 
 #include <htm/engine/Input.hpp>
 #include <htm/engine/Output.hpp>
@@ -48,11 +47,11 @@
 #include <htm/ntypes/Array.hpp>
 #include <htm/utils/Log.hpp>
 
-#include <memory>
+
+#include <htm/regions/InputRegion.hpp>
 
 
-
-InputRegion::InputRegion  (const ValueMap &params, Region *region){ }
+InputRegion::InputRegion(const ValueMap &params, Region *region) : RegionImpl(region) {}
 InputRegion::InputRegion(ArWrapper &wrapper, Region *region){ }
 
 virtual ~InputRegion::InputRegion() override { }

@@ -72,7 +72,6 @@ public:
   void load_ar(Archive& ar) {
   }
 
-private:
 
 };
 

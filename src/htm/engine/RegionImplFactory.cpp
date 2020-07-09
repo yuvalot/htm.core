@@ -41,6 +41,7 @@
 #include <htm/regions/SPRegion.hpp>
 #include <htm/regions/TMRegion.hpp>
 #include <htm/regions/ClassifierRegion.hpp>
+#include <htm/regions/InputRegion.hpp>
 
 
 #include <htm/utils/Log.hpp>
@@ -90,16 +91,17 @@ RegionImplFactory &RegionImplFactory::getInstance() {
   if (instance.regionTypeMap.empty()) {
     // Create internal C++ regions
 
-	  instance.addRegionType("DateEncoderRegion", new RegisteredRegionImplCpp<DateEncoderRegion>());
+	  instance.addRegionType("DateEncoderRegion",  new RegisteredRegionImplCpp<DateEncoderRegion>());
     instance.addRegionType("ScalarEncoderRegion", new RegisteredRegionImplCpp<ScalarEncoderRegion>());
-    instance.addRegionType("RDSEEncoderRegion", new RegisteredRegionImplCpp<RDSEEncoderRegion>());
+    instance.addRegionType("RDSEEncoderRegion",  new RegisteredRegionImplCpp<RDSEEncoderRegion>());
     instance.addRegionType("TestNode",           new RegisteredRegionImplCpp<TestNode>());
-    instance.addRegionType("FileOutputRegion", new RegisteredRegionImplCpp<FileOutputRegion>());
-    instance.addRegionType("FileInputRegion",   new RegisteredRegionImplCpp<FileInputRegion>());
-    instance.addRegionType("DatabaseRegion", new RegisteredRegionImplCpp<DatabaseRegion>());
+    instance.addRegionType("FileOutputRegion",   new RegisteredRegionImplCpp<FileOutputRegion>());
+    instance.addRegionType("FileInputRegion",    new RegisteredRegionImplCpp<FileInputRegion>());
+    instance.addRegionType("DatabaseRegion",     new RegisteredRegionImplCpp<DatabaseRegion>());
     instance.addRegionType("SPRegion",           new RegisteredRegionImplCpp<SPRegion>());
     instance.addRegionType("TMRegion",           new RegisteredRegionImplCpp<TMRegion>());
     instance.addRegionType("ClassifierRegion",   new RegisteredRegionImplCpp<ClassifierRegion>());
+    instance.addRegionType("InputRegion",        new RegisteredRegionImplCpp<InputRegion>());
 
     // Renamed Regions
     instance.addRegionType("ScalarSensor", new RegisteredRegionImplCpp<ScalarEncoderRegion>());

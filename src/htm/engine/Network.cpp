@@ -315,8 +315,6 @@ std::shared_ptr<Link> Network::link(const std::string &srcRegionName,
                    const std::string &destInputName,
                    const size_t propagationDelay) {
 
-  std::shared_ptr<Region> srcRegion;
-
   // Find the regions
   auto itrSrc = regions_.find(srcRegionName);
   if (itrSrc == regions_.end()) {
@@ -360,7 +358,7 @@ std::shared_ptr<Link> Network::link(const std::string &srcRegionName,
       // This is our special source region for manually setting inputs
       // Get the data type from the destination Input object.
       NTA_BasicType type = destInput->getDataType();
-      std::shared_ptr<Output> output = std::make_shared<Output>(this, outputName, type);
+      std::shared_ptr<Output> output = std::make_shared<Output>(srcRegion.get(), outputName, type);
       srcRegion->outputs_[outputName] = output;
     } else {
       NTA_THROW << "Network::link -- output " << outputName << " does not exist on region " << srcRegionName;
