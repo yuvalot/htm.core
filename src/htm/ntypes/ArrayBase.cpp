@@ -19,10 +19,10 @@
  * Implementation of the ArrayBase class
  */
 
+#include <cstdlib>  // for size_t
+#include <cstring>  // for memcpy, memcmp
 #include <iostream> // for ostream
 #include <sstream>  // for stringstream
-#include <cstring>  // for memcpy, memcmp
-#include <cstdlib> // for size_t
 #include <vector>
 
 #include <htm/ntypes/ArrayBase.hpp>
@@ -49,9 +49,12 @@ ArrayBase::ArrayBase(NTA_BasicType type, void *buffer, size_t count) {
       for (size_t i = 0; i < count; i++) {
         ptr1[i] = ptr2[i];
       }
-    } else
+    } else {
+      // Warning: for NTA_BasicType_Bool, if the buffer came from the internal buffer of a vector
+      //          the element size is not known for sure. It might be optimized to store them as bits.
       std::memcpy(reinterpret_cast<char *>(getBuffer()), reinterpret_cast<char *>(buffer),
-                count * BasicType::getSize(type));
+                  count * BasicType::getSize(type));
+    }
   }
 }
 
@@ -653,25 +656,19 @@ std::string ArrayBase::toJSON() const {
   std::stringstream json;
   if (type_ == NTA_BasicType_SDR) {
     const SDR &sdr = getSDR();
-    json << "{type: \"SDR(" << sdr.dimensions[0];
-    for (size_t i = 1; i < sdr.dimensions.size(); i++) {
-      json << "," << sdr.dimensions[i];
+    json << "[";
+    auto dense = sdr.getDense();
+    for (size_t i = 0; i < dense.size(); i++) {
+      int v = (dense[i]) ? 1 : 0;
+      if (i == 0) {
+        json << v;
+      } else
+        json << ", " << v;
     }
-    json << ")\",data: [";
-    bool first = true;
-    SDR_sparse_t sparse = sdr.getSparse();
-    for (size_t i = 0; i < sparse.size(); i++) {
-      if (first) {
-        json << sparse[i];
-        first = false;
-      }
-      else
-        json << "," << sparse[i];
-    }
-    json << "]}";
+    json << "]";
   } else {
 
-    json << "{type: \"" << BasicType::getName(type_) << "\",data: [";
+    json << "[";
     size_t num = getCount();
     const void *inbuf = getBuffer();
     bool first = true;
@@ -679,10 +676,10 @@ std::string ArrayBase::toJSON() const {
       if (first)
         first = false;
       else
-        json << ",";
+        json << ", ";
       switch (type_) {
       case NTA_BasicType_Byte:
-        json << ((Byte *)inbuf)[i];
+        json << (int)((Byte *)inbuf)[i];
         break;
       case NTA_BasicType_Int16:
         json << ((Int16 *)inbuf)[i];
@@ -708,18 +705,18 @@ std::string ArrayBase::toJSON() const {
       case NTA_BasicType_Real64:
         json << ((Real64 *)inbuf)[i];
         break;
-      case NTA_BasicType_Bool:
-        json << ((((bool *)inbuf)[i]) ? "true" : "false");
+      case NTA_BasicType_Bool: 
+          json << ((((bool *)inbuf)[i]) ? "true" : "false");
         break;
       case NTA_BasicType_Str:
-        json << "\"" << ((std::string *)inbuf)[i] << "\"";
+        json << Value::json_string(((std::string *)inbuf)[i]);
         break;
       default:
         NTA_THROW << "Unexpected Element Type: " << type_;
         break;
       }
-      json << "]}";
     }
+    json << "]";
   }
 
   return json.str();

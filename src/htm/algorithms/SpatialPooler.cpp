@@ -356,7 +356,7 @@ void SpatialPooler::setPermanence(UInt column, const Real permanences[]) {
 
 void SpatialPooler::getConnectedCounts(UInt connectedCounts[]) const {
   for(size_t seg = 0; seg < numColumns_; seg++) { //in SP each column = 1 cell with 1 segment only.
-    const auto &segment = connections_.dataForSegment( seg );
+    const auto &segment = connections_.dataForSegment( (htm::Segment)seg );
     connectedCounts[ seg ] = segment.numConnected; //TODO numConnected only used here, rm from SegmentData and compute for each segment.synapses?
   }
 }
@@ -451,7 +451,7 @@ void SpatialPooler::initialize(
     vector<Real> perm = initPermanence_(potential, initConnectedPct_);
     for(size_t presyn = 0; presyn < numInputs_; presyn++) {
       if( potential[presyn] )
-        connections_.createSynapse( static_cast<Segment>(i), presyn, perm[presyn] );
+        connections_.createSynapse( static_cast<Segment>(i), static_cast<htm::CellIdx>(presyn), perm[presyn] );
     }
 
     connections_.raisePermanencesToThreshold( (Segment)i, stimulusThreshold_ );
@@ -621,7 +621,7 @@ void SpatialPooler::updateMinDutyCyclesGlobal_() {
 
 
 void SpatialPooler::updateMinDutyCyclesLocal_() {
-  for (size_t i = 0; i < numColumns_; i++) {
+  for (UInt i = 0; i < numColumns_; i++) {
     Real maxActiveDuty = 0.0f;
     Real maxOverlapDuty = 0.0f;
     if (wrapAround_) {
@@ -630,7 +630,7 @@ void SpatialPooler::updateMinDutyCyclesLocal_() {
       maxOverlapDuty = max(maxOverlapDuty, overlapDutyCycles_[column]);
      }
     } else {
-     for(auto column: Neighborhood(i, inhibitionRadius_, columnDimensions_)) {
+      for (auto column : Neighborhood(i, inhibitionRadius_, columnDimensions_)) {
       maxActiveDuty = max(maxActiveDuty, activeDutyCycles_[column]);
       maxOverlapDuty = max(maxOverlapDuty, overlapDutyCycles_[column]);
       }
@@ -648,7 +648,7 @@ void SpatialPooler::updateDutyCycles_(const vector<SynapseIdx> &overlaps,
   // avoid copies and  type convertions.
   SDR newOverlap({ numColumns_ });
   auto &overlapsSparseVec = newOverlap.getSparse();
-  for (size_t i = 0; i < numColumns_; i++) {
+  for (UInt i = 0; i < numColumns_; i++) {
     if( overlaps[i] != 0 )
       overlapsSparseVec.push_back( i );
   }
@@ -788,7 +788,7 @@ void SpatialPooler::updateBoostFactorsGlobal_() {
 
 
 void SpatialPooler::updateBoostFactorsLocal_() {
-  for (size_t i = 0; i < numColumns_; ++i) {
+  for (UInt i = 0; i < numColumns_; ++i) {
     UInt numNeighbors = 0u;
     Real localActivityDensity = 0.0f;
 
@@ -888,7 +888,7 @@ void SpatialPooler::inhibitColumnsLocal_(const vector<Real> &overlaps,
   // selected are treated as "bigger".
   vector<bool> activeColumnsDense(numColumns_, false);
 
-  for (size_t column = 0; column < numColumns_; column++) {
+  for (UInt column = 0; column < numColumns_; column++) {
     if (overlaps[column] < stimulusThreshold_) {
       continue;
     }

@@ -414,7 +414,7 @@ void TemporalMemory::activateDendrites(const bool learn,
   activeSegments_.clear();
   for (size_t segment = 0; segment < numActiveConnectedSynapsesForSegment_.size(); segment++) {
     if (numActiveConnectedSynapsesForSegment_[segment] >= activationThreshold_) { //TODO move to SegmentData.numConnected?
-      activeSegments_.push_back(segment);
+      activeSegments_.push_back(static_cast<UInt>(segment));
     }
   }
   const auto compareSegments = [&](const Segment a, const Segment b) { return connections.compareSegments(a, b); };
@@ -430,7 +430,7 @@ void TemporalMemory::activateDendrites(const bool learn,
   matchingSegments_.clear();
   for (size_t segment = 0; segment < numActivePotentialSynapsesForSegment_.size(); segment++) {
     if (numActivePotentialSynapsesForSegment_[segment] >= minThreshold_) {
-      matchingSegments_.push_back(segment);
+      matchingSegments_.push_back(static_cast<UInt>(segment));
     }
   }
   std::sort( matchingSegments_.begin(), matchingSegments_.end(), compareSegments);
@@ -550,7 +550,8 @@ vector<CellIdx> TemporalMemory::getActiveCells() const { return activeCells_; }
 
 void TemporalMemory::getActiveCells(SDR &activeCells) const
 {
-  NTA_CHECK( activeCells.size == numberOfCells() );
+  UInt nbr_cells = static_cast<UInt>(numberOfCells());
+  NTA_CHECK( activeCells.size == nbr_cells );
   activeCells.setSparse( getActiveCells() );
 }
 
