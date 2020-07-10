@@ -1,4 +1,4 @@
 #See http://www.pip-installer.org/en/latest/requirements.html for details
 pillow>=7.2.0
 scipy>=1.5.1
-scikit-image>=3.2.1
+scikit-image>=0.17.2
