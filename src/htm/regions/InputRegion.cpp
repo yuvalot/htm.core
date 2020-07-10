@@ -25,7 +25,7 @@
  * another region's input.  
  *
  *To use this, the user will declare a Link in the configuration which uses the 
- * source region name of "INPUT" and a source name of their choosing.
+ * special source region name of "INPUT" and a source name of their choosing.
  * The destination region and destination input name is the target input to be set.
  * The parameter 'dim' will specify the dimensions for the data.
  *
@@ -40,21 +40,16 @@
  */
 #include <memory>
 
-#include <htm/engine/Input.hpp>
-#include <htm/engine/Output.hpp>
 #include <htm/engine/Region.hpp>
 #include <htm/engine/Spec.hpp>
-#include <htm/ntypes/Array.hpp>
 #include <htm/utils/Log.hpp>
-
-
 #include <htm/regions/InputRegion.hpp>
 
+using namespace htm;
 
 InputRegion::InputRegion(const ValueMap &params, Region *region) : RegionImpl(region) {}
-InputRegion::InputRegion(ArWrapper &wrapper, Region *region){ }
+InputRegion::InputRegion(ArWrapper &wrapper, Region *region) : RegionImpl(region) {}
 
-virtual ~InputRegion::InputRegion() override { }
 
 /*static*/ Spec *InputRegion::createSpec() {
   Spec *ns = new Spec();
@@ -64,7 +59,7 @@ virtual ~InputRegion::InputRegion() override { }
   return ns;
 }
   
-void InputRegion::initialize() override { }
+void InputRegion::initialize() { }
 
-void InputRegion::compute() override{ }
+void InputRegion::compute() { }
 

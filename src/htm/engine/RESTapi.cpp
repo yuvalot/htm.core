@@ -95,10 +95,14 @@ std::string RESTapi::put_input_request(const std::string &id,
     NTA_CHECK(itr != resource_.end()) << "Context for resource '" + id + "' not found.";
     itr->second.t = time(0);
 
-    Array a;
-    a.fromJSON(data);
+    //Array a;
+    //a.fromJSON(data);
+    //itr->second.net->setInputData(input_name, a);
 
-    itr->second.net->getRegion(region_name)->setInputData(input_name, a);
+    // Topic of PR #585
+    // The above call would not work because we don't have the type info for a.
+    // lets use itr->second.net->setInputData(input_name, vm);  It knows the type.
+    // See network.cpp line 439
 
     return "{\"result\": \"OK\"}";
   }

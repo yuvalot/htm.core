@@ -322,7 +322,7 @@ std::shared_ptr<Link> Network::link(const std::string &srcRegionName,
       NTA_THROW << "Network::link -- source region '" << srcRegionName << "' does not exist";
     // Our special InputRegion does not exist. But we are using it so we need to create it.
     ValueMap vm;  // Empty parameters.
-    Network::addRegion(srcRegionName, "InputRegion", vm);
+    Network::addRegion(srcRegionName, "InputRegion", vm);  // Note: will have no Outputs defined.
   }
   std::shared_ptr<Region> srcRegion = regions_[srcRegionName];
 
@@ -354,12 +354,32 @@ std::shared_ptr<Link> Network::link(const std::string &srcRegionName,
 
   std::shared_ptr<Output> srcOutput = srcRegion->getOutput(outputName);
   if (srcOutput == nullptr) {
-    if (srcRegionName != "INPUT") {
+    if (srcRegionName == "INPUT") {
       // This is our special source region for manually setting inputs
-      // Get the data type from the destination Input object.
+      // Get the data type from the destination Input object and create an output.
       NTA_BasicType type = destInput->getDataType();
-      std::shared_ptr<Output> output = std::make_shared<Output>(srcRegion.get(), outputName, type);
-      srcRegion->outputs_[outputName] = output;
+      srcOutput = std::make_shared<Output>(srcRegion.get(), outputName, type);
+
+      Dimensions dim;
+      std::string params = Path::trim(linkParams);
+      if (!params.empty()) {
+        Value v;
+        v.parse(linkParams);
+        if (v.isMap() && v.contains("dim")) {
+          Value v1 = v["dim"];
+          if (v1.isSequence())
+            dim = Dimensions(v1.asVector<UInt>());
+          else if (v1.isScalar())
+            dim = Dimensions(v1.as<UInt>());
+        }
+      }
+      if (dim.empty())
+        NTA_THROW << "Link declared with Special \"INPUT\" source requires dimensions in link parameters. Something like "
+                     "{dim: 100} or {dim: [10,20]}";
+
+      srcOutput->setDimensions(dim);
+      srcOutput->initialize();  // allocates the buffer
+      srcRegion->outputs_[outputName] = srcOutput;
     } else {
       NTA_THROW << "Network::link -- output " << outputName << " does not exist on region " << srcRegionName;
     }
@@ -416,6 +436,36 @@ void Network::removeLink(const std::string &srcRegionName,
   // Finally, remove the link
   destInput->removeLink(link);
 }
+
+
+
+/**
+ * Set the source data for a Link identified with the source as "INPUT" and <sourceName>.
+ */
+void Network::setInputData(const std::string& sourceName, const Array& data) {
+  // The placeholder region "INPUT" with an output of <sourceName> should already exist if the link was defined.
+  std::shared_ptr<Region> region = getRegion("INPUT"); 
+  Array &a = region->getOutput(sourceName)->getData(); // we actually populate an output buffer that will be moved to input.
+  NTA_CHECK(a.getCount() == data.getCount())
+      << "setInputData: Number of elements in buffer ( " << a.getCount() << " ) do not match target dimensions.";
+  data.convertInto(a);  // copy the data with conversion.
+}
+
+void Network::setInputData(const std::string &sourceName, const Value& vm) {
+  // The placeholder region "INPUT" with an output of <sourceName> should already exist if the link was defined.
+  std::shared_ptr<Region> region = getRegion("INPUT");
+  Array &a =  region->getOutput(sourceName)->getData(); // populate this output buffer that will be moved to the input.
+  NTA_BasicType type = a.getType();
+  
+  // Unfinished; topic of PR #585
+  // - locate the data array from the parsed message
+  // - confirm that the number of elements in the data matches a.getCount().
+  // - If a.getType() is NTA_BasicType_SDR and data appears to be sparce
+  //        a.getSDR() and load data into SDR as sparse
+  //   else
+  //         load data as dense.
+}
+
 
 void Network::run(int n) {
   if (!initialized_) {

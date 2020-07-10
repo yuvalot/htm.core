@@ -21,8 +21,8 @@
  * Implementation of a network region that handles direct input to a region.
  */
 
-#ifndef NTA_INPUTREGION_HPP
-#define NTA_INPUTREGION_HPP
+#ifndef NTA_INPUT_REGION_HPP
+#define NTA_INPUT_REGION_HPP
 
 #include <string>
 #include <vector>
@@ -55,7 +55,7 @@ public:
   
   virtual void initialize() override;
 
-  void compute() override;
+  virtual void compute() override;
 
 
   CerealAdapter;  // see Serializable.hpp
@@ -77,4 +77,4 @@ public:
 
 } // namespace
 
-#endif // NTA_INPUTREGION_HPP
+#endif // NTA_INPUT_REGION_HPP
