@@ -20,8 +20,6 @@ def extractList(listString, dataType=None):
                 list_string = list_string.replace('  ', ' ')
                 if list_string.startswith('[ '):
                     list_string = list_string.replace('[ ', '[')
-                if list_string.endswith(' ]'):
-                    list_string = list_string.replace(' ]', ']')
                 list_string = (',').join(list_string.split(' '))
                 data_list = json.loads(list_string)
                 
