@@ -355,7 +355,7 @@ std::shared_ptr<Link> Network::link(const std::string &srcRegionName,
   std::shared_ptr<Output> srcOutput = srcRegion->getOutput(outputName);
   if (srcOutput == nullptr) {
     if (srcRegionName == "INPUT") {
-      // This is our special source region for manually setting inputs
+      // This is our special source region for manually setting inputs using a link
       // Get the data type from the destination Input object and create an output.
       NTA_BasicType type = destInput->getDataType();
       srcOutput = std::make_shared<Output>(srcRegion.get(), outputName, type);
@@ -448,10 +448,11 @@ void Network::setInputData(const std::string& sourceName, const Array& data) {
   Array &a = region->getOutput(sourceName)->getData(); // we actually populate an output buffer that will be moved to input.
   NTA_CHECK(a.getCount() == data.getCount())
       << "setInputData: Number of elements in buffer ( " << a.getCount() << " ) do not match target dimensions.";
-  if (a.getType() == data.getType()) 
+  if (a.getType() == data.getType()) {
     a = data;  // assign the buffer without copy
-  else
+  }  else {
     data.convertInto(a);  // copy the data with conversion.
+  }
 }
 
 void Network::setInputData(const std::string &sourceName, const Value& vm) {
