@@ -448,7 +448,10 @@ void Network::setInputData(const std::string& sourceName, const Array& data) {
   Array &a = region->getOutput(sourceName)->getData(); // we actually populate an output buffer that will be moved to input.
   NTA_CHECK(a.getCount() == data.getCount())
       << "setInputData: Number of elements in buffer ( " << a.getCount() << " ) do not match target dimensions.";
-  data.convertInto(a);  // copy the data with conversion.
+  if (a.getType() == data.getType()) 
+    a = data;  // assign the buffer without copy
+  else
+    data.convertInto(a);  // copy the data with conversion.
 }
 
 void Network::setInputData(const std::string &sourceName, const Value& vm) {
@@ -456,6 +459,7 @@ void Network::setInputData(const std::string &sourceName, const Value& vm) {
   std::shared_ptr<Region> region = getRegion("INPUT");
   Array &a =  region->getOutput(sourceName)->getData(); // populate this output buffer that will be moved to the input.
   NTA_BasicType type = a.getType();
+  UNUSED(type);
   
   // Unfinished; topic of PR #585
   // - locate the data array from the parsed message
