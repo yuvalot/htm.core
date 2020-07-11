@@ -110,8 +110,9 @@ set(engine_files
     htm/engine/RegionImplFactory.hpp
     htm/engine/RegisteredRegionImpl.hpp
     htm/engine/RegisteredRegionImplCpp.hpp
-	htm/engine/RESTapi.hpp
-	htm/engine/RESTapi.cpp
+    htm/engine/RESTapi.hpp
+    htm/engine/RESTapi.cpp
+    htm/engine/RawInput.hpp
     htm/engine/Spec.cpp
     htm/engine/Spec.hpp
     htm/engine/Watcher.cpp
@@ -144,8 +145,6 @@ set(os_files
 )
 
 set(regions_files
-    htm/regions/InputRegion.cpp
-    htm/regions/InputRegion.hpp
     htm/regions/DateEncoderRegion.cpp
     htm/regions/DateEncoderRegion.hpp    
     htm/regions/ClassifierRegion.cpp

@@ -25,6 +25,7 @@
 #include <htm/engine/RegisteredRegionImplCpp.hpp>
 #include <htm/engine/Output.hpp>
 #include <htm/engine/Input.hpp>
+#include <htm/engine/RawInput.hpp>
 #include <htm/engine/Spec.hpp>
 #include <htm/ntypes/Value.hpp>
 #include <htm/os/Env.hpp>
@@ -41,7 +42,6 @@
 #include <htm/regions/SPRegion.hpp>
 #include <htm/regions/TMRegion.hpp>
 #include <htm/regions/ClassifierRegion.hpp>
-#include <htm/regions/InputRegion.hpp>
 
 
 #include <htm/utils/Log.hpp>
@@ -101,13 +101,15 @@ RegionImplFactory &RegionImplFactory::getInstance() {
     instance.addRegionType("SPRegion",           new RegisteredRegionImplCpp<SPRegion>());
     instance.addRegionType("TMRegion",           new RegisteredRegionImplCpp<TMRegion>());
     instance.addRegionType("ClassifierRegion",   new RegisteredRegionImplCpp<ClassifierRegion>());
-    instance.addRegionType("InputRegion",        new RegisteredRegionImplCpp<InputRegion>());
 
     // Renamed Regions
     instance.addRegionType("ScalarSensor", new RegisteredRegionImplCpp<ScalarEncoderRegion>());
     instance.addRegionType("RDSERegion", new RegisteredRegionImplCpp<RDSEEncoderRegion>());
     instance.addRegionType("VectorFileEffector", new RegisteredRegionImplCpp<FileOutputRegion>());
     instance.addRegionType("VectorFileSensor", new RegisteredRegionImplCpp<FileInputRegion>());
+
+    // Infrastructure
+    instance.addRegionType("RawInput", new RegisteredRegionImplCpp<RawInput>());
   }
 
   return instance;

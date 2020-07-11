@@ -322,7 +322,7 @@ std::shared_ptr<Link> Network::link(const std::string &srcRegionName,
       NTA_THROW << "Network::link -- source region '" << srcRegionName << "' does not exist";
     // Our special InputRegion does not exist. But we are using it so we need to create it.
     ValueMap vm;  // Empty parameters.
-    Network::addRegion(srcRegionName, "InputRegion", vm);  // Note: will have no Outputs defined.
+    Network::addRegion(srcRegionName, "RawInput", vm);  // Note: will have no Outputs defined.
   }
   std::shared_ptr<Region> srcRegion = regions_[srcRegionName];
 

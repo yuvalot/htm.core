@@ -186,6 +186,7 @@ Dimensions can be set in a number of ways.
 - By using the global parameter "dim".  This parameter does not need to be described in the Spec and is available on all regions.  Its value will override the region's default dimensions. The output configured with 'isRegionLevel' will use that dimension.
 - By cascading the dimensions from an input that has 'isRegionLevel' property to the region's default dimensions which can be used by any of its outputs that use the 'isRegionLevel' property.
 - By asking the region for its dimensions. If the link module cannot figure out the dimensions, it will call askImplForOutputDimensions( ) on the region implementation.  The implementation can then use its parameters to reply.  But if the region did not implement that function, its base class will then try to call getNodeOutputElementCount( ), as in numenta's original code, to get the single dimension buffer size.
+- By setting the 'dim' property in a link parameter.  It will set the dimension on both ends of the link. This is normally used with setInputData(source_name, data) where this function provides that data for the source end of the link.
 
 All of this is complicated in the engine but the Region implementation programmer only needs to implement either the askImplForOutputDimensions( ) method if you have a full dimensions, or getNodeOutputElementCount( ) if you only know what the buffer size should be.  Everything else takes care of itself.
 
