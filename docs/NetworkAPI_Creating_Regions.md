@@ -179,16 +179,10 @@ The third section is for outputs:
 ### Dimensions and determining buffer size
 The link module in the engine is responsible for moving data from the output of one region to the input of another. It automatically performs data type conversions as needed so that the input for a region is in the type expected as described in the Spec. The link module also takes care of Fan-in and Fan-out of connections.
 
-To do its job, it must control the buffers that reside on outputs and inputs to minimize the copying of data.  So at initialization it determines the buffer sizes from the information in the Spec of each region and the dimensions configured.
+A complete description of how dimensions are configured can be found in the `Dimensions and buffer size` section of [NetworkAPI Links](NetworkAPI_Links.md).
 
-Dimensions can be set in a number of ways.
-- By using the array size in the Spec if the 'count' property for an input or output is something other than '0'. Fixing the expected array size is not common.
-- By using the global parameter "dim".  This parameter does not need to be described in the Spec and is available on all regions.  Its value will override the region's default dimensions. The output configured with 'isRegionLevel' will use that dimension.
-- By cascading the dimensions from an input that has 'isRegionLevel' property to the region's default dimensions which can be used by any of its outputs that use the 'isRegionLevel' property.
-- By asking the region for its dimensions. If the link module cannot figure out the dimensions, it will call askImplForOutputDimensions( ) on the region implementation.  The implementation can then use its parameters to reply.  But if the region did not implement that function, its base class will then try to call getNodeOutputElementCount( ), as in numenta's original code, to get the single dimension buffer size.
-- By setting the 'dim' property in a link parameter.  It will set the dimension on both ends of the link. This is normally used with setInputData(source_name, data) where this function provides that data for the source end of the link.
-
-All of this is complicated in the engine but the Region implementation programmer only needs to implement either the askImplForOutputDimensions( ) method if you have a full dimensions, or getNodeOutputElementCount( ) if you only know what the buffer size should be.  Everything else takes care of itself.
+All of this is complicated in the engine but the Region implementation programmer only needs to implement either the askImplForOutputDimensions( ) method if you have a full dimensions, or getNodeOutputElementCount( ) if you only know what the buffer size should be.  In addition you need to be sure you have the Spec property 'isRegionLevel' set correctly on all inputs and outputs.
+Everything else takes care of itself.
 
 ```
 Dimensions RDSEEncoderRegion::askImplForOutputDimensions(const std::string &name) {
