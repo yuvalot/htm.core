@@ -90,7 +90,6 @@ RegionImplFactory &RegionImplFactory::getInstance() {
   // Initialize the Built-in Regions
   if (instance.regionTypeMap.empty()) {
     // Create internal C++ regions
-
 	  instance.addRegionType("DateEncoderRegion",  new RegisteredRegionImplCpp<DateEncoderRegion>());
     instance.addRegionType("ScalarEncoderRegion", new RegisteredRegionImplCpp<ScalarEncoderRegion>());
     instance.addRegionType("RDSEEncoderRegion",  new RegisteredRegionImplCpp<RDSEEncoderRegion>());

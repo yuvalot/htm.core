@@ -16,13 +16,13 @@ In order to be used with the NetworkAPI Engine as a plug-in, a C++ region implem
 - must accept a reference to the generic Region class instance in the constructor and pass it to the subclass.
 - must accept pre-parsed configuration parameters in the constructor.
 - must implement a second constructor for use by Cereal serialization.
-- may implement getters and setters for non-readOnly parameters that can be accessed or set after the region has been instantiated.
+- may implement getters and setters for parameters that can be accessed or set after the region has been instantiated.
 - may implement an initialization function that is called during the initialization phase of the engine.
 - must implement the function `askImplForOutputDimensions(name)` if returning full dimensions for outputs or implement `getNodeOutputElementCount(name)` if returning only the one dimensional size of each output.
 - must implement the `compute( )` method which gets called by the engine during a run iteration.
 - must implement save_ar( ... ) and load_ar( ... ) to implement serialization for the plug-in.
 
-In addition, if the new region is to be a built-in plugin, it needs to be included in the list of region implementation classes in the factory that are registered when the engine starts up. The list is at line 92 of `src/htm/engine/RegionImplFactor.cpp`.
+In addition, if the new region is to be a built-in plugin, it needs to be included in the list of region implementation classes in the factory that are registered when the engine starts up. The list is at about line 92 of `src/htm/engine/RegionImplFactory.cpp`.
 
 The NetworkAPI engine and all of its generic components are found in `src/htm/engine`.  The build-in C++ region implementations are placed in `src/htm/regions`. The core algorithms and encoders have their own folder.  General utilities for algorithms are found in `src/htm/utils` and `src/htm/types`.  Utilities for NetworkAPI are placed in `src/htm/ntypes`.
 
@@ -151,7 +151,7 @@ In either case, the Spec has three sections.  One section is for the parameters.
 - name;  Use the name of the field (JSON name rules) as the label. This must be unique within the region.
 - **description**; Text describing the field. Optional.
 - **type**; the type of data in the parameter. For an array it is the type of an element. The types recognized are:  "Byte",   "Int16",  "UInt16", "Int32",  "UInt32", "Int64",
-                 "UInt64", "Real32", "Real64", "Bool", "SDR", "String".  A type is required.  Note that the "SDR" type cannot be used on parameters.
+                 "UInt64", "Real32", "Real64", "Bool", "SDR", "String".  A type is required.  Note that the "SDR" type can be used for inputs and outputs but cannot be used for parameters.
 - **count**; If it is `1` then it is a scalar. `0` means variable length array. Else a fixed size array. Default is '1', a scalar.  This is required.
 - **default**; The value to use if the parameter is not provided.  This is parsed as JSON and can be a scalar or an array.  Optional.
 - **access**; "Create" means this parameter can only be passed in the constructor. ReadWrite" means can be passed in constructor and set with a setter.  "ReadOnly" means can be read but not changed.  All parameters can be read. Default is "Create".
@@ -232,7 +232,7 @@ void RDSEEncoderRegion::compute() {
 }
 ```
 
-The region implementation accesses the buffers for each input to get its data. `getInput("values")->getData()` retrieves the Array object holding the buffer for the named input.  It can also get the Array objects for the output buffers using `getOutput("encoded")->getData()`. Calling getBuffer() will obtain the raw underlining buffer in the Array.
+The region implementation accesses the buffers for each input to get its data. `getInput("values")->getData()` retrieves the Array object holding the buffer for the named input.  It can also get the Array objects for the output buffers using `getOutput("encoded")->getData()`. Calling getBuffer() will obtain the raw underlining buffer in the Array.  Note that region->getOutputData(name) or region->getInputData(name) will return const versions of the buffers.
 
 In this case the Spec declared the output buffer named "encoded" to be an SDR type so we can access the SDR structure from the Array object by calling getSDR().
 
@@ -251,7 +251,7 @@ Real32 RDSEEncoderRegion::getParameterReal32(const std::string &name, Int64 inde
 ```
 The last line is the case where there is no match with a field name and it lets the base class handle it. There will need to be one of these for each data type that you use in the Spec.
 
-The region implementation may also allow some parameters to be changed after construction.  These should be marked as ReadWrite access in the Spec.  For each type, the region implementation must implement setters that handle assignment for all of the parameters of that type.  For example, here are the setters for the Real32 parameters:
+The region implementation may also allow some parameters to be changed after construction.  These should be marked as ReadWrite access in the Spec.  For each data type, the region implementation must implement setters that handle assignment for all of the parameters of that type.  For example, here are the setters for the Real32 parameters:
 ```
 void RDSEEncoderRegion::setParameterReal32(const std::string &name, Int64 index, Real32 value) {
   if (name == "noise") noise_ = value;
@@ -289,7 +289,7 @@ We are using Cereal Serialization.  The objective is to save all state (i.e. par
   }
   ```
   
-  `CerealAdapter` is a macro that tries to hide some of the common details of getting the ar variable. Just use it as is.  Then there is a save_ar(ar) function and a load_ar(ar) function.  The 'sensedValue_`, `noise_`, and `rnd_` variables are scalers in our example so just replace those with your own scalars that need to be saved. The Cereal package knows how to save STL objects as well, but not pointers. You may need some special handling before saving or after restoring such as that being performed by the setDimensions( ) function in the above example.
+  `CerealAdapter` is a macro that tries to hide some of the common details of getting the ar variable. Just use it as is.  Then there is a save_ar(ar) function and a load_ar(ar) function.  The `sensedValue_`, `noise_`, and `rnd_` variables are scalers in our example so just replace those with your own scalars that need to be saved. The Cereal package knows how to save STL objects as well, but not pointers. You may need some special handling before saving or after restoring such as that being performed by the setDimensions( ) function in the above example.
   
   Note that if your implementation wraps some other algorithm that contains state that needs to be restored then you need to serialize that algorithm as well. For example `ar(cereal::make_nvp("encoder", encoder_));` will perform the Cereal functions on the encoder algorithm. So it must also contain the save_ar( ) and load_ar( ) functions.
 
