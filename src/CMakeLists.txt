@@ -110,8 +110,9 @@ set(engine_files
     htm/engine/RegionImplFactory.hpp
     htm/engine/RegisteredRegionImpl.hpp
     htm/engine/RegisteredRegionImplCpp.hpp
-	htm/engine/RESTapi.hpp
-	htm/engine/RESTapi.cpp
+    htm/engine/RESTapi.hpp
+    htm/engine/RESTapi.cpp
+    htm/engine/RawInput.hpp
     htm/engine/Spec.cpp
     htm/engine/Spec.hpp
     htm/engine/Watcher.cpp
