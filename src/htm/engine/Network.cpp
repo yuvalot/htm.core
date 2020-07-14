@@ -461,7 +461,23 @@ void Network::setInputData(const std::string &sourceName, const Value& vm) {
   Array &a =  region->getOutput(sourceName)->getData(); // populate this output buffer that will be moved to the input.
   NTA_BasicType type = a.getType();
   UNUSED(type);
-  
+
+  NTA_CHECK(vm.contains("data"))
+      << "Unexpected YAML or JSON format. Expecting something like {data: [1,0,1]}";
+
+  NTA_CHECK(vm["data"].isSequence())
+      << "Unexpected YAML or JSON format. Expecting something like {data: [1,0,1]}";
+
+  if (type == NTA_BasicType_SDR) {
+    NTA_CHECK(a.getCount() >= vm.size())
+        << "setInputData: Number of elements in buffer ( " << a.getCount() << " ) do not match target dimensions.";
+  } else {
+    NTA_CHECK(a.getCount() == vm.size())
+        << "setInputData: Number of elements in buffer ( " << a.getCount() << " ) do not match target dimensions.";
+  }
+
+  a.fromValue(vm);
+
   // Unfinished; topic of PR #585
   // - locate the data array from the parsed message
   // - confirm that the number of elements in the data matches a.getCount().
