@@ -4,7 +4,7 @@ import os
 import numpy as np
 import math
 
-from htm_rest_api import NetworkConfig, NetworkREST, get_classifer_predict
+from htm_rest_api import NetworkConfig, NetworkREST, get_classifer_predict, INPUT
 
 _EXAMPLE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 _INPUT_FILE_PATH = os.path.join(_EXAMPLE_DIR, "gymdata.csv")
@@ -115,6 +115,7 @@ def main(parameters=default_parameters, argv=None, verbose=True):
   net.add_link(scalarRegion, spRegion, 'encoded', 'bottomUpIn')
   net.add_link(spRegion, tmRegion, 'bottomUpOut', 'bottomUpIn')
   net.add_link(tmRegion, clsrRegion, 'bottomUpOut', 'pattern')
+  net.add_link(INPUT, clsrRegion, 'clsr_bucket', 'bucket', 1)
 
   net.create()
 
@@ -134,7 +135,7 @@ def main(parameters=default_parameters, argv=None, verbose=True):
     # Call the encoders to create bit representations for each value.  These are SDR objects.
     dateRegion.param('sensedTime', int(dateString.timestamp()))
     scalarRegion.param('sensedValue', consumption)
-    clsrRegion.input('bucket', consumption)
+    net.input('clsr_bucket', consumption)
 
     # Predict what will happen, and then train the predictor based on what just happened.
     net.run()

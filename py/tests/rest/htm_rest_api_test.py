@@ -16,7 +16,7 @@ REST_EXAMPLE_DIR = os.path.join(REPO_DIR, "py", "htm", "examples", "rest")
 
 sys.path.append(REST_EXAMPLE_DIR)
 
-from htm_rest_api import NetworkREST, NetworkRESTBase
+from htm_rest_api import NetworkREST, NetworkRESTBase, INPUT
 
 HOST = 'http://127.0.0.1:8050'
 
@@ -202,6 +202,7 @@ class HtmRestApiTest(unittest.TestCase):
     clsr = net.add_region('clsr', 'ClassifierRegion', {'learn': True})
 
     net.add_link(encoder, clsr, 'encoded', 'pattern')
+    net.add_link(INPUT, clsr, 'clsr_bucket', 'bucket', [1])
 
     net.create()
 
@@ -210,7 +211,7 @@ class HtmRestApiTest(unittest.TestCase):
     r = encoder.param('sensedValue', '{:.2f}'.format(s))
     self.assertEqual(r, 'OK')
 
-    r = clsr.input('bucket', [s])
+    r = net.input('clsr_bucket', [s])
     self.assertEqual(r, 'OK')
 
     # Execute one iteration of the Network object
@@ -227,9 +228,11 @@ class HtmRestApiTest(unittest.TestCase):
       'globalInhibition': True
     })
 
+    net.add_link(INPUT, sp, 'sp_input', 'bottomUpIn', [100])
+
     net.create()
 
-    r = sp.input('bottomUpIn', [1,2], [100])
+    r = net.input('sp_input', [1,2])
     self.assertEqual(r, 'OK')
 
     # Execute one iteration of the Network object

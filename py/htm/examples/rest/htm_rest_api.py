@@ -79,17 +79,11 @@ class NetworkRESTBase(object):
     url = self.api1('/region/{}/param/{}'.format(region_name, param_name))
     return request('GET', url, verbose=self.verbose)
 
-  def put_region_input(self,
-                       region_name,
-                       input_name,
-                       data,
-                       dim=None):
-    url = self.api1('/region/{}/input/{}'.format(region_name, input_name))
+  def input(self, input_name, data):
+    url = self.api1('/input/{}'.format(input_name))
     if not isinstance(data, list):
       data = [data]
     data = {'data': data}
-    if dim is not None:
-      data['dim'] = dim
     return request('PUT', url, verbose=self.verbose, data=json.dumps(data))
 
   def get_region_input(self, region_name, input_name):
@@ -143,11 +137,8 @@ class RegionREST(object):
   def set_net(self, net):
     self.net = net
 
-  def input(self, input_name, data=None, dim=None):
-    if data is None:
-      return self.net.get_region_input(self.name, input_name)
-
-    return self.net.put_region_input(self.name, input_name, data, dim)
+  def input(self, input_name):
+    return self.net.get_region_input(self.name, input_name)
 
   def param(self, param_name, data=None):
     if data is None:
@@ -165,13 +156,18 @@ class RegionREST(object):
     return self.net.delete_region(self.name)
 
 
+INPUT = RegionREST('INPUT', 'RawInput')
+
+
 class LinkREST(object):
-  def __init__(self, source_name, dest_name, source_output, dest_input):
+  def __init__(self, source_name, dest_name, source_output, dest_input, dim = None, delay = None):
     self.source_name = source_name
     self.dest_name = dest_name
     self.source_output = source_output
     self.dest_input = dest_input
     self.net = None
+    self.dim = dim
+    self.delay = delay
 
   def set_net(self, net):
     self.net = net
@@ -221,7 +217,7 @@ class NetworkConfig(object):
 
     return region
 
-  def add_link(self, source_region, dest_region, source_output, dest_input):
+  def add_link(self, source_region, dest_region, source_output, dest_input, dim = None, delay = None):
     if not self.has_region(source_region.name):
       raise NetworkRESTError('Region {} is not found.'.format(
         source_region.name))
@@ -230,7 +226,7 @@ class NetworkConfig(object):
         dest_region.name))
 
     link = LinkREST(source_region.name, dest_region.name, source_output,
-                    dest_input)
+                    dest_input, dim, delay)
     link.set_net(self.net)
     self.links.append(link)
 
@@ -248,7 +244,12 @@ class NetworkConfig(object):
         }
       })
     for link in self.links:
-      network.append({'addLink': {'src': link.src, 'dest': link.dest}})
+      params = {'src': link.src, 'dest': link.dest}
+      if link.delay is not None:
+        params['delay'] = link.delay
+      if link.dim is not None:
+        params['dim'] = link.dim
+      network.append({'addLink': params})
 
     return json.dumps({'network': network}, indent=2)
 

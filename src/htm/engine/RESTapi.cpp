@@ -88,7 +88,6 @@ std::string RESTapi::create_network_request(const std::string &specified_id, con
 }
 
 std::string RESTapi::put_input_request(const std::string &id,
-                                       const std::string &region_name,
                                        const std::string &input_name,
                                        const std::string &data) {
   try {
@@ -98,35 +97,8 @@ std::string RESTapi::put_input_request(const std::string &id,
 
     Value vm;
     vm.parse(data);
-    std::shared_ptr<Region> region = itr->second.net->getRegion(region_name);
-    const std::shared_ptr<Spec> &destSpec = region->getSpec();
-    NTA_BasicType type = destSpec->inputs.getByName(input_name).dataType;
 
-    NTA_CHECK(vm.contains("data"))
-        << "Unexpected YAML or JSON format. Expecting something like {data: [1,0,1]}";
-
-    NTA_CHECK(vm["data"].isSequence())
-        << "Unexpected YAML or JSON format. Expecting something like {data: [1,0,1]}";
-
-    if (type == NTA_BasicType_SDR) {
-      NTA_CHECK(vm.contains("dim"))
-          << "Unexpected YAML or JSON format. Expecting something like {data: [1,0,1], dim: [1000]}";
-      NTA_CHECK(vm["dim"].isSequence())
-          << "Unexpected YAML or JSON format. Expecting something like {data: [1,0,1], dim: [1000]}";
-    }
-
-    Array a(type);
-    a.fromValue(vm);
-
-    region->setInputData(input_name, a);
-    //Array a;
-    //a.fromJSON(data);
-    //itr->second.net->setInputData(input_name, a);
-
-    // Topic of PR #585
-    // The above call would not work because we don't have the type info for a.
-    // lets use itr->second.net->setInputData(input_name, vm);  It knows the type.
-    // See network.cpp line 439
+    itr->second.net->setInputData(input_name, vm);
 
     return "{\"result\": \"OK\"}";
   }

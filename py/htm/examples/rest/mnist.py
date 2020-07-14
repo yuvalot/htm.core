@@ -22,7 +22,7 @@ import sys
 # fetch datasets from www.openML.org/
 from sklearn.datasets import fetch_openml
 
-from htm_rest_api import NetworkREST, get_classifer_predict
+from htm_rest_api import NetworkREST, get_classifer_predict, INPUT
 
 
 def load_ds(name, num_test, shape=None):
@@ -125,6 +125,8 @@ def main(parameters=default_parameters, argv=None, verbose=True):
 
   sdrc = net.add_region('clsr', 'ClassifierRegion', {'learn': True})
   net.add_link(sp, sdrc, 'bottomUpOut', 'pattern')
+  net.add_link(INPUT, sp, 'sp_input', 'bottomUpIn', dim)
+  net.add_link(INPUT, sdrc, 'sdrc_input', 'bucket', [1])
 
   net.create()
 
@@ -136,8 +138,8 @@ def main(parameters=default_parameters, argv=None, verbose=True):
       print(pred)
     img, lbl = training_data[i]
     data = encode(img)
-    sp.input('bottomUpIn', data, dim)
-    sdrc.input('bucket', int(lbl))
+    net.input('sp_input', data)
+    net.input('sdrc_input', int(lbl))
 
     net.run()
 
@@ -147,7 +149,7 @@ def main(parameters=default_parameters, argv=None, verbose=True):
   sdrc.param('learn', 'false')
   for img, lbl in test_data:
     data = encode(img)
-    sp.input('bottomUpIn', data, dim)
+    net.input('sp_input', data)
     net.run()
     pred = get_classifer_predict(net, sdrc.name)
     if int(lbl) == pred['title']:

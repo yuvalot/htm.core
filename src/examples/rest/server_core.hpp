@@ -38,7 +38,7 @@
 //       Set the value of a region's parameter. The <data> could also be in the body.
 //  GET  /network/<id>/region/<region name>/param/<param name>
 //       Get the value of a region's parameter.
-//  PUT  /network/<id>/region/<region name>/input/<input name>?data=<JSON encoded array>
+//  PUT  /network/<id>/input/<input name>?data=<JSON encoded array>
 //       Set the value of a region's input. The <data> could also be in the body.
 //  GET  /network/<id>/region/<region name>/input/<input name>
 //       Get the value of a region's input. Returns a JSON encoded array.
@@ -170,21 +170,20 @@ public:
       res.set_content(result + "\n", "application/json");
     });
 
-    //  PUT  /network/<id>/region/<region name>/input/<input name>?data=<url encoded JSON data>
-    //       Set the value of a region's input. The <data> could also be in the body.
+    //  PUT  /network/<id>/input/<input name>?data=<url encoded JSON data>
+    //       Set the value of the network's input. The <data> could also be in the body.
     //  The data is a JSON encoded Array object which includes the type specifier;
-    svr.Put("/network/.*/region/.*/input/.*", [](const Request &req, Response &res) {
+    svr.Put("/network/.*/input/.*", [](const Request &req, Response &res) {
       std::vector<std::string> flds = Path::split(req.path, '/');
       std::string id = flds[2];
-      std::string region_name = flds[4];
-      std::string input_name = flds[6];
+      std::string input_name = flds[4];
       std::string data = req.body;
       auto ix = req.params.find("data");
       if (ix != req.params.end())
         data = ix->second;
 
       RESTapi *interface = RESTapi::getInstance();
-      std::string result = interface->put_input_request(id, region_name, input_name, data);
+      std::string result = interface->put_input_request(id, input_name, data);
       res.set_content(result + "\n", "application/json");
     });
 

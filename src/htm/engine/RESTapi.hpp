@@ -99,20 +99,12 @@ public:
    * Handler for a PUT "input" request message.
    * This will pass the attached data to the specified region's input.
    *
-   * @param region_name The name of the region for the parameter that is to receive the data.
-   *                    For example if "encoder" is the name assigned to your ScalarSensor region in
-   *                    the Network's configuration, enter "encoder".
-   *
    * @param input_name  The name of the input that is to receive the data.
-   *                    Give the name of a input as defined by the region Spec for
-   *                    the region you are configuring.
-   *                    For example;  For a ScalarSensor region, such a parameter is "values".
+   *                    Give the name of a input as defined by the link source
+   *                    name you are configuring.
    *
    * @param data        The serialized data itself in JSON format. The following is expected:
-   *                      {type: <type>, data: [ <array of elements comma seprated> ]}
-   *                       The <type> values are one of the following:
-   *                       "Byte",   "Int16",  "UInt16", "Int32",  "UInt32", "Int64",
-   *                       "UInt64", "Real32", "Real64", "Handle", "Bool", "SDR", "String"
+   *                      { data: [ <array of elements comma seprated> ]}
    *                    The data portion must be a sequence, even if only one element.
    *                    If blank, no data is set.
    *
@@ -123,19 +115,18 @@ public:
    *                          between "0001" and "9999".  If the id exceeds "9999" it will
    *                          wrap and re-use id's for which Network objects have been deleted.
    *
-   *                          Otherwise it will use and return the specified id. The specified id 
-   *                          does not have to be numeric.  However, if it is not compatible with 
+   *                          Otherwise it will use and return the specified id. The specified id
+   *                          does not have to be numeric.  However, if it is not compatible with
    *                          URL syntax the returned id will be a URLencoded copy of the requested id.
    *
-   *                          If a Network object is already associated with the specified id the 
+   *                          If a Network object is already associated with the specified id the
    *                          program will remove the existing Network object and create a new one.
    *
    *
    * @retval            If successful it returns "OK".
    *                    Otherwise returns JSON encoded error message starting with "ERROR: ".
    */
-  std::string put_input_request(const std::string &id, 
-                                const std::string &region_name, 
+  std::string put_input_request(const std::string &id,
                                 const std::string &input_name,
                                 const std::string &data);
 
