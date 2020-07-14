@@ -30,4 +30,11 @@ Hopefully, for performance and completeness, these will be added to the htm.core
 
 Install python dependencies
 ===========
-In order to run this python code, one must install requirements in htm/advanced/requirements.txt.
+In order to run this python code, one must install extras requirements by running
+```
+pip install htm.core[examples]
+```
+or if building from source run in root of repository
+```
+pip install -e .[examples]
+```
