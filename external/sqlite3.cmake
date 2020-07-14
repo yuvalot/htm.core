@@ -46,17 +46,19 @@ download_project(PROJ sqlite3
     
 # SQLite does not provide a CMakeList.txt to buld with so we provide the following lines to perform the compile here.
 # Since we are building here and not in the source folder, the library will show up directly under build/ThirdParty.
+# The library will be folded into htm.core.
+# Reference the include as #include "sqlite3.h".
+
 set(SRCS ${sqlite3_SOURCE_DIR}/sqlite3.c ${sqlite3_SOURCE_DIR}/sqlite3.h)
 add_library(sqlite3 STATIC  ${SRCS} )
 target_compile_definitions(sqlite3 PRIVATE ${COMMON_COMPILER_DEFINITIONS})
 
-set(sqlite3_INCLUDE_DIRS ${sqlite3_SOURCE_DIR}/include) 
 if (MSVC)
   set(sqlite3_LIBRARIES   "${CMAKE_BINARY_DIR}$<$<CONFIG:Release>:/Release/sqlite3.lib>$<$<CONFIG:Debug>:/Debug/sqlite3.lib>") 
 else()
   set(sqlite3_LIBRARIES   ${CMAKE_BINARY_DIR}/${CMAKE_STATIC_LIBRARY_PREFIX}sqlite3${CMAKE_STATIC_LIBRARY_SUFFIX}) 
 endif()
 
-FILE(APPEND "${EXPORT_FILE_NAME}" "sqlite3_INCLUDE_DIRS@@@${sqlite3_INCLUDE_DIRS}\n")
+FILE(APPEND "${EXPORT_FILE_NAME}" "sqlite3_INCLUDE_DIRS@@@${sqlite3_SOURCE_DIR}\n")
 FILE(APPEND "${EXPORT_FILE_NAME}" "sqlite3_LIBRARIES@@@${sqlite3_LIBRARIES}\n")
 

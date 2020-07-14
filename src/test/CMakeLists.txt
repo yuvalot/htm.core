@@ -16,7 +16,7 @@
 # -----------------------------------------------------------------------------
 
 cmake_minimum_required(VERSION 3.7)
-project(htm_core CXX)
+project(htm_core CXX C)
 
 message(STATUS "Configuring htm_core tests")
 ###############################################################
@@ -92,6 +92,7 @@ set(regions_tests
 	   unit/regions/SPRegionTest.cpp
        unit/regions/TMRegionTest.cpp
        unit/regions/VectorFileTest.cpp
+       unit/regions/DatabaseRegionTest.cpp
 	   )
 
 	   
@@ -106,6 +107,7 @@ set(utils_tests
 	   unit/utils/RandomTest.cpp
 	   unit/utils/VectorHelpersTest.cpp
 	   unit/utils/SdrMetricsTest.cpp
+	   unit/utils/Sqlite3Test.cpp
 	   )
 
 set(examples_files
@@ -143,6 +145,8 @@ set(src_executable_gtests
     ${utils_tests} 
     ${examples_files}
 )
+
+message(STATUS "In Test, External_Includes: ${EXTERNAL_INCLUDES}")
 
 add_executable(${unit_tests_executable} ${src_executable_gtests})
 target_link_libraries(${unit_tests_executable} 

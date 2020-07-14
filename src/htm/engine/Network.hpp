@@ -268,6 +268,13 @@ public:
                   const std::string &srcOutputName = "",
                   const std::string &destInputName = "");
 
+
+  /**
+   * Set the source data for a Link identified with the source as "INPUT" and <sourceName>.
+   */
+  virtual void setInputData(const std::string &sourceName, const Array &data);
+  virtual void setInputData(const std::string &sourceName, const Value &vm);
+
   /**
    * @}
    *

@@ -40,9 +40,17 @@
 #include <htm/utils/SdrMetrics.hpp>
 #include <htm/os/Timer.hpp>
 
+#ifdef MSVC
+#pragma warning(push)
+#pragma warning(disable : 4244) // warning C4244: '=': conversion from 'double' to 'unsigned char', possible loss of data
+#endif
+
 #include <mnist/mnist_reader.hpp> // MNIST data itself + read methods, namespace mnist::
 #include <mnist/mnist_utils.hpp>  // mnist::binarize_dataset
 
+#ifdef MSVC
+#pragma warning(pop)
+#endif
 
 using namespace std;
 using namespace htm;
