@@ -98,7 +98,7 @@ void SPRegion::initialize() {
   // algorithm requires input.
   //
   // If there are more than one input link (FAN-IN), the input buffer will be the
-  // concatination of all incomming buffers.  
+  // concatination of all incomming buffers.
   std::shared_ptr<Input> in = getInput("bottomUpIn");
   NTA_CHECK(in != nullptr);
   if (!in->hasIncomingLinks())

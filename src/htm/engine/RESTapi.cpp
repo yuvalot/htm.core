@@ -22,6 +22,7 @@ Implementation of the RESTapi class
 */
 #include <htm/engine/RESTapi.hpp>
 #include <htm/engine/Network.hpp>
+#include <htm/engine/Spec.hpp>
 
 const size_t ID_MAX = 9999; // maximum number of generated ids  (this is arbitrary)
 
@@ -38,10 +39,10 @@ RESTapi* RESTapi::getInstance() { return &rest; }
 
 std::string RESTapi::get_new_id_() {
   // No id was provided so find the next available number.
-  // Note: This will return a number between 1 and 9999, 
-  //       starting with "1" and incrementing on each use with wrap at "9999". 
-  //       This will never return "0" 
-  
+  // Note: This will return a number between 1 and 9999,
+  //       starting with "1" and incrementing on each use with wrap at "9999".
+  //       This will never return "0"
+
   std::map<std::string, ResourceContext>::iterator itr;
   std::string id;
   while (rest.resource_.size() < ID_MAX) {  // limit the total number of generated resources
@@ -75,7 +76,7 @@ std::string RESTapi::create_network_request(const std::string &specified_id, con
 
     obj.net->configure(config);
     resource_[id] = obj;              // assign the resource (deleting any previous value)
-    
+
     return "{\"result\": " + Value::json_string(id) + "}";
   } catch (Exception& e) {
     return "{\"err\": " + Value::json_string(e.getMessage()) + "}";
@@ -86,23 +87,18 @@ std::string RESTapi::create_network_request(const std::string &specified_id, con
   }
 }
 
-std::string RESTapi::put_input_request(const std::string &id, 
-                                       const std::string &region_name,
-                                       const std::string &input_name, 
+std::string RESTapi::put_input_request(const std::string &id,
+                                       const std::string &input_name,
                                        const std::string &data) {
   try {
     auto itr = resource_.find(id);
     NTA_CHECK(itr != resource_.end()) << "Context for resource '" + id + "' not found.";
     itr->second.t = time(0);
 
-    //Array a;
-    //a.fromJSON(data);
-    //itr->second.net->setInputData(input_name, a);
+    Value vm;
+    vm.parse(data);
 
-    // Topic of PR #585
-    // The above call would not work because we don't have the type info for a.
-    // lets use itr->second.net->setInputData(input_name, vm);  It knows the type.
-    // See network.cpp line 439
+    itr->second.net->setInputData(input_name, vm);
 
     return "{\"result\": \"OK\"}";
   }
@@ -115,7 +111,7 @@ std::string RESTapi::put_input_request(const std::string &id,
   }
 }
 
-std::string RESTapi::get_input_request(const std::string &id, 
+std::string RESTapi::get_input_request(const std::string &id,
                                        const std::string &region_name,
                                        const std::string &input_name) {
   try {
@@ -127,7 +123,7 @@ std::string RESTapi::get_input_request(const std::string &id,
     std::string data = b.toJSON();
     std::string type = BasicType::getName(b.getType());
     std::string dim = region->getInputDimensions(input_name).toString(false);
-    
+
     return "{\"result\": " + data + ", \"type\": \"" + type + "\", \"dim\": " + dim +"}";
 
   } catch (Exception &e) {
@@ -139,7 +135,7 @@ std::string RESTapi::get_input_request(const std::string &id,
   }
 }
 
-std::string RESTapi::get_output_request(const std::string &id, 
+std::string RESTapi::get_output_request(const std::string &id,
                                         const std::string &region_name,
                                         const std::string &output_name) {
   try {
@@ -151,7 +147,7 @@ std::string RESTapi::get_output_request(const std::string &id,
     std::string data = b.toJSON();
     std::string type = BasicType::getName(b.getType());
     std::string dim = region->getOutputDimensions(output_name).toString(false);
-    
+
     return "{\"result\": " + data + ", \"type\": \"" + type + "\", \"dim\": " + dim +"}";
   } catch (Exception &e) {
     return "{\"err\": " + Value::json_string(e.getMessage()) + "}";
@@ -162,9 +158,9 @@ std::string RESTapi::get_output_request(const std::string &id,
   }
 }
 
-std::string RESTapi::put_param_request(const std::string &id, 
+std::string RESTapi::put_param_request(const std::string &id,
                                        const std::string &region_name,
-                                       const std::string &param_name, 
+                                       const std::string &param_name,
                                        const std::string &data) {
   try {
     auto itr = resource_.find(id);
@@ -183,7 +179,7 @@ std::string RESTapi::put_param_request(const std::string &id,
   }
 }
 
-std::string RESTapi::get_param_request(const std::string &id, 
+std::string RESTapi::get_param_request(const std::string &id,
                                        const std::string &region_name,
                                        const std::string &param_name) {
   try {
@@ -193,7 +189,7 @@ std::string RESTapi::get_param_request(const std::string &id,
 
     std::string response;
     response = itr->second.net->getRegion(region_name)->getParameterJSON(param_name, "result");
-    
+
     return response;
   } catch (Exception &e) {
     return "{\"err\": " + Value::json_string(e.getMessage()) + "}";
@@ -222,7 +218,7 @@ std::string RESTapi::delete_region_request(const std::string &id, const std::str
   }
 }
 
-std::string RESTapi::delete_link_request(const std::string &id, 
+std::string RESTapi::delete_link_request(const std::string &id,
                                          const std::string &source_name,
                                          const std::string &dest_name) {
   try {
@@ -294,7 +290,7 @@ std::string RESTapi::run_request(const std::string &id, const std::string &itera
   }
 }
 
-std::string RESTapi::command_request(const std::string& id, 
+std::string RESTapi::command_request(const std::string& id,
                                      const std::string& region_name,
                                      const std::string& command) {
   try {

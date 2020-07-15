@@ -42,6 +42,7 @@
 
 #include <htm/ntypes/BasicType.hpp>
 #include <htm/types/Sdr.hpp>
+#include <htm/ntypes/Value.hpp>
 
 namespace htm
 {
@@ -240,6 +241,7 @@ namespace htm
     }
 
 
+    void fromValue(const Value &vm);      //handles both YAML and JSON syntax
     // Serialization and Deserialization using YAML parser
     void fromYAML(const std::string& data);      //handles both YAML and JSON syntax
     void fromJSON(const std::string &data) { return fromYAML(data); }

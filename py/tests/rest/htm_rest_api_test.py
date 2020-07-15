@@ -16,7 +16,7 @@ REST_EXAMPLE_DIR = os.path.join(REPO_DIR, "py", "htm", "examples", "rest")
 
 sys.path.append(REST_EXAMPLE_DIR)
 
-from htm_rest_api import NetworkREST, NetworkRESTBase
+from htm_rest_api import NetworkREST, NetworkRESTBase, INPUT
 
 HOST = 'http://127.0.0.1:8050'
 
@@ -185,6 +185,58 @@ class HtmRestApiTest(unittest.TestCase):
 
     # Delete a Network
     r = net.delete_all()
+    self.assertEqual(r, 'OK')
+
+  def testNetworkRESTSetInputScalar(self):
+
+    net = NetworkREST(host=HOST, verbose=True)
+
+    encoder = net.add_region('encoder', 'RDSEEncoderRegion', {
+      'size': 1000,
+      'sparsity': 0.2,
+      'radius': 0.03,
+      'seed': 2019,
+      'noise': 0.01
+    })
+
+    clsr = net.add_region('clsr', 'ClassifierRegion', {'learn': True})
+
+    net.add_link(encoder, clsr, 'encoded', 'pattern')
+    net.add_link(INPUT, clsr, 'clsr_bucket', 'bucket', [1])
+
+    net.create()
+
+    s = 0.1
+    # Send set parameter message to feed "sensedValue" parameter data into RDSE encoder for this iteration.
+    r = encoder.param('sensedValue', '{:.2f}'.format(s))
+    self.assertEqual(r, 'OK')
+
+    r = net.input('clsr_bucket', [s])
+    self.assertEqual(r, 'OK')
+
+    # Execute one iteration of the Network object
+    r = net.run(1)
+    self.assertEqual(r, 'OK')
+    self.assertEqual(clsr.output('predicted'), [0])
+
+  def testNetworkRESTSetInputSdr(self):
+
+    net = NetworkREST(host=HOST, verbose=True)
+
+    sp = net.add_region('sp', 'SPRegion', {
+      'columnCount': 2048,
+      'globalInhibition': True
+    })
+
+    net.add_link(INPUT, sp, 'sp_input', 'bottomUpIn', [100])
+
+    net.create()
+
+    r = net.input('sp_input', [1,2])
+    self.assertEqual(r, 'OK')
+
+    # Execute one iteration of the Network object
+    r = net.run(1)
     self.assertEqual(r, 'OK')
 
   def tearDown(self):

@@ -225,7 +225,7 @@ public:
    */
   void setParameterArray(const std::string &name, const Array &array);
 
-	
+
   /**
    * Get the number of elements in the array parameter's value.
    *
@@ -325,7 +325,6 @@ public:
    *			  region->getOutput(name)->getData();
    */
   virtual const Array &getOutputData(const std::string &outputName) const;
-	
 
 
   /**
@@ -479,7 +478,7 @@ public:
     getDims_(outDims, inDims);
     ar(cereal::make_nvp("output_dims", outDims));
     ar(cereal::make_nvp("input_dims",  inDims));
-		
+
 		// save the output buffers
     std::map<std::string, Array> buffers;
     getOutputBuffers_(buffers);

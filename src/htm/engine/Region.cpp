@@ -70,11 +70,11 @@ Region::Region(const std::string &name, const std::string &nodeType, ValueMap &v
   spec_ = factory.getSpec(nodeType);
   createInputsAndOutputs_();
   impl_.reset(factory.createRegionImpl(nodeType, vm, this));
-  
+
   //std::cerr << "Region created " << getName() << "=" << nodeType << "\n";
   //auto outputs = getOutputs();
   //for (auto out : outputs) std::cerr << "   " << getName() << "." << out.first << "\n";
-  
+
 }
 
 Region::Region(Network *net) {
@@ -126,7 +126,7 @@ bool Region::hasOutgoingLinks() const {
 Region::~Region() {
   if (initialized_)
     uninitialize();
-    
+
   removeAllIncomingLinks();  // Note: link objects are stored on the Input object.
   outputs_.clear();
 
@@ -481,8 +481,8 @@ void Region::setParameterReal64(const std::string &name, Real64 value) {
   impl_->setParameterReal64(name, (Int64)-1, value);
 }
 
-void Region::setParameterBool(const std::string &name, bool value) { 
-impl_->setParameterBool(name, (Int64)-1, value); 
+void Region::setParameterBool(const std::string &name, bool value) {
+impl_->setParameterBool(name, (Int64)-1, value);
 }
 
 void Region::setParameterJSON(const std::string &name, const std::string &value) {
@@ -609,8 +609,8 @@ std::string Region::getParameterJSON(const std::string &name, const std::string 
       else
         dimStr = "[" + std::to_string(a.getCount()) + "]";
 
-      return "{\"" + tag + "\": " + data + 
-              ", \"type\": \"" + std::string(BasicType::getName(type)) + 
+      return "{\"" + tag + "\": " + data +
+              ", \"type\": \"" + std::string(BasicType::getName(type)) +
               ", \"dim\": " + dimStr + "}";
 
     }
