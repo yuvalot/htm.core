@@ -704,9 +704,9 @@ std::string ArrayBase::toJSON() const {
   if (type_ == NTA_BasicType_SDR) {
     const SDR &sdr = getSDR();
     json << "[";
-    auto dense = sdr.getDense();
-    for (size_t i = 0; i < dense.size(); i++) {
-      int v = (dense[i]) ? 1 : 0;
+    auto sparse = sdr.getSparse();
+    for (size_t i = 0; i < sparse.size(); i++) {
+      int v = sparse[i];
       if (i == 0) {
         json << v;
       } else
