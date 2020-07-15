@@ -101,7 +101,7 @@ void SPRegion::initialize() {
   // concatination of all incomming buffers.
   std::shared_ptr<Input> in = getInput("bottomUpIn");
   NTA_CHECK(in != nullptr);
-  if (!in->hasIncomingLinks() && !in->isInitialized())
+  if (!in->hasIncomingLinks())
      NTA_THROW << "SPRegion::initialize - No input links were configured for this SP region.\n";
   Array &inputBuffer = in->getData();
   NTA_CHECK(inputBuffer.getType() == NTA_BasicType_SDR);
