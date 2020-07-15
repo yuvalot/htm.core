@@ -663,7 +663,8 @@ void ArrayBase::fromValue(const Value &vm_) {
       } else if (num == 2) { // maybe problem here
         isDense = true;
       } else {
-        if (vm[0] == vm[1] || vm[0] == vm[2] || vm[1] == vm[2]) {
+        UInt x = vm[2].as<UInt>();
+        if (x <= 1) {
           isDense = true;
         }
       }
