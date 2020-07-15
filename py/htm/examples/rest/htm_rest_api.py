@@ -233,7 +233,7 @@ class NetworkConfig(object):
     return region
 
   def add_link(self, source_region, dest_region, source_output, dest_input, dim = None, delay = None):
-    if not self.has_region(source_region.name):
+    if not self.has_region(source_region.name) and source_region.name != INPUT.name:
       raise NetworkRESTError('Region {} is not found.'.format(
         source_region.name))
     if not self.has_region(dest_region.name):
