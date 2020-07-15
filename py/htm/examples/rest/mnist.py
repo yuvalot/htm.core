@@ -1,6 +1,6 @@
 # ------------------------------------------------------------------------------
 # HTM Community Edition of NuPIC
-# Copyright (C) 2018-2019, David McDougall
+# Copyright (C) 2019-2020, Li Meng Jun
 #
 # This program is free software: you can redistribute it and/or modify it under
 # the terms of the GNU Affero Public License version 3 as published by the Free
