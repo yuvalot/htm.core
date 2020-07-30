@@ -188,7 +188,7 @@ std::string RESTapi::get_param_request(const std::string &id,
     itr->second.t = time(0);
 
     std::string response;
-    response = itr->second.net->getRegion(region_name)->getParameterJSON(param_name, "result");
+    response = "{\"result\": " + itr->second.net->getRegion(region_name)->getParameterJSON(param_name) + "}";
 
     return response;
   } catch (Exception &e) {

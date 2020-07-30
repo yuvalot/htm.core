@@ -216,6 +216,7 @@ void TestNode::compute() {
 Spec *TestNode::createSpec() {
   auto ns = new Spec;
 
+  ns->name = "TestNode";
   ns->description = "TestNode. Used as a plain simple plugin Region for unit tests only. "
       "This is not useful for any real applicaton.";
 

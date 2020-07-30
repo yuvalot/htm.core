@@ -279,6 +279,7 @@ void TMRegion::compute() {
 Spec *TMRegion::createSpec() {
   auto ns = new Spec;
 
+  ns->name = "TMRegion";
   ns->description =
       "TMRegion. Class implementing the temporal memory algorithm as "
       "described in 'BAMI "

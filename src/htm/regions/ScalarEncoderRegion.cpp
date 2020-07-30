@@ -120,7 +120,7 @@ ScalarEncoderRegion::~ScalarEncoderRegion() {}
 
 /* static */ Spec *ScalarEncoderRegion::createSpec() {
   auto ns = new Spec;
-
+  ns->name = "ScalarEncoderRegion";
   ns->singleNodeOnly = true;
 
   /* ----- parameters ----- */
@@ -224,7 +224,7 @@ ScalarEncoderRegion::~ScalarEncoderRegion() {}
                                         true  // isDefaultOutput
                                         ));
 
-  ns->outputs.add("bucket", OutputSpec("Quantized sensedValue for this iteration.  Becomres the title in ClassifierRegion.",
+  ns->outputs.add("bucket", OutputSpec("Quantized sensedValue for this iteration.  Becomes the title in ClassifierRegion.",
                                        NTA_BasicType_Real64,
                                        1,    // elementCount
                                        false, // isRegionLevel

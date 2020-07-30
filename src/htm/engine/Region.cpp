@@ -164,10 +164,6 @@ void Region::initialize() {
 }
 
 
-const std::shared_ptr<Spec>& Region::getSpecFromType(const std::string &nodeType) {
-  RegionImplFactory &factory = RegionImplFactory::getInstance();
-  return factory.getSpec(nodeType);
-}
 
 
 std::string Region::executeCommand(const std::vector<std::string> &args) {
@@ -513,6 +509,9 @@ void Region::setParameterJSON(const std::string &name, const std::string &value)
     case NTA_BasicType_Bool:
       setParameterBool(name, vm.as<bool>());
       break;
+    case NTA_BasicType_Str:
+      setParameterString(name, vm.str());
+      break;
 
     default:
       NTA_THROW << "Unknow parameter type '" + std::string(BasicType::getName(type)) + "'";
@@ -521,6 +520,18 @@ void Region::setParameterJSON(const std::string &name, const std::string &value)
   } catch (Exception &e) {
     NTA_THROW << "Error setting parameter "+ getName() + "." + name+ "; " +e.getMessage();
   }
+}
+
+
+// getParameters
+std::string Region::getParameters() const {
+  std::string json = "{\n";
+  for (size_t i = 0; i < spec_->parameters.getCount(); ++i) {
+    const std::pair<std::string, ParameterSpec> &item = spec_->parameters.getByIndex(i);
+    json += "  \"" + item.first + "\": "+getParameterJSON(item.first) + ",\n";
+  }
+  json += "}";
+  return json;
 }
 
 // getParameter
@@ -539,7 +550,9 @@ Real64 Region::getParameterReal64(const std::string &name) const { return impl_-
 
 bool Region::getParameterBool(const std::string &name) const { return impl_->getParameterBool(name, (Int64)-1); }
 
-std::string Region::getParameterJSON(const std::string &name, const std::string &tag = std::string()) const {
+std::string Region::getParameterJSON(const std::string &name, bool withType) const {
+  // NOTE: if withType is not given or false, it just returns the JSON encoded value.
+  //       if withType IS given, it returns "{"value": <value>, "type": <type>}
   NTA_BasicType type = NTA_BasicType_Last; // initialize to an invalid type.
   Value vm;
   try {
@@ -578,17 +591,17 @@ std::string Region::getParameterJSON(const std::string &name, const std::string 
         NTA_THROW << "Unknow parameter type '" + std::string(BasicType::getName(type)) + "'";
         break;
       }
-      if (tag.empty())
+      if (!withType)
         return vm.to_json();
       else
-        return "{\"" + tag + "\": " + vm.to_json() + ", \"type\": \"" + std::string(BasicType::getName(type)) + "\"}";
+        return "{\"value\": " + vm.to_json() + ", \"type\": \"" + std::string(BasicType::getName(type)) + "\"}";
 
     } else {
       // This is an array, not a scalar.
       Array a;
       getParameterArray(name, a);
       std::string data = a.toJSON();
-      if (tag.empty())
+      if (!withType)
         return data;
 
       std::string dimStr;
@@ -609,7 +622,7 @@ std::string Region::getParameterJSON(const std::string &name, const std::string 
       else
         dimStr = "[" + std::to_string(a.getCount()) + "]";
 
-      return "{\"" + tag + "\": " + data +
+      return "{\"value\": " + data +
               ", \"type\": \"" + std::string(BasicType::getName(type)) +
               ", \"dim\": " + dimStr + "}";
 

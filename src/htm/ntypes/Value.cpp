@@ -329,7 +329,8 @@ std::string Value::str() const {
 }
 const char *Value::c_str() const {
   NTA_CHECK(core_->type_ == Value::Category::Scalar) 
-    << ((core_->type_ == Value::Category::Empty)?("Key '"+core_->key_+"' not found."):"Not a scalar.");
+    << std::string("Key '" + core_->key_ + "' ") + 
+        ((core_->type_ == Value::Category::Empty)?(" not found."):" not a scalar.");
   return core_->scalar_.c_str();
 }
 

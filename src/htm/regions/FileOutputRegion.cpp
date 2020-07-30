@@ -185,6 +185,7 @@ FileOutputRegion::executeCommand(const std::vector<std::string> &args,
 Spec *FileOutputRegion::createSpec() {
 
   auto ns = new Spec;
+  ns->name = "FileOutputRegion";
   ns->description =
       "FileOutputRegion is a node that simply writes its "
       "input vectors to a text file. The target filename is specified "

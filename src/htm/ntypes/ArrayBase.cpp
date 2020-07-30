@@ -592,7 +592,7 @@ void ArrayBase::fromValue(const Value &vm_) {
           dim.push_back(vm1[i].as<UInt>());
         }
       } else {
-        dim.push_back(num);
+        dim.push_back(static_cast<UInt>(num));
       }
       allocateBuffer(dim);
     } else {

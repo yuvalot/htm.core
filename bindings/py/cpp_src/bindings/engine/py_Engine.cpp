@@ -245,6 +245,7 @@ namespace htm_ext
             .def("askImplForOutputDimensions", &Region::askImplForOutputDimensions)
             .def("askImplForInputDimensions", &Region::askImplForInputDimensions);
                         
+        // These return the buffer's Array object
         py_Region.def("getInputArray", &Region::getInputData)
             .def("getOutputArray", &Region::getOutputData);
             
@@ -263,6 +264,9 @@ namespace htm_ext
                 return self;
         }));
 
+        py_Region.def("getSpec", &htm::Region::getSpec);
+        
+        py_Region.def("getParameters", &htm::Region::getParameters);
 
         py_Region.def("getParameterInt32", &Region::getParameterInt32)
             .def("getParameterUInt32", &Region::getParameterUInt32)
@@ -272,7 +276,8 @@ namespace htm_ext
             .def("getParameterReal64", &Region::getParameterReal64)
             .def("getParameterBool",   &Region::getParameterBool)
             .def("getParameterString", &Region::getParameterString)
-            .def("getParameterArray", &Region::getParameterArray);
+            .def("getParameterArray",  &Region::getParameterArray)
+            .def("getParameterJSON",   &Region::getParameterJSON);
 
         py_Region.def("getParameterArrayCount", &Region::getParameterArrayCount);
 
@@ -284,7 +289,8 @@ namespace htm_ext
             .def("setParameterReal64", &Region::setParameterReal64)
             .def("setParameterBool",   &Region::setParameterBool)
             .def("setParameterString", &Region::setParameterString)
-            .def("setParameterArray",  &Region::setParameterArray);
+            .def("setParameterArray",  &Region::setParameterArray)
+            .def("setParameterJSON",   &Region::setParameterJSON);
                 
                 
         py_Region.def("executeCommand", [](Region& r, const std::string& command, py::args args)
@@ -392,7 +398,6 @@ namespace htm_ext
         py_Network.def(py::init<>())
             .def(py::init<std::string>());
 
-
         py_Network.def("addRegion", (Region_Ptr_t (htm::Network::*)(
                     const std::string&,
                       const std::string&,
@@ -407,6 +412,9 @@ namespace htm_ext
                     &htm::Network::addRegion,
                     "add region for deserialization."
                     , py::arg("region"));
+                    
+        py_Network.def("configure", &htm::Network::configure);
+        py_Network.def("getSpecJSON", &htm::Network::getSpecJSON);
 
         py_Network.def("getRegions", &htm::Network::getRegions)
             .def("getRegion",          &htm::Network::getRegion)

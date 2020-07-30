@@ -318,6 +318,7 @@ size_t FileInputRegion::getNodeOutputElementCount(const std::string &outputName)
 
 Spec *FileInputRegion::createSpec() {
   auto ns = new Spec;
+  ns->name = "FileInputRegion";
   ns->description =
       "FileInputRegion is a basic sensor for reading files containing "
       "vectors.\n"

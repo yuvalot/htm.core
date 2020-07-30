@@ -117,6 +117,7 @@ public:
    *  On errors it throws an exception.
    */
   void configure(const std::string &yaml);
+  std::string getSpecJSON(const std::string &type);
 
 
   /**

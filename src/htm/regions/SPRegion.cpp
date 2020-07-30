@@ -185,7 +185,7 @@ size_t SPRegion::getNodeOutputElementCount(const std::string &outputName) const 
 
 Spec *SPRegion::createSpec() {
   auto ns = new Spec;
-
+  ns->name = "SPRegion";
   ns->description =
       "SPRegion. This implements the Spatial Pooler algorithm as a plugin "
       "for the Network framework.  The Spatial Pooler manages relationships "
