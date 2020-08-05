@@ -144,7 +144,7 @@ void FileOutputRegion::setParameterString(const std::string &paramName,
 }
 
 std::string FileOutputRegion::getParameterString(const std::string &paramName,
-                                                   Int64 index) {
+                                                   Int64 index) const {
   if (paramName == "outputFile") {
     return filename_;
   } else {

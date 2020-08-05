@@ -132,6 +132,7 @@ public:
    *
    * @returns The value of the parameter
    */
+  Byte getParameterByte(const std::string &name) const;
   Int32 getParameterInt32(const std::string &name) const;
   UInt32 getParameterUInt32(const std::string &name) const;
   Int64 getParameterInt64(const std::string &name) const;
@@ -163,6 +164,7 @@ public:
    * @param value
    *        The value of the parameter
    */
+  void setParameterByte(const std::string &name, Byte value);
   void setParameterInt32(const std::string &name, Int32 value);
   void setParameterUInt32(const std::string &name, UInt32 value);
   void setParameterInt64(const std::string &name, Int64 value);
@@ -241,7 +243,7 @@ public:
    * @param name
    *        The name of the parameter
 	 */
-  size_t getParameterArrayCount(const std::string &name);
+  size_t getParameterArrayCount(const std::string &name) const;
 
 
   /**

@@ -268,7 +268,8 @@ namespace htm_ext
         
         py_Region.def("getParameters", &htm::Region::getParameters);
 
-        py_Region.def("getParameterInt32", &Region::getParameterInt32)
+        py_Region.def("getParameterByte", &Region::getParameterByte)
+            .def("getParameterInt32",  &Region::getParameterInt32)
             .def("getParameterUInt32", &Region::getParameterUInt32)
             .def("getParameterInt64",  &Region::getParameterInt64)
             .def("getParameterUInt64", &Region::getParameterUInt64)
@@ -281,7 +282,8 @@ namespace htm_ext
 
         py_Region.def("getParameterArrayCount", &Region::getParameterArrayCount);
 
-        py_Region.def("setParameterInt32", &Region::setParameterInt32)
+        py_Region.def("setParameterByte", &Region::setParameterByte)
+            .def("setParameterInt32",  &Region::setParameterInt32)
             .def("setParameterUInt32", &Region::setParameterUInt32)
             .def("setParameterInt64",  &Region::setParameterInt64)
             .def("setParameterUInt64", &Region::setParameterUInt64)
@@ -472,7 +474,7 @@ namespace htm_ext
                 else if (info.format == "d") type = NTA_BasicType_Real64;
                 else if (info.format == py::format_descriptor<bool>::format()) type = NTA_BasicType_Bool;
                 else if (info.format == py::format_descriptor<Byte>::format()) type = NTA_BasicType_Byte;
-                else NTA_THROW << "setInputArray(): Unexpected data type in the array!  info.format=" << info.format;
+                else NTA_THROW << "setInputData(): Unexpected data type in the array!  info.format=" << info.format;
                 // for info.format codes, see https://docs.python.org/3.7/library/array.html
                 Array s(type, info.ptr, size);
                 std::cout << "src: " << s << std::endl;
@@ -502,6 +504,10 @@ namespace htm_ext
         py_Network.def_static("unregisterPyRegion", [](const std::string& typeName) {
                 htm::RegisteredRegionImplPy::unregisterPyRegion(typeName);
             });
+        py_Network.def_static("getRegistrations",
+                [](){ return htm::Network::getRegistrations();
+            });
+                
         py_Network.def_static("cleanup", &htm::Network::cleanup);
 
 

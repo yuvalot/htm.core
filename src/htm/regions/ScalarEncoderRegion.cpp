@@ -234,7 +234,7 @@ ScalarEncoderRegion::~ScalarEncoderRegion() {}
   return ns;
 }
 
-Real64 ScalarEncoderRegion::getParameterReal64(const std::string &name, Int64 index) {
+Real64 ScalarEncoderRegion::getParameterReal64(const std::string &name, Int64 index) const {
   if (name == "sensedValue") {
     return sensedValue_;
   } else if (name == "resolution") return encoder_->parameters.resolution;
@@ -249,7 +249,7 @@ Real64 ScalarEncoderRegion::getParameterReal64(const std::string &name, Int64 in
   }
 }
 
-bool ScalarEncoderRegion::getParameterBool(const std::string& name, Int64 index) {
+bool ScalarEncoderRegion::getParameterBool(const std::string& name, Int64 index) const {
   if (name == "periodic") 
     return encoder_->parameters.periodic;
   if (name == "clipInput")
@@ -259,7 +259,7 @@ bool ScalarEncoderRegion::getParameterBool(const std::string& name, Int64 index)
   }
 }
 
-UInt32 ScalarEncoderRegion::getParameterUInt32(const std::string &name, Int64 index) {
+UInt32 ScalarEncoderRegion::getParameterUInt32(const std::string &name, Int64 index) const {
   if (name == "n" || name == "size") {
     return (UInt32)encoder_->size;
   }

@@ -798,6 +798,11 @@ void Network::registerRegion(const std::string name, RegisteredRegionImpl *wrapp
 void Network::unregisterRegion(const std::string name) {
 	RegionImplFactory::unregisterRegion(name);
 }
+
+std::string Network::getRegistrations() {
+  return RegionImplFactory::getRegistrations();
+}
+
 void Network::cleanup() {
     RegionImplFactory::cleanup();
 }

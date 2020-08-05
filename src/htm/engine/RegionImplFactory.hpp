@@ -76,6 +76,8 @@ public:
 
   // Allows the user to unregister region types
   static void unregisterRegion(const std::string regionType);
+  
+  static std::string getRegistrations();
 
 private:
   RegionImplFactory(){};

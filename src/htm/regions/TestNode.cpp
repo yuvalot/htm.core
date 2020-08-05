@@ -381,7 +381,7 @@ Spec *TestNode::createSpec() {
 
   return ns;
 }
-Int32 TestNode::getParameterInt32(const std::string &name, Int64 index) {
+Int32 TestNode::getParameterInt32(const std::string &name, Int64 index) const {
   if (name == "count") {
     return outputElementCount_;
   }
@@ -392,7 +392,7 @@ Int32 TestNode::getParameterInt32(const std::string &name, Int64 index) {
   }
 }
 
-UInt32 TestNode::getParameterUInt32(const std::string &name, Int64 index) {
+UInt32 TestNode::getParameterUInt32(const std::string &name, Int64 index) const {
   if (name == "uint32Param") {
     return uint32Param_;
   } else if (name == "unclonedParam") {
@@ -415,14 +415,14 @@ UInt32 TestNode::getParameterUInt32(const std::string &name, Int64 index) {
     return RegionImpl::getParameterUInt32(name, index);
   }
 }
-Int64 TestNode::getParameterInt64(const std::string &name, Int64 index) {
+Int64 TestNode::getParameterInt64(const std::string &name, Int64 index) const {
   if (name == "int64Param") {
     return int64Param_;
   } else {
     return RegionImpl::getParameterInt64(name, index);
   }
 }
-UInt64 TestNode::getParameterUInt64(const std::string &name, Int64 index) {
+UInt64 TestNode::getParameterUInt64(const std::string &name, Int64 index) const {
   if (name == "uint64Param") {
     return uint64Param_;
   } else if (name == "computeCallback") {
@@ -432,7 +432,7 @@ UInt64 TestNode::getParameterUInt64(const std::string &name, Int64 index) {
   }
 }
 
-Real32 TestNode::getParameterReal32(const std::string &name, Int64 index) {
+Real32 TestNode::getParameterReal32(const std::string &name, Int64 index) const {
   if (name == "real32Param") {
     return real32Param_;
   } else {
@@ -440,7 +440,7 @@ Real32 TestNode::getParameterReal32(const std::string &name, Int64 index) {
   }
 }
 
-Real64 TestNode::getParameterReal64(const std::string &name, Int64 index) {
+Real64 TestNode::getParameterReal64(const std::string &name, Int64 index) const {
   if (name == "real64Param") {
     return real64Param_;
   } else {
@@ -448,7 +448,7 @@ Real64 TestNode::getParameterReal64(const std::string &name, Int64 index) {
   }
 }
 
-bool TestNode::getParameterBool(const std::string &name, Int64 index) {
+bool TestNode::getParameterBool(const std::string &name, Int64 index) const {
   if (name == "boolParam") {
     return boolParam_;
   } else {
@@ -457,7 +457,7 @@ bool TestNode::getParameterBool(const std::string &name, Int64 index) {
 }
 
 
-std::string TestNode::getParameterString(const std::string &name, Int64 index) {
+std::string TestNode::getParameterString(const std::string &name, Int64 index) const {
   if (name == "stringParam") {
     return stringParam_;
   } else {
@@ -465,7 +465,7 @@ std::string TestNode::getParameterString(const std::string &name, Int64 index) {
   }
 }
 
-void TestNode::getParameterArray(const std::string &name, Int64 index, Array &array) {
+void TestNode::getParameterArray(const std::string &name, Int64 index, Array &array) const {
   if (name == "int64ArrayParam") {
   	Array a(NTA_BasicType_Int64, &int64ArrayParam_[0], int64ArrayParam_.size());
 	  array = a;
@@ -606,7 +606,7 @@ void TestNode::setParameterArray(const std::string &name, Int64 index, const Arr
 }
 
 
-size_t TestNode::getParameterArrayCount(const std::string &name, Int64 index) {
+size_t TestNode::getParameterArrayCount(const std::string &name, Int64 index) const {
   if (name == "int64ArrayParam") {
     return int64ArrayParam_.size();
   } else if (name == "real32ArrayParam") {
