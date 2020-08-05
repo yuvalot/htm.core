@@ -244,18 +244,18 @@ class GridCellLocationRegion(PyRegion):
                 maxSynapsesPerSegment=dict(
                     description="The maximum number of synapses per segment",
                     accessMode="Create",
-                    dataType="UInt32",
+                    dataType="Int32",
                     count=1,
                     defaultValue="-1"
                 ),
                 bumpOverlapMethod=dict(
                     description="Specifies the firing rate of a cell when it's part of "
                                 "two bumps. ('probabilistic' or 'sum')",
-                    dataType="Byte",
+                    dataType="String",
                     accessMode="Create",
                     constraints=("enum: probabilistic, sum"),
                     defaultValue="probabilistic",
-                    count=0,
+                    count=1,
                 ),
                 learningMode=dict(
                     description="A boolean flag that indicates whether or not we should "

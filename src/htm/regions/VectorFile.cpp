@@ -713,7 +713,7 @@ void VectorFile::getScaledVector(const UInt v, Real *out, UInt offset,
 }
 
 /// Get the scaling and offset values for element e
-void VectorFile::getScaling(const UInt e, Real &scale, Real &offset) {
+void VectorFile::getScaling(const UInt e, Real &scale, Real &offset) const {
   if (e >= getElementCount())
     NTA_THROW << "Requested non-existent element: " << e;
   scale = scaleVector_[e];

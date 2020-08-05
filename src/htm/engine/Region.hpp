@@ -108,16 +108,6 @@ public:
    */
   const std::shared_ptr<Spec> &getSpec() const { return spec_; }
 
-  /**
-   * Get the Spec of a region type without an instance.
-   *
-   * @param nodeType
-   *        A region type as a string
-   *
-   * @returns The Spec that describes this region type
-   */
-  static const std::shared_ptr<Spec> &
-  getSpecFromType(const std::string &nodeType);
 
   /**
    * @}
@@ -127,6 +117,12 @@ public:
    * @{
    *
    */
+   
+  /** 
+   * Get all parameter values for the region as a JSON string.
+   * @returns a JSON string.
+   */
+  std::string getParameters() const;
 
   /**
    * Get the parameter value as a specific type.
@@ -136,6 +132,7 @@ public:
    *
    * @returns The value of the parameter
    */
+  Byte getParameterByte(const std::string &name) const;
   Int32 getParameterInt32(const std::string &name) const;
   UInt32 getParameterUInt32(const std::string &name) const;
   Int64 getParameterInt64(const std::string &name) const;
@@ -143,7 +140,20 @@ public:
   Real32 getParameterReal32(const std::string &name) const;
   Real64 getParameterReal64(const std::string &name) const;
   bool getParameterBool(const std::string &name) const;
-  std::string getParameterJSON(const std::string &name, const std::string &tag) const;
+
+  /**
+   * Get the parameter value as JSON
+   * if the tag is not given, it just returns the JSON encoded value.
+   * @param name
+   *        The name of the parameter
+   *
+   * @param tag  (optional)
+   *       if the tag IS NOT given (or blank), it returns just the JSON encoded value.
+   *       if the tag IS given, it returns <tag>: {"value": <JSON value>, "type": <type>}
+   *
+   * @returns The value of the parameter
+   */
+  std::string getParameterJSON(const std::string &name, bool withType = false) const;
 
   /**
    * Set the parameter value of a specific type.
@@ -154,6 +164,7 @@ public:
    * @param value
    *        The value of the parameter
    */
+  void setParameterByte(const std::string &name, Byte value);
   void setParameterInt32(const std::string &name, Int32 value);
   void setParameterUInt32(const std::string &name, UInt32 value);
   void setParameterInt64(const std::string &name, Int64 value);
@@ -232,7 +243,7 @@ public:
    * @param name
    *        The name of the parameter
 	 */
-  size_t getParameterArrayCount(const std::string &name);
+  size_t getParameterArrayCount(const std::string &name) const;
 
 
   /**
