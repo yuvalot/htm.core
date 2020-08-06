@@ -303,7 +303,7 @@ TEST(ClassifierRegionTest, getSpecJSON) {
 }
 
 TEST(ClassifierRegionTest, getParameters) {
-  std::string expected = "{\n  \"learn\": true,\n}";
+  std::string expected = "{\n  \"learn\": true\n}";
   Network net1;
   std::shared_ptr<Region> region1 = net1.addRegion("classifier", "ClassifierRegion", "{\"learn\": true}");
   std::string json = region1->getParameters();

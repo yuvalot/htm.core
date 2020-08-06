@@ -210,7 +210,7 @@ TEST(DatabaseRegionTest, getSpecJSON) {
 } // namespace testing
 
 TEST(DatabaseRegionTest, getParameters) {
-  std::string expected = "{\n  \"outputFile\": \":memory:\",\n}";
+  std::string expected = "{\n  \"outputFile\": \":memory:\"\n}";
   Network net1;
   std::string output_file = ":memory:"; // in memory for this unit test. or could be physical file like: NapiOutputDir/Output.db
   std::shared_ptr<Region> region1 = net1.addRegion("db", "DatabaseRegion", "{outputFile: '" + output_file + "'}");

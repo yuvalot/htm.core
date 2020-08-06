@@ -402,7 +402,7 @@ namespace testing
   "minValue": -1.000000,
   "maxValue": 1.000000,
   "periodic": false,
-  "clipInput": false,
+  "clipInput": false
 })";
 
     Network net1;
