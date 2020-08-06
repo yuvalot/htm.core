@@ -422,7 +422,7 @@ TEST(DateEncoderRegionTest, testSpecAndParameters)
   "timeOfDay_radius": 4.000000,
   "timeOfDay_width": 0,
   "verbose": false,
-  "weekend_width": 5,
+  "weekend_width": 5
 })";
     Network net1;
     std::string params = "{\"dayOfWeek_width\": 5, \"weekend_width\": 5, \"verbose\": " + std::string((verbose) ? "true" : "false") + "}";
