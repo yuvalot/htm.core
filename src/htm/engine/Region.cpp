@@ -537,9 +537,11 @@ std::string Region::getParameters() const {
   for (size_t i = 0; i < spec_->parameters.getCount(); ++i) {
     const std::pair<std::string, ParameterSpec> &item = spec_->parameters.getByIndex(i);
     //std::cout << "getParameterJSON(" + getName() + '" << item.first << "')\n";
-    json += "  \"" + item.first + "\": "+getParameterJSON(item.first) + ",\n";
+    if(i!=0)
+    	json += ",\n"; // appending comma and newline each time, excluding first line
+    json += "  \"" + item.first + "\": "+getParameterJSON(item.first);
   }
-  json += "}";
+  json += "\n}";
   return json;
 }
 

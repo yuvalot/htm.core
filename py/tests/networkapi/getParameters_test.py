@@ -125,7 +125,7 @@ class NetworkAPI_getParameters_Test(unittest.TestCase):
   }
 }"""
     net = Network()
-    json_str = net.getSpecJSON("RDSEEncoderRegion");
+    json_str = net.getSpecJSON("RDSEEncoderRegion")
     self.assertEqual(json_str, expected)
     
     
@@ -142,12 +142,15 @@ class NetworkAPI_getParameters_Test(unittest.TestCase):
   "seed": 2019,
   "sensedValue": 0.000000,
   "size": 1000,
-  "sparsity": 0.200000,
+  "sparsity": 0.200000
 }"""
-    net = Network();
+    net = Network()
     encoder = net.addRegion("encoder", "RDSEEncoderRegion", "{size: 1000, sparsity: 0.2, radius: 0.03, seed: 2019, noise: 0.01}")
-    json_str = encoder.getParameters();
+    json_str = encoder.getParameters()
     self.assertEqual(json_str, expected)
+
+    json.loads(json_str)  # test if json package can load it
+
     json_str = encoder.getParameterJSON("activeBits", False)
     self.assertEqual(json_str, "200")
     json_str = encoder.getParameterJSON("activeBits", True)
@@ -156,14 +159,14 @@ class NetworkAPI_getParameters_Test(unittest.TestCase):
 
   def testGetParametersCustomRegions(self):
 
-    Network.cleanup();  # removes all previous registrations
+    Network.cleanup()  # removes all previous registrations
     registerAllAdvancedRegions()
     json_list = Network.getRegistrations()
     #print(json_list)
     y = json.loads(json_list)
     self.assertTrue("py.ColumnPoolerRegion" in y)
     
-    net = Network();
+    net = Network()
     #print(net.getSpecJSON("py.ColumnPoolerRegion"))
     cp = net.addRegion("py.ColumnPoolerRegion", "py.ColumnPoolerRegion",
                             """{ 
@@ -209,16 +212,16 @@ class NetworkAPI_getParameters_Test(unittest.TestCase):
   "inertiaFactor": 1.000000,
   "seed": 42,
   "defaultOutputType": "active",
-}""";
+}"""
 
-    json_list = cp.getParameters();
+    json_list = cp.getParameters()
     #print(json_list)
     self.assertEqual(json_list, expected)
     
 
   def testGetParametersGridCell(self):
     # a test of arrays in parameters    
-    Network.cleanup();  # removes all previous registrations
+    Network.cleanup()  # removes all previous registrations
     registerAllAdvancedRegions()
     json_list = Network.getRegistrations()
     #print(json_list)
@@ -226,7 +229,7 @@ class NetworkAPI_getParameters_Test(unittest.TestCase):
     self.assertTrue("py.GridCellLocationRegion" in y)
     
     # only provide one orentation to shorten the test.  Full test in location_region_test.py
-    net = Network();
+    net = Network()
     #print(net.getSpecJSON("py.GridCellLocationRegion"))
     cp = net.addRegion("grid", "py.GridCellLocationRegion",
           """{ 
@@ -260,9 +263,9 @@ class NetworkAPI_getParameters_Test(unittest.TestCase):
   "dualPhase": true,
   "dimensions": 2,
   "seed": 42,
-}""";
+}"""
 
-    json_list = cp.getParameters();
+    json_list = cp.getParameters()
     #print(json_list)
     self.assertEqual(json_list, expected)
     
