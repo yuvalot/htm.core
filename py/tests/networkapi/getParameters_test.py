@@ -121,7 +121,7 @@ class NetworkAPI_getParameters_Test(unittest.TestCase):
       "count": 0,
       "regionLevel": 1,
       "isDefaultOutput": 1
-    },
+    }
   }
 }"""
     net = Network()
@@ -211,7 +211,7 @@ class NetworkAPI_getParameters_Test(unittest.TestCase):
   "connectedPermanenceDistal": 0.500000,
   "inertiaFactor": 1.000000,
   "seed": 42,
-  "defaultOutputType": "active",
+  "defaultOutputType": "active"
 }"""
 
     json_list = cp.getParameters()
@@ -262,7 +262,7 @@ class NetworkAPI_getParameters_Test(unittest.TestCase):
   "learningMode": false,
   "dualPhase": true,
   "dimensions": 2,
-  "seed": 42,
+  "seed": 42
 }"""
 
     json_list = cp.getParameters()
