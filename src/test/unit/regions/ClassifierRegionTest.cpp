@@ -271,7 +271,7 @@ TEST(ClassifierRegionTest, getSpecJSON) {
       "required": 0,
       "regionLevel": 1,
       "isDefaultInput": 0
-    },
+    }
   },
   "outputs": {
     "pdf": {
@@ -294,7 +294,7 @@ TEST(ClassifierRegionTest, getSpecJSON) {
       "count": 0,
       "regionLevel": 1,
       "isDefaultOutput": 0
-    },
+    }
   }
 })";
   Spec *spec = ClassifierRegion::createSpec();

@@ -283,90 +283,90 @@ TEST(DateEncoderRegionTest, testSpecAndParameters)
       "count": 1,
       "access": "Create",
       "defaultValue": ""
-    }
+    },
     "custom_width": {
       "type": "UInt32",
       "count": 1,
       "access": "Create",
       "defaultValue": "0"
-    }
+    },
     "dayOfWeek_radius": {
       "type": "Real32",
       "count": 1,
       "access": "Create",
       "defaultValue": "1.0"
-    }
+    },
     "dayOfWeek_width": {
       "type": "UInt32",
       "count": 1,
       "access": "Create",
       "defaultValue": "0"
-    }
+    },
     "holiday_dates": {
       "description": "A list of holiday dates in format of 'month,day' or 'year,month,day', ie [[12,25],[2020,05,04]]",
       "type": "String",
       "count": 1,
       "access": "Create",
       "defaultValue": "[[12,25]]"
-    }
+    },
     "holiday_width": {
       "type": "UInt32",
       "count": 1,
       "access": "Create",
       "defaultValue": "0"
-    }
+    },
     "noise": {
       "description": "amount of noise to add to the output SDR. 0.01 is 1%",
       "type": "Real32",
       "count": 1,
       "access": "ReadWrite",
       "defaultValue": "0.0"
-    }
+    },
     "season_radius": {
       "type": "Real32",
       "count": 1,
       "access": "Create",
       "defaultValue": "91.5"
-    }
+    },
     "season_width": {
       "type": "UInt32",
       "count": 1,
       "access": "Create",
       "defaultValue": "0"
-    }
+    },
     "sensedTime": {
       "description": "The value to encode. Unix EPOCH time. Overriden by input 'values'. A value of 0 means current time.",
       "type": "Int64",
       "count": 1,
       "access": "ReadWrite",
       "defaultValue": "0"
-    }
+    },
     "size": {
       "description": "Total width of encoded output.",
       "type": "UInt32",
       "count": 1,
       "access": "ReadOnly",
       "defaultValue": ""
-    }
+    },
     "timeOfDay_radius": {
       "type": "Real32",
       "count": 1,
       "access": "Create",
       "defaultValue": "4.0"
-    }
+    },
     "timeOfDay_width": {
       "type": "UInt32",
       "count": 1,
       "access": "Create",
       "defaultValue": "0"
-    }
+    },
     "verbose": {
       "description": "if true, display debug info for each member encoded.",
       "type": "Bool",
       "count": 1,
       "access": "ReadWrite",
       "defaultValue": "false"
-    }
+    },
     "weekend_width": {
       "type": "UInt32",
       "count": 1,
@@ -382,7 +382,7 @@ TEST(DateEncoderRegionTest, testSpecAndParameters)
       "required": 0,
       "regionLevel": 1,
       "isDefaultInput": 1
-    },
+    }
   },
   "outputs": {
     "bucket": {
@@ -398,7 +398,7 @@ TEST(DateEncoderRegionTest, testSpecAndParameters)
       "count": 0,
       "regionLevel": 1,
       "isDefaultOutput": 1
-    },
+    }
   }
 })";
     Spec *spec = DateEncoderRegion::createSpec();

@@ -116,7 +116,7 @@ TEST(DatabaseRegionTest, getSpecJSON) {
   "commands": {
     "closeFile": "Close the current database file, if open.",
     "getRowCount": "Gets sum of row counts for all tables in opened database.",
-    "commitTransaction": "Commits currently active transaction. Speeding up write avoiding repeat writes in loop.Transaction is started when databse is opened.",
+    "commitTransaction": "Commits currently active transaction. Speeding up write avoiding repeat writes in loop.Transaction is started when databse is opened."
     },
   "inputs": {
     "dataIn0": {
@@ -198,7 +198,7 @@ TEST(DatabaseRegionTest, getSpecJSON) {
       "required": 0,
       "regionLevel": 1,
       "isDefaultInput": 1
-    },
+    }
   },
   "outputs": {
   }

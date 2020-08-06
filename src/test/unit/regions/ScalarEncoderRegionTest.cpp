@@ -285,70 +285,70 @@ namespace testing
       "count": 1,
       "access": "ReadWrite",
       "defaultValue": "-1"
-    }
+    },
     "size": {
       "description": "The length of the encoding. Size of buffer",
       "type": "UInt32",
       "count": 1,
       "access": "Create",
       "defaultValue": "0"
-    }
+    },
     "n": {
       "description": "Old name for the 'size' parameter.",
       "type": "UInt32",
       "count": 1,
       "access": "Create",
       "defaultValue": "0"
-    }
+    },
     "activeBits": {
       "description": "The number of active bits in the encoding. i.e. how sparse",
       "type": "UInt32",
       "count": 1,
       "access": "Create",
       "defaultValue": "0"
-    }
+    },
     "w": {
       "description": "Old name for the 'activeBits' parameter",
       "type": "UInt32",
       "count": 1,
       "access": "Create",
       "defaultValue": "0"
-    }
+    },
     "resolution": {
       "description": "The resolution for the encoder",
       "type": "Real64",
       "count": 1,
       "access": "Create",
       "defaultValue": "0"
-    }
+    },
     "radius": {
       "description": "The radius for the encoder",
       "type": "Real64",
       "count": 1,
       "access": "Create",
       "defaultValue": "0"
-    }
+    },
     "minValue": {
       "description": "The minimum value for the input",
       "type": "Real64",
       "count": 1,
       "access": "Create",
       "defaultValue": "-1.0"
-    }
+    },
     "maxValue": {
       "description": "The maximum value for the input",
       "type": "Real64",
       "count": 1,
       "access": "Create",
       "defaultValue": "+1.0"
-    }
+    },
     "periodic": {
       "description": "Whether the encoder is periodic",
       "type": "Bool",
       "count": 1,
       "access": "Create",
       "defaultValue": "false"
-    }
+    },
     "clipInput": {
       "description": "Whether to clip inputs if they're outside [minValue, maxValue]",
       "type": "Bool",
@@ -365,7 +365,7 @@ namespace testing
       "required": 0,
       "regionLevel": 0,
       "isDefaultInput": 1
-    },
+    }
   },
   "outputs": {
     "encoded": {
@@ -381,7 +381,7 @@ namespace testing
       "count": 1,
       "regionLevel": 0,
       "isDefaultOutput": 0
-    },
+    }
   }
 })";
 
