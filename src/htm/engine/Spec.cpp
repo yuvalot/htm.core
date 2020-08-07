@@ -196,34 +196,44 @@ std::string Spec::toString() const {
   ss << "  \"parameters\": {\n";
   for (size_t i = 0; i < parameters.getCount(); ++i) {
     const std::pair<std::string, ParameterSpec> &item = parameters.getByIndex(i);
+    if (i!=0)
+       ss<< ",\n";
     ss << "    \"" << item.first << "\": {\n";
     ss << item.second << "\n";
-    ss << "    }\n";
+    ss << "    }";
   }
-  ss << "  },\n";
+  ss << "\n  }";
   
   if (commands.getCount() > 0) {
-    ss << "  \"commands\": {\n";
+    ss << ",\n  \"commands\": {\n";
     for (size_t i = 0; i < commands.getCount(); ++i) {
+    	if (i!=0)
+    		ss<< ",\n";
       ss << "    \"" << commands.getByIndex(i).first << "\": \""
-         << commands.getByIndex(i).second.description << "\",\n";
+         << commands.getByIndex(i).second.description << "\"";
     }
-    ss << "    },\n";
+    ss << "\n    }";
   }
 
 
-  ss << "  \"inputs\": {\n";
+  ss << ",\n  \"inputs\": {\n";
   for (size_t i = 0; i < inputs.getCount(); ++i) {
     const std::pair<std::string, InputSpec> &item = inputs.getByIndex(i);
-    ss << "    \"" << item.first << "\": "  << item.second << ",\n";
+    if(i!=0)
+      ss << ",\n";
+    ss << "    \"" << item.first << "\": "  << item.second;
   }
-  ss << "  },\n";
+  ss << "\n  }";
 
-  ss << "  \"outputs\": {\n";
+  ss << ",\n  \"outputs\": {\n";
   for (size_t i = 0; i < outputs.getCount(); ++i) {
     const std::pair<std::string, OutputSpec> &item = outputs.getByIndex(i);
-    ss << "    \"" << item.first << "\": " << item.second << ",\n";
+    if(i!=0)
+    	ss << ",\n";
+    ss << "    \"" << item.first << "\": " << item.second;
   }
+  if(outputs.getCount()>0)
+  	ss << "\n";
   ss << "  }\n";
   ss << "}";
   

@@ -271,7 +271,7 @@ TEST(ClassifierRegionTest, getSpecJSON) {
       "required": 0,
       "regionLevel": 1,
       "isDefaultInput": 0
-    },
+    }
   },
   "outputs": {
     "pdf": {
@@ -294,7 +294,7 @@ TEST(ClassifierRegionTest, getSpecJSON) {
       "count": 0,
       "regionLevel": 1,
       "isDefaultOutput": 0
-    },
+    }
   }
 })";
   Spec *spec = ClassifierRegion::createSpec();
@@ -303,7 +303,7 @@ TEST(ClassifierRegionTest, getSpecJSON) {
 }
 
 TEST(ClassifierRegionTest, getParameters) {
-  std::string expected = "{\n  \"learn\": true,\n}";
+  std::string expected = "{\n  \"learn\": true\n}";
   Network net1;
   std::shared_ptr<Region> region1 = net1.addRegion("classifier", "ClassifierRegion", "{\"learn\": true}");
   std::string json = region1->getParameters();

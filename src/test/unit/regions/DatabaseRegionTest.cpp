@@ -116,7 +116,7 @@ TEST(DatabaseRegionTest, getSpecJSON) {
   "commands": {
     "closeFile": "Close the current database file, if open.",
     "getRowCount": "Gets sum of row counts for all tables in opened database.",
-    "commitTransaction": "Commits currently active transaction. Speeding up write avoiding repeat writes in loop.Transaction is started when databse is opened.",
+    "commitTransaction": "Commits currently active transaction. Speeding up write avoiding repeat writes in loop.Transaction is started when databse is opened."
     },
   "inputs": {
     "dataIn0": {
@@ -198,7 +198,7 @@ TEST(DatabaseRegionTest, getSpecJSON) {
       "required": 0,
       "regionLevel": 1,
       "isDefaultInput": 1
-    },
+    }
   },
   "outputs": {
   }
@@ -210,7 +210,7 @@ TEST(DatabaseRegionTest, getSpecJSON) {
 } // namespace testing
 
 TEST(DatabaseRegionTest, getParameters) {
-  std::string expected = "{\n  \"outputFile\": \":memory:\",\n}";
+  std::string expected = "{\n  \"outputFile\": \":memory:\"\n}";
   Network net1;
   std::string output_file = ":memory:"; // in memory for this unit test. or could be physical file like: NapiOutputDir/Output.db
   std::shared_ptr<Region> region1 = net1.addRegion("db", "DatabaseRegion", "{outputFile: '" + output_file + "'}");

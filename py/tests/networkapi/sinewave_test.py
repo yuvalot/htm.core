@@ -71,8 +71,8 @@ class NetworkAPI_SineWave_Test(unittest.TestCase):
             {addLink:   {src: "encoder.encoded", dest: "sp.bottomUpIn"}},
             {addLink:   {src: "sp.bottomUpOut", dest: "tm.bottomUpIn"}}
         ]}"""
-    net = Network();
-    net.configure(config);
+    net = Network()
+    net.configure(config)
     
     # iterate EPOCHS times
     x = 0.00
