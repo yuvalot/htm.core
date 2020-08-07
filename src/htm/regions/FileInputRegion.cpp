@@ -318,6 +318,7 @@ size_t FileInputRegion::getNodeOutputElementCount(const std::string &outputName)
 
 Spec *FileInputRegion::createSpec() {
   auto ns = new Spec;
+  ns->name = "FileInputRegion";
   ns->description =
       "FileInputRegion is a basic sensor for reading files containing "
       "vectors.\n"
@@ -528,7 +529,7 @@ Spec *FileInputRegion::createSpec() {
 
 
 //--------------------------------------------------------------------------------
-UInt32 FileInputRegion::getParameterUInt32(const std::string &name, Int64 index) {
+UInt32 FileInputRegion::getParameterUInt32(const std::string &name, Int64 index) const {
   if (name == "vectorCount") {
     return (UInt32)vectorFile_.vectorCount();
   } else if (name == "repeatCount") {
@@ -546,7 +547,7 @@ UInt32 FileInputRegion::getParameterUInt32(const std::string &name, Int64 index)
   }
 }
 
-Int32 FileInputRegion::getParameterInt32(const std::string &name, Int64 index) {
+Int32 FileInputRegion::getParameterInt32(const std::string &name, Int64 index) const {
   if (name == "position") {
     if (vectorFile_.vectorCount() == 0) return -1;
     return curVector_;
@@ -554,7 +555,7 @@ Int32 FileInputRegion::getParameterInt32(const std::string &name, Int64 index) {
     return RegionImpl::getParameterInt32(name, index);
   }
 }
-std::string FileInputRegion::getParameterString(const std::string &name, Int64 index) {
+std::string FileInputRegion::getParameterString(const std::string &name, Int64 index) const {
   if (name == "scalingMode") {
     return scalingMode_;
   } else if (name == "recentFile") {
@@ -565,8 +566,7 @@ std::string FileInputRegion::getParameterString(const std::string &name, Int64 i
 }
 
 
-void FileInputRegion::getParameterArray(const std::string &name, Int64 index,
-                                         Array &a) {
+void FileInputRegion::getParameterArray(const std::string &name, Int64 index, Array &a) const {
   if (a.getCount() != dataOut_.getCount())
     NTA_THROW << "getParameterArray(), array size is: " << a.getCount()
               << "instead of : " << dataOut_.getCount();
@@ -663,7 +663,7 @@ void FileInputRegion::setParameterArray(const std::string &name, Int64 index,
   scalingMode_ = "custom";
 }
 
-size_t FileInputRegion::getParameterArrayCount(const std::string &name, Int64 index) {
+size_t FileInputRegion::getParameterArrayCount(const std::string &name, Int64 index) const {
   NTA_CHECK (name == "scaleVector" || name == "offsetVector")
      << "FileInputRegion::getParameterArrayCount(), unknown array parameter: "<< name;
   return dataOut_.getCount();

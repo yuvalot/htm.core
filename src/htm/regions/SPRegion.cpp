@@ -47,6 +47,7 @@ SPRegion::SPRegion(const ValueMap &values, Region *region)
   args_.potentialPct = values.getScalarT<Real32>("potentialPct", 0.5);
   args_.globalInhibition = values.getScalarT<bool>("globalInhibition", true);
   args_.localAreaDensity = values.getScalarT<Real32>("localAreaDensity", 0.05f);
+  args_.numActiveColumnsPerInhArea = values.getScalarT<UInt32>("numActiveColumnsPerInhArea", 0);
   args_.stimulusThreshold = values.getScalarT<UInt32>("stimulusThreshold", 0);
   args_.synPermInactiveDec = values.getScalarT<Real32>("synPermInactiveDec", 0.008f);
   args_.synPermActiveInc = values.getScalarT<Real32>("synPermActiveInc", 0.05f);
@@ -97,7 +98,7 @@ void SPRegion::initialize() {
   // algorithm requires input.
   //
   // If there are more than one input link (FAN-IN), the input buffer will be the
-  // concatination of all incomming buffers.  
+  // concatination of all incomming buffers.
   std::shared_ptr<Input> in = getInput("bottomUpIn");
   NTA_CHECK(in != nullptr);
   if (!in->hasIncomingLinks())
@@ -134,7 +135,7 @@ void SPRegion::initialize() {
   sp_ = std::unique_ptr<SpatialPooler>( new SpatialPooler(
       inputDimensions, columnDimensions, args_.potentialRadius,
       args_.potentialPct, args_.globalInhibition, args_.localAreaDensity,
-      args_.stimulusThreshold,
+      args_.numActiveColumnsPerInhArea, args_.stimulusThreshold,
       args_.synPermInactiveDec, args_.synPermActiveInc, args_.synPermConnected,
       args_.minPctOverlapDutyCycles, args_.dutyCyclePeriod, args_.boostStrength,
       args_.seed, args_.spVerbosity, args_.wrapAround));
@@ -184,7 +185,7 @@ size_t SPRegion::getNodeOutputElementCount(const std::string &outputName) const 
 
 Spec *SPRegion::createSpec() {
   auto ns = new Spec;
-
+  ns->name = "SPRegion";
   ns->description =
       "SPRegion. This implements the Spatial Pooler algorithm as a plugin "
       "for the Network framework.  The Spatial Pooler manages relationships "
@@ -288,11 +289,41 @@ Spec *SPRegion::createSpec() {
           "inhibition logic will insure that at most N columns remain ON "
           "within a local inhibition area, where N = localAreaDensity * "
           "(total number of columns in inhibition area). "
-	  "Default 0.05 (5%)",
+	  "Default 0.05 (5%)"
+	  "Mutually exclusive with numActiveColumnsPerInhArea. ",
           NTA_BasicType_Real32,             // type
           1,                                // elementCount
           "",                               // constraints
           "0.05",                           // defaultValue
+          ParameterSpec::ReadWriteAccess)); // access
+
+  ns->parameters.add(
+      "numActiveColumnsPerInhArea",
+      ParameterSpec("(int)\n"
+          "An alternate way to control the density of the active columns.If "
+          "numActiveColumnsPerInhArea is specified then localAreaDensity is "
+          "set to -1 (disabled), and vice versa. When using "
+          "numActiveColumnsPerInhArea, the inhibition logic will insure that "
+          "at most 'numActiveColumnsPerInhArea' columns remain ON within a "
+          "local inhibition area (the size of which is set by the internally "
+          "calculated inhibitionRadius, which is in turn determined from "
+          "the average size of the connected receptive fields of all "
+          "columns).When using this method, as columns learn and grow "
+          "their effective receptive fields, the inhibitionRadius will grow, "
+          "and hence the net density of the active columns will *decrease*. "
+          "This is in contrast to the localAreaDensity method, which keeps "
+          "the density of active columns the same regardless of the size "
+          "of their receptive fields.\n"
+          "@rhyolight: numActiveColumnsPerInhArea is a manually set model "
+          "parameter. We almost always set it to 2% of the total column count "
+          "(if 2048 minicolumns, it is typically 40). Watch the HTM School video "
+          "about topology, it explains the minicolumn competition a bit better. "
+          "It makes more sense when you think about topology, which requires "
+          "local inhibition. Default ``0 (OFF)``.",
+          NTA_BasicType_UInt32,             // type
+          1,                                // elementCount
+          "",                               // constraints
+          "0",                             // defaultValue
           ParameterSpec::ReadWriteAccess)); // access
 
   ns->parameters.add(
@@ -540,7 +571,7 @@ Spec *SPRegion::createSpec() {
 //
 ////////////////////////////////////////////////////////////////////////
 
-UInt32 SPRegion::getParameterUInt32(const std::string &name, Int64 index) {
+UInt32 SPRegion::getParameterUInt32(const std::string &name, Int64 index) const {
   NTA_CHECK(name.size() > 0);
   switch (name[0]) {
   case 'a':
@@ -577,6 +608,14 @@ UInt32 SPRegion::getParameterUInt32(const std::string &name, Int64 index) {
       return args_.learningMode;
     }
     break;
+  case 'n':
+    if (name == "numActiveColumnsPerInhArea") {
+      if (sp_)
+        return sp_->getNumActiveColumnsPerInhArea();
+      else
+        return args_.numActiveColumnsPerInhArea;
+    }
+    break;
   case 'p':
     if (name == "potentialRadius") {
       if (sp_)
@@ -602,21 +641,21 @@ UInt32 SPRegion::getParameterUInt32(const std::string &name, Int64 index) {
   return this->RegionImpl::getParameterUInt32(name, index); // default
 }
 
-Int32 SPRegion::getParameterInt32(const std::string &name, Int64 index) {
+Int32 SPRegion::getParameterInt32(const std::string &name, Int64 index) const {
   if (name == "seed") {
     return args_.seed;
   }
   return this->RegionImpl::getParameterInt32(name, index); // default
 }
 
-UInt64 SPRegion::getParameterUInt64(const std::string &name, Int64 index) {
+UInt64 SPRegion::getParameterUInt64(const std::string &name, Int64 index) const {
   if (name == "computeCallback") {
     return (UInt64)computeCallback_;
   }
   return this->RegionImpl::getParameterUInt64(name, index); // default
 }
 
-Real32 SPRegion::getParameterReal32(const std::string &name, Int64 index) {
+Real32 SPRegion::getParameterReal32(const std::string &name, Int64 index) const {
   switch (name[0]) {
   case 'b':
     if (name == "boostStrength") {
@@ -674,7 +713,7 @@ Real32 SPRegion::getParameterReal32(const std::string &name, Int64 index) {
   return this->RegionImpl::getParameterReal32(name, index); // default
 }
 
-bool SPRegion::getParameterBool(const std::string &name, Int64 index) {
+bool SPRegion::getParameterBool(const std::string &name, Int64 index) const {
   if (name == "globalInhibition") {
     if (sp_)
       return sp_->getGlobalInhibition();
@@ -692,7 +731,7 @@ bool SPRegion::getParameterBool(const std::string &name, Int64 index) {
 
 // copy the contents of the requested array into the caller's array.
 // Allocate the buffer if one is not provided.  Convert data types if needed.
-void SPRegion::getParameterArray(const std::string &name, Int64 index, Array &array) {
+void SPRegion::getParameterArray(const std::string &name, Int64 index, Array &array) const {
   if (name == "spatialPoolerInput") {
     array = getInput("bottomUpIn")->getData().copy();
   } else if (name == "spatialPoolerOutput") {
@@ -707,7 +746,7 @@ void SPRegion::getParameterArray(const std::string &name, Int64 index, Array &ar
   }
 }
 
-size_t SPRegion::getParameterArrayCount(const std::string &name, Int64 index) {
+size_t SPRegion::getParameterArrayCount(const std::string &name, Int64 index) const {
   if (name == "spatialPoolerInput") {
     return getInput("bottomUpIn")->getData().getCount();
   } else if (name == "spatialPoolerOutput") {
@@ -722,7 +761,7 @@ size_t SPRegion::getParameterArrayCount(const std::string &name, Int64 index) {
   return 0;
 }
 
-std::string SPRegion::getParameterString(const std::string &name, Int64 index) {
+std::string SPRegion::getParameterString(const std::string &name, Int64 index) const {
   if (name == "spatialImp") {
     return spatialImp_;
   }
@@ -744,6 +783,14 @@ void SPRegion::setParameterUInt32(const std::string &name, Int64 index,
   case 'l':
     if (name == "learningMode") {
       args_.learningMode = (value != 0);
+      return;
+    }
+    break;
+  case 'n':
+    if (name == "numActiveColumnsPerInhArea") {
+      if (sp_)
+        sp_->setNumActiveColumnsPerInhArea(value);
+      args_.numActiveColumnsPerInhArea = value;
       return;
     }
     break;
@@ -868,6 +915,7 @@ bool SPRegion::operator==(const RegionImpl &o) const {
   if (args_.potentialPct != other.args_.potentialPct) return false;
   if (args_.globalInhibition != other.args_.globalInhibition) return false;
   if (args_.localAreaDensity != other.args_.localAreaDensity) return false;
+  if (args_.numActiveColumnsPerInhArea != other.args_.numActiveColumnsPerInhArea) return false;
   if (args_.stimulusThreshold != other.args_.stimulusThreshold) return false;
   if (args_.synPermInactiveDec != other.args_.synPermInactiveDec) return false;
   if (args_.synPermActiveInc != other.args_.synPermActiveInc) return false;

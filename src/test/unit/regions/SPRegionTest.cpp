@@ -69,7 +69,7 @@
 static bool verbose = false;  // turn this on to print extra stuff for debugging the test.
 
 // The following string should contain a valid expected Spec length - manually verified. 
-const UInt EXPECTED_SPEC_COUNT =  21u;  // The number of parameters expected in the SPRegion Spec
+const UInt EXPECTED_SPEC_COUNT =  22u;  // The number of parameters expected in the SPRegion Spec
 
 using namespace htm;
 namespace testing 

@@ -314,8 +314,8 @@ class ApicalTMPairRegion(PyRegion):
                 "implementation": {
                     "description": "Apical implementation",
                     "accessMode": "Create",
-                    "dataType": "Byte",
-                    "count": 0,
+                    "dataType": "String",
+                    "count": 1,
                     "constraints": ("enum: ApicalTiebreak, ApicalTiebreakCPP, ApicalDependent"),
                     "defaultValue": "ApicalTiebreakCPP",
                     "accessMode":"ReadWrite"
