@@ -212,7 +212,7 @@ std::string Spec::toString() const {
       ss << "    \"" << commands.getByIndex(i).first << "\": \""
          << commands.getByIndex(i).second.description << "\"";
     }
-    ss << "  }";
+    ss << "\n    }";
   }
 
 
@@ -232,7 +232,9 @@ std::string Spec::toString() const {
     	ss << ",\n";
     ss << "    \"" << item.first << "\": " << item.second;
   }
-  ss << "\n  }\n";
+  if(outputs.getCount()>0)
+  	ss << "\n";
+  ss << "  }\n";
   ss << "}";
   
   return ss.str();
