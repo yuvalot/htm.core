@@ -164,10 +164,6 @@ void Region::initialize() {
 }
 
 
-const std::shared_ptr<Spec>& Region::getSpecFromType(const std::string &nodeType) {
-  RegionImplFactory &factory = RegionImplFactory::getInstance();
-  return factory.getSpec(nodeType);
-}
 
 
 std::string Region::executeCommand(const std::vector<std::string> &args) {
@@ -456,6 +452,9 @@ void Region::prepareInputs() {
 
 
 // setParameter
+void Region::setParameterByte(const std::string &name, Byte value) {
+  impl_->setParameterByte(name, (Int64)-1, value);
+}
 
 void Region::setParameterInt32(const std::string &name, Int32 value) {
   impl_->setParameterInt32(name, (Int64)-1, value);
@@ -492,6 +491,9 @@ void Region::setParameterJSON(const std::string &name, const std::string &value)
 
     NTA_BasicType type = spec_->parameters.getByName(name).dataType;
     switch (type) {
+    case NTA_BasicType_Byte:
+      setParameterByte(name, vm.as<Byte>());
+      break;
     case NTA_BasicType_Int32:
       setParameterInt32(name, vm.as<Int32>());
       break;
@@ -513,6 +515,9 @@ void Region::setParameterJSON(const std::string &name, const std::string &value)
     case NTA_BasicType_Bool:
       setParameterBool(name, vm.as<bool>());
       break;
+    case NTA_BasicType_Str:
+      setParameterString(name, vm.str());
+      break;
 
     default:
       NTA_THROW << "Unknow parameter type '" + std::string(BasicType::getName(type)) + "'";
@@ -523,7 +528,25 @@ void Region::setParameterJSON(const std::string &name, const std::string &value)
   }
 }
 
+
+// getParameters
+std::string Region::getParameters() const {
+   //std::cout << "getParameters() on " << getName() << "\n";
+
+  std::string json = "{\n";
+  for (size_t i = 0; i < spec_->parameters.getCount(); ++i) {
+    const std::pair<std::string, ParameterSpec> &item = spec_->parameters.getByIndex(i);
+    //std::cout << "getParameterJSON(" + getName() + '" << item.first << "')\n";
+    if(i!=0)
+    	json += ",\n"; // appending comma and newline each time, excluding first line
+    json += "  \"" + item.first + "\": "+getParameterJSON(item.first);
+  }
+  json += "\n}";
+  return json;
+}
+
 // getParameter
+Byte Region::getParameterByte(const std::string &name) const { return impl_->getParameterByte(name, (Int64)-1); }
 
 Int32 Region::getParameterInt32(const std::string &name) const { return impl_->getParameterInt32(name, (Int64)-1); }
 
@@ -539,16 +562,23 @@ Real64 Region::getParameterReal64(const std::string &name) const { return impl_-
 
 bool Region::getParameterBool(const std::string &name) const { return impl_->getParameterBool(name, (Int64)-1); }
 
-std::string Region::getParameterJSON(const std::string &name, const std::string &tag = std::string()) const {
+std::string Region::getParameterJSON(const std::string &name, bool withType) const {
+  // NOTE: if withType is not given or false, it just returns the JSON encoded value.
+  //       if withType IS given, it returns "{"value": <value>, "type": <type>}
   NTA_BasicType type = NTA_BasicType_Last; // initialize to an invalid type.
   Value vm;
+  //std::cout << "getParameterJSON(" << name << ")\n";
   try {
-    type = spec_->parameters.getByName(name).dataType;
-    size_t dim = spec_->parameters.getByName(name).count;
-    if (dim == 1) {
+    auto p = spec_->parameters.getByName(name);
+    type = p.dataType;
+    size_t len = p.count;
+    if (len == 1) {
       // This is a scalar value, not an array.
 
       switch (type) {
+      case NTA_BasicType_Byte:
+        vm = getParameterByte(name);
+        break;
       case NTA_BasicType_Int32:
         vm = getParameterInt32(name);
         break;
@@ -578,17 +608,21 @@ std::string Region::getParameterJSON(const std::string &name, const std::string 
         NTA_THROW << "Unknow parameter type '" + std::string(BasicType::getName(type)) + "'";
         break;
       }
-      if (tag.empty())
+      if (!withType)
         return vm.to_json();
       else
-        return "{\"" + tag + "\": " + vm.to_json() + ", \"type\": \"" + std::string(BasicType::getName(type)) + "\"}";
+        return "{\"value\": " + vm.to_json() + ", \"type\": \"" + std::string(BasicType::getName(type)) + "\"}";
 
     } else {
       // This is an array, not a scalar.
-      Array a;
+      if (len == 0)
+        len = getParameterArrayCount(name);
+      // Pre-allocate the buffer in the Array object.
+      Array a(type);
+      a.allocateBuffer(len);
       getParameterArray(name, a);
       std::string data = a.toJSON();
-      if (tag.empty())
+      if (!withType)
         return data;
 
       std::string dimStr;
@@ -609,13 +643,15 @@ std::string Region::getParameterJSON(const std::string &name, const std::string 
       else
         dimStr = "[" + std::to_string(a.getCount()) + "]";
 
-      return "{\"" + tag + "\": " + data +
+      return "{\"value\": " + data +
               ", \"type\": \"" + std::string(BasicType::getName(type)) +
               ", \"dim\": " + dimStr + "}";
 
     }
   } catch (Exception &e) {
-    NTA_THROW << "Error setting parameter " + getName() + "." + name + "; " + e.getMessage();
+    NTA_THROW << "Error getting parameter " + getName() + "." + name + "; " + e.getMessage();
+  } catch (...) {
+    NTA_THROW << "Error getting parameter " + getName() + "." + name + "; ";
   }
 }
 
@@ -629,7 +665,7 @@ void Region::setParameterArray(const std::string &name, const Array &array) {
   impl_->setParameterArray(name, (Int64)-1, array);
 }
 
-size_t Region::getParameterArrayCount(const std::string &name) {
+size_t Region::getParameterArrayCount(const std::string &name) const {
   return impl_->getParameterArrayCount(name, (Int64)-1);
 }
 

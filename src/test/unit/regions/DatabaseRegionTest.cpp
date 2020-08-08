@@ -28,6 +28,7 @@
 #include <htm/engine/Network.hpp>
 #include <htm/utils/Log.hpp>
 #include <htm/ntypes/Value.hpp>
+#include <htm/regions/DatabaseRegion.hpp>
 
 namespace testing {
 
@@ -94,8 +95,126 @@ TEST(DatabaseRegionTest, overall)
 
 
 	 } catch (Exception &ex) {
-		 	FAIL() << "Catched exception : " << ex.getMessage();
+          // close database file
+          FAIL() << "Catched exception : " << ex.getMessage();
 	 }
 }
 
+
+TEST(DatabaseRegionTest, getSpecJSON) {
+  std::string expected = R"({"spec": "DatabaseRegion",
+  "description": "DatabaseRegion is a node that writes multiple scalar streams to a SQLite3 database file (.db). The target filename is specified using the 'outputFile' parameter at run time. On each compute, all inputs are written to the database.",
+  "parameters": {
+    "outputFile": {
+      "description": "Writes data stream to this database file on each compute. Database is recreated on initialization This parameter must be set at runtime before the first compute is called. Throws an exception if it is not set or the file cannot be written to.",
+      "type": "String",
+      "count": 1,
+      "access": "ReadWrite",
+      "defaultValue": ""
+    }
+  },
+  "commands": {
+    "closeFile": "Close the current database file, if open.",
+    "getRowCount": "Gets sum of row counts for all tables in opened database.",
+    "commitTransaction": "Commits currently active transaction. Speeding up write avoiding repeat writes in loop.Transaction is started when databse is opened."
+    },
+  "inputs": {
+    "dataIn0": {
+      "description": "Data scalar to be written to the database",
+      "type": "Real32",
+      "count": 0,
+      "required": 0,
+      "regionLevel": 1,
+      "isDefaultInput": 1
+    },
+    "dataIn1": {
+      "description": "Data scalar to be written to the database",
+      "type": "Real32",
+      "count": 0,
+      "required": 0,
+      "regionLevel": 1,
+      "isDefaultInput": 1
+    },
+    "dataIn2": {
+      "description": "Data scalar to be written to the database",
+      "type": "Real32",
+      "count": 0,
+      "required": 0,
+      "regionLevel": 1,
+      "isDefaultInput": 1
+    },
+    "dataIn3": {
+      "description": "Data scalar to be written to the database",
+      "type": "Real32",
+      "count": 0,
+      "required": 0,
+      "regionLevel": 1,
+      "isDefaultInput": 1
+    },
+    "dataIn4": {
+      "description": "Data scalar to be written to the database",
+      "type": "Real32",
+      "count": 0,
+      "required": 0,
+      "regionLevel": 1,
+      "isDefaultInput": 1
+    },
+    "dataIn5": {
+      "description": "Data scalar to be written to the database",
+      "type": "Real32",
+      "count": 0,
+      "required": 0,
+      "regionLevel": 1,
+      "isDefaultInput": 1
+    },
+    "dataIn6": {
+      "description": "Data scalar to be written to the database",
+      "type": "Real32",
+      "count": 0,
+      "required": 0,
+      "regionLevel": 1,
+      "isDefaultInput": 1
+    },
+    "dataIn7": {
+      "description": "Data scalar to be written to the database",
+      "type": "Real32",
+      "count": 0,
+      "required": 0,
+      "regionLevel": 1,
+      "isDefaultInput": 1
+    },
+    "dataIn8": {
+      "description": "Data scalar to be written to the database",
+      "type": "Real32",
+      "count": 0,
+      "required": 0,
+      "regionLevel": 1,
+      "isDefaultInput": 1
+    },
+    "dataIn9": {
+      "description": "Data scalar to be written to the database",
+      "type": "Real32",
+      "count": 0,
+      "required": 0,
+      "regionLevel": 1,
+      "isDefaultInput": 1
+    }
+  },
+  "outputs": {
+  }
+})";
+
+  Spec *spec = DatabaseRegion::createSpec();
+  std::string json = spec->toString();
+  EXPECT_STREQ(json.c_str(), expected.c_str());
+} // namespace testing
+
+TEST(DatabaseRegionTest, getParameters) {
+  std::string expected = "{\n  \"outputFile\": \":memory:\"\n}";
+  Network net1;
+  std::string output_file = ":memory:"; // in memory for this unit test. or could be physical file like: NapiOutputDir/Output.db
+  std::shared_ptr<Region> region1 = net1.addRegion("db", "DatabaseRegion", "{outputFile: '" + output_file + "'}");
+  std::string json = region1->getParameters();
+  EXPECT_STREQ(json.c_str(), expected.c_str());
+}
 } // testing namespace

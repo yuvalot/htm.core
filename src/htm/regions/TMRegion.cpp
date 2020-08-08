@@ -279,6 +279,7 @@ void TMRegion::compute() {
 Spec *TMRegion::createSpec() {
   auto ns = new Spec;
 
+  ns->name = "TMRegion";
   ns->description =
       "TMRegion. Class implementing the temporal memory algorithm as "
       "described in 'BAMI "
@@ -606,7 +607,7 @@ Spec *TMRegion::createSpec() {
 //
 ////////////////////////////////////////////////////////////////////////
 
-UInt32 TMRegion::getParameterUInt32(const std::string &name, Int64 index) {
+UInt32 TMRegion::getParameterUInt32(const std::string &name, Int64 index) const {
 
     if (name == "activationThreshold") {
       if (tm_)
@@ -660,7 +661,7 @@ UInt32 TMRegion::getParameterUInt32(const std::string &name, Int64 index) {
 }
 
 
-Int32 TMRegion::getParameterInt32(const std::string &name, Int64 index) {
+Int32 TMRegion::getParameterInt32(const std::string &name, Int64 index) const {
   if (name == "activationThreshold") {
     if (tm_)
       return tm_->getActivationThreshold();
@@ -673,7 +674,7 @@ Int32 TMRegion::getParameterInt32(const std::string &name, Int64 index) {
 }
 
 
-Real32 TMRegion::getParameterReal32(const std::string &name, Int64 index) {
+Real32 TMRegion::getParameterReal32(const std::string &name, Int64 index) const {
 
     if (name == "anomaly") {
       if (tm_)
@@ -710,7 +711,7 @@ Real32 TMRegion::getParameterReal32(const std::string &name, Int64 index) {
 }
 
 
-bool TMRegion::getParameterBool(const std::string &name, Int64 index) {
+bool TMRegion::getParameterBool(const std::string &name, Int64 index) const {
   if (name == "checkInputs") {
     if (tm_) {
       return tm_->getCheckInputs();
@@ -727,7 +728,7 @@ bool TMRegion::getParameterBool(const std::string &name, Int64 index) {
 }
 
 
-std::string TMRegion::getParameterString(const std::string &name, Int64 index) {
+std::string TMRegion::getParameterString(const std::string &name, Int64 index) const {
   return this->RegionImpl::getParameterString(name, index);
 }
 

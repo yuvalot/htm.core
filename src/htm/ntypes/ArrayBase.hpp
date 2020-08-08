@@ -61,7 +61,7 @@ namespace htm
      * Caller frees buffer when no longer needed.
      * For NTA_BasicType_SDR, use ArrayBase(SDR&) so dimensions are set.
      */
-    ArrayBase(NTA_BasicType type, void *buffer, size_t count);
+    ArrayBase(NTA_BasicType type, const void *buffer, size_t count);
 
 
     /**

@@ -36,7 +36,7 @@ namespace htm {
 /**
  * This makes a deep copy of the buffer so this class will own the buffer.
  */
-ArrayBase::ArrayBase(NTA_BasicType type, void *buffer, size_t count) {
+ArrayBase::ArrayBase(NTA_BasicType type, const void *buffer, size_t count) {
   if (!BasicType::isValid(type)) {
     NTA_THROW << "Invalid NTA_BasicType " << type << " used in array constructor";
   }
@@ -45,14 +45,14 @@ ArrayBase::ArrayBase(NTA_BasicType type, void *buffer, size_t count) {
   if (has_buffer()) {
     if (type == NTA_BasicType_Str) {
       std::string *ptr1 = reinterpret_cast<std::string *>(getBuffer());
-      std::string *ptr2 = reinterpret_cast<std::string *>(buffer);
+      const std::string *ptr2 = reinterpret_cast<const std::string *>(buffer);
       for (size_t i = 0; i < count; i++) {
         ptr1[i] = ptr2[i];
       }
     } else {
       // Warning: for NTA_BasicType_Bool, if the buffer came from the internal buffer of a vector
       //          the element size is not known for sure. It might be optimized to store them as bits.
-      std::memcpy(reinterpret_cast<char *>(getBuffer()), reinterpret_cast<char *>(buffer),
+      std::memcpy(reinterpret_cast<char *>(getBuffer()), reinterpret_cast<const char *>(buffer),
                   count * BasicType::getSize(type));
     }
   }
@@ -592,7 +592,7 @@ void ArrayBase::fromValue(const Value &vm_) {
           dim.push_back(vm1[i].as<UInt>());
         }
       } else {
-        dim.push_back(num);
+        dim.push_back(static_cast<UInt>(num));
       }
       allocateBuffer(dim);
     } else {

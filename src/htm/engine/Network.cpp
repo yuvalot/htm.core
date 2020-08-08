@@ -580,6 +580,13 @@ std::shared_ptr<Region> Network::getRegion(const std::string& name) const {
   return itr->second;
 }
 
+std::string Network::getSpecJSON(const std::string &type) {
+  RegionImplFactory &factory = RegionImplFactory::getInstance();
+  const std::shared_ptr<Spec> spec = factory.getSpec(type);
+  return spec->toString();
+}
+
+
 
 std::vector<std::shared_ptr<Link>> Network::getLinks() const {
   std::vector<std::shared_ptr<Link>> links;
@@ -791,6 +798,11 @@ void Network::registerRegion(const std::string name, RegisteredRegionImpl *wrapp
 void Network::unregisterRegion(const std::string name) {
 	RegionImplFactory::unregisterRegion(name);
 }
+
+std::string Network::getRegistrations() {
+  return RegionImplFactory::getRegistrations();
+}
+
 void Network::cleanup() {
     RegionImplFactory::cleanup();
 }

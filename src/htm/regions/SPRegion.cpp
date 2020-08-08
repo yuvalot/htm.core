@@ -185,7 +185,7 @@ size_t SPRegion::getNodeOutputElementCount(const std::string &outputName) const 
 
 Spec *SPRegion::createSpec() {
   auto ns = new Spec;
-
+  ns->name = "SPRegion";
   ns->description =
       "SPRegion. This implements the Spatial Pooler algorithm as a plugin "
       "for the Network framework.  The Spatial Pooler manages relationships "
@@ -571,7 +571,7 @@ Spec *SPRegion::createSpec() {
 //
 ////////////////////////////////////////////////////////////////////////
 
-UInt32 SPRegion::getParameterUInt32(const std::string &name, Int64 index) {
+UInt32 SPRegion::getParameterUInt32(const std::string &name, Int64 index) const {
   NTA_CHECK(name.size() > 0);
   switch (name[0]) {
   case 'a':
@@ -641,21 +641,21 @@ UInt32 SPRegion::getParameterUInt32(const std::string &name, Int64 index) {
   return this->RegionImpl::getParameterUInt32(name, index); // default
 }
 
-Int32 SPRegion::getParameterInt32(const std::string &name, Int64 index) {
+Int32 SPRegion::getParameterInt32(const std::string &name, Int64 index) const {
   if (name == "seed") {
     return args_.seed;
   }
   return this->RegionImpl::getParameterInt32(name, index); // default
 }
 
-UInt64 SPRegion::getParameterUInt64(const std::string &name, Int64 index) {
+UInt64 SPRegion::getParameterUInt64(const std::string &name, Int64 index) const {
   if (name == "computeCallback") {
     return (UInt64)computeCallback_;
   }
   return this->RegionImpl::getParameterUInt64(name, index); // default
 }
 
-Real32 SPRegion::getParameterReal32(const std::string &name, Int64 index) {
+Real32 SPRegion::getParameterReal32(const std::string &name, Int64 index) const {
   switch (name[0]) {
   case 'b':
     if (name == "boostStrength") {
@@ -713,7 +713,7 @@ Real32 SPRegion::getParameterReal32(const std::string &name, Int64 index) {
   return this->RegionImpl::getParameterReal32(name, index); // default
 }
 
-bool SPRegion::getParameterBool(const std::string &name, Int64 index) {
+bool SPRegion::getParameterBool(const std::string &name, Int64 index) const {
   if (name == "globalInhibition") {
     if (sp_)
       return sp_->getGlobalInhibition();
@@ -731,7 +731,7 @@ bool SPRegion::getParameterBool(const std::string &name, Int64 index) {
 
 // copy the contents of the requested array into the caller's array.
 // Allocate the buffer if one is not provided.  Convert data types if needed.
-void SPRegion::getParameterArray(const std::string &name, Int64 index, Array &array) {
+void SPRegion::getParameterArray(const std::string &name, Int64 index, Array &array) const {
   if (name == "spatialPoolerInput") {
     array = getInput("bottomUpIn")->getData().copy();
   } else if (name == "spatialPoolerOutput") {
@@ -746,7 +746,7 @@ void SPRegion::getParameterArray(const std::string &name, Int64 index, Array &ar
   }
 }
 
-size_t SPRegion::getParameterArrayCount(const std::string &name, Int64 index) {
+size_t SPRegion::getParameterArrayCount(const std::string &name, Int64 index) const {
   if (name == "spatialPoolerInput") {
     return getInput("bottomUpIn")->getData().getCount();
   } else if (name == "spatialPoolerOutput") {
@@ -761,7 +761,7 @@ size_t SPRegion::getParameterArrayCount(const std::string &name, Int64 index) {
   return 0;
 }
 
-std::string SPRegion::getParameterString(const std::string &name, Int64 index) {
+std::string SPRegion::getParameterString(const std::string &name, Int64 index) const {
   if (name == "spatialImp") {
     return spatialImp_;
   }

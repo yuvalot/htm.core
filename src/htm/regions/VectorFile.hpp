@@ -88,7 +88,7 @@ public:
   void resetScaling(UInt nElements = 0);
 
   /// Get the scaling and offset values for element e
-  void getScaling(const UInt e, Real &scale, Real &offset);
+  void getScaling(const UInt e, Real &scale, Real &offset) const;
 
   /// Set the scale value for element e
   void setScale(const UInt e, const Real scale);

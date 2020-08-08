@@ -184,7 +184,7 @@ public:
   /**
    * Initialize by copying in from a raw C-type buffer.  See ArrayBase
    */
-  Array(NTA_BasicType type, void *buffer, size_t count)
+  Array(NTA_BasicType type, const void *buffer, size_t count)
       : ArrayBase(type, buffer, count) {}
 
   /**
