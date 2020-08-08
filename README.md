@@ -110,7 +110,6 @@ git clone https://github.com/htm-community/htm.core
    folder `Repository/build` and try again.  This is only an issue when
    developing C++ code.
 
-
 3) After that completes you are ready to import the library:
     ```python
     python.exe
@@ -124,6 +123,7 @@ git clone https://github.com/htm-community/htm.core
     ```python
     python setup.py test
     ```
+
 
 #### Simple C++ build 
 
