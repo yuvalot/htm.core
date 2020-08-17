@@ -51,8 +51,8 @@ FileInputRegion::FileInputRegion(const ValueMap &params, Region *region)
     : RegionImpl(region),
 
       iterations_(0), curVector_(-1),
-      dataOut_(NTA_BasicType_Real64), categoryOut_(NTA_BasicType_Real64),
-      resetOut_(NTA_BasicType_Real64), filename_(""),
+      dataOut_(NTA_BasicType_Real64), categoryOut_(NTA_BasicType_Real32),
+      resetOut_(NTA_BasicType_Real32), filename_(""),
       recentFile_("") {
   repeatCount_ = params.getScalarT<UInt32>("repeatCount", 1);
   activeOutputCount_ = params.getScalarT<UInt32>("activeOutputCount", 0);
@@ -69,8 +69,8 @@ FileInputRegion::FileInputRegion(const ValueMap &params, Region *region)
 FileInputRegion::FileInputRegion(ArWrapper &wrapper, Region *region) 
     : RegionImpl(region), repeatCount_(1), iterations_(0), curVector_(-1),
       activeOutputCount_(0), hasCategoryOut_(false), hasResetOut_(false),
-      dataOut_(NTA_BasicType_Real64), categoryOut_(NTA_BasicType_Real64),
-      resetOut_(NTA_BasicType_Real64), filename_(""), scalingMode_("none"),
+      dataOut_(NTA_BasicType_Real64), categoryOut_(NTA_BasicType_Real32),
+      resetOut_(NTA_BasicType_Real32), filename_(""), scalingMode_("none"),
       recentFile_("") {
   cereal_adapter_load(wrapper);
 }
@@ -170,13 +170,13 @@ std::string FileInputRegion::executeCommand(const std::vector<std::string> &args
 {
   UInt32 argCount = (UInt32)args.size();
   // Get the first argument (command string)
-  NTA_CHECK(argCount > 0) << "VectorFileSensor: No command name";
+  NTA_CHECK(argCount > 0) << "FileInputRegion: No command name";
   string command = args[0];
 
   // Process each command
   if ((command == "loadFile") || (command == "appendFile")) {
     NTA_CHECK(argCount > 1)
-        << "VectorFileSensor: no filename specified for " << command;
+        << "FileInputRegion: no filename specified for " << command;
 
     UInt32 labeled = 2; // Default format is 2
 
@@ -366,7 +366,7 @@ Spec *FileInputRegion::createSpec() {
 
   ns->outputs.add( "categoryOut",
 				          OutputSpec("The current category encoded as a float (represent a whole number)",
-					                 NTA_BasicType_Real64,
+					                 NTA_BasicType_Real32,
 					                 1,    // count
 					                 false, // isRegionLevel
 					                 false // isDefaultOutput
@@ -375,7 +375,7 @@ Spec *FileInputRegion::createSpec() {
   ns->outputs.add("resetOut",
                   OutputSpec("Sequence reset signal: 0 - do nothing, otherwise "
                              "start a new sequence",
-                             NTA_BasicType_Real64,
+                             NTA_BasicType_Real32,
                              1,    // count
                              false, // isRegionLevel
                              false // isDefaultOutput
@@ -447,7 +447,7 @@ Spec *FileInputRegion::createSpec() {
 
   ns->parameters.add( "scaleVector",
 				   ParameterSpec("Set or return the current scale vector S.\n",
-				                 NTA_BasicType_Real64,
+				                 NTA_BasicType_Real32,
 				                 0,  // elementCount
 				                 "", // constraints
 				                 "", // defaultValue
@@ -455,7 +455,7 @@ Spec *FileInputRegion::createSpec() {
 
   ns->parameters.add( "offsetVector",
 			       ParameterSpec("Set or return the current offset vector 0.\n",
-			                     NTA_BasicType_Real64,
+			                     NTA_BasicType_Real32,
 			                     0,  // elementCount
 			                     "", // constraints
 			                     "", // defaultValue

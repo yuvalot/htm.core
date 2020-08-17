@@ -164,7 +164,7 @@ void VectorFile::loadVectors(std::istream& inFile,
       inFile >> vectorLabel;
     }
 
-    auto b = new Real[elementCount];
+    auto b = new Real64[elementCount];
     for (Size i = 0; i < elementCount; ++i) {
       inFile >> b[i];
     }
@@ -215,7 +215,7 @@ void VectorFile::saveVectors(ostream &out, Size nColumns, UInt32 fileFormat,
     end = begin;
 
   // Setup iterators for the rows.
-  vector<Real *>::const_iterator i = (fileVectors_.begin() + size_t(begin));
+  vector<Real64 *>::const_iterator i = (fileVectors_.begin() + size_t(begin));
   auto iend = i + size_t(end - begin);
 
   switch (fileFormat) {
@@ -294,9 +294,9 @@ void VectorFile::saveVectors(ostream &out, Size nColumns, UInt32 fileFormat,
         if (nColumns)
           out << sep;
       }
-      const Real *p = *i;
+      const Real64 *p = *i;
       if (nColumns) {
-        const Real *pEnd = p + nColumns;
+        const Real64 *pEnd = p + nColumns;
         out << *(p++);
         for (; p < pEnd;)
           out << sep << *(p++);
@@ -310,11 +310,12 @@ void VectorFile::saveVectors(ostream &out, Size nColumns, UInt32 fileFormat,
   case 5: {
     if (end <= begin)
       return;
-    const Size rowBytes = nColumns * sizeof(Real32);
-    const bool needConversion = (sizeof(Real32) == sizeof(Real));
+    const Size rowBytes = nColumns * sizeof(Real64);
+    //const bool needConversion = (sizeof(Real64) == sizeof(Real));//always false
 
-    if (needConversion) {
-      auto buffer = new Real32[nColumns];
+    if (false) {//was needConversion - now it uses Real64 everywhere, so no need to convert
+    	;
+      /*auto buffer = new Real32[nColumns];
       try {
         for (; i != iend; ++i) {
           if (needConversion) {
@@ -328,7 +329,7 @@ void VectorFile::saveVectors(ostream &out, Size nColumns, UInt32 fileFormat,
         delete[] buffer;
         throw;
       }
-      delete[] buffer;
+      delete[] buffer;*/
     } else {
       for (; i != iend; ++i)
         out.write((char *)(*i), streamsize(rowBytes));
@@ -674,7 +675,7 @@ size_t VectorFile::getElementCount() const { return scaleVector_.size(); }
 
 /// Retrieve the i'th vector and copy into output without scaling
 /// output must have size at least elementCount
-void VectorFile::getRawVector(const UInt v, Real *out, UInt offset,
+void VectorFile::getRawVector(const UInt v, Real64 *out, UInt offset,
                               Size count) {
   if (v >= vectorCount())
     NTA_THROW << "Requested non-existent vector: " << v;
@@ -687,14 +688,14 @@ void VectorFile::getRawVector(const UInt v, Real *out, UInt offset,
               << " = " << offset + count
               << ", must be smaller than element count: " << getElementCount();
   // Get the pointers and copy over the vector
-  Real *vec = fileVectors_[v];
+  Real64 *vec = fileVectors_[v];
   for (Size i = 0; i < count; i++)
     out[i] = vec[offset + i];
 }
 
 /// Retrieve i'th vector, apply scaling and copy result into output
 /// output must have size at least 'count' elements
-void VectorFile::getScaledVector(const UInt v, Real *out, UInt offset,
+void VectorFile::getScaledVector(const UInt v, Real64 *out, UInt offset,
                                  Size count) {
   // Check if we have scaling. If not, use getRawVector().
   if (scaleVector_.size() == 0)
@@ -706,14 +707,14 @@ void VectorFile::getScaledVector(const UInt v, Real *out, UInt offset,
   NTA_CHECK(getElementCount() <= offset + count);
 
   // Get the pointers and copy over the vector
-  Real *vec = fileVectors_[v];
+  Real64 *vec = fileVectors_[v];
   for (Size i = 0; i < count; i++) {
     out[i] = scaleVector_[i] * (vec[i + offset] + offsetVector_[i]);
   }
 }
 
 /// Get the scaling and offset values for element e
-void VectorFile::getScaling(const UInt e, Real &scale, Real &offset) const {
+void VectorFile::getScaling(const UInt e, Real64 &scale, Real64 &offset) const {
   if (e >= getElementCount())
     NTA_THROW << "Requested non-existent element: " << e;
   scale = scaleVector_[e];
@@ -721,14 +722,14 @@ void VectorFile::getScaling(const UInt e, Real &scale, Real &offset) const {
 }
 
 /// Set the scale value for element e
-void VectorFile::setScale(const UInt e, const Real scale) {
+void VectorFile::setScale(const UInt e, const Real64 scale) {
   if (e >= getElementCount())
     NTA_THROW << "Requested non-existent element: " << e;
   scaleVector_[e] = scale;
 }
 
 /// Set the offset value for element e
-void VectorFile::setOffset(const UInt e, const Real offset) {
+void VectorFile::setOffset(const UInt e, const Real64 offset) {
   if (e >= getElementCount())
     NTA_THROW << "Requested non-existent element: " << e;
   offsetVector_[e] = offset;
@@ -750,7 +751,7 @@ void VectorFile::setStandardScaling() {
     for (Size i = 0; i < nv; i++)
       sum += fileVectors_[i][e];
     double mean = sum / nv;
-    offsetVector_[e] = (Real)(-mean);
+    offsetVector_[e] = (Real64)(-mean);
 
     // Now compute the squared term for stdev
     for (Size i = 0; i < nv; i++) {
@@ -763,7 +764,7 @@ void VectorFile::setStandardScaling() {
     if (fabs(stdev) < 0.00000001)
       NTA_THROW << "Error setting standard form, stdeviation is almost zero "
                    "for some component.";
-    scaleVector_[e] = (Real)(1.0 / stdev);
+    scaleVector_[e] = (Real64)(1.0 / stdev);
   }
 }
 
