@@ -257,7 +257,7 @@ TEST(TMRegionTest, testLinking) {
   Array r1OutputArray = region1->getOutputData("dataOut");
   VERBOSE << "    " << r1OutputArray << "\n";
   EXPECT_EQ(r1OutputArray.getCount(), dataWidth);
-  EXPECT_TRUE(r1OutputArray.getType() == NTA_BasicType_Real32);
+  EXPECT_TRUE(r1OutputArray.getType() == NTA_BasicType_Real64);
 
   // check anomaly
   EXPECT_FLOAT_EQ(region3->getParameterReal32("anomaly"), 1.0f);
@@ -323,7 +323,7 @@ TEST(TMRegionTest, testLinking) {
   VERBOSE << "   Input to FileOutputRegion "
           << region4->getInputDimensions("dataIn") << "\n";
   Array r4InputArray = region4->getInputData("dataIn");
-  EXPECT_EQ(r4InputArray.getType(), NTA_BasicType_Real32);
+  EXPECT_EQ(r4InputArray.getType(), NTA_BasicType_Real64);
   VERBOSE << "   " << r4InputArray << "\n";
   EXPECT_EQ(r4InputArray, expected3outa) << r4InputArray;
 
