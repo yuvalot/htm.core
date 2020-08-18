@@ -118,14 +118,14 @@ void FileInputRegion::compute() {
     curVector_ %= vectorFile_.vectorCount();
   }
 
-  Real *out = (Real *)dataOut_.getBuffer();
+  Real64 *out = (Real64 *)dataOut_.getBuffer();
 
   Size count = dataOut_.getCount();
   UInt offset = 0;
 
   if (hasCategoryOut_) {
     categoryOut_ = region_->getOutput("categoryOut")->getData();
-    Real *categoryOut = reinterpret_cast<Real *>(categoryOut_.getBuffer());
+    Real64 *categoryOut = reinterpret_cast<Real64 *>(categoryOut_.getBuffer());
     vectorFile_.getRawVector((htm::UInt)curVector_, categoryOut, offset, 1);
     offset++;
 
@@ -135,7 +135,7 @@ void FileInputRegion::compute() {
 
   if (hasResetOut_) {
     resetOut_ = region_->getOutput("resetOut")->getData();
-    Real *resetOut = reinterpret_cast<Real *>(resetOut_.getBuffer());
+    Real64 *resetOut = reinterpret_cast<Real64 *>(resetOut_.getBuffer());
     vectorFile_.getRawVector((htm::UInt)curVector_, resetOut, offset, 1);
     offset++;
 
@@ -571,10 +571,10 @@ void FileInputRegion::getParameterArray(const std::string &name, Int64 index, Ar
     NTA_THROW << "getParameterArray(), array size is: " << a.getCount()
               << "instead of : " << dataOut_.getCount();
 
-  Real *buf = (Real *)a.getBuffer();
-  Real dummy;
+  Real64 *buf = (Real64 *)a.getBuffer();
+  Real64 dummy;
   if (name == "scaleVector") {
-    Real *buf = (Real *)a.getBuffer();
+    Real64 *buf = (Real64 *)a.getBuffer();
     for (UInt i = 0; i < vectorFile_.getElementCount(); i++) {
       vectorFile_.getScaling(i, buf[i], dummy);
     }

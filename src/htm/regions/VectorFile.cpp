@@ -68,8 +68,8 @@ void VectorFile::appendFile(const string &fileName,
                             Size expectedElementCount, UInt32 fileFormat) {
   bool handled = false;
   switch (fileFormat) {
-  case 4: // Little-endian.  //TODO supporting just 1 format, remove this swithch and fileFormat
-    appendFloat32File(fileName, expectedElementCount);
+  case 4: // Little-endian.  //TODO supporting just 1 format, remove this switch and fileFormat
+    appendFloat64File(fileName, expectedElementCount);
     handled = true;
     break;
   }
@@ -360,7 +360,7 @@ public:
   }
 };
 
-void VectorFile::appendFloat32File(const string &filename,
+void VectorFile::appendFloat64File(const string &filename,
                                    Size expectedElements) {
   AutoReleaseFile file(filename);
 
@@ -368,21 +368,21 @@ void VectorFile::appendFloat32File(const string &filename,
   if (totalBytes == 0)
     return; // Early exit when there are no new vectors.
 
-  Size nRows = totalBytes / (expectedElements * sizeof(Real32));
+  Size nRows = totalBytes / (expectedElements * sizeof(Real64));
   Size totalElements = nRows * expectedElements;
-  NTA_CHECK ((totalElements * sizeof(Real32)) == totalBytes) 
+  NTA_CHECK ((totalElements * sizeof(Real64)) == totalBytes)
         << "Binary file size (" << totalBytes
         << "b) is not a multiple of expected elements ("
         << expectedElements
         << ") and 32-bit float size.";
-  const bool needConversion = (sizeof(Real32) == sizeof(Real));
+
 
   Size offset = fileVectors_.size();
   NTA_CHECK (offset == own_.size()) << "Invalid ownership flags.";
   Size nRowLabels = vectorLabels_.size();
   NTA_CHECK (nRowLabels && (nRowLabels == offset)) << "Invalid number of row labels.";
 
-  Real *block = nullptr; //TODO use Real[] block; instead of pointers! will require more changes in the file
+  Real64 *block = nullptr; //TODO use Real[] block; instead of pointers! will require more changes in the file
 
   try {
     // Set up the ownership.
@@ -392,25 +392,18 @@ void VectorFile::appendFloat32File(const string &filename,
     if (nRowLabels)
       vectorLabels_.resize(offset + nRows);
 
-    block = new Real[nRows * expectedElements];
+    block = new Real64[nRows * expectedElements];
 
     // Set all the row pointers.
     fileVectors_.resize(offset + nRows);
     auto cur = fileVectors_.begin() + offset;
-    Real *pEnd = block + (nRows * expectedElements);
-    for (Real *pBlock = block; pBlock != pEnd; pBlock += expectedElements) {
+    Real64 *pEnd = block + (nRows * expectedElements);
+    for (Real64 *pBlock = block; pBlock != pEnd; pBlock += expectedElements) {
       *(cur++) = pBlock;
     }
 
     file.read(&block, sizeof block[0] ,int(totalBytes));
 
-    if (needConversion) {
-      Real32 *pRead = reinterpret_cast<Real32 *>(block) + (totalElements - 1);
-      Real *pWrite = block + (totalElements - 1);
-      for (; pWrite >= block;) {
-        *(pWrite--) = *(pRead--);
-      }
-    }
   } catch (...) {
     delete[] block;
     fileVectors_.resize(offset);
@@ -442,7 +435,7 @@ void VectorFile::appendCSVFile(istream &inFile, Size expectedElements) {
     bool dosLines = dosEndings(inFile);
     while (!inFile.eof()) {
       Size elementsFound = 0;
-      auto b = new Real[expectedElements];
+      auto b = new Real64[expectedElements];
       // Read and parse a single line
       string sLine;           // We'll use string for robust line parsing
       stringstream converted; // We'll use stringstream for robust ascii text to
@@ -555,8 +548,8 @@ void VectorFile::appendIDXFile(const string &filename, int expectedElements) {
   int readRow = vectorSize * elSize;
   auto readBuffer = new char[readRow];
 
-  auto block = new Real[nRows * expectedElements];
-  Real *pBlock = block;
+  auto block = new Real64[nRows * expectedElements];
+  Real64 *pBlock = block;
 
   int copy = (expectedElements < vectorSize) ? expectedElements : vectorSize;
   int fill = expectedElements - copy;
@@ -640,8 +633,8 @@ void VectorFile::appendIDXFile(const string &filename, int expectedElements) {
     // Set all the row pointers.
     fileVectors_.resize(offset + nRows);
     auto cur = fileVectors_.begin() + offset;
-    Real *pEnd = block + (nRows * expectedElements);
-    for (Real *pCur = block; pCur != pEnd; pCur += expectedElements)
+    Real64 *pEnd = block + (nRows * expectedElements);
+    for (Real64 *pCur = block; pCur != pEnd; pCur += expectedElements)
       *(cur++) = pCur;
   } catch (...) {
     delete[] block;

@@ -91,10 +91,10 @@ public:
   void getScaling(const UInt e, Real64 &scale, Real64 &offset) const;
 
   /// Set the scale value for element e
-  void setScale(const UInt e, const Real scale);
+  void setScale(const UInt e, const Real64 scale);
 
   /// Set the offset value for element e
-  void setOffset(const UInt e, const Real offset);
+  void setOffset(const UInt e, const Real64 offset);
 
   /// Clear the set of vectors and labels, including scale and offset vectors,
   /// release all memory, and set numElements back to zero.
