@@ -51,7 +51,7 @@ FileInputRegion::FileInputRegion(const ValueMap &params, Region *region)
     : RegionImpl(region),
 
       iterations_(0), curVector_(-1),
-      dataOut_(NTA_BasicType_Real32), categoryOut_(NTA_BasicType_Real32),
+      dataOut_(NTA_BasicType_Real64), categoryOut_(NTA_BasicType_Real32),
       resetOut_(NTA_BasicType_Real32), filename_(""),
       recentFile_("") {
   repeatCount_ = params.getScalarT<UInt32>("repeatCount", 1);
@@ -69,7 +69,7 @@ FileInputRegion::FileInputRegion(const ValueMap &params, Region *region)
 FileInputRegion::FileInputRegion(ArWrapper &wrapper, Region *region) 
     : RegionImpl(region), repeatCount_(1), iterations_(0), curVector_(-1),
       activeOutputCount_(0), hasCategoryOut_(false), hasResetOut_(false),
-      dataOut_(NTA_BasicType_Real32), categoryOut_(NTA_BasicType_Real32),
+      dataOut_(NTA_BasicType_Real64), categoryOut_(NTA_BasicType_Real32),
       resetOut_(NTA_BasicType_Real32), filename_(""), scalingMode_("none"),
       recentFile_("") {
   cereal_adapter_load(wrapper);
@@ -118,14 +118,14 @@ void FileInputRegion::compute() {
     curVector_ %= vectorFile_.vectorCount();
   }
 
-  Real *out = (Real *)dataOut_.getBuffer();
+  Real64 *out = (Real64 *)dataOut_.getBuffer();
 
   Size count = dataOut_.getCount();
   UInt offset = 0;
 
   if (hasCategoryOut_) {
     categoryOut_ = region_->getOutput("categoryOut")->getData();
-    Real *categoryOut = reinterpret_cast<Real *>(categoryOut_.getBuffer());
+    Real64 *categoryOut = reinterpret_cast<Real64 *>(categoryOut_.getBuffer());
     vectorFile_.getRawVector((htm::UInt)curVector_, categoryOut, offset, 1);
     offset++;
 
@@ -135,7 +135,7 @@ void FileInputRegion::compute() {
 
   if (hasResetOut_) {
     resetOut_ = region_->getOutput("resetOut")->getData();
-    Real *resetOut = reinterpret_cast<Real *>(resetOut_.getBuffer());
+    Real64 *resetOut = reinterpret_cast<Real64 *>(resetOut_.getBuffer());
     vectorFile_.getRawVector((htm::UInt)curVector_, resetOut, offset, 1);
     offset++;
 
@@ -170,13 +170,13 @@ std::string FileInputRegion::executeCommand(const std::vector<std::string> &args
 {
   UInt32 argCount = (UInt32)args.size();
   // Get the first argument (command string)
-  NTA_CHECK(argCount > 0) << "VectorFileSensor: No command name";
+  NTA_CHECK(argCount > 0) << "FileInputRegion: No command name";
   string command = args[0];
 
   // Process each command
   if ((command == "loadFile") || (command == "appendFile")) {
     NTA_CHECK(argCount > 1)
-        << "VectorFileSensor: no filename specified for " << command;
+        << "FileInputRegion: no filename specified for " << command;
 
     UInt32 labeled = 2; // Default format is 2
 
@@ -358,7 +358,7 @@ Spec *FileInputRegion::createSpec() {
       "more than N numbers on a line, the sensor retains only the first N.\n";
 
   ns->outputs.add("dataOut",
-                  OutputSpec("Data read from file", NTA_BasicType_Real32,
+                  OutputSpec("Data read from file", NTA_BasicType_Real64,
                              0,    // count
                              true, // isRegionLevel
                              true  // isDefaultOutput
@@ -571,10 +571,10 @@ void FileInputRegion::getParameterArray(const std::string &name, Int64 index, Ar
     NTA_THROW << "getParameterArray(), array size is: " << a.getCount()
               << "instead of : " << dataOut_.getCount();
 
-  Real *buf = (Real *)a.getBuffer();
-  Real dummy;
+  Real64 *buf = (Real64 *)a.getBuffer();
+  Real64 dummy;
   if (name == "scaleVector") {
-    Real *buf = (Real *)a.getBuffer();
+    Real64 *buf = (Real64 *)a.getBuffer();
     for (UInt i = 0; i < vectorFile_.getElementCount(); i++) {
       vectorFile_.getScaling(i, buf[i], dummy);
     }

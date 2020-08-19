@@ -225,10 +225,10 @@ namespace testing
     VERBOSE << "  FileInputRegion Output" << std::endl;
     Array r1OutputArray = region1->getOutputData("dataOut");
     EXPECT_EQ(r1OutputArray.getCount(), dataWidth);
-    EXPECT_TRUE(r1OutputArray.getType() == NTA_BasicType_Real32)
+    EXPECT_TRUE(r1OutputArray.getType() == NTA_BasicType_Real64)
             << "actual type is " << BasicType::getName(r1OutputArray.getType());
 
-    Real32 *buffer1 = (Real32*) r1OutputArray.getBuffer();
+    Real64 *buffer1 = (Real64*) r1OutputArray.getBuffer();
 	  //for (size_t i = 0; i < r1OutputArray.getCount(); i++)
 	  //{
 		//VERBOSE << "  [" << i << "]=    " << buffer1[i] << "" << std::endl;
@@ -276,10 +276,10 @@ namespace testing
 
     VERBOSE << "  FileOutputRegion input" << std::endl;
     Array r3InputArray = region3->getInputData("dataIn");
-    ASSERT_TRUE(r3InputArray.getType() == NTA_BasicType_Real32)
+    ASSERT_TRUE(r3InputArray.getType() == NTA_BasicType_Real64)
       << "actual type is " << BasicType::getName(r3InputArray.getType());
     ASSERT_TRUE(r3InputArray.getCount() == columnCount);
-    const Real32 *buffer4 = (const Real32*)r3InputArray.getBuffer();
+    const Real64 *buffer4 = (const Real64*)r3InputArray.getBuffer();
     for (size_t i = 0; i < r3InputArray.getCount(); i++)
     {
       //VERBOSE << "  [" << i << "]=    " << buffer4[i] << "" << std::endl;

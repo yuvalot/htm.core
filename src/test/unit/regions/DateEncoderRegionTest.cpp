@@ -190,7 +190,7 @@ TEST(DateEncoderRegionTest, testSpecAndParameters)
 	  VERBOSE << "Checking data after first iteration..." << std::endl;
     Array r1OutputArray = reader->getOutputData("dataOut");
     VERBOSE << "  FileInputRegion Output" << r1OutputArray << std::endl;
-    EXPECT_TRUE(r1OutputArray.getType() == NTA_BasicType_Real32)
+    EXPECT_TRUE(r1OutputArray.getType() == NTA_BasicType_Real64)
             << "actual type is " << BasicType::getName(r1OutputArray.getType());
     VERBOSE << "  " << std::endl;
 
