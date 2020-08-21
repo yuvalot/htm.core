@@ -122,6 +122,7 @@ namespace htm
         virtual void getParameterArray(const std::string& name, Int64 index, Array & array) const override;
         virtual void setParameterArray(const std::string& name, Int64 index, const Array & array) override;
 
+        const Connections* getConnections(const std::string &name) const override;
         // Helper methods
         template <typename T>
         T getParameterT(const std::string & name, Int64 index) const;

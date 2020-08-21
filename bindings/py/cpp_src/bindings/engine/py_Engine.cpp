@@ -244,7 +244,8 @@ namespace htm_ext
             .def("getOutputElementCount", &Region::getNodeOutputElementCount)
             .def("getInputElementCount", &Region::getNodeInputElementCount)
             .def("askImplForOutputDimensions", &Region::askImplForOutputDimensions)
-            .def("askImplForInputDimensions", &Region::askImplForInputDimensions);
+            .def("askImplForInputDimensions", &Region::askImplForInputDimensions)
+        		.def("getConnections", &Region::getConnections , py::return_value_policy::reference);//reference return value policy means that C++ side will handle object life
                         
         // These return the buffer's Array object
         py_Region.def("getInputArray", &Region::getInputData)

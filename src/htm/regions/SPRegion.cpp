@@ -164,6 +164,11 @@ void SPRegion::compute() {
 
 }
 
+const Connections * SPRegion::getConnections(const std::string &name) const {
+	//we have only one connections so return just them
+	return &sp_->getConnections();
+}
+
 std::string SPRegion::executeCommand(const std::vector<std::string> &args,Int64 index) {
   // The Spatial Pooler does not execute any Commands.
   return "";
