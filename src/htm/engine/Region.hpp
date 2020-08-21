@@ -38,7 +38,6 @@
 #include <htm/types/Serializable.hpp>
 #include <htm/types/Types.hpp>
 #include <htm/ntypes/Value.hpp>
-#include <htm/algorithms/Connections.hpp>
 
 namespace htm {
 
@@ -108,9 +107,6 @@ public:
    * @returns The spec that describes this region
    */
   const std::shared_ptr<Spec> &getSpec() const { return spec_; }
-
-
-  const Connections* getConnections(const std::string &name) const;
 
 
   /**

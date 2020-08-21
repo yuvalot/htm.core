@@ -51,8 +51,6 @@ namespace htm_ext
 		// on an already instantiated class.
         py_Region.def("getSpec", &Region_t::getSpec);
 
-        py_Region.def("getConnections", &Region_t::getConnections , py::return_value_policy::reference);//reference return value policy means that C++ side will handle object life
-
 
         ///////////////////
         // Test Node
