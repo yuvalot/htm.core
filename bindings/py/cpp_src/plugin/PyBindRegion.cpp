@@ -696,11 +696,6 @@ namespace py = pybind11;
     }
 
 
-    const Connections* PyBindRegion::getConnections(const std::string &name) const {
-    	//we have only one connections so return just them
-    	return &(tm_->connections);
-    }
-
     //
     // Get the node spec from the underlying Python node
     // and populate the provided node spec object.

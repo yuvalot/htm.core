@@ -134,6 +134,7 @@ public:
   Dimensions askImplForOutputDimensions(const std::string &name) override;
 
 
+
   /* -----------  Optional RegionImpl Interface methods ------- */
   UInt32 getParameterUInt32(const std::string &name, Int64 index) const override;
   Int32 getParameterInt32(const std::string &name, Int64 index) const override;
@@ -146,8 +147,6 @@ public:
   void setParameterReal32(const std::string &name, Int64 index,Real32 value) override;
   void setParameterBool(const std::string &name, Int64 index,bool value) override;
   void setParameterString(const std::string &name, Int64 index, const std::string &s) override;
-
-  const Connections* getConnections(const std::string &name) const override;
 
 private:
   Dimensions columnDimensions_;

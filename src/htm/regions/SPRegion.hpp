@@ -58,7 +58,6 @@ class SPRegion  : public RegionImpl, Serializable
     void compute() override;
     std::string executeCommand(const std::vector<std::string>& args, Int64 index) override;
 
-    const Connections* getConnections(const std::string &name) const override;
     /**
     * Inputs/Outputs are made available in initialize()
     * Region Impls are created at that time.
