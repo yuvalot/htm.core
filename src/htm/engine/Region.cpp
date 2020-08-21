@@ -291,7 +291,6 @@ Dimensions Region::getDimensions() const {
 }
 
 
-
 void Region::removeAllIncomingLinks() {
   InputMap::const_iterator i = inputs_.begin();
   for (; i != inputs_.end(); i++) {
@@ -528,6 +527,9 @@ void Region::setParameterJSON(const std::string &name, const std::string &value)
   }
 }
 
+const Connections* Region::getConnections (const std::string &name) const{
+	return impl_->getConnections(name);
+}
 
 // getParameters
 std::string Region::getParameters() const {

@@ -274,6 +274,11 @@ void TMRegion::compute() {
 }
 
 
+const Connections* TMRegion::getConnections(const std::string &name) const {
+	//we have only one connections so return just them
+	return &(tm_->connections);
+}
+
 /********************************************************************/
 
 Spec *TMRegion::createSpec() {

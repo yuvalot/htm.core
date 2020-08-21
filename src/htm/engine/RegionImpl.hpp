@@ -142,6 +142,7 @@
 #include <htm/types/Serializable.hpp>
 #include <htm/engine/Spec.hpp>
 #include <htm/ntypes/Value.hpp>
+#include <htm/algorithms/Connections.hpp>
 
 namespace htm {
 
@@ -298,6 +299,8 @@ public:
   virtual Dimensions getDimensions() const { return dim_; }
 
   virtual ValueMap ValidateParameters(const ValueMap &vm, Spec* ns);
+
+  virtual const Connections* getConnections(const std::string &name) const {return nullptr;} //returns null if not implemented
 
   static Spec *parseSpec(const std::string &yaml);
 
