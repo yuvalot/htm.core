@@ -328,7 +328,7 @@ TEST(TMRegionTest, testLinking) {
   EXPECT_EQ(r4InputArray, expected3outa) << r4InputArray;
 
   // cleanup
-  region3->executeCommand({"closeFile"});
+  region4->executeCommand({"closeFile"});
 }
 
 TEST(TMRegionTest, testSerialization) {
