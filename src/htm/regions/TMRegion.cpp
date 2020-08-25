@@ -294,6 +294,7 @@ std::string TMRegion::executeCommand(const std::vector<std::string> &args, Int64
 
     return "done";
   }
+  else
   NTA_THROW << "TMRegion - Unknown command:" << command;
 }
 
