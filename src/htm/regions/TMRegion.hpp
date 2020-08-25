@@ -148,6 +148,8 @@ public:
   void setParameterBool(const std::string &name, Int64 index,bool value) override;
   void setParameterString(const std::string &name, Int64 index, const std::string &s) override;
 
+  std::string executeCommand(const std::vector<std::string> &args, Int64 index) override;
+
 private:
   Dimensions columnDimensions_;
 
