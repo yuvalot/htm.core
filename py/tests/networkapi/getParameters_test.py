@@ -34,7 +34,7 @@ class NetworkAPI_getParameters_Test(unittest.TestCase):
   """ Unit tests for Network class. """
 
     
-  def testGetSpec(self):
+  def testGetSpecJSON(self):
     """
     A test of the Network.getSpecJSON( ) function.
     """
@@ -127,6 +127,19 @@ class NetworkAPI_getParameters_Test(unittest.TestCase):
     net = Network()
     json_str = net.getSpecJSON("RDSEEncoderRegion")
     self.assertEqual(json_str, expected)
+
+  def testGetSpec(self):
+    """
+    Test of region.getSpec() function. Testing if pybind pointers are correctly handled
+    """
+    net = Network()
+    dateRegion = net.addRegion('dateEncoder', 'DateEncoderRegion',
+      str(dict(timeOfDay_width=30,
+           timeOfDay_radius=1,
+           weekend_width=21)))
+
+    print(dateRegion.getSpec())# twice times to check if no double free arises
+    print(dateRegion.getSpec())
     
     
   def testGetParameters(self):
