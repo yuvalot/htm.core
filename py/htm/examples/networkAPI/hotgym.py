@@ -92,17 +92,7 @@ def main(parameters=default_parameters, argv=None, verbose=True):
     str(dict(size=parameters["enc"]["value"]["size"],
          sparsity=parameters["enc"]["value"]["sparsity"],
          resolution=parameters["enc"]["value"]["resolution"])))
-  print(str(dict(
-      columnCount=spParams['columnCount'],
-      potentialPct=spParams["potentialPct"],
-      potentialRadius=0,  # 0 is auto assign as inputWith
-      globalInhibition=True,
-      localAreaDensity=spParams["localAreaDensity"],
-      synPermInactiveDec=spParams["synPermInactiveDec"],
-      synPermActiveInc=spParams["synPermActiveInc"],
-      synPermConnected=spParams["synPermConnected"],
-      boostStrength=spParams["boostStrength"],
-      wrapAround=True)))
+
   # Make the HTM.  SpatialPooler & TemporalMemory & associated tools.
   spParams = parameters["sp"]
   spRegion = net.addRegion(
@@ -167,6 +157,20 @@ def main(parameters=default_parameters, argv=None, verbose=True):
     net.run(1)
     anomaly.append(np.array(tmRegion.getOutputArray("anomaly"))[0])
 
+  try:
+      import matplotlib.pyplot as plt
+  except:
+      print("WARNING: failed to import matplotlib, plots cannot be shown.")
+      return
+
+  plt.title("Anomaly Score")
+  plt.xlabel("Time")
+  plt.ylabel("Power Consumption")
+  inputs = np.array(inputs) / max(inputs)
+  plt.plot(np.arange(len(inputs)), inputs, 'red',
+           np.arange(len(inputs)), anomaly, 'blue', )
+  plt.legend(labels=('Input', 'Anomaly Score'))
+  plt.show()
   return
 
 
