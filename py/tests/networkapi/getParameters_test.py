@@ -138,8 +138,8 @@ class NetworkAPI_getParameters_Test(unittest.TestCase):
            timeOfDay_radius=1,
            weekend_width=21)))
 
-    print(dateRegion.getSpec())# twice times to check if no double free arises
-    print(dateRegion.getSpec())
+    dateRegion.getSpec()# twice times to check if no double free arises
+    dateRegion.getSpec()
     
     
   def testGetParameters(self):
