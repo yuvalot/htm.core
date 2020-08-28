@@ -88,7 +88,7 @@ TEST(HelloRegionTest, demo) {
   EXPECT_EQ(outputArray.getCount(), testdata[0].size());
   const Real64 *buffer = (const Real64 *)outputArray.getBuffer();
   for (size_t i = 0; i < outputArray.getCount(); i++)
-    EXPECT_FLOAT_EQ(buffer[i], testdata[0][i]);
+    EXPECT_DOUBLE_EQ(buffer[i], testdata[0][i]);
   // At this point we have consumed the first buffer from FileInputRegion.
 
   // Serialize

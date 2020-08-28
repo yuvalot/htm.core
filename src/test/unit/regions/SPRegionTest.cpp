@@ -69,7 +69,7 @@
 static bool verbose = false;  // turn this on to print extra stuff for debugging the test.
 
 // The following string should contain a valid expected Spec length - manually verified. 
-const UInt EXPECTED_SPEC_COUNT =  22u;  // The number of parameters expected in the SPRegion Spec
+const UInt EXPECTED_SPEC_COUNT =  20u;  // The number of parameters expected in the SPRegion Spec
 
 using namespace htm;
 namespace testing 
@@ -376,8 +376,73 @@ TEST(SPRegionTest, testSerialization)
 
     // cleanup
     Directory::removeTree("TestOutputDir", true);
-	}
+}
 
+TEST(SPRegionTest, testGetParameters)
+{
+  Network net;
+  // create an SP region with default parameters
+  std::shared_ptr<Region> region1 = net.addRegion("region1", "SPRegion", "{dim: 100}"); // only declare the output size
+
+  // before initialization
+  std::string expected1 = R"({
+  "columnCount": 0,
+  "inputWidth": 0,
+  "potentialRadius": 16,
+  "potentialPct": 0.500000,
+  "globalInhibition": true,
+  "localAreaDensity": 0.050000,
+  "numActiveColumnsPerInhArea": 0,
+  "stimulusThreshold": 0,
+  "synPermInactiveDec": 0.008000,
+  "synPermActiveInc": 0.050000,
+  "synPermConnected": 0.100000,
+  "minPctOverlapDutyCycles": 0.001000,
+  "dutyCyclePeriod": 1000,
+  "boostStrength": 0.000000,
+  "seed": 1,
+  "spVerbosity": 0,
+  "wrapAround": true,
+  "learningMode": 1,
+  "activeOutputCount": 0,
+  "spatialImp": null
+})";
+
+  std::string jsonstr = region1->getParameters();
+  VERBOSE << jsonstr << "\n";
+  EXPECT_STREQ(jsonstr.c_str(), expected1.c_str());
+
+
+  // after initialization
+  std::string expected2 = R"({
+  "columnCount": 100,
+  "inputWidth": 10,
+  "potentialRadius": 10,
+  "potentialPct": 0.500000,
+  "globalInhibition": true,
+  "localAreaDensity": 0.050000,
+  "numActiveColumnsPerInhArea": 0,
+  "stimulusThreshold": 0,
+  "synPermInactiveDec": 0.008000,
+  "synPermActiveInc": 0.050000,
+  "synPermConnected": 0.100000,
+  "minPctOverlapDutyCycles": 0.001000,
+  "dutyCyclePeriod": 1000,
+  "boostStrength": 0.000000,
+  "seed": 1,
+  "spVerbosity": 0,
+  "wrapAround": true,
+  "learningMode": 1,
+  "activeOutputCount": 100,
+  "spatialImp": null
+})";
+
+  net.link("INPUT", "region1", "", "{dim: 10}", "src", "bottomUpIn");                    // declare the input size
+  net.initialize();
+  jsonstr = region1->getParameters();
+  VERBOSE << jsonstr << "\n";
+  EXPECT_STREQ(jsonstr.c_str(), expected2.c_str());
+}
 
 } // namespace
 

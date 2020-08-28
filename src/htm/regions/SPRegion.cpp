@@ -482,25 +482,6 @@ Spec *SPRegion::createSpec() {
           "true",             // defaultValue
           ParameterSpec::ReadWriteAccess)); // access
 
-  /* ---- other parameters ----- */
-  ns->parameters.add(
-      "spInputNonZeros",
-      ParameterSpec("The indices of the non-zero inputs to the spatial pooler",
-          NTA_BasicType_SDR,            // type
-          0,                               // elementCount
-          "",                              // constraints
-          "",                              // defaultValue
-          ParameterSpec::ReadOnlyAccess)); // access
-
-  ns->parameters.add(
-      "spOutputNonZeros",
-      ParameterSpec(
-          "The indices of the non-zero outputs from the spatial pooler",
-          NTA_BasicType_SDR,            // type
-          0,                               // elementCount
-          "",                              // constraints
-          "",                              // defaultValue
-          ParameterSpec::ReadOnlyAccess)); // access
 
 
   /* The last group is for parameters that aren't specific to spatial pooler */
@@ -525,8 +506,8 @@ Spec *SPRegion::createSpec() {
 
   ns->parameters.add("spatialImp",
       ParameterSpec("SpatialPooler type or option. not used.",
-          NTA_BasicType_Byte,              // type
-          0,                               // elementCount
+          NTA_BasicType_Str,               // type
+          1,                               // elementCount
           "",                              // constraints
           "",                              // defaultValue
           ParameterSpec::ReadOnlyAccess)); // access
@@ -732,6 +713,8 @@ bool SPRegion::getParameterBool(const std::string &name, Int64 index) const {
 // copy the contents of the requested array into the caller's array.
 // Allocate the buffer if one is not provided.  Convert data types if needed.
 void SPRegion::getParameterArray(const std::string &name, Int64 index, Array &array) const {
+  if (!region_->isInitialized())
+    return;
   if (name == "spatialPoolerInput") {
     array = getInput("bottomUpIn")->getData().copy();
   } else if (name == "spatialPoolerOutput") {
@@ -747,6 +730,8 @@ void SPRegion::getParameterArray(const std::string &name, Int64 index, Array &ar
 }
 
 size_t SPRegion::getParameterArrayCount(const std::string &name, Int64 index) const {
+  if (!region_->isInitialized())
+    return 0;
   if (name == "spatialPoolerInput") {
     return getInput("bottomUpIn")->getData().getCount();
   } else if (name == "spatialPoolerOutput") {
