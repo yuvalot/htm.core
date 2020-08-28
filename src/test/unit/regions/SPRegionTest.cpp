@@ -387,7 +387,7 @@ TEST(SPRegionTest, testGetParameters)
   // before initialization
   std::string expected1 = R"({
   "columnCount": 0,
-  "inputWidth": 0,
+  "inputWidth": 100,
   "potentialRadius": 16,
   "potentialPct": 0.500000,
   "globalInhibition": true,
