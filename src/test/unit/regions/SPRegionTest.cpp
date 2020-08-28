@@ -409,7 +409,7 @@ TEST(SPRegionTest, testGetParameters)
 })";
 
   std::string jsonstr = region1->getParameters();
-  VERBOSE << jsonstr << "\n";
+  //VERBOSE << jsonstr << "\n";
   EXPECT_STREQ(jsonstr.c_str(), expected1.c_str());
 
 
@@ -440,7 +440,7 @@ TEST(SPRegionTest, testGetParameters)
   net.link("INPUT", "region1", "", "{dim: 10}", "src", "bottomUpIn");                    // declare the input size
   net.initialize();
   jsonstr = region1->getParameters();
-  VERBOSE << jsonstr << "\n";
+  //VERBOSE << jsonstr << "\n";
   EXPECT_STREQ(jsonstr.c_str(), expected2.c_str());
 }
 
