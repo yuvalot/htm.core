@@ -711,18 +711,33 @@ bool SPRegion::getParameterBool(const std::string &name, Int64 index) const {
 }
 
 // copy the contents of the requested array into the caller's array.
-// Allocate the buffer if one is not provided.  Convert data types if needed.
+// Allocate the buffer in the Array object if one is not provided.  Convert data types if needed.
+//
+// This may be confusing.  These 4 'array parameters' were part of the original function set so 
+// I am keeping them in the function for backward compatibility but they are removed from the
+// Spec. Originally getInputData( ) and getOutputData( ) functions did not exist so an app could 
+// not directly access the input and output buffers.  These Array 'parameters' were a way for the 
+// app to sample the buffer data but this was only available on the SPRegion.  Now that we have 
+// the more generic functions the Array parameters in SPRegion are redundant.  
+// Also note that 'spInputNonZeros' and 'spOutputNonZeros' were a way to get the sparse arrays 
+// from the buffers.   Now that we have the SDR type there is a better way to get the sparse array.
 void SPRegion::getParameterArray(const std::string &name, Int64 index, Array &array) const {
   if (!region_->isInitialized())
     return;
-  if (name == "spatialPoolerInput") {
-    array = getInput("bottomUpIn")->getData().copy();
+  if (name == "spatialPoolerInput") { 
+    // returns the dense array from the SDR
+    array = getInput("bottomUpIn")->getData().get_as(NTA_BasicType_UInt32);
   } else if (name == "spatialPoolerOutput") {
-    array = getOutput("bottomUpOut")->getData().copy();
+    // returns the dense array from the SDR
+    array = getOutput("bottomUpOut")->getData().get_as(NTA_BasicType_UInt32);
   } else if (name == "spInputNonZeros") {
-    array = getInput("bottomUpIn")->getData().copy();
+    // returns the sparse array from the SDR
+    const SDR_sparse_t& v = getInput("bottomUpIn")->getData().getSDR().getSparse();
+    array = Array(v);
   } else if (name == "spOutputNonZeros") {
-    array = getOutput("bottomUpOut")->getData().copy();
+    // returns the sparse array from the SDR
+    const SDR_sparse_t& v = getOutput("bottomUpOut")->getData().getSDR().getSparse();
+    array = Array(v);
   }
   else {
     this->RegionImpl::getParameterArray(name, index, array);
@@ -740,7 +755,7 @@ size_t SPRegion::getParameterArrayCount(const std::string &name, Int64 index) co
     const SDR_sparse_t& v = getInput("bottomUpIn")->getData().getSDR().getSparse();
     return v.size();
   } else if (name == "spOutputNonZeros") {
-    const SDR_sparse_t& v = getInput("bottomUpOut")->getData().getSDR().getSparse();
+    const SDR_sparse_t& v = getOutput("bottomUpOut")->getData().getSDR().getSparse();
     return v.size();
   }
   return 0;
