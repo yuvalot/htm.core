@@ -71,7 +71,7 @@ SPRegion::SPRegion(const ValueMap &values, Region *region)
     dim_ = Dimensions(args_.columnCount);
   else
     args_.columnCount = (UInt32)dim_.getCount();
-
+  args_.inputWidth = 0;  // size of the input buffer before initialization
 
 }
 
