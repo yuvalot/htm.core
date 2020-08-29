@@ -429,7 +429,7 @@ TEST(TMRegionTest, testSerialization) {
 
 TEST(TMRegionTest, testGetParameters) {
   Network net;
-  // create an TM region with default parameters
+  // create an TM region with default parameters 
   std::shared_ptr<Region> region1 = net.addRegion("region1", "TMRegion", ""); 
 
   // before initialization
