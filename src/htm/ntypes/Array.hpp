@@ -85,7 +85,7 @@
 //   constructor A(sdr)               - Buffer initialized from SDR
 //   constructor A(vector)            - Buffer initialized from vector
 //   B = A;                           - Shallow copy, B has same, type, buffer, size
-//   B = A.copy()                     - Creates B as a copy of A.
+//   B = A.copy()                     - Creates B as a deep copy of A.
 //   A.populate(vector)               - fills A from vector, with conversion, A retains type.
 //
 //

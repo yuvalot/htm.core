@@ -261,9 +261,9 @@ namespace testing
     EXPECT_TRUE(compareParameters(n2region1, parameterMap)) 
       << "Conflict when comparing ScalarSensor parameters after restore with before save.";
       
-    EXPECT_TRUE(compareParameterArrays(n1region2, n2region2, "spatialPoolerOutput", NTA_BasicType_SDR))
+    EXPECT_TRUE(compareParameterArrays(n1region2, n2region2, "spatialPoolerOutput", NTA_BasicType_UInt32))
         << " comparing Output arrays after restore with before save.";
-    EXPECT_TRUE(compareParameterArrays(n1region2, n2region2, "spOutputNonZeros", NTA_BasicType_SDR))
+    EXPECT_TRUE(compareParameterArrays(n1region2, n2region2, "spOutputNonZeros", NTA_BasicType_UInt32))
         << " comparing NZ out arrays after restore with before save.";
 
 
