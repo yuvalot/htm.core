@@ -40,7 +40,7 @@ class GridCellLocationRegion(PyRegion):
     gaussian activity bumps that move as the population receives motor input. When
     two bumps are near each other, the intermediate cells have higher firing rates
     than they would with a single bump. The cells with firing rates above a
-    certain threshold are considered "active". When the network receives a motor
+    certain threshold are considered 'active'. When the network receives a motor
     command, it shifts its bumps.
 
     The cells are distributed uniformly through the rhombus, packed in the optimal
