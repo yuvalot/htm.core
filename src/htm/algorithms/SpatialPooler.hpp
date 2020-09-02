@@ -300,13 +300,19 @@ public:
        CEREAL_NVP(synPermBelowStimulusInc_),
        CEREAL_NVP(synPermConnected_),
        CEREAL_NVP(minPctOverlapDutyCycles_),
-       CEREAL_NVP(wrapAround_));
+       CEREAL_NVP(wrapAround_),
+       CEREAL_NVP(version_)
+    );
     ar(CEREAL_NVP(boostFactors_));
     ar(CEREAL_NVP(overlapDutyCycles_));
     ar(CEREAL_NVP(activeDutyCycles_));
     ar(CEREAL_NVP(minOverlapDutyCycles_));
     ar(CEREAL_NVP(connections_));
     ar(CEREAL_NVP(rng_));
+    ar(CEREAL_NVP(minActiveDutyCycles_));
+    ar(CEREAL_NVP(boostedOverlaps_)); //boostedOverlaps_ are re-created in each compute() 
+    //...but if deserialized SP does some other action, it may get out of order.
+
   }
   // FOR Cereal Deserialization
   template<class Archive>
@@ -334,16 +340,17 @@ public:
        CEREAL_NVP(synPermBelowStimulusInc_),
        CEREAL_NVP(synPermConnected_),
        CEREAL_NVP(minPctOverlapDutyCycles_),
-       CEREAL_NVP(wrapAround_));
+       CEREAL_NVP(wrapAround_),
+       CEREAL_NVP(version_)
+    );
     ar(CEREAL_NVP(boostFactors_));
     ar(CEREAL_NVP(overlapDutyCycles_));
     ar(CEREAL_NVP(activeDutyCycles_));
     ar(CEREAL_NVP(minOverlapDutyCycles_));
     ar(CEREAL_NVP(connections_));
     ar(CEREAL_NVP(rng_));
-
-    // initialize ephemeral members
-    boostedOverlaps_.resize(numColumns_);
+    ar(CEREAL_NVP(minActiveDutyCycles_));
+    ar(CEREAL_NVP(boostedOverlaps_));
   }
 
   /**
