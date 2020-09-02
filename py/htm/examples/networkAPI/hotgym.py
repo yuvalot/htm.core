@@ -138,7 +138,7 @@ def main(parameters=default_parameters, argv=None, verbose=True):
   inputs = []
   anomaly = []
 
-  for count, record in enumerate(records):
+  for count, record in enumerate(records[0:100]):
 
     # Convert date string into Python date object.
     dateString = datetime.datetime.strptime(record[0], "%m/%d/%y %H:%M")
@@ -152,8 +152,8 @@ def main(parameters=default_parameters, argv=None, verbose=True):
 
   print("Data loaded.")
 
-  print("Running "+str(len(records)) + " times")
-  for i in range(len(records)):
+  print("Running "+str(len(records[0:100])) + " times")
+  for i in range(len(records[0:100])):
     net.run(1)
     anomaly.append(np.array(tmRegion.getOutputArray("anomaly"))[0])
 
