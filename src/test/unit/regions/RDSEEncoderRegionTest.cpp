@@ -194,7 +194,7 @@ namespace testing
 	  VERBOSE << "Checking data after first iteration..." << std::endl;
     Array r1OutputArray = region1->getOutputData("dataOut");
     VERBOSE << "  FileInputRegion Output" << r1OutputArray << std::endl;
-    EXPECT_TRUE(r1OutputArray.getType() == NTA_BasicType_Real32)
+    EXPECT_TRUE(r1OutputArray.getType() == NTA_BasicType_Real64)
             << "actual type is " << BasicType::getName(r1OutputArray.getType());
     VERBOSE << "  " << std::endl;
 
@@ -214,7 +214,7 @@ namespace testing
 
     VERBOSE << "  FileOutputRegion input" << std::endl;
     Array r4InputArray = region4->getInputData("dataIn");
-    ASSERT_TRUE(r4InputArray.getType() == NTA_BasicType_Real32)
+    ASSERT_TRUE(r4InputArray.getType() == NTA_BasicType_Real64)
       << "actual type is " << BasicType::getName(r4InputArray.getType());
 
     // cleanup
@@ -262,9 +262,9 @@ namespace testing
     EXPECT_TRUE(compareParameters(n2region1, parameterMap)) 
       << "Conflict when comparing RDSEEncoderRegion parameters after restore with before save.";
       
-    EXPECT_TRUE(compareParameterArrays(n1region2, n2region2, "spatialPoolerOutput", NTA_BasicType_SDR))
+    EXPECT_TRUE(compareParameterArrays(n1region2, n2region2, "spatialPoolerOutput", NTA_BasicType_UInt32))
         << " comparing Output arrays after restore with before save.";
-    EXPECT_TRUE(compareParameterArrays(n1region2, n2region2, "spOutputNonZeros", NTA_BasicType_SDR))
+    EXPECT_TRUE(compareParameterArrays(n1region2, n2region2, "spOutputNonZeros", NTA_BasicType_UInt32))
         << " comparing NZ out arrays after restore with before save.";
 
 
