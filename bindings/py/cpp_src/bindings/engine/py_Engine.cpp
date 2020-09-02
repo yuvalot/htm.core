@@ -221,7 +221,7 @@ namespace htm_ext
         ///////////////////
         // Spec
         ///////////////////
-        py::class_<Spec> py_Spec(m, "Spec");
+        py::class_<Spec, std::shared_ptr<Spec>> py_Spec(m, "Spec");
 
 
 

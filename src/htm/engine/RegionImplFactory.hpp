@@ -60,7 +60,7 @@ public:
 
 
   // Returns node spec for a specific node type as a shared pointer.
-  std::shared_ptr<Spec>& getSpec(const std::string nodeType);
+  std::shared_ptr<Spec> getSpec(const std::string nodeType);
 
   // RegionImplFactory caches nodespecs and the dynamic library reference
   // This frees up the cached information.
