@@ -223,6 +223,7 @@ namespace htm_ext
         ///////////////////
         py::class_<Spec, std::shared_ptr<Spec>> py_Spec(m, "Spec");
 
+        py_Spec.def("toString", &Spec::toString);
 
 
 

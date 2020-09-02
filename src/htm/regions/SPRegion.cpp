@@ -190,7 +190,7 @@ Spec *SPRegion::createSpec() {
       "SPRegion. This implements the Spatial Pooler algorithm as a plugin "
       "for the Network framework.  The Spatial Pooler manages relationships "
       "between the columns of a region and the inputs bits. The primary "
-      "public interface to this function is the \"compute\" method, which "
+      "public interface to this function is the 'compute' method, which "
       "takes in an input vector and returns a list of activeColumns columns.";
 
 
