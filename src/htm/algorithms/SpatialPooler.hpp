@@ -30,6 +30,7 @@
 #include <htm/types/Types.hpp>
 #include <htm/types/Serializable.hpp>
 #include <htm/types/Sdr.hpp>
+#include <htm/utils/Topology.hpp>
 
 
 namespace htm {
@@ -37,8 +38,6 @@ namespace htm {
 using namespace std;
 
 /**
- * CLA spatial pooler implementation in C++.
- *
  * ### Description
  * The Spatial Pooler is responsible for creating a sparse distributed
  * representation of the input. Given an input it computes a set of sparse
@@ -352,6 +351,9 @@ public:
     ar(CEREAL_NVP(rng_));
     ar(CEREAL_NVP(minActiveDutyCycles_));
     ar(CEREAL_NVP(boostedOverlaps_));
+
+    //re-initialize map
+    neighborMap_ = Neighborhood::updateAllNeighbors(inhibitionRadius_, columnDimensions_, wrapAround_, /*skip_center=*/true);
   }
 
   /**
