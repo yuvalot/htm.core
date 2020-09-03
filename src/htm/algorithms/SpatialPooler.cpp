@@ -1093,14 +1093,13 @@ bool SpatialPooler::operator==(const SpatialPooler& o) const{
   o.getConnectedCounts(conCounts2.data());
   NTA_CHECK(conCounts1 == conCounts2) << "SP equals: connected column counts";
   }
-  std::cout << "here\n";
 
   // compare connections
   NTA_CHECK (connections_ == o.connections_) << "SP equals: connections: " << connections_ << " vs. " << o.connections_;
 
   } catch(const htm::Exception& ex) {
     //some check failed -> not equal
-    std::cout << "SPP " << ex.what();
+    NTA_WARN << "SP unequal output: " << ex.what();
     return false;
   }
   return true;

@@ -784,8 +784,9 @@ public:
   /** set seed for internal random number generator. 
    * See @ref `seed` arg in the constructor.
    */
-  void setSeed(UInt seed) {
+  void setSeed(const UInt seed) {
     rng_ = Random(seed);
+    NTA_CHECK(seed == getSeed()) << "SP: Seed not set correctly";
   }
   UInt getSeed() const {
     return rng_.getSeed();
