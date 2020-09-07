@@ -378,7 +378,7 @@ distribution packages as listed and rename them as indicated. Copy these to
 | cereal.tar.gz          | https://github.com/USCiLab/cereal/archive/v1.2.2.tar.gz |
 | sqlite3.tar.gz         | https://www.sqlite.org/2020/sqlite-autoconf-3320300.tar.gz |
 | digestpp.zip           | https://github.com/kerukuro/digestpp/archive/36fa6ca2b85808bd171b13b65a345130dbe1d774.zip |
-| cpp-httplib.zip(*node4)| https://github.com/yhirose/cpp-httplib/archive/v0.5.5.zip |
+| cpp-httplib.zip(*node4)| https://github.com/yhirose/cpp-httplib/archive/v0.7.6.zip |
 
  * note1: Version 0.2.2 of libyaml is broken so use the master for the repository.
  * note3: Boost is not required for any compiler that supports C++17 with `std::filesystem` (MSVC2017, gcc-8, clang-9).
