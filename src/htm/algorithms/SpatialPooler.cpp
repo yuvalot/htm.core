@@ -621,7 +621,6 @@ void SpatialPooler::updateMinDutyCyclesLocal_() {
   for (UInt i = 0; i < numColumns_; i++) {
     Real maxOverlapDuty = overlapDutyCycles_[i]; //start with the center, which is column 'i'
     const auto& hood = neighborMap_[i];
-    //for(const auto column : Neighborhood(i, inhibitionRadius_, columnDimensions_, wrapAround_, /*skip center=*/false)) {
     for(const auto column : hood) {
       maxOverlapDuty = max(maxOverlapDuty, overlapDutyCycles_[column]);
     }
@@ -784,13 +783,9 @@ void SpatialPooler::updateBoostFactorsLocal_() {
     //optimization: In wrapAround, number of neighbors to be considered is solely a function of the inhibition radius,
     // the number of dimensions, and of the size of each of those dimenions. 
     // Or in non-wrap, if we use cached hood, we obtain the value the same as hood.size()
-    const bool centerIncluded = std::find(hood.cbegin(), hood.cend(), i) != hood.cend(); //TODO avoid this once hood w/o center works for SP!
-    const UInt numNeighbors = hood.size() + (centerIncluded ? 0 : 1);
-    NTA_ASSERT(numNeighbors > 0);
-    if (! centerIncluded) {
-      //start by adding the center ('i') which is not included in the hood
-      localActivityDensity += activeDutyCycles_[i]; //include the center, which is 'i' (not included in hood)
-    }
+    const UInt numNeighbors = hood.size() + 1; 
+    //start by adding the center ('i') which is not included in the hood
+    localActivityDensity += activeDutyCycles_[i]; //include the center, which is 'i' (not included in hood)
 
     //for(auto neighbor: Neighborhood(i, inhibitionRadius_, columnDimensions_, wrapAround_)) {
     for (const auto neighbor : hood) {
@@ -912,18 +907,15 @@ vector<CellIdx> SpatialPooler::inhibitColumnsLocal_(const vector<Real> &overlaps
     //..aka. how many times this column lost. 
 
     const auto& hood = neighborMap_.at(column);
-    // In wrapAround, number of neighbors to be considered is solely a function of the inhibition radius, 
+    // Optimization: In wrapAround, number of neighbors to be considered is solely a function of the inhibition radius, 
     // the number of dimensions, and of the size of each of those dimenion
-    const bool centerIncluded = std::find(neighborMap_.at(0).cbegin(), neighborMap_.at(0).cend(), 0) != neighborMap_.at(0).cend(); //TODO remove this if SP uses only hood w/o center
-    const UInt numNeighbors = hood.size() + (centerIncluded ? -1 : 0); // +1 if "hood" does not includes the column itself (center); See #also2
-    NTA_ASSERT(numNeighbors >= 0);
+    const UInt numNeighbors = hood.size();
     //const UInt numDesiredLocalActive = static_cast<UInt>(ceil(density * (numNeighbors + 1)));
     const UInt numDesiredLocalActive = static_cast<UInt>(0.5f + (density * (numNeighbors + 1)));
     NTA_ASSERT(numDesiredLocalActive > 0);
     
     //for(auto neighbor: Neighborhood(column, inhibitionRadius_,columnDimensions_, wrapAround_, false /*skip center*/)) { 
     for (const auto neighbor: hood) {
-      if(column == neighbor) continue; //TODO avoid this!
       NTA_ASSERT(neighbor != column);
 
       if (overlaps[neighbor] > overlaps[column] || ( (overlaps[neighbor] == overlaps[column]) && alreadyUsedColumn[neighbor])) { //this column lost to a neighbor
@@ -937,6 +929,7 @@ vector<CellIdx> SpatialPooler::inhibitColumnsLocal_(const vector<Real> &overlaps
       alreadyUsedColumn[column] = true;
     }
   }
+  NTA_ASSERT(activeColumns.size() == numDesiredLocalActive);
   //activeColumns.shrink_to_fit();
   return activeColumns;
 }
