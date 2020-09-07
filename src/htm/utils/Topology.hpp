@@ -227,7 +227,7 @@ public:
   Iterator end() const;
 
 static  std::unordered_map<htm::CellIdx, std::vector<htm::CellIdx>> updateAllNeighbors(
-    const Real radius,
+    const UInt radius,
     const std::vector<UInt> dimensions,
     const bool wrapAround=true,
     const bool skip_center=false);

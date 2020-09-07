@@ -232,7 +232,7 @@ void Neighborhood::Iterator::advance_() {
 }
 
 unordered_map<CellIdx, vector<CellIdx>> Neighborhood::updateAllNeighbors(
-		const Real radius,
+		const UInt radius,
                 const vector<UInt> dimensions,
                 const bool wrapAround,
                 const bool skip_center) { //TODO  move the cache logic to Neighbor class
