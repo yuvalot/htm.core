@@ -23,6 +23,7 @@
 #include <algorithm>
 #include <iterator> //begin()
 #include <cmath> //fmod
+#include <numeric> //iota
 
 #include <htm/algorithms/SpatialPooler.hpp>
 #include <htm/utils/Topology.hpp>
