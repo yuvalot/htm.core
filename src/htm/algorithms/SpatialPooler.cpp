@@ -929,7 +929,6 @@ vector<CellIdx> SpatialPooler::inhibitColumnsLocal_(const vector<Real> &overlaps
       alreadyUsedColumn[column] = true;
     }
   }
-  NTA_ASSERT(activeColumns.size() == numDesiredLocalActive);
   //activeColumns.shrink_to_fit();
   return activeColumns;
 }
