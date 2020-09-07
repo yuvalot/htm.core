@@ -1014,8 +1014,8 @@ TEST(SpatialPoolerTest, testUpdateBoostFactors) {
   { //test4: global inh + inh radius + boost str
   Real32 initActiveDutyCycles4[] = {0.1f, 0.3f, 0.02f, 0.04f, 0.7f, 0.12f};
   Real32 initBoostFactors4[] = {0, 0, 0, 0, 0, 0};
-  vector<Real32> trueBoostFactors4 = {54.5981f, 7.38906f, 121.51f,
-	                              99.4843f, 0.135335f, 44.7012f};
+  vector<Real32> trueBoostFactors4 = {54.598148, 7.38906, 121.51038,
+	                              99.4843, 0.135335, 44.70118};
   vector<Real32> resultBoostFactors4(6, 0);
   sp.setGlobalInhibition(true);
   sp.setBoostStrength(10.0);
@@ -1024,8 +1024,7 @@ TEST(SpatialPoolerTest, testUpdateBoostFactors) {
   sp.setActiveDutyCycles(initActiveDutyCycles4);
   sp.updateBoostFactors_();
   sp.getBoostFactors(resultBoostFactors4.data());
-  for(UInt i=0; i< resultBoostFactors4.size(); i++) std::cout << "res " << resultBoostFactors4[i] << " vs " << trueBoostFactors4[i] << " is " 
-	  << (fabs(resultBoostFactors4[i] - trueBoostFactors4[i]) < 1e-5) << "\n"; //debug
+  //for(UInt i=0; i< resultBoostFactors4.size(); i++) std::cout << std::fixed << std::setprecision(6) << "res " << resultBoostFactors4[i] << " vs " << trueBoostFactors4[i] << " is " << (fabs(resultBoostFactors4[i] - trueBoostFactors4[i]) < 1e-5) << "\n"; //debug
   ASSERT_EQ(resultBoostFactors4.size(), trueBoostFactors4.size()) << "size mismatch: " << resultBoostFactors4.size() << " vs. " << trueBoostFactors4.size();
   ASSERT_TRUE(check_vector_eq(trueBoostFactors4, resultBoostFactors4));
   }
