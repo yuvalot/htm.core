@@ -156,8 +156,8 @@ TEST_F(RESTapiTest, helloWorld) {
   EXPECT_STREQ(vm["result"].c_str(), "Hello World!") << "Response to GET /hi request";
 }
 
-/*
-TEST_F(RESTapiTest, example) { //FIXME started segfaulting in CI Debug
+#ifdef NDEBUG //FIXME cpp-httplib started segfaulting in Debug, see https://github.com/htm-community/htm.core/issues/884  
+TEST_F(RESTapiTest, example) {
   // A test similar to the Client Example.
 
   // Client thread.
@@ -247,7 +247,8 @@ TEST_F(RESTapiTest, example) { //FIXME started segfaulting in CI Debug
 
 
 }
-*/
+#endif
+
 
 TEST_F(RESTapiTest, test_delete) {
 
