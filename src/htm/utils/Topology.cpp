@@ -238,14 +238,14 @@ unordered_map<CellIdx, vector<CellIdx>> Neighborhood::updateAllNeighbors(
                 const bool skip_center) { //TODO  move the cache logic to Neighbor class
 
   std::unordered_map<CellIdx, vector<CellIdx>> neighborMap;
-  size_t numColumns = 1;
+  UInt numColumns = 1;
   for(const auto dim: dimensions) {
     numColumns*= dim;
   }
   neighborMap.reserve(numColumns);
 
 
-  for(size_t column=0; column < numColumns; column++) {
+  for(UInt column=0; column < numColumns; column++) {
     vector<CellIdx> neighbors; //of the current column
     for(const auto neighbor: Neighborhood(column, radius, dimensions, wrapAround, skip_center)) {
       neighbors.push_back(neighbor);
