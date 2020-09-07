@@ -1290,7 +1290,6 @@ TEST(SpatialPoolerTest, testInhibitColumnsLocal) {
     sp.setInhibitionRadius(inhibitionRadius);
     active = sp.inhibitColumnsLocal_(overlaps, density);
 
-    for (auto a : active) std::cout << a << "\n";
     ASSERT_EQ(active.size(), (size_t)4);
     ASSERT_TRUE(check_vector_eq(trueActive3, active));
   }
