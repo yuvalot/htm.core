@@ -31,7 +31,6 @@
 #include <thread>
 #include <chrono>
 
-#include <httplib.h>
 #include <examples/rest/server_core.hpp>
 
 namespace testing {
@@ -120,7 +119,7 @@ protected:
     serverThreadObj = std::thread (&RESTapiTest::serverThread, this); // start REST server
     std::this_thread::sleep_for(std::chrono::milliseconds(1)); // yield to give server time to start
     client.reset(new httplib::Client(host, port));
-    client->set_timeout_sec(30);
+    //client->set_timeout_sec(30);
   }
 
   virtual void TearDown() { 
@@ -145,7 +144,7 @@ protected:
 TEST_F(RESTapiTest, helloWorld) {
   // Client thread.
   Value vm;
-  client->set_timeout_sec(30);
+  //client->set_timeout_sec(30);
 
   // request "Hello World" to see if we are able to connect to the server.
   auto res = client->Get("/hi");
@@ -165,7 +164,7 @@ TEST_F(RESTapiTest, example) {
   char message[1000];
   Value vm;
 
-  client->set_timeout_sec(30);
+  //client->set_timeout_sec(30);
 
   // Configure a NetworkAPI example
   // See Network.configure() for syntax.
