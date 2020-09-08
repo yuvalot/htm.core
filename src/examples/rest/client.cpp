@@ -85,7 +85,7 @@ int main(int argc, char **argv) {
 
   VERBOSE << "Connecting to server: " + serverHost + " port: " << port << std::endl;
   httplib::Client client(serverHost.c_str(), port);
-  client.set_timeout_sec(30);  // The time it waits for a network connection.
+  //client.set_timeout_sec(30);  // The time it waits for a network connection.
 
   // request "Hello World" to see if we are able to connect to the server.
   VERBOSE << "GET /hi" << std::endl;
