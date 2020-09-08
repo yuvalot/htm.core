@@ -72,6 +72,7 @@ EPOCHS = 2; // make test faster in Debug
   SpatialPooler  spLocal(enc.dimensions, vector<UInt>{COLS}); // Spatial pooler with local inh
   spGlobal.setGlobalInhibition(true);
   spLocal.setGlobalInhibition(false);
+  //spLocal.setWrapAround(false);
   Random rnd(42); //uses fixed seed for deterministic output checks
 
   TemporalMemory tm(vector<UInt>{COLS}, CELLS);
