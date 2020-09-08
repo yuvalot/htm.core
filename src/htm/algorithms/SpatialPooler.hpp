@@ -24,11 +24,13 @@
 
 #include <iostream>
 #include <vector>
+#include <unordered_map>
 #include <iomanip> // std::setprecision
 #include <htm/algorithms/Connections.hpp>
 #include <htm/types/Types.hpp>
 #include <htm/types/Serializable.hpp>
 #include <htm/types/Sdr.hpp>
+#include <htm/utils/Topology.hpp>
 
 
 namespace htm {
@@ -36,8 +38,6 @@ namespace htm {
 using namespace std;
 
 /**
- * CLA spatial pooler implementation in C++.
- *
  * ### Description
  * The Spatial Pooler is responsible for creating a sparse distributed
  * representation of the input. Given an input it computes a set of sparse
@@ -351,6 +351,9 @@ public:
     ar(CEREAL_NVP(rng_));
     ar(CEREAL_NVP(minActiveDutyCycles_));
     ar(CEREAL_NVP(boostedOverlaps_));
+
+    //re-initialize map
+    neighborMap_ = Neighborhood::updateAllNeighbors(inhibitionRadius_, columnDimensions_, wrapAround_, /*skip_center=*/true);
   }
 
   /**
@@ -898,11 +901,11 @@ public:
      in a "connected state" (connected synapses) that are connected to input
      bits which are turned on.
 
-      @param activeColumns an int array containing the indices of the active
-     columns.
+      @return activeColumns
+      a sparse SDR vector containing the indices of the active columns.
+      Internally delegates to local/global inhibition functions.
   */
-  void inhibitColumns_(const vector<Real> &overlaps,
-                       vector<CellIdx> &activeColumns) const;
+  std::vector<CellIdx> inhibitColumns_(const vector<Real> &overlaps) const;
 
   /**
      Perform global inhibition.
@@ -922,11 +925,10 @@ public:
      @param density
      a real number of the fraction of columns to survive inhibition.
 
-     @param activeColumns
-     an int array containing the indices of the active columns.
+     @return activeColumns
+     an (sprase SDR) vector containing the indices of the active columns.
   */
-  void inhibitColumnsGlobal_(const vector<Real> &overlaps, Real density,
-                             vector<UInt> &activeColumns) const;
+  std::vector<CellIdx> inhibitColumnsGlobal_(const vector<Real> &overlaps, const Real density) const;
 
   /**
      Performs local inhibition.
@@ -951,11 +953,10 @@ public:
      local fashion, the exact fraction of surviving columns is likely to
      vary.
 
-     @param activeColumns
-     an int array containing the indices of the active columns.
+     @return activeColumns
+     an (sparse SDR) vector containing the indices of the active columns.
   */
-  void inhibitColumnsLocal_(const vector<Real> &overlaps, Real density,
-                            vector<UInt> &activeColumns) const;
+  std::vector<CellIdx> inhibitColumnsLocal_(const vector<Real> &overlaps, const Real density) const;
 
   /**
       The primary method in charge of learning.
@@ -1221,6 +1222,8 @@ protected:
 public:
   const Connections& connections = connections_; //for inspection of details in connections. Const, so users cannot break the SP internals.
   const Connections& getConnections() const { return connections_; } // as above, but for use in pybind11
+private:
+  std::unordered_map<UInt, std::vector<UInt>> neighborMap_; // col -> vector neighbors
 };
 
 std::ostream & operator<<(std::ostream & out, const SpatialPooler &sp);
