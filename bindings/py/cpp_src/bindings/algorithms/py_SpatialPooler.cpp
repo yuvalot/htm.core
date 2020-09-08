@@ -408,7 +408,7 @@ Argument output An SDR representing the winning columns after
         {
             std::vector<htm::Real> overlapsVector(get_it<Real>(overlaps), get_end<Real>(overlaps));
             std::vector<htm::UInt> activeColumnsVector;
-            self.inhibitColumns_(overlapsVector, activeColumnsVector);
+            self.inhibitColumns_(overlapsVector);
 
             return py::array_t<UInt>( activeColumnsVector.size(), activeColumnsVector.data());
         };

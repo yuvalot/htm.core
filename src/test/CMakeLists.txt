@@ -62,11 +62,6 @@ set(engine_tests
 	   unit/engine/WatcherTest.cpp
 	   )
 	   
-
-set(math_tests
-	   unit/math/TopologyTest.cpp
-	   )
-	   
 set(ntypes_tests
 	   unit/ntypes/ArrayTest.cpp
 	   unit/ntypes/BasicTypeTest.cpp
@@ -90,9 +85,9 @@ set(regions_tests
 	   unit/regions/ScalarEncoderRegionTest.cpp
 	   unit/regions/RDSEEncoderRegionTest.cpp
 	   unit/regions/SPRegionTest.cpp
-       unit/regions/TMRegionTest.cpp
-       unit/regions/VectorFileTest.cpp
-       unit/regions/DatabaseRegionTest.cpp
+           unit/regions/TMRegionTest.cpp
+           unit/regions/VectorFileTest.cpp
+           unit/regions/DatabaseRegionTest.cpp
 	   )
 
 	   
@@ -107,6 +102,7 @@ set(utils_tests
 	   unit/utils/RandomTest.cpp
 	   unit/utils/VectorHelpersTest.cpp
 	   unit/utils/SdrMetricsTest.cpp
+	   unit/utils/TopologyTest.cpp
 	   unit/utils/Sqlite3Test.cpp
 	   )
 
