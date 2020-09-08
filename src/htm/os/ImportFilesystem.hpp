@@ -54,8 +54,13 @@
   #endif
 #else
   // C++11
-  #include <boost/filesystem.hpp>
-  #define USE_BOOST_FILESYSTEM 1
+  #if (defined( __GNUC__ ) && __GNUC__ >= 8) || (defined(__clang_major__) && __clang_major__ >= 7)
+      #include <filesystem>
+      namespace fs = std::filesystem;
+  #else
+      #include <boost/filesystem.hpp>
+      #define USE_BOOST_FILESYSTEM 1
+  #endif
 #endif
 
 #ifdef USE_BOOST_FILESYSTEM

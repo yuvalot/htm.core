@@ -101,13 +101,13 @@ git clone https://github.com/htm-community/htm.core
 
 2) Run: `python setup.py install --user --force`
 
-   This will build and install everything.  The `--user` option prevents the system installed site-packages folder from being changed and avoids the need for admin privileges.  The `--force` option forces the package to be replaced if it already exists from a previous build. Alternatively you can type `pip uninstall htm.core` to remove a previous package before performing a build.
+   This will build and install a release version of htm.core.  The `--user` option prevents the system installed site-packages folder from being changed and avoids the need for admin privileges.  The `--force` option forces the package to be replaced if it already exists from a previous build. Alternatively you can type `pip uninstall htm.core` to remove a previous package before performing a build.
    
    * If you are using `virtualenv` you do not need the --user or --force options.
    * If you are using Anaconda Python you must run within the `Anaconda Prompt` on Windows. Do not use --user or --force options.
 
    * If you run into problems due to caching of arguments in CMake, delete the
-   folder `Repository/build` and try again.  This is only an issue when
+   folder `<path-to-repo>/build` and try again.  This may only an issue when
    developing C++ code.
 
 3) After that completes you are ready to import the library:
@@ -148,13 +148,34 @@ make -j8 install
 | REST Client Example    | `build/Release/bin/rest_client`      |
 
  * A debug library can be created by adding `-DCMAKE_BUILD_TYPE=Debug` to the cmake command above.
-   + The debug library will be put in `build/Debug`.
+   + The debug library will be put in `build/Debug` rather than `build/Release`.
      Use the cmake option `-DCMAKE_INSTALL_PREFIX=../Release` to change this.
 
  * The -j option can be used with the `make install` command to compile with multiple threads.
 
  * This will not build the Python interface. Use the Python build described above to build and install the python interface.
 
+Here is an example of a **debug build** of your own C++ app and link to htm.core as a shared library.
+```
+# Using GCC on linux ...
+# First build htm.core as debug from sources.
+#      cd <path-to-repo>
+#      mkdir -p build/scripts
+#      cd build/scripts
+#      cmake ../.. -DCMAKE_BUILD_TYPE=Debug
+#      make -j4 install
+# We use -std=c++17 to get <filesystem> so we can avoid using the boost library.
+# The -I gives the path to the includes needed to use the htm.core library.
+# The -L gives the path to the shared htm.core library location at build time.
+# The LD_LIBRARY_PATH envirment variable points to the htm.core library location at runtime.
+
+# Now build your app
+g++ -g -o myapp -std=c++17  -I <path-to-repo>/build/Debug/include myapp.cpp -L <path-to-repo>/build/Debug/lib -lhtm_core -lpthread -ldl
+
+# Run your app
+export LD_LIBRARY_PATH=<path-to-repo>/build/Debug/lib:$LD_LIBRARY_PATH
+./myapp
+```
 
 ### Docker Builds
 

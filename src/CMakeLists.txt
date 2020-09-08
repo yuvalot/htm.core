@@ -503,6 +503,14 @@ install(DIRECTORY ${PROJECT_SOURCE_DIR}/htm
       FILES_MATCHING PATTERN "*.h*"
       PATTERN "*.hpp.in" EXCLUDE)
 
+install(DIRECTORY ${cereal_INCLUDE_DIRS}/cereal
+      MESSAGE_NEVER
+      DESTINATION include/
+      FILES_MATCHING PATTERN "*.h*"
+      PATTERN "*.hpp.in" EXCLUDE)
+
+install(FILES ${cpp-httplib_SOURCE_DIR}/httplib.h
+      DESTINATION include)
 
 install(DIRECTORY "${REPOSITORY_DIR}/external/common/include/"
       MESSAGE_NEVER
