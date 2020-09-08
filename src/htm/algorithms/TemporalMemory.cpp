@@ -111,7 +111,7 @@ void TemporalMemory::initialize(
 
   numColumns_ = 1;
   columnDimensions_.clear();
-  for (auto &columnDimension : columnDimensions) {
+  for (const auto &columnDimension : columnDimensions) {
     numColumns_ *= columnDimension;
     columnDimensions_.push_back(columnDimension);
   }
@@ -177,7 +177,7 @@ void TemporalMemory::activatePredictedColumn_(
     do {
       if (learn) { 
         connections_.adaptSegment(*activeSegment, prevActiveCells,
-                     permanenceIncrement_, permanenceDecrement_, true);
+                     permanenceIncrement_, permanenceDecrement_, true, minThreshold_);
 
         const Int32 nGrowDesired =
             static_cast<Int32>(maxNewSynapseCount_) -
@@ -223,7 +223,7 @@ void TemporalMemory::burstColumn_(
     if (bestMatchingSegment != columnMatchingSegmentsEnd) {
       // Learn on the best matching segment.
       connections_.adaptSegment(*bestMatchingSegment, prevActiveCells,
-                   permanenceIncrement_, permanenceDecrement_, true);
+                   permanenceIncrement_, permanenceDecrement_, true, minThreshold_); //TODO consolidate SP.stimulusThreshold_ & TM.minThreshold_ into Conn.stimulusThreshold ? (replacing segmentThreshold arg used in some methods in Conn) 
 
       const Int32 nGrowDesired = maxNewSynapseCount_ - numActivePotentialSynapsesForSegment_[*bestMatchingSegment];
       if (nGrowDesired > 0) {
@@ -256,7 +256,7 @@ void TemporalMemory::punishPredictedColumn_(
     for (auto matchingSegment = columnMatchingSegmentsBegin;
          matchingSegment != columnMatchingSegmentsEnd; matchingSegment++) {
       connections_.adaptSegment(*matchingSegment, prevActiveCells,
-                   -predictedSegmentDecrement_, 0.0, true);
+                   -predictedSegmentDecrement_, 0.0, true, minThreshold_);
     }
   }
 }
@@ -383,9 +383,9 @@ void TemporalMemory::activateDendrites(const bool learn,
 
   // Active segments, connected synapses.
   activeSegments_.clear();
-  for (Segment segment = 0; segment < numActiveConnectedSynapsesForSegment_.size(); segment++) {
+  for (size_t segment = 0; segment < numActiveConnectedSynapsesForSegment_.size(); segment++) {
     if (numActiveConnectedSynapsesForSegment_[segment] >= activationThreshold_) { //TODO move to SegmentData.numConnected?
-      activeSegments_.push_back(segment);
+      activeSegments_.push_back(static_cast<UInt>(segment));
     }
   }
   const auto compareSegments = [&](const Segment a, const Segment b) { return connections.compareSegments(a, b); };
@@ -399,9 +399,9 @@ void TemporalMemory::activateDendrites(const bool learn,
 
   // Matching segments, potential synapses.
   matchingSegments_.clear();
-  for (Segment segment = 0; segment < numActivePotentialSynapsesForSegment_.size(); segment++) {
+  for (size_t segment = 0; segment < numActivePotentialSynapsesForSegment_.size(); segment++) {
     if (numActivePotentialSynapsesForSegment_[segment] >= minThreshold_) {
-      matchingSegments_.push_back(segment);
+      matchingSegments_.push_back(static_cast<UInt>(segment));
     }
   }
   std::sort( matchingSegments_.begin(), matchingSegments_.end(), compareSegments);
@@ -489,7 +489,7 @@ SDR TemporalMemory::cellsToColumns(const SDR& cells) const {
   auto correctDims = getColumnDimensions(); //nD column dimensions (eg 10x100)
   correctDims.push_back(static_cast<CellIdx>(getCellsPerColumn())); //add n+1-th dimension for cellsPerColumn (eg. 10x100x8)
 
-  NTA_CHECK(cells.dimensions.size() == correctDims.size()) 
+  NTA_ASSERT(cells.dimensions.size() == correctDims.size()) 
 	  << "cells.dimensions must match TM's (column dims x cellsPerColumn) ";
 
   for(size_t i = 0; i<correctDims.size(); i++) 
@@ -510,13 +510,9 @@ SDR TemporalMemory::cellsToColumns(const SDR& cells) const {
 
 vector<CellIdx> TemporalMemory::cellsForColumn(const CellIdx column) const { 
   const CellIdx start = cellsPerColumn_ * column;
-  const CellIdx end = start + cellsPerColumn_;
 
-  vector<CellIdx> cellsInColumn;
-  cellsInColumn.reserve(cellsPerColumn_);
-  for (CellIdx i = start; i < end; i++) {
-    cellsInColumn.push_back(i);
-  }
+  vector<CellIdx> cellsInColumn(cellsPerColumn_);
+  std::iota(std::begin(cellsInColumn), std::end(cellsInColumn), start); //fill with start, start+1, start+2, ...
 
   return cellsInColumn;
 }
@@ -525,7 +521,8 @@ vector<CellIdx> TemporalMemory::getActiveCells() const { return activeCells_; }
 
 void TemporalMemory::getActiveCells(SDR &activeCells) const
 {
-  NTA_CHECK( activeCells.size == numberOfCells() );
+  UInt nbr_cells = static_cast<UInt>(numberOfCells());
+  NTA_CHECK( activeCells.size == nbr_cells );
   activeCells.setSparse( getActiveCells() );
 }
 
@@ -658,7 +655,7 @@ static set<pair<CellIdx, SynapseIdx>>
 getComparableSegmentSet(const Connections &connections,
                         const vector<Segment> &segments) {
   set<pair<CellIdx, SynapseIdx>> segmentSet;
-  for (Segment segment : segments) {
+  for (const Segment segment : segments) {
     segmentSet.emplace(connections.cellForSegment(segment),
                        connections.idxOnCellForSegment(segment));
   }
