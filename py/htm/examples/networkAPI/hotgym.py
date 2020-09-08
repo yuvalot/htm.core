@@ -81,14 +81,14 @@ def main(parameters=default_parameters, argv=None, verbose=True):
 
   net = Network()
   # Make the Encoders.  These will convert input data into binary representations.
-  dateRegion = net.addRegion(
+  dateEncoderRegion = net.addRegion(
     'dateEncoder', 'DateEncoderRegion',
     str(dict(timeOfDay_width=parameters["enc"]["time"]["timeOfDay"][0],
          timeOfDay_radius=parameters["enc"]["time"]["timeOfDay"][1],
          weekend_width=parameters["enc"]["time"]["weekend"])))
 
-  scalarRegion = net.addRegion(
-    'scalarEncoder', 'RDSEEncoderRegion',
+  valueEncoderRegion = net.addRegion(
+    'valueEncoder', 'RDSEEncoderRegion',
     str(dict(size=parameters["enc"]["value"]["size"],
          sparsity=parameters["enc"]["value"]["sparsity"],
          resolution=parameters["enc"]["value"]["resolution"])))
@@ -129,7 +129,7 @@ def main(parameters=default_parameters, argv=None, verbose=True):
 
 
   net.link('dateEncoder', 'sp', '', '', 'encoded', 'bottomUpIn')
-  net.link('scalarEncoder', 'sp', '', '',  'encoded', 'bottomUpIn')
+  net.link('valueEncoder', 'sp', '', '',  'encoded', 'bottomUpIn')
   net.link('sp', 'tm',  '', '', 'bottomUpOut', 'bottomUpIn')
 
   net.initialize()
@@ -138,7 +138,7 @@ def main(parameters=default_parameters, argv=None, verbose=True):
   inputs = []
   anomaly = []
 
-  for count, record in enumerate(records[0:100]):
+  for count, record in enumerate(records[0:1000]):
 
     # Convert date string into Python date object.
     dateString = datetime.datetime.strptime(record[0], "%m/%d/%y %H:%M")
@@ -147,15 +147,20 @@ def main(parameters=default_parameters, argv=None, verbose=True):
     inputs.append(consumption)
 
     # Call the encoders to create bit representations for each value.  These are SDR objects.
-    dateRegion.executeCommand('addDataToQueue', int(dateString.timestamp()))
-    scalarRegion.executeCommand('addDataToQueue', consumption)
+    dateEncoderRegion.setParameterInt64('sensedTime', int(dateString.timestamp()))
+    valueEncoderRegion.setParameterReal64('sensedValue', consumption)
 
-  print("Data loaded.")
-
-  print("Running "+str(len(records[0:100])) + " times")
-  for i in range(len(records[0:100])):
     net.run(1)
     anomaly.append(np.array(tmRegion.getOutputArray("anomaly"))[0])
+
+    from htm.bindings.sdr import SDR
+    s = SDR(len(np.array(valueEncoderRegion.getOutputArray("encoded"))))
+    s.dense = np.array(valueEncoderRegion.getOutputArray("encoded"))
+    print(s.sparse)
+
+    s2 = SDR(len(np.array(net.getRegion('valueEncoder').getOutputArray("encoded"))))
+    s2.dense = np.array(net.getRegion('valueEncoder').getOutputArray("encoded"))
+    print(s2.sparse)
 
   try:
       import matplotlib.pyplot as plt
