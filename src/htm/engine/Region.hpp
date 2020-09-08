@@ -106,7 +106,7 @@ public:
    *
    * @returns The spec that describes this region
    */
-  const std::shared_ptr<Spec> &getSpec() const { return spec_; }
+  const std::shared_ptr<Spec> getSpec() const { return spec_; }
 
 
   /**
