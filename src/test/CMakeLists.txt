@@ -153,10 +153,10 @@ target_link_libraries(${unit_tests_executable}
     ${INTERNAL_LINKER_FLAGS}
 )
 target_include_directories(${unit_tests_executable} PRIVATE 
-	${gtest_INCLUDE_DIRS}
 	examples/rest
 	${CORE_LIB_INCLUDES}
-	${EXTERNAL_INCLUDES})
+	SYSTEM ${gtest_INCLUDE_DIRS}
+	SYSTEM ${EXTERNAL_INCLUDES})
 target_compile_definitions(${unit_tests_executable} PRIVATE ${COMMON_COMPILER_DEFINITIONS})
 target_compile_options(${unit_tests_executable} PUBLIC ${INTERNAL_CXX_FLAGS})
 add_dependencies(${unit_tests_executable} ${core_library}) 
