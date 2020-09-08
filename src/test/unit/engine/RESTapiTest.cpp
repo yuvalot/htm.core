@@ -31,7 +31,6 @@
 #include <thread>
 #include <chrono>
 
-#include <httplib.h>
 #include <examples/rest/server_core.hpp>
 
 namespace testing {
