@@ -94,18 +94,6 @@ namespace testing
 
   }
 
-  TEST(SPRegionTest, testGetParameters)
-    {
-  	//test that getParameters of region works without exceptions
-
-  	 Network net;
-			// create an SP region with default parameters
-			std::shared_ptr<Region> region1 = net.addRegion("region1", "SPRegion", "");  // use default configuration
-
-			EXPECT_NO_THROW(VERBOSE << region1->getParameters());
-
-    }
-
 
 
 	TEST(SPRegionTest, initialization_with_builtin_impl)
