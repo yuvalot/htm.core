@@ -138,7 +138,7 @@ def main(parameters=default_parameters, argv=None, verbose=True):
   inputs = []
   anomaly = []
 
-  for count, record in enumerate(records[0:1000]):
+  for count, record in enumerate(records[0:300]):
 
     # Convert date string into Python date object.
     dateString = datetime.datetime.strptime(record[0], "%m/%d/%y %H:%M")
@@ -152,15 +152,6 @@ def main(parameters=default_parameters, argv=None, verbose=True):
 
     net.run(1)
     anomaly.append(np.array(tmRegion.getOutputArray("anomaly"))[0])
-
-    from htm.bindings.sdr import SDR
-    s = SDR(len(np.array(valueEncoderRegion.getOutputArray("encoded"))))
-    s.dense = np.array(valueEncoderRegion.getOutputArray("encoded"))
-    print(s.sparse)
-
-    s2 = SDR(len(np.array(net.getRegion('valueEncoder').getOutputArray("encoded"))))
-    s2.dense = np.array(net.getRegion('valueEncoder').getOutputArray("encoded"))
-    print(s2.sparse)
 
   try:
       import matplotlib.pyplot as plt
