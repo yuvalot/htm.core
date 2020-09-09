@@ -93,6 +93,10 @@ git clone https://github.com/htm-community/htm.core
 
 - same as for Binary releases, plus:
 - **C++ compiler**: c++11/17 compatible (ie. g++, clang++).
+- boost library (if not a C++17 compiler that supports filesystem.)
+
+Note: Windows MSVC 2019 runs as C++17 by default.  On linux use -std=c++17 compile option to 
+      avoid needing boost.
 
 
 #### Simple Python build (any platform)
@@ -107,7 +111,7 @@ git clone https://github.com/htm-community/htm.core
    * If you are using Anaconda Python you must run within the `Anaconda Prompt` on Windows. Do not use --user or --force options.
 
    * If you run into problems due to caching of arguments in CMake, delete the
-   folder `<path-to-repo>/build` and try again.  This may only an issue when
+   folder `<path-to-repo>/build` and try again.  This may be only an issue when
    developing C++ code.
 
 3) After that completes you are ready to import the library:
@@ -155,8 +159,32 @@ make -j8 install
 
  * This will not build the Python interface. Use the Python build described above to build and install the python interface.
 
-Here is an example of a **debug build** of your own C++ app and link to htm.core as a shared library.
+Here is an example of a **Release build** of your own C++ app that links to htm.core as a shared library.
 ```
+#! /bin/sh
+# Using GCC on linux ...
+# First build htm.core from sources.
+#      cd <path-to-repo>
+#      mkdir -p build/scripts
+#      cd build/scripts
+#      cmake ../..
+#      make -j4 install
+#
+# Now build myapp
+# We use -std=c++17 to get <filesystem> so we can avoid using the boost library.
+# The -I gives the path to the includes needed to use with the htm.core library.
+# The -L gives the path to the shared htm.core library location at build time.
+# The LD_LIBRARY_PATH envirment variable points to the htm.core library location at runtime.
+g++ -o myapp -std=c++17  -I <path-to-repo>/build/Release/include myapp.cpp -L <path-to-repo>/build/Release/lib -lhtm_core -lpthread -ldl
+
+# Run myapp 
+export LD_LIBRARY_PATH=<path-to-repo>/build/Release/lib:$LD_LIBRARY_PATH
+./myapp
+```
+
+Here is an example of a **Debug build** of your own C++ app that links to htm.core as a shared library.
+```
+#! /bin/sh
 # Using GCC on linux ...
 # First build htm.core as debug from sources.
 #      cd <path-to-repo>
@@ -164,17 +192,18 @@ Here is an example of a **debug build** of your own C++ app and link to htm.core
 #      cd build/scripts
 #      cmake ../.. -DCMAKE_BUILD_TYPE=Debug
 #      make -j4 install
+#
+# Now build myapp
+# The -g -Og tells the compiler to build debug mode with no optimize.
 # We use -std=c++17 to get <filesystem> so we can avoid using the boost library.
-# The -I gives the path to the includes needed to use the htm.core library.
+# The -I gives the path to the includes needed to use with the htm.core library.
 # The -L gives the path to the shared htm.core library location at build time.
 # The LD_LIBRARY_PATH envirment variable points to the htm.core library location at runtime.
+g++ -g -Og -o myapp -std=c++17  -I <path-to-repo>/build/Debug/include myapp.cpp -L <path-to-repo>/build/Debug/lib -lhtm_core -lpthread -ldl
 
-# Now build your app
-g++ -g -o myapp -std=c++17  -I <path-to-repo>/build/Debug/include myapp.cpp -L <path-to-repo>/build/Debug/lib -lhtm_core -lpthread -ldl
-
-# Run your app
+# Run myapp in the debugger
 export LD_LIBRARY_PATH=<path-to-repo>/build/Debug/lib:$LD_LIBRARY_PATH
-./myapp
+gdb ./myapp
 ```
 
 ### Docker Builds

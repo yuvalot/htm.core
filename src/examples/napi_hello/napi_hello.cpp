@@ -16,10 +16,6 @@
  * --------------------------------------------------------------------- */
 
 #include <htm/engine/Network.hpp>
-#include <htm/utils/Random.hpp>
-#include <htm/utils/Log.hpp>
-#include <htm/ntypes/Value.hpp>
-#include <htm/utils/MovingAverage.hpp>
 #include <htm/algorithms/AnomalyLikelihood.hpp>
 #include <fstream>
 

@@ -509,7 +509,7 @@ install(DIRECTORY ${cereal_INCLUDE_DIRS}/cereal
       FILES_MATCHING PATTERN "*.h*"
       PATTERN "*.hpp.in" EXCLUDE)
 
-install(FILES ${cpp-httplib_SOURCE_DIR}/httplib.h
+install(FILES ${cpp-httplib_INCLUDE_DIRS}/httplib.h
       DESTINATION include)
 
 install(DIRECTORY "${REPOSITORY_DIR}/external/common/include/"
