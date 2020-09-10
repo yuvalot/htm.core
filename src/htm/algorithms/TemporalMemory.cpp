@@ -160,35 +160,6 @@ CellIdx TemporalMemory::getLeastUsedCell_(const CellIdx column) {
 }
 
 
-void TemporalMemory::growSynapses_(
-			 const Segment& segment,
-                         const SynapseIdx nDesiredNewSynapses,
-                         const vector<CellIdx> &prevWinnerCells) {
-  
-  vector<CellIdx> candidates(prevWinnerCells.begin(), prevWinnerCells.end());
-  NTA_ASSERT(std::is_sorted(candidates.begin(), candidates.end()));
-
-  //figure the number of new synapses to grow
-  const size_t nActual = std::min(static_cast<size_t>(nDesiredNewSynapses), candidates.size());
-  // ..Check if we're going to surpass the maximum number of synapses.
-  Int overrun = static_cast<Int>(connections.numSynapses(segment) + nActual - maxSynapsesPerSegment_);
-  if (overrun > 0) {
-    connections_.destroyMinPermanenceSynapses(segment, static_cast<size_t>(overrun), prevWinnerCells);
-  }
-  // ..Recalculate in case we weren't able to destroy as many synapses as needed.
-  const size_t nActualWithMax = std::min(nActual, static_cast<size_t>(maxSynapsesPerSegment_) - connections.numSynapses(segment));
-
-  // Pick nActual cells randomly.
-  rng_.shuffle(candidates.begin(), candidates.end());
-  const size_t nDesired = connections.numSynapses(segment) + nActualWithMax; //num synapses on seg after this function (+-), see #COND
-  for (const auto syn : candidates) {
-    // #COND: this loop finishes two folds: a) we ran out of candidates (above), b) we grew the desired number of new synapses (below)
-    if(connections.numSynapses(segment) == nDesired) break;
-    connections_.createSynapse(segment, syn, initialPermanence_); //TODO createSynapse consider creating a vector of new synapses at once?
-  }
-}
-
-
 void TemporalMemory::activatePredictedColumn_(
     vector<Segment>::const_iterator columnActiveSegmentsBegin,
     vector<Segment>::const_iterator columnActiveSegmentsEnd,
@@ -212,7 +183,7 @@ void TemporalMemory::activatePredictedColumn_(
             static_cast<Int32>(maxNewSynapseCount_) -
             numActivePotentialSynapsesForSegment_[*activeSegment];
         if (nGrowDesired > 0) {
-          growSynapses_(*activeSegment, nGrowDesired, prevWinnerCells);
+          connections_.growSynapses(*activeSegment, prevWinnerCells, initialPermanence_, rng_, nGrowDesired, maxSynapsesPerSegment_);
         }
       }
     } while (++activeSegment != columnActiveSegmentsEnd &&
@@ -256,7 +227,7 @@ void TemporalMemory::burstColumn_(
 
       const Int32 nGrowDesired = maxNewSynapseCount_ - numActivePotentialSynapsesForSegment_[*bestMatchingSegment];
       if (nGrowDesired > 0) {
-        growSynapses_(*bestMatchingSegment, nGrowDesired, prevWinnerCells);
+        connections_.growSynapses(*bestMatchingSegment, prevWinnerCells, initialPermanence_, rng_, nGrowDesired, maxSynapsesPerSegment_);
       }
     } else {
       // No matching segments.
@@ -269,7 +240,7 @@ void TemporalMemory::burstColumn_(
         const Segment segment =
             connections_.createSegment(winnerCell, maxSegmentsPerCell_);
 
-        growSynapses_(segment, nGrowExact, prevWinnerCells);
+        connections_.growSynapses(segment, prevWinnerCells, initialPermanence_, rng_, nGrowExact, maxSynapsesPerSegment_);
         NTA_ASSERT(connections.numSynapses(segment) == nGrowExact);
       }
     }
