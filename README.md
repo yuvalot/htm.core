@@ -175,7 +175,7 @@ Here is an example of a **Release build** of your own C++ app that links to htm.
 # The -I gives the path to the includes needed to use with the htm.core library.
 # The -L gives the path to the shared htm.core library location at build time.
 # The LD_LIBRARY_PATH envirment variable points to the htm.core library location at runtime.
-g++ -o myapp -std=c++17  -I <path-to-repo>/build/Release/include myapp.cpp -L <path-to-repo>/build/Release/lib -lhtm_core -lpthread -ldl
+g++ -o myapp -std=c++17 -I <path-to-repo>/build/Release/include myapp.cpp -L <path-to-repo>/build/Release/lib -lhtm_core -lpthread -ldl
 
 # Run myapp 
 export LD_LIBRARY_PATH=<path-to-repo>/build/Release/lib:$LD_LIBRARY_PATH
@@ -196,10 +196,11 @@ Here is an example of a **Debug build** of your own C++ app that links to htm.co
 # Now build myapp
 # The -g -Og tells the compiler to build debug mode with no optimize.
 # We use -std=c++17 to get <filesystem> so we can avoid using the boost library.
+# The -D_GLIBCXX_DEBUG setting tell compiler to compile std:: with debug
 # The -I gives the path to the includes needed to use with the htm.core library.
 # The -L gives the path to the shared htm.core library location at build time.
 # The LD_LIBRARY_PATH envirment variable points to the htm.core library location at runtime.
-g++ -g -Og -o myapp -std=c++17  -I <path-to-repo>/build/Debug/include myapp.cpp -L <path-to-repo>/build/Debug/lib -lhtm_core -lpthread -ldl
+g++ -g -Og -o myapp -std=c++17 -D_GLIBCXX_DEBUG -I <path-to-repo>/build/Debug/include myapp.cpp -L <path-to-repo>/build/Debug/lib -lhtm_core -lpthread -ldl
 
 # Run myapp in the debugger
 export LD_LIBRARY_PATH=<path-to-repo>/build/Debug/lib:$LD_LIBRARY_PATH
