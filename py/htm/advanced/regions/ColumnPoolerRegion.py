@@ -540,7 +540,7 @@ class ColumnPoolerRegion(PyRegion):
         with open(filepath+"_distal.dump", "wb") as f:
             f.write(self._pooler.internalDistalPermanences.save())
 
-        for i in range(self._pooler.distalPermanences):
+        for i in range(len(self._pooler.distalPermanences)):
             with open(filepath+"_distal_"+str(i)+".dump", "wb") as f:
                 f.write(self._pooler.distalPermanences[i].save())
 
