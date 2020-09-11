@@ -38,6 +38,7 @@
 #include <htm/types/Serializable.hpp>
 #include <htm/types/Types.hpp>
 #include <htm/ntypes/Value.hpp>
+#include <htm/ntypes/Array.hpp>
 
 namespace htm {
 
