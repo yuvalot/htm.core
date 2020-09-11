@@ -19,10 +19,11 @@ import datetime
 import os
 import numpy as np
 
-#from htm.bindings.engine_internal import Network
-from pandaBaker.pandaNetwork import Network # using visualizationTool https://github.com/htm-community/HTMpandaVis
+from htm.bindings.engine_internal import Network
+#from pandaBaker.pandaNetwork import Network # using visualizationTool https://github.com/htm-community/HTMpandaVis
 
 import faulthandler; faulthandler.enable()
+
 _EXAMPLE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 _INPUT_FILE_PATH = os.path.join(_EXAMPLE_DIR, "gymdata.csv")
 
@@ -138,7 +139,7 @@ def main(parameters=default_parameters, argv=None, verbose=True):
   inputs = []
   anomaly = []
 
-  for count, record in enumerate(records[0:300]):
+  for count, record in enumerate(records):
 
     # Convert date string into Python date object.
     dateString = datetime.datetime.strptime(record[0], "%m/%d/%y %H:%M")
