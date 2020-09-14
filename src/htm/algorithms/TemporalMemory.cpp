@@ -130,7 +130,7 @@ void TemporalMemory::initialize(
   externalPredictiveInputs_ = externalPredictiveInputs;
 
   // Initialize member variables
-  connections_ = Connections(static_cast<CellIdx>(numberOfColumns() * cellsPerColumn_), connectedPermanence_);
+  connections_ = Connections(static_cast<CellIdx>(numberOfColumns() * cellsPerColumn_), connectedPermanence_, /*timeseries=*/false); //TODO try TS true
   rng_ = Random(seed);
 
   maxSegmentsPerCell_ = maxSegmentsPerCell;
