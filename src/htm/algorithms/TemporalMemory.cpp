@@ -105,6 +105,7 @@ void TemporalMemory::initialize(
   NTA_CHECK(connectedPermanence >= 0.0 && connectedPermanence <= 1.0);
   NTA_CHECK(permanenceIncrement >= 0.0 && permanenceIncrement <= 1.0);
   NTA_CHECK(permanenceDecrement >= 0.0 && permanenceDecrement <= 1.0);
+  NTA_CHECK(fabs(connectedPermanence - initialPermanence) < 2*std::min(permanenceIncrement, permanenceDecrement)) << "Initial permanences should be with 2 increment(decrement) steps from the connected threshold. (Soft recommendation)."; 
   NTA_CHECK(minThreshold <= activationThreshold);
 
   // Save member variables
