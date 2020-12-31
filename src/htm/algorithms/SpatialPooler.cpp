@@ -784,7 +784,7 @@ void SpatialPooler::updateBoostFactorsLocal_() {
     //optimization: In wrapAround, number of neighbors to be considered is solely a function of the inhibition radius,
     // the number of dimensions, and of the size of each of those dimenions. 
     // Or in non-wrap, if we use cached hood, we obtain the value the same as hood.size()
-    const UInt numNeighbors = hood.size() + 1; 
+    const UInt numNeighbors = static_cast<UInt>(hood.size()) + 1; 
     //start by adding the center ('i') which is not included in the hood
     localActivityDensity += activeDutyCycles_[i]; //include the center, which is 'i' (not included in hood)
 
@@ -825,13 +825,13 @@ UInt getAreaND_(const vector<UInt>& dimensions, const Real radius) {
   }
   
   NTA_ASSERT(area >= 1);
-  return area;
+  return static_cast<UInt>(area);
 }
 
 vector<CellIdx> SpatialPooler::inhibitColumns_(const vector<Real> &overlaps) const {
   Real density = localAreaDensity_; //option 1: used localAreaDensity
   if (numActiveColumnsPerInhArea_ > 0) { //option 2: used numActiveColumnsPerInhArea in constructor
-    const UInt inhibitionArea = getAreaND_(columnDimensions_, inhibitionRadius_); 
+    const UInt inhibitionArea = getAreaND_(columnDimensions_, static_cast<Real>(inhibitionRadius_)); 
     NTA_ASSERT(inhibitionArea <= numColumns_);
     density = ((Real)numActiveColumnsPerInhArea_) / inhibitionArea;
     density = min(density, (Real)MAX_LOCALAREADENSITY);
@@ -910,7 +910,7 @@ vector<CellIdx> SpatialPooler::inhibitColumnsLocal_(const vector<Real> &overlaps
     const auto& hood = neighborMap_.at(column);
     // Optimization: In wrapAround, number of neighbors to be considered is solely a function of the inhibition radius, 
     // the number of dimensions, and of the size of each of those dimenion
-    const UInt numNeighbors = hood.size();
+    const UInt numNeighbors = static_cast<UInt>(hood.size());
     //const UInt numDesiredLocalActive = static_cast<UInt>(ceil(density * (numNeighbors + 1)));
     const UInt numDesiredLocalActive = static_cast<UInt>(0.5f + (density * (numNeighbors + 1)));
     NTA_ASSERT(numDesiredLocalActive > 0);
