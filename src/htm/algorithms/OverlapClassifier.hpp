@@ -20,25 +20,23 @@
  * --------------------------------------------------------------------- */
 
 /** @file
- * Definitions for the SDR Classifier & Predictor.
+ * Definitions for the Overlap Classifier.
  * 
  * `Classifier` learns mapping from SDR->input value (encoder's output). 
- * This is used when you need to "explain" the HTM network back to real-world, 
+ * This is used when you need to "explain" the HTM network back to a real-world value, 
  * ie. mapping SDRs back to digits in MNIST digit classification task. 
  *
- * `Predictor` has similar functionality for time-sequences 
- * where you want to "predict" N-steps ahead and then return real-world value. 
- * Internally it uses (several) Classifiers, and in nupic.core this used to be 
- * a part for SDRClassifier, for `htm.core` this is a separate class `Predictor`. 
- *
+ * Unlike the SDRClassifier, the OverlapClassifier matches SDR patterns to its real-world value
+ * by matching the patterns with the most number of bit overlap.
  */
 
-#ifndef NTA_SDR_CLASSIFIER_HPP
-#define NTA_SDR_CLASSIFIER_HPP
+#ifndef NTA_OVERLAP_CLASSIFIER_HPP
+#define NTA_OVERLAP_CLASSIFIER_HPP
 
 #include <deque>
 #include <unordered_map>
 #include <vector>
+#include <map>
 
 #include <htm/types/Types.hpp>
 #include <htm/types/Sdr.hpp>
@@ -57,9 +55,33 @@ using PDF = std::vector<Real64>; //Real64 (not Real/float) must be used here,
 // ... otherwise precision is lost and Predictor never reaches sufficient results.
 
 
+
+
+// A structure to hold the parts of the map key.
+class Key : public Serializable {
+public:
+  Int32 bit;      // integer Bit index of an ON bit.
+  Int64 category; // integer index of the category or bucket identifier
+
+  CerealAdapter;
+  template <class Archive> void save_ar(Archive &ar) const {
+    ar(cereal::make_nvp("bit", bit), cereal::make_nvp("category", category));
+  }
+  template <class Archive> void load_ar(Archive &ar) {
+    ar(cereal::make_nvp("bit", bit), cereal::make_nvp("category", category));
+  }
+};
+
+
 /**
- * The SDR Classifier takes the form of a single layer classification network.
+ * The Overlap Classifier takes the form of a multimap containing all learned SDRs
+ * mapped to the indexes of the labels that created them.
  * It accepts SDRs as input and outputs a predicted distribution of categories.
+ * Each input label index represents a bucket, a quantized value or category of the
+ * real-world data.
+ * 
+ * Unlike the SDR Classifier, the Overlap Classifier requires only one sample of
+ * each bucket in order to reliably identify the correct label given the SDR pattern.
  *
  * Categories are labeled using unsigned integers.  Other data types must be
  * enumerated or transformed into postitive integers.  There are as many output
@@ -67,15 +89,19 @@ using PDF = std::vector<Real64>; //Real64 (not Real/float) must be used here,
  *
  * Example Usage:
  *
- *    // Make a random SDR and associate it with the category B.
+ *    // Example 1.
+ *    // Make an SDR that is associated with the category B.
+ *    // This could be as a result of passing the category through an encoder and SP and perhaps TM
+ *    // For this example we will simulate it with a randomized SDR and associate it with category B.
  *    SDR inputData({ 1000 });
- *        inputData.randomize( 0.02 );
+ *    inputData.randomize( 0.02 );
  *    enum Category { A, B, C, D };
- *    Classifier clsr;
+ *    OverlapClassifier clsr;
  *    clsr.learn( inputData, { Category::B } );
  *    argmax( clsr.infer( inputData ) )  ->  Category::B
  *
- *    // Estimate a scalar value.  The Classifier only accepts categories, so
+ *    // Example 2
+ *    // Learn a scalar value.  The Classifier only accepts categories, so
  *    // put real valued inputs into bins (AKA buckets) by subtracting the
  *    // minimum value and dividing by a resolution.
  *    double scalar = 567.8;
@@ -84,39 +110,33 @@ using PDF = std::vector<Real64>; //Real64 (not Real/float) must be used here,
  *    clsr.learn( inputData, { (scalar - minimum) / resolution } );
  *    argmax( clsr.infer( inputData ) ) * resolution + minimum  ->  560
  *
- * During inference, the output is calculated by first doing a weighted
- * summation of all the inputs, and then perform a softmax nonlinear function to
- * get the predicted distribution of category labels.
+ * During inference, the Overlap Classifier will locate the previously learned
+ * entries by matching those with the most overlapping bits and then perform a 
+ * softmax nonlinear function to get the predicted distribution of category labels.
  *
- * During learning, the connection weights between input units and output units
- * are adjusted to maximize the likelihood of the model.
+ * During learning, the SDR and its corresponding category index are stored in
+ * a multimap.  This only takes one sample for each category to remember the bits.
+ * If multiple SCR samples are given for a category, the OR of all SDR bits are stored for the category.
  *
  * References:
- *  - Alex Graves. Supervised Sequence Labeling with Recurrent Neural Networks,
- *    PhD Thesis, 2008
  *  - J. S. Bridle. Probabilistic interpretation of feedforward classification
  *    network outputs, with relationships to statistical pattern recognition
  *  - In F. Fogleman-Soulie and J.Herault, editors, Neurocomputing: Algorithms,
  *    Architectures and Applications, pp 227-236, Springer-Verlag, 1990
  */
-class Classifier : public Serializable
+class OverlapClassifier : public Serializable
 {
 public:
   /**
    * Constructor.
    *
-   * @param alpha - The alpha used to adapt the weight matrix during learning. 
-   *                A larger alpha results in faster adaptation to the data.
-   *                Note: when SDRs are formed correctly, the classification task 
-   *                for this class is quite easy, so you likely will never need to 
-   *                optimize this parameter. 
    */
-  Classifier(Real alpha = 0.001f );
+  OverlapClassifier( );
 
   /**
    * For use when deserializing.
    */
-  void initialize(Real alpha);
+  void initialize();
 
   /**
    * Compute the likelihoods for each category / bucket.
@@ -133,6 +153,8 @@ public:
    *
    * @param pattern:  The active input bit SDR.
    * @param categoryIdxList:  The current categories or bucket indices.
+   *                          If more than one category is given in this list,
+   *                          the same pattern is remembered for each.
    */
   void learn(const SDR & pattern, const std::vector<UInt> & categoryIdxList);
 
@@ -140,22 +162,20 @@ public:
   template<class Archive>
   void save_ar(Archive & ar) const
   {
-    ar(cereal::make_nvp("alpha",         alpha_),
-       cereal::make_nvp("dimensions",    dimensions_),
+    ar(cereal::make_nvp("dimensions",    dimensions_),
        cereal::make_nvp("numCategories", numCategories_),
-       cereal::make_nvp("weights",       weights_));
+       cereal::make_nvp("map",           map_));
   }
 
   template<class Archive>
   void load_ar(Archive & ar) {
-    ar(cereal::make_nvp("alpha", alpha_), 
-       cereal::make_nvp("dimensions", dimensions_),
+    ar(cereal::make_nvp("dimensions",    dimensions_),
        cereal::make_nvp("numCategories", numCategories_), 
-       cereal::make_nvp("weights", weights_));
+       cereal::make_nvp("map",           map_));
   }
 
-  bool operator==(const Classifier &other) const;
-  bool operator!=(const Classifier &other) const { return !operator==(other); }
+  bool operator==(const OverlapClassifier &other) const;
+  bool operator!=(const OverlapClassifier &other) const { return !operator==(other); }
 
   /**
    * Returns the category with the greatest probablility.
@@ -167,34 +187,38 @@ public:
    */
   static void softmax(PDF::iterator begin, PDF::iterator end);
 
+
 private:
   Real alpha_;
   UInt dimensions_;
   UInt numCategories_;
 
   /**
-   * 2D map used to store the data.
-   * Use as: weights_[ input-bit ][ category-index ]
-   * Real64 (not just Real) so the computations do not lose precision.
+   * a multimap used to store the data.
+   * Key is [ on bit index ][ category-index ]
+   * For each sample, there is an entry in the map for each [bit-index and category-index] combination.
+   * The value associated with it is the pattern SDR associated during learning with the category-index.
    */
-  std::vector<std::vector<Real64>> weights_;
+  struct KeyComp {
+    bool operator()(const Key &lhs, const Key &rhs) const {
+      return (lhs.bit < rhs.bit || (lhs.bit == rhs.bit && lhs.category < rhs.category)); 
+    }
+  };
+  std::multimap<Key, SDR, KeyComp> map_;
 
-  // Helper function to compute the error signal for learning.
-  std::vector<Real64> calculateError_(const std::vector<UInt> &bucketIdxList,
-                                      const SDR &pattern) const;
 };
 
 
 
 /******************************************************************************/
-
+#if 0
 
 /**
  * The key is the step, for predicting multiple time steps into the future.
  * The value is a PDF (probability distribution function, of the result being in
  * each bucket or category).
  */
-using Predictions = std::unordered_map<UInt, PDF>;
+//using Predictions = std::unordered_map<UInt, PDF>;
 
 /**
  * The Predictor class does N-Step ahead predictions.
@@ -308,6 +332,8 @@ private:
   std::unordered_map<UInt, Classifier> classifiers_;
 
 };      // End of Predictor class
+#endif
+
 
 }       // End of namespace htm
 #endif  // End of ifdef NTA_SDR_CLASSIFIER_HPP

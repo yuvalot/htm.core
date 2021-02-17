@@ -1,7 +1,7 @@
 /* ---------------------------------------------------------------------
  * HTM Community Edition of NuPIC
  * Copyright (C) 2016, Numenta, Inc.
- *               2019, David McDougall
+ *               2021, David Keeney
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero Public License version 3 as
@@ -19,37 +19,56 @@
 #include <cmath> // exp
 #include <numeric> // accumulate
 
-#include <htm/algorithms/SDRClassifier.hpp>
+#include <htm/algorithms/OverlapClassifier.hpp>
 #include <htm/utils/Log.hpp>
 
 using namespace htm;
 using namespace std;
 
-/**
- * Returns the category with the greatest probablility.
- */
-static UInt argmax(const PDF &data)
-  { return UInt( max_element( data.begin(), data.end() ) - data.begin() ); }
-
-
-
 
 /******************************************************************************/
 
-Classifier::Classifier(const Real alpha)
-  { initialize( alpha ); }
+OverlapClassifier::OverlapClassifier()
+  { initialize( ); }
 
-void Classifier::initialize(const Real alpha)
-{
-  NTA_CHECK(alpha > 0.0f);
-  alpha_ = alpha;
+void OverlapClassifier::initialize() {
   dimensions_ = 0;
   numCategories_ = 0u;
-  weights_.clear();
+  map_.clear();
 }
 
 
-PDF Classifier::infer(const SDR & pattern) const {
+void OverlapClassifier::learn(const SDR &pattern, const vector<UInt> &categoryIdxList) {
+  // If this is the first time the Classifier is being used, the map is empty,
+  // so we set the dimensions to that of the input `pattern`
+  if (dimensions_ == 0) {
+    dimensions_ = pattern.size;
+  }
+  NTA_CHECK(pattern.size > 0) << "No Data passed to OverlapClassifier. Pattern is empty.";
+  NTA_ASSERT(pattern.size == dimensions_) << "Input SDR does not match previously seen size!";
+
+  // Check if this is a new category and adjust the numCategories accordingly.
+  const auto maxCategoryIdx = *max_element(categoryIdxList.cbegin(), categoryIdxList.cend());
+  if (maxCategoryIdx >= numCategories_) {
+    numCategories_ = maxCategoryIdx + 1;
+  }
+
+  // Add this pattern to the map.
+  for (const auto &bit : pattern.getSparse()) {
+    for (UInt i : categoryIdxList) {
+      // Insert this pattern if this bit/category combination is not in the map.
+      Key key;
+      key.bit = bit;
+      key.category = i;
+      std::multimap<Key, SDR>::iterator it = map_.find(key);
+      if (it == map_.end() || it->first.bit != key.bit || it->first.category != key.category)
+        map_.insert(std::pair<Key,SDR>(key, pattern));
+    }
+  }
+}
+
+
+PDF OverlapClassifier::infer(const SDR &pattern) const {
   // Check input dimensions, or if this is the first time the Classifier is used and dimensions
   // are unset, return zeroes.
   NTA_CHECK(pattern.size > 0) << "No Data pased to Classifier. Pattern is empty.";
@@ -58,12 +77,22 @@ PDF Classifier::infer(const SDR & pattern) const {
     return PDF(numCategories_, std::nan("")); //empty array []
   }
   NTA_ASSERT(pattern.size == dimensions_) << "Input SDR does not match previously seen size!";
+  PDF probabilities(numCategories_, 0.0);
 
-  // Accumulate feed forward input.
-  PDF probabilities( numCategories_, 0.0f );
+  // Accumulate the number of overlaps this pattern has for each category.
   for( const auto bit : pattern.getSparse() ) {
-    for( size_t i = 0; i < numCategories_; i++ ) {
-      probabilities[i] += weights_[bit][i];
+    // for each bit, use multimap to get a list of all entries that contain at least this one bit.
+    Key key1;
+    key1.bit = bit;
+    key1.category = 0;
+    std::multimap<Key, SDR>::const_iterator it = map_.find(key1);
+    while (it != map_.end() && it->first.bit == key1.bit) {
+      if (probabilities[it->first.category] == 0.0) {   // category already processed?
+        // found at least one SDR in the map with this bit turned on that we have not yet seen.
+        // See if that SDR has any other overlapping bits
+        int cnt = pattern.getOverlap(it->second);
+        probabilities[it->first.category] = static_cast<Real64>(cnt);
+      }
     }
   }
 
@@ -73,71 +102,22 @@ PDF Classifier::infer(const SDR & pattern) const {
 }
 
 
-void Classifier::learn(const SDR &pattern, const vector<UInt> &categoryIdxList)
-{
-  // If this is the first time the Classifier is being used, weights are empty, 
-  // so we set the dimensions to that of the input `pattern`
-  if( dimensions_ == 0 ) {
-    dimensions_ = pattern.size;
-    while( weights_.size() < pattern.size ) {
-      const auto initialEmptyWeights = PDF( numCategories_, 0.0f );
-      weights_.push_back( initialEmptyWeights );
-    }
-  }
-  NTA_CHECK(pattern.size > 0) << "No Data passed to Classifier. Pattern is empty.";
-  NTA_ASSERT(pattern.size == dimensions_) << "Input SDR does not match previously seen size!";
-
-  // Check if this is a new category & resize the weights table to hold it.
-  const auto maxCategoryIdx = *max_element(categoryIdxList.cbegin(), categoryIdxList.cend());
-  if( maxCategoryIdx >= numCategories_ ) {
-    numCategories_ = maxCategoryIdx + 1;
-    for( auto & vec : weights_ ) {
-      while( vec.size() < numCategories_ ) {
-        vec.push_back( 0.0f );
-      }
-    }
-  }
-
-  // Compute errors and update weights.
-  const auto& error = calculateError_(categoryIdxList, pattern);
-  for( const auto& bit : pattern.getSparse() ) {
-    for(size_t i = 0u; i < numCategories_; i++) {
-      weights_[bit][i] += alpha_ * error[i];
-    }
-  }
-}
-
-
-// Helper function to compute the error signal in learning.
-std::vector<Real64> Classifier::calculateError_(const std::vector<UInt> &categoryIdxList, 
-		                                const SDR &pattern) const {
-  // compute predicted likelihoods
-  auto likelihoods = infer(pattern);
-
-  // Compute target likelihoods
-  PDF targetDistribution(numCategories_ + 1u, 0.0f);
-  for( size_t i = 0u; i < categoryIdxList.size(); i++ ) {
-    targetDistribution[categoryIdxList[i]] = 1.0f / categoryIdxList.size();
-  }
-
-  for( size_t i = 0u; i < likelihoods.size(); i++ ) {
-    likelihoods[i] = targetDistribution[i] - likelihoods[i];
-  }
-  return likelihoods;
-}
 
 
 
-bool Classifier::operator==(const Classifier &other) const {
+bool OverlapClassifier::operator==(const OverlapClassifier &other) const {
   if (alpha_ != other.alpha_) return false;
   if (dimensions_ != other.dimensions_) return false; 
   if (numCategories_ != other.numCategories_) return false;
-  if (weights_.size() != other.weights_.size()) return false;
-  for (size_t i = 0; i < weights_.size();  i++) {
-    if (weights_[i].size() != other.weights_[i].size()) return false;
-    for (size_t j = 0; j < weights_[i].size(); j++) {
-      if (weights_[i][j] != other.weights_[i][j]) return false;
-    }
+  if (map_.size() != other.map_.size()) return false;
+  std::multimap<Key, SDR>::const_iterator a, b;
+  for (a = map_.begin(), b = other.map_.begin(); a != map_.end(); a++,b++) {
+    if (a->first.bit != b->first.bit)
+      return false;
+    if (a->first.category != b->first.category)
+      return false;
+    if (a->second != b->second)
+      return false;
   }
   return true;
 }
@@ -146,7 +126,7 @@ bool Classifier::operator==(const Classifier &other) const {
  * Helper function for Classifier::infer.  Converts the raw data accumulators
  * into a PDF.
  */
-void Classifier::softmax(PDF::iterator begin, PDF::iterator end) {
+void OverlapClassifier::softmax(PDF::iterator begin, PDF::iterator end) {
   if (begin == end) {
     return;
   }
@@ -162,7 +142,8 @@ void Classifier::softmax(PDF::iterator begin, PDF::iterator end) {
   }
 }
 
-/******************************************************************************/
+
+/**************************************************************************
 
 
 Predictor::Predictor(const vector<UInt> &steps, const Real alpha)
@@ -234,3 +215,5 @@ void Predictor::checkMonotonic_(const UInt recordNum) const {
   const UInt lastRecordNum = recordNumHistory_.empty() ? 0 : recordNumHistory_.back();
   NTA_CHECK(recordNum >= lastRecordNum) << "The record number must increase monotonically.";
 }
+
+**/

@@ -1,6 +1,7 @@
 /* ---------------------------------------------------------------------
  * HTM Community Edition of NuPIC
- * Copyright (C) 2016, Numenta, Inc.
+ * Copyright (C) 2021, Numenta, Inc.
+ *                     David Keeney, dkeeney@gmail.com
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero Public License version 3 as
@@ -16,7 +17,7 @@
  * --------------------------------------------------------------------- */
 
 /** @file
- * Implementation of unit tests for Classifier & Predictor
+ * Implementation of unit tests for the OverlapClassifier
  */
 
 #include <cmath> // isnan
@@ -29,7 +30,7 @@
 
 #include <gtest/gtest.h>
 
-#include <htm/algorithms/SDRClassifier.hpp>
+#include <htm/algorithms/OverlapClassifier.hpp>
 #include <htm/utils/Log.hpp>
 
 using namespace std;
@@ -38,16 +39,18 @@ using namespace htm;
 namespace testing {
 
 
-TEST(SDRClassifierTest, ExampleUsageClassifier)
+TEST(OverlapClassifierTest, ExampleUsageClassifier)
 {
+  // Example 1
   // Make a random SDR and associate it with the category B.
   SDR inputData({ 1000u });
       inputData.randomize( 0.02f );
   enum Category { A, B, C, D };
-  Classifier clsr;
+  OverlapClassifier clsr;
   clsr.learn( inputData, { Category::B } );
-  ASSERT_EQ( Classifier::argmax( clsr.infer( inputData ) ),  Category::B );
+  ASSERT_EQ(OverlapClassifier::argmax(clsr.infer(inputData)), Category::B);
 
+  // Example 2
   // Estimate a scalar value.  The Classifier only accepts categories, so
   // put real valued inputs into bins (AKA buckets) by subtracting the
   // minimum value and dividing by a resolution.
@@ -55,12 +58,11 @@ TEST(SDRClassifierTest, ExampleUsageClassifier)
   double minimum = 500.0f;
   double resolution = 10.0f;
   clsr.learn( inputData, { (UInt)((scalar - minimum) / resolution) } );
-  ASSERT_EQ(Classifier::argmax(clsr.infer(inputData)) * resolution + minimum, 560.0f);
+  ASSERT_EQ(OverlapClassifier::argmax(clsr.infer(inputData)) * resolution + minimum, 560.0f);
 }
 
-
-TEST(SDRClassifierTest, ExampleUsagePredictor)
-{
+/****
+TEST(OverlapClassifierTest, ExampleUsagePredictor) {
   // Predict 1 and 2 time steps into the future.
 
   // Make a sequence of 4 random SDRs. Each SDR has 1000 bits and 2% sparsity.
@@ -82,16 +84,16 @@ TEST(SDRClassifierTest, ExampleUsagePredictor)
   // about the future.
   pred.reset();
   Predictions A = pred.infer( sequence[0] );
-  ASSERT_EQ(Classifier::argmax(A[1]), labels[1]);
-  ASSERT_EQ(Classifier::argmax(A[2]), labels[2]);
+  ASSERT_EQ( argmax( A[1] ),  labels[1] );
+  ASSERT_EQ( argmax( A[2] ),  labels[2] );
 
   Predictions B = pred.infer( sequence[1] );
-  ASSERT_EQ(Classifier::argmax(B[1]), labels[2]);
-  ASSERT_EQ(Classifier::argmax(B[2]), labels[3]);
+  ASSERT_EQ( argmax( B[1] ),  labels[2] );
+  ASSERT_EQ( argmax( B[2] ),  labels[3] );
 }
 
 
-TEST(SDRClassifierTest, SingleValue) {
+TEST(OverlapClassifierTest, SingleValue) {
   // Feed the same input 10 times, the corresponding probability should be
   // very high
   vector<UInt> steps{1u};
@@ -105,14 +107,14 @@ TEST(SDRClassifierTest, SingleValue) {
   }
   Predictions result1 = c.infer( input1 );
 
-  ASSERT_EQ(Classifier::argmax(result1[1u]), 4u)
+  ASSERT_EQ( argmax( result1[1u] ), 4u )
       << "Incorrect prediction for bucket 4";
 
   ASSERT_EQ( result1.size(), 1u );
 }
 
 
-TEST(SDRClassifierTest, ComputeComplex) {
+TEST(OverlapClassifierTest, ComputeComplex) {
   // More complex classification
   // This test is ported from the Python unit test
   Predictor c({1u}, 1.0f);
@@ -157,28 +159,26 @@ TEST(SDRClassifierTest, ComputeComplex) {
   ASSERT_LT(fabs(result[1u].at(5u) - 0.770004f), 0.000001f)
       << "Incorrect prediction for bucket 5";
 }
+****/
 
-
-TEST(SDRClassifierTest, MultipleCategories) {
+TEST(OverlapClassifierTest, MultipleCategories) {
   // Test multiple category classification with single compute calls
   // This test is ported from the Python unit test
-  Classifier c(1.0f);
+  OverlapClassifier c;
 
-  // Create a input vectors
+  // Create an input vector
   SDR input1({ 10 });
   input1.setSparse(SDR_sparse_t({ 1u, 3u, 5u }));
   vector<UInt> bucketIdxList1{ 0u, 1u };
 
-  // Create a input vectors
+  // Create an input vector
   SDR input2({ 10 });
   input2.setSparse(SDR_sparse_t({ 2u, 4u, 6u }));
   vector<UInt> bucketIdxList2{ 2u, 3u };
 
-  // Train
-  for (auto i = 0u; i < 1000u; i++) {
-    c.learn( input1, bucketIdxList1 );
-    c.learn( input2, bucketIdxList2 );
-  }
+  // Train  (note: only need to train with one sample for each pattern.)
+  c.learn( input1, bucketIdxList1 );
+  c.learn( input2, bucketIdxList2 );
 
   // Test
   PDF result1 = c.infer( input1 );
@@ -195,8 +195,8 @@ TEST(SDRClassifierTest, MultipleCategories) {
       << "Incorrect prediction for bucket 3 (expected=0.5)";
 }
 
-
-TEST(SDRClassifierTest, SaveLoad) {
+/**
+TEST(OverlapClassifierTest, SaveLoad) {
   vector<UInt> steps{ 1u };
   Predictor c1(steps, 0.1f);
 
@@ -223,17 +223,17 @@ TEST(SDRClassifierTest, SaveLoad) {
   const auto c2_out = c2.infer( A );
   ASSERT_EQ(c1_out, c2_out);
 }
+***/
 
-
-TEST(SDRClassifierTest, testSoftmaxOverflow) {
+TEST(OverlapClassifierTest, testSoftmaxOverflow) {
   PDF values({ numeric_limits<Real>::max() });
-  Classifier::softmax(values.begin(), values.end());
+  OverlapClassifier::softmax(values.begin(), values.end());
   auto result = values[0u];
   ASSERT_FALSE(std::isnan(result));
 }
 
 
-TEST(SDRClassifierTest, testSoftmax) {
+TEST(OverlapClassifierTest, testSoftmax) {
   PDF values {0.0f, 1.0f, 1.337f, 2.018f, 1.1f, 0.5f, 0.9f};
   const PDF exp {
     0.045123016137150938f,
@@ -244,7 +244,7 @@ TEST(SDRClassifierTest, testSoftmax) {
     0.074395276503465876f,
     0.11098471087572169f};
 
-  Classifier::softmax(values.begin(), values.end());
+  OverlapClassifier::softmax(values.begin(), values.end());
 
   for(auto i = 0u; i < exp.size(); i++) {
     EXPECT_NEAR(values[i], exp[i], 0.000001f) << "softmax ["<< i <<"]";

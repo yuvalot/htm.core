@@ -55,8 +55,10 @@
 using namespace std;
 using namespace htm;
 
+static UInt argmax(const PDF &data) { return UInt(max_element(data.begin(), data.end()) - data.begin()); }
+
 class MNIST {
-/**
+  /**
  * RESULTS:
  *
  * Order :	score			: column dim	: #pass : time(s): git commit	: comment
