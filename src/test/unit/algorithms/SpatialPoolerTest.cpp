@@ -1013,7 +1013,11 @@ TEST(SpatialPoolerTest, testUpdateBoostFactors) {
 
   { //test4: global inh + inh radius + boost str
   Real32 initActiveDutyCycles4[] = {0.1f, 0.3f, 0.02f, 0.04f, 0.7f, 0.12f};
+<<<<<<< HEAD
   Real32 initBoostFactors4[] = {0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f};
+=======
+  Real32 initBoostFactors4[] = {0, 0, 0, 0, 0, 0};
+>>>>>>> origin/master
   vector<Real32> trueBoostFactors4 = {54.598148f, 7.38906f, 121.51038f,
 	                              99.4843f, 0.135335f, 44.70118f};
   vector<Real32> resultBoostFactors4(6, 0);

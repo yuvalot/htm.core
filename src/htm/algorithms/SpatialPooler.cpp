@@ -784,7 +784,7 @@ void SpatialPooler::updateBoostFactorsLocal_() {
     //optimization: In wrapAround, number of neighbors to be considered is solely a function of the inhibition radius,
     // the number of dimensions, and of the size of each of those dimenions. 
     // Or in non-wrap, if we use cached hood, we obtain the value the same as hood.size()
-    const UInt numNeighbors = static_cast<UInt>(hood.size() + 1); 
+    const UInt numNeighbors = static_cast<UInt>(hood.size()) + 1; 
     //start by adding the center ('i') which is not included in the hood
     localActivityDensity += activeDutyCycles_[i]; //include the center, which is 'i' (not included in hood)
 
@@ -831,7 +831,7 @@ UInt getAreaND_(const vector<UInt>& dimensions, const Real radius) {
 vector<CellIdx> SpatialPooler::inhibitColumns_(const vector<Real> &overlaps) const {
   Real density = localAreaDensity_; //option 1: used localAreaDensity
   if (numActiveColumnsPerInhArea_ > 0) { //option 2: used numActiveColumnsPerInhArea in constructor
-    const UInt inhibitionArea = getAreaND_(columnDimensions_, static_cast<const Real>(inhibitionRadius_)); 
+    const UInt inhibitionArea = getAreaND_(columnDimensions_, static_cast<Real>(inhibitionRadius_)); 
     NTA_ASSERT(inhibitionArea <= numColumns_);
     density = ((Real)numActiveColumnsPerInhArea_) / inhibitionArea;
     density = min(density, (Real)MAX_LOCALAREADENSITY);
