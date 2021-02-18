@@ -513,7 +513,7 @@ void Network::run(int n) {
       const std::shared_ptr<Region> r = p.second;
 
       for (const auto &inputTuple : r->getInputs()) {
-        for (const auto pLink : inputTuple.second->getLinks()) {
+        for (const auto &pLink : inputTuple.second->getLinks()) {
           pLink->shiftBufferedData();
         }
       }
@@ -695,7 +695,7 @@ void Network::post_load() {
     r->prepareInputs();
 
     for (const auto &inputTuple : r->getInputs()) {
-      for (const auto pLink : inputTuple.second->getLinks()) {
+      for (const auto &pLink : inputTuple.second->getLinks()) {
         pLink->shiftBufferedData();
       }
     }

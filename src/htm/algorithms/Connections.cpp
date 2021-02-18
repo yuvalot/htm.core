@@ -760,7 +760,7 @@ std::ostream& operator<< (std::ostream& stream, const Connections& self)
   SynapseIdx  connectedMax  = 0;
   UInt        synapsesDead      = 0;
   UInt        synapsesSaturated = 0;
-  for( const auto cellData : self.cells_ )
+  for( const auto &cellData : self.cells_ )
   {
     const UInt numSegments = (UInt) cellData.segments.size();
     segmentsMin   = std::min( segmentsMin, numSegments );
@@ -826,7 +826,7 @@ bool Connections::operator==(const Connections &o) const {
 
   //also check underlying datastructures (segments, and subsequently synapses). Can be time consuming.
   //1.cells:
-  for(const auto cellD : cells_) {
+  for(const auto &cellD : cells_) {
     //2.segments:
     const auto& segments = cellD.segments;
     for(const auto seg : segments) {
