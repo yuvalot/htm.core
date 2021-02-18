@@ -348,7 +348,7 @@ target_compile_options( ${src_executable_hello} PUBLIC ${INTERNAL_CXX_FLAGS})
 target_compile_definitions(${src_executable_hello} PRIVATE ${COMMON_COMPILER_DEFINITIONS})
 target_include_directories(${src_executable_hello} PRIVATE 
 		${CORE_LIB_INCLUDES} 
-		${EXTERNAL_INCLUDES}
+		SYSTEM ${EXTERNAL_INCLUDES}
 		)
 
 ###add_custom_target(benchmark_hello
@@ -373,7 +373,7 @@ else()
   target_compile_definitions(${src_dyn_executable_hello} PRIVATE ${COMMON_COMPILER_DEFINITIONS})
   target_include_directories(${src_dyn_executable_hello} PRIVATE 
 		${CORE_LIB_INCLUDES} 
-		${EXTERNAL_INCLUDES}
+		SYSTEM ${EXTERNAL_INCLUDES}
 		)
 endif()
 
@@ -392,7 +392,7 @@ target_compile_options( ${src_executable_napi_hello} PUBLIC ${INTERNAL_CXX_FLAGS
 target_compile_definitions(${src_executable_napi_hello} PRIVATE ${COMMON_COMPILER_DEFINITIONS})
 target_include_directories(${src_executable_napi_hello} PRIVATE 
 		${CORE_LIB_INCLUDES} 
-		${EXTERNAL_INCLUDES}
+		SYSTEM ${EXTERNAL_INCLUDES}
 		)
 
 #########################################################
@@ -410,7 +410,7 @@ target_compile_options( ${src_executable_napi_hello_database} PUBLIC ${INTERNAL_
 target_compile_definitions(${src_executable_napi_hello_database} PRIVATE ${COMMON_COMPILER_DEFINITIONS})
 target_include_directories(${src_executable_napi_hello_database} PRIVATE 
 		${CORE_LIB_INCLUDES} 
-		${EXTERNAL_INCLUDES}
+		SYSTEM ${EXTERNAL_INCLUDES}
 		)
 		
 #########################################################
@@ -429,7 +429,7 @@ target_link_libraries(${src_executable_mnistsp}
   target_compile_definitions(${src_executable_mnistsp} PRIVATE MNIST_DATA_LOCATION=${mnist_SOURCE_DIR})
   target_include_directories(${src_executable_mnistsp} PRIVATE 
         ${CORE_LIB_INCLUDES} 
-        ${EXTERNAL_INCLUDES}
+	SYSTEM ${EXTERNAL_INCLUDES}
         )
 
 ###########################################################
@@ -447,7 +447,7 @@ target_link_libraries(${src_executable_mnistsp}
   target_include_directories(${src_executable_rest_server} PRIVATE 
         ${CORE_LIB_INCLUDES} 
         examples/rest
-        ${EXTERNAL_INCLUDES}
+	SYSTEM ${EXTERNAL_INCLUDES}
         )
     
   set(src_executable_rest_client rest_client)
@@ -461,7 +461,7 @@ target_link_libraries(${src_executable_mnistsp}
   target_compile_definitions(${src_executable_rest_client} PRIVATE ${COMMON_COMPILER_DEFINITIONS})
   target_include_directories(${src_executable_rest_client} PRIVATE 
         ${CORE_LIB_INCLUDES} 
-        ${EXTERNAL_INCLUDES}
+	SYSTEM ${EXTERNAL_INCLUDES}
         )
 
 ############ INSTALL ######################################
@@ -503,6 +503,14 @@ install(DIRECTORY ${PROJECT_SOURCE_DIR}/htm
       FILES_MATCHING PATTERN "*.h*"
       PATTERN "*.hpp.in" EXCLUDE)
 
+install(DIRECTORY ${cereal_INCLUDE_DIRS}/cereal
+      MESSAGE_NEVER
+      DESTINATION include/
+      FILES_MATCHING PATTERN "*.h*"
+      PATTERN "*.hpp.in" EXCLUDE)
+
+install(FILES ${cpp-httplib_INCLUDE_DIRS}/httplib.h
+      DESTINATION include)
 
 install(DIRECTORY "${REPOSITORY_DIR}/external/common/include/"
       MESSAGE_NEVER

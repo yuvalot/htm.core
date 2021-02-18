@@ -20,7 +20,7 @@ jobs:
       #max-parallel: 4
       matrix:
         python-version: [3.7] #TODO we're not yet py3.8 ready!
-        os: [ubuntu-18.04, windows-2019, macOS-latest]
+        os: [ubuntu-18.04, ubuntu-20.04, windows-2019, macos-10.15]
 
     steps:
     - uses: actions/checkout@v2
@@ -92,7 +92,7 @@ jobs:
     strategy:
       #max-parallel: 4
       matrix:
-        os: [ubuntu-18.04, windows-2019, macOS-latest]
+        os: [ubuntu-18.04, ubuntu-20.04, windows-2019, macos-10.15]
     steps:
 
     - uses: actions/checkout@v2
@@ -130,7 +130,7 @@ jobs:
 
   build-arm64-docker:
     name: Build for ARM64 on Docker
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-20.04
     steps:
 
     - uses: actions/checkout@v2
@@ -149,7 +149,7 @@ jobs:
       run: |
         sudo docker run htm-arm64-docker python setup.py install --force 
 
-     #TODO build manylinux2014 amr linux wheel using CIBW 
+     #TODO build manylinux2014 arm linux wheel using CIBW 
  
     - name: Tests
       run: |
@@ -184,7 +184,7 @@ jobs:
 
   publish-pypi: #this is a separate job, as the upload must run only once, after all wheels have been created
     needs: [build-wheels]
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-20.04
     steps:
     - uses: actions/checkout@v2
 

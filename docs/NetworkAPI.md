@@ -15,6 +15,10 @@ The intent of NetworkAPI is to strip away the complexity of working directly wit
 - [NetworkAPI REST interface](NetworkAPI_REST.md); A Web interface
 - [NetworkAPI How to create Regions](NetworkAPI_Creating_Regions.md); Making custom building blocks.
 
+## Example
+
+There is simple python example of 'Hotgym experiment' located in /py/htm/examples/networkAPI folder.
+
 ## Help
 In addition to the [Peer Reviewed Reasearch Papers](https://numenta.com/neuroscience-research/research-publications/papers/) released by Numenta, there is Matt Taylor's [HTM School](https://numenta.org/htm-school/) which explains the concepts and an active [User Forum](https://discourse.numenta.org/categories) where you can ask for help.
 

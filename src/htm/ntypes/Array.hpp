@@ -167,6 +167,7 @@
 #include <htm/ntypes/Dimensions.hpp>
 #include <htm/utils/Log.hpp>
 #include <htm/types/Serializable.hpp>
+#include <htm/types/Sdr.hpp>
 
 namespace htm {
 class Array : public ArrayBase {
