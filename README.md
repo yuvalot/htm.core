@@ -255,7 +255,7 @@ Note:
 ### Automated Builds, CI
 
 We use Github `Actions` to build and run multiplatform (OSX, Windows, Linux, ARM64) tests and releases. 
-* the [pr.yml](/.github/workflows/pr.yml) runs on each pull-request (PR), builds for Linux(Ubuntu18.04),Windows,OSX(10.15) and checkes that all tests pass OK. This is mandatory for a new PR
+* the [pr.yml](/.github/workflows/pr.yml) runs on each pull-request (PR), builds for Linux(Ubuntu 20.04), Windows(2019), OSX(10.15) and checkes that all tests pass OK. This is mandatory for a new PR
 to be accepted. 
 * [release.yml](/.github/workflows/release.yml) is created manually by the maintainers in the [release process](./RELEASE.md) and creates 
   - binary GitHub releases
