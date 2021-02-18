@@ -87,7 +87,7 @@ void RandomDistributedScalarEncoder::initialize( const RDSE_Parameters &paramete
     args_.seed = Random().getUInt32();
   }
 
-  NTA_CHECK(check_parameters()) << "Failed hash collision resistance check.";
+  NTA_CHECK(check_parameters()) << "Failed hash collision resistance check, please increase size and/or activeBits.";
 }
 
 void RandomDistributedScalarEncoder::encode(Real64 input, SDR &output)
