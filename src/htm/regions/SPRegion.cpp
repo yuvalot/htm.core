@@ -164,10 +164,29 @@ void SPRegion::compute() {
 
 }
 
-std::string SPRegion::executeCommand(const std::vector<std::string> &args,Int64 index) {
-  // The Spatial Pooler does not execute any Commands.
-  return "";
+std::string SPRegion::executeCommand(const std::vector<std::string> &args, Int64 index) {
+
+  UInt32 argCount = (UInt32)args.size();
+  // Get the first argument (command string)
+  NTA_CHECK(argCount > 0) << "SPRegion: No command name";
+  string command = args[0];
+
+  // Process each command
+  if (command == "saveConnectionsToFile") {
+    NTA_CHECK(argCount > 1)
+        << "SPRegion: no path specified for " << command;
+
+
+    // string filename = ReadStringFromBuffer(*buf2);
+    string filePath(args[1]);
+
+    sp_->connections.saveToFile(filePath+".dump");
+
+    return "done";
+  }
+  NTA_THROW << "SPRegion - Unknown command:" << command;
 }
+
 
 // This is the per-node output size. This is called by Link to determine how big 
 // to create the output buffers during Region::initialization(). It calls this

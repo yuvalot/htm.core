@@ -23,12 +23,14 @@
 #include <climits>
 #include <iomanip>
 #include <iostream>
+#include <set>
 
 #include <htm/algorithms/Connections.hpp>
 
 using std::endl;
 using std::string;
 using std::vector;
+using std::set;
 using namespace htm;
 
 Connections::Connections(const CellIdx numCells, 
@@ -154,8 +156,6 @@ Synapse Connections::createSynapse(Segment segment,
       return syn;
     }
   } //else: the new synapse is not duplicit, so keep creating it. 
-
-
 
   // Get an index into the synapses_ list, for the new synapse to reside at.
   NTA_ASSERT(synapses_.size() < std::numeric_limits<Synapse>::max()) << "Add synapse failed: Range of Synapse (data-type) insufficient size."
@@ -654,6 +654,16 @@ void Connections::bumpSegment(const Segment segment, const Permanence delta) {
 }
 
 
+vector<CellIdx> Connections::presynapticCellsForSegment(const Segment segment) const { //TODO optimize by storing the vector in SegmentData?
+  set<CellIdx> presynCells;
+  for(const auto synapse: synapsesForSegment(segment)) {
+    const auto presynapticCell = dataForSynapse(synapse).presynapticCell;
+    presynCells.insert(presynapticCell);
+  }
+  return vector<CellIdx>(std::begin(presynCells), std::end(presynCells));
+}
+
+
 void Connections::destroyMinPermanenceSynapses(
                               const Segment segment, 
 			      const size_t nDestroy,
@@ -688,6 +698,45 @@ void Connections::destroyMinPermanenceSynapses(
 }
 
 
+
+void Connections::growSynapses(const Segment segment, 
+		                          const vector<Synapse>& growthCandidates, 
+					  const Permanence initialPermanence,
+					  Random& rng,
+					  const size_t maxNew,
+					  const size_t maxSynapsesPerSegment) {
+
+  //0. copy input vector - candidate cells on input
+  vector<CellIdx> candidates(growthCandidates.begin(), growthCandidates.end());
+
+  //1. figure the number of new synapses to grow
+  size_t nActual = std::min(maxNew, candidates.size());
+  if(maxNew == 0) nActual = candidates.size(); //grow all, unlimited
+
+  if(maxSynapsesPerSegment > 0) { // ..Check if we're going to surpass the maximum number of synapses.
+    NTA_ASSERT(numSynapses(segment) <= maxSynapsesPerSegment) << "Illegal state, shouldn't be here to begin with.";
+    const Int overrun = static_cast<Int>(numSynapses(segment) + nActual - maxSynapsesPerSegment);
+    if (overrun > 0) { //..too many synapses, make space for new ones
+      destroyMinPermanenceSynapses(segment, static_cast<Int>(overrun), candidates);
+    }
+    //Recalculate in case we weren't able to destroy as many synapses as needed.
+    nActual = std::min(nActual, static_cast<size_t>(maxSynapsesPerSegment) - numSynapses(segment));
+  }
+  if(nActual == 0) return;
+
+  //2. Pick nActual cells randomly.
+  if(maxNew > 0 and maxNew < candidates.size()) {
+    rng.shuffle(candidates.begin(), candidates.end());
+  }
+  const size_t nDesired = numSynapses(segment) + nActual; //num synapses on seg after this function (+-), see #COND
+  for (const auto syn : candidates) {
+    // #COND: this loop finishes two folds: a) we ran out of candidates (above), b) we grew the desired number of new synapses (below)
+    if(numSynapses(segment) == nDesired) break;
+    createSynapse(segment, syn, initialPermanence); //TODO createSynapse consider creating a vector of new synapses at once?
+  }
+}
+
+
 namespace htm {
 /**
  * print statistics in human readable form
@@ -711,7 +760,7 @@ std::ostream& operator<< (std::ostream& stream, const Connections& self)
   SynapseIdx  connectedMax  = 0;
   UInt        synapsesDead      = 0;
   UInt        synapsesSaturated = 0;
-  for( const auto cellData : self.cells_ )
+  for( const auto &cellData : self.cells_ )
   {
     const UInt numSegments = (UInt) cellData.segments.size();
     segmentsMin   = std::min( segmentsMin, numSegments );
@@ -777,7 +826,7 @@ bool Connections::operator==(const Connections &o) const {
 
   //also check underlying datastructures (segments, and subsequently synapses). Can be time consuming.
   //1.cells:
-  for(const auto cellD : cells_) {
+  for(const auto &cellD : cells_) {
     //2.segments:
     const auto& segments = cellD.segments;
     for(const auto seg : segments) {

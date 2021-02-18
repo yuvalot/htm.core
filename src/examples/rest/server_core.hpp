@@ -65,12 +65,21 @@
 #include <cctype>
 #include <chrono>
 #include <cstdio>
-#include <htm/engine/Network.hpp>
-#include <htm/engine/RESTapi.hpp>
-#include <httplib.h>
 #include <iomanip>
 #include <sstream>
 #include <string>
+
+// save diagnostic state
+#pragma GCC diagnostic push
+// turn off the specific warning. Can also use "-Wall"
+#pragma GCC diagnostic ignored "-Wsign-compare"
+#include <httplib.h>
+// turn back on the compiler warnings
+#pragma GCC diagnostic pop
+
+#include <htm/engine/Network.hpp>
+#include <htm/engine/RESTapi.hpp>
+
 
 #define SERVER_CERT_FILE "./cert.pem"
 #define SERVER_PRIVATE_KEY_FILE "./key.pem"

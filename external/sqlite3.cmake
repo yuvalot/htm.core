@@ -24,14 +24,14 @@
 #        high-reliability, full-featured, SQL database engine. SQLite is the most used 
 #        database engine in the world.
 #
-#            The current release is 3/32/3 (2020-06-18)
-#            The repository is at https://www.sqlite.org/2020/sqlite-autoconf-3320300.tar.gz
+#            The current release is 3.34.1 (2020-06-18)
+#            The repository is at https://www.sqlite.org/2020/sqlite-autoconf-3340100.tar.gz
 #
 #
 if(EXISTS   ${REPOSITORY_DIR}/build/ThirdParty/share/sqlite3.tar.gz)
     set(URL ${REPOSITORY_DIR}/build/ThirdParty/share/sqlite3.tar.gz)
 else()
-    set(URL "https://www.sqlite.org/2020/sqlite-autoconf-3320300.tar.gz")
+    set(URL "https://www.sqlite.org/2021/sqlite-autoconf-3340100.tar.gz")
 endif()
 
 message(STATUS "Obtaining sqlite3")

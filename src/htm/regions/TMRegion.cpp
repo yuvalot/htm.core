@@ -274,6 +274,30 @@ void TMRegion::compute() {
 }
 
 
+std::string TMRegion::executeCommand(const std::vector<std::string> &args, Int64 index) {
+
+  UInt32 argCount = (UInt32)args.size();
+  // Get the first argument (command string)
+  NTA_CHECK(argCount > 0) << "TMRegion: No command name";
+  string command = args[0];
+
+  // Process each command
+  if (command == "saveConnectionsToFile") {
+    NTA_CHECK(argCount > 1)
+        << "TMRegion: no path specified for " << command;
+
+
+    // string filename = ReadStringFromBuffer(*buf2);
+    string filePath(args[1]);
+
+    tm_->connections.saveToFile(filePath+".dump");
+
+    return "done";
+  }
+  else
+  NTA_THROW << "TMRegion - Unknown command:" << command;
+}
+
 /********************************************************************/
 
 Spec *TMRegion::createSpec() {
