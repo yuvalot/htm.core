@@ -100,7 +100,7 @@ TEST(ClassifierRegionTest, asCategoryDecoder) {
   enum classifier_categories { A, B, C };
   Network net;
 
-  std::shared_ptr<Region> encoder = net.addRegion("encoder", "RDSEEncoderRegion", "{size: 400, seed: 42, category: true, activeBits: 40}");
+  std::shared_ptr<Region> encoder = net.addRegion("encoder", "RDSEEncoderRegion", "{size: 600, seed: 42, category: true, activeBits: 40}");
   std::shared_ptr<Region> sp = net.addRegion("sp", "SPRegion", "{columnCount: 1000, globalInhibition: true}");
   std::shared_ptr<Region> classifier = net.addRegion("classifier", "ClassifierRegion", "{learn: true}");
 
