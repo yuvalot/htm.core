@@ -172,8 +172,8 @@ TEST(TMRegionTest, initialization_with_custom_impl) {
 TEST(TMRegionTest, testLinking) {
   // This is a minimal end-to-end test containing an TMRegion region.
   // To make sure we can feed data from some other region to our TMRegion
-  // this test will hook up the VectorFileSensor to an SPRegion to our
-  // TMRegion and then connect our TMRegion to a VectorFileEffector to
+  // this test will hook up the FileInputRegion to an SPRegion to our
+  // TMRegion and then connect our TMRegion to a FileOutputRegion to
   // capture the results.
   //
   std::string test_input_file = "TestOutputDir/TMRegionTestInput.csv";
@@ -210,11 +210,11 @@ TEST(TMRegionTest, testLinking) {
   // Explicit parameters:  (Yaml format...but since YAML is a superset of JSON,
   // you can use JSON format as well)
   std::string parameters = "{activeOutputCount: " + std::to_string(dataWidth) + "}";
-  std::shared_ptr<Region> region1 = net.addRegion("region1", "VectorFileSensor",parameters);
+  std::shared_ptr<Region> region1 = net.addRegion("region1", "FileInputRegion",parameters);
   std::shared_ptr<Region> region2 = net.addRegion("region2", "SPRegion", "{dim: [2,10]}");
   std::shared_ptr<Region> region3 = net.addRegion("region3", "TMRegion",
                                         "{activationThreshold: 11, cellsPerColumn: 5}");
-  std::shared_ptr<Region> region4 = net.addRegion("region4", "VectorFileEffector",
+  std::shared_ptr<Region> region4 = net.addRegion("region4", "FileOutputRegion",
                                         "{outputFile: '" + test_output_file + "'}");
 
   net.link("region1", "region2", "", "", "dataOut", "bottomUpIn");
@@ -228,12 +228,12 @@ TEST(TMRegionTest, testLinking) {
   net.initialize();
 
   VERBOSE << "Dimensions: \n";
-  VERBOSE << " VectorFileSensor  - " << region1->getOutputDimensions("dataOut")    <<"\n";
+  VERBOSE << " FileInputRegion   - " << region1->getOutputDimensions("dataOut")    <<"\n";
   VERBOSE << " SPRegion in       - " << region2->getInputDimensions("bottomUpIn")  <<"\n";
   VERBOSE << " SPRegion out      - " << region2->getOutputDimensions("bottomUpOut")<<"\n";
   VERBOSE << " TMRegion in       - " << region3->getInputDimensions("bottomUpIn")  <<"\n";
   VERBOSE << " TMRegion out      - " << region3->getOutputDimensions("bottomUpOut")<<"\n";
-  VERBOSE << " VectorFileEffector- " << region4->getInputDimensions("dataIn")      <<"\n";
+  VERBOSE << " FileOutputRegion  - " << region4->getInputDimensions("dataIn")      <<"\n";
 
   // check actual dimensions
   ASSERT_EQ(region3->getParameterUInt32("numberOfCols"), dataWidth);
@@ -253,11 +253,11 @@ TEST(TMRegionTest, testLinking) {
   VERBOSE << "Turned off Trace =========\n";
 
   VERBOSE << "Checking data after first iteration..." << std::endl;
-  VERBOSE << "  VectorFileSensor Output" << std::endl;
+  VERBOSE << "  FileInputRegion Output" << std::endl;
   Array r1OutputArray = region1->getOutputData("dataOut");
   VERBOSE << "    " << r1OutputArray << "\n";
   EXPECT_EQ(r1OutputArray.getCount(), dataWidth);
-  EXPECT_TRUE(r1OutputArray.getType() == NTA_BasicType_Real32);
+  EXPECT_TRUE(r1OutputArray.getType() == NTA_BasicType_Real64);
 
   // check anomaly
   EXPECT_FLOAT_EQ(region3->getParameterReal32("anomaly"), 1.0f);
@@ -320,15 +320,15 @@ TEST(TMRegionTest, testLinking) {
   EXPECT_EQ(r3OutputArray, expected3outa) << r3OutputArray;
 
 
-  VERBOSE << "   Input to VectorFileEffector "
+  VERBOSE << "   Input to FileOutputRegion "
           << region4->getInputDimensions("dataIn") << "\n";
   Array r4InputArray = region4->getInputData("dataIn");
-  EXPECT_EQ(r4InputArray.getType(), NTA_BasicType_Real32);
+  EXPECT_EQ(r4InputArray.getType(), NTA_BasicType_Real64);
   VERBOSE << "   " << r4InputArray << "\n";
   EXPECT_EQ(r4InputArray, expected3outa) << r4InputArray;
 
   // cleanup
-  region3->executeCommand({"closeFile"});
+  region4->executeCommand({"closeFile"});
 }
 
 TEST(TMRegionTest, testSerialization) {
@@ -340,7 +340,7 @@ TEST(TMRegionTest, testSerialization) {
   try {
 
     VERBOSE << "Setup first network and save it" << std::endl;
-    std::shared_ptr<Region> n1region1 = net1->addRegion( "region1", "ScalarSensor",
+    std::shared_ptr<Region> n1region1 = net1->addRegion( "region1", "ScalarEncoderRegion",
                                              "{n: 48,w: 10,minValue: 0.05,maxValue: 10}");
     std::shared_ptr<Region> n1region2 =  net1->addRegion("region2", "TMRegion", "{numberOfCols: 48}");
 
@@ -425,6 +425,66 @@ TEST(TMRegionTest, testSerialization) {
     delete net3;
   }
   Directory::removeTree("TestOutputDir", true);
+}
+
+TEST(TMRegionTest, testGetParameters) {
+  Network net;
+  // create an TM region with default parameters 
+  std::shared_ptr<Region> region1 = net.addRegion("region1", "TMRegion", ""); 
+
+  // before initialization
+  std::string expected1 = R"({
+  "numberOfCols": 0,
+  "cellsPerColumn": 32,
+  "activationThreshold": 13,
+  "initialPermanence": 0.210000,
+  "connectedPermanence": 0.500000,
+  "minThreshold": 10,
+  "maxNewSynapseCount": 20,
+  "permanenceIncrement": 0.100000,
+  "permanenceDecrement": 0.100000,
+  "predictedSegmentDecrement": 0.000000,
+  "maxSegmentsPerCell": 255,
+  "maxSynapsesPerSegment": 255,
+  "seed": 42,
+  "inputWidth": 0,
+  "learningMode": true,
+  "activeOutputCount": 0,
+  "anomaly": -1.000000,
+  "orColumnOutputs": false
+})";
+
+  std::string jsonstr = region1->getParameters();
+  VERBOSE << jsonstr << "\n";
+  EXPECT_STREQ(jsonstr.c_str(), expected1.c_str());
+
+  // after initialization
+  std::string expected2 = R"({
+  "numberOfCols": 100,
+  "cellsPerColumn": 32,
+  "activationThreshold": 13,
+  "initialPermanence": 0.210000,
+  "connectedPermanence": 0.500000,
+  "minThreshold": 10,
+  "maxNewSynapseCount": 20,
+  "permanenceIncrement": 0.100000,
+  "permanenceDecrement": 0.100000,
+  "predictedSegmentDecrement": 0.000000,
+  "maxSegmentsPerCell": 255,
+  "maxSynapsesPerSegment": 255,
+  "seed": 42,
+  "inputWidth": 100,
+  "learningMode": true,
+  "activeOutputCount": 0,
+  "anomaly": -1.000000,
+  "orColumnOutputs": false
+})";
+
+  net.link("INPUT", "region1", "", "{dim: 100}", "src", "bottomUpIn"); // declare the input size
+  net.initialize();
+  jsonstr = region1->getParameters();
+  VERBOSE << jsonstr << "\n";
+  EXPECT_STREQ(jsonstr.c_str(), expected2.c_str());
 }
 
 

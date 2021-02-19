@@ -16,7 +16,7 @@
 # -----------------------------------------------------------------------------
 
 cmake_minimum_required(VERSION 3.7)
-project(htm_core CXX)
+project(htm_core CXX C)
 
 message(STATUS "Configuring htm_core tests")
 ###############################################################
@@ -27,7 +27,7 @@ message(STATUS "Configuring htm_core tests")
 #   ${core_library}  references the htm_core  static library which includes depencancy libraries
 #
 
-set(CMAKE_VERBOSE_MAKEFILE ON) # toggle for cmake debug 
+set(CMAKE_VERBOSE_MAKEFILE OFF) # toggle for cmake debug 
 
 
 
@@ -58,12 +58,8 @@ set(engine_tests
 	   unit/engine/InputTest.cpp
 	   unit/engine/LinkTest.cpp
 	   unit/engine/NetworkTest.cpp
+	   unit/engine/RESTapiTest.cpp
 	   unit/engine/WatcherTest.cpp
-	   )
-	   
-
-set(math_tests
-	   unit/math/TopologyTest.cpp
 	   )
 	   
 set(ntypes_tests
@@ -86,11 +82,12 @@ set(regions_tests
 	   unit/regions/RegionTestUtilities.hpp
 	   unit/regions/DateEncoderRegionTest.cpp
 	   unit/regions/ClassifierRegionTest.cpp
-	   unit/regions/ScalarSensorTest.cpp
-	   unit/regions/RDSERegionTest.cpp
+	   unit/regions/ScalarEncoderRegionTest.cpp
+	   unit/regions/RDSEEncoderRegionTest.cpp
 	   unit/regions/SPRegionTest.cpp
-       unit/regions/TMRegionTest.cpp
-       unit/regions/VectorFileTest.cpp
+           unit/regions/TMRegionTest.cpp
+           unit/regions/VectorFileTest.cpp
+           unit/regions/DatabaseRegionTest.cpp
 	   )
 
 	   
@@ -105,12 +102,14 @@ set(utils_tests
 	   unit/utils/RandomTest.cpp
 	   unit/utils/VectorHelpersTest.cpp
 	   unit/utils/SdrMetricsTest.cpp
+	   unit/utils/TopologyTest.cpp
+	   unit/utils/Sqlite3Test.cpp
 	   )
 
 set(examples_files
-	   # examples/hotgym/Hotgym.cpp # contains conflicting main()
-           ../examples/hotgym/HelloSPTP.cpp
-           ../examples/hotgym/HelloSPTP.hpp
+	   # examples/hello/hello.cpp # contains conflicting main()
+           ../examples/hello/HelloSPTP.cpp
+           ../examples/hello/HelloSPTP.hpp
 	   # examples/mnist/MNIST_SP.cpp
 )
 	   
@@ -143,6 +142,8 @@ set(src_executable_gtests
     ${examples_files}
 )
 
+message(STATUS "In Test, External_Includes: ${EXTERNAL_INCLUDES}")
+
 add_executable(${unit_tests_executable} ${src_executable_gtests})
 target_link_libraries(${unit_tests_executable} 
     ${core_library}
@@ -152,9 +153,10 @@ target_link_libraries(${unit_tests_executable}
     ${INTERNAL_LINKER_FLAGS}
 )
 target_include_directories(${unit_tests_executable} PRIVATE 
-	${gtest_INCLUDE_DIRS}
+	examples/rest
 	${CORE_LIB_INCLUDES}
-	${EXTERNAL_INCLUDES})
+	SYSTEM ${gtest_INCLUDE_DIRS}
+	SYSTEM ${EXTERNAL_INCLUDES})
 target_compile_definitions(${unit_tests_executable} PRIVATE ${COMMON_COMPILER_DEFINITIONS})
 target_compile_options(${unit_tests_executable} PUBLIC ${INTERNAL_CXX_FLAGS})
 add_dependencies(${unit_tests_executable} ${core_library}) 

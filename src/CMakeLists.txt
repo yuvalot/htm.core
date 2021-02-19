@@ -20,7 +20,7 @@ project(htm_core CXX)
 
 message(STATUS "Configuring htm_core src")
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
-set(CMAKE_VERBOSE_MAKEFILE ON) # toggle for cmake debug
+set(CMAKE_VERBOSE_MAKEFILE OFF) # toggle for cmake debug
 include(src/NupicLibraryUtils) # for combining static libs
 include(src/ExpandStaticLib)   # for creating objects from a static lib
 
@@ -110,6 +110,9 @@ set(engine_files
     htm/engine/RegionImplFactory.hpp
     htm/engine/RegisteredRegionImpl.hpp
     htm/engine/RegisteredRegionImplCpp.hpp
+    htm/engine/RESTapi.hpp
+    htm/engine/RESTapi.cpp
+    htm/engine/RawInput.hpp
     htm/engine/Spec.cpp
     htm/engine/Spec.hpp
     htm/engine/Watcher.cpp
@@ -146,10 +149,10 @@ set(regions_files
     htm/regions/DateEncoderRegion.hpp    
     htm/regions/ClassifierRegion.cpp
     htm/regions/ClassifierRegion.hpp
-    htm/regions/ScalarSensor.cpp
-    htm/regions/ScalarSensor.hpp    
-    htm/regions/RDSERegion.cpp
-    htm/regions/RDSERegion.hpp
+    htm/regions/ScalarEncoderRegion.cpp
+    htm/regions/ScalarEncoderRegion.hpp    
+    htm/regions/RDSEEncoderRegion.cpp
+    htm/regions/RDSEEncoderRegion.hpp
     htm/regions/SPRegion.cpp
     htm/regions/SPRegion.hpp
     htm/regions/TestNode.cpp
@@ -158,10 +161,12 @@ set(regions_files
     htm/regions/TMRegion.hpp
     htm/regions/VectorFile.cpp
     htm/regions/VectorFile.hpp
-    htm/regions/VectorFileEffector.cpp
-    htm/regions/VectorFileEffector.hpp
-    htm/regions/VectorFileSensor.cpp
-    htm/regions/VectorFileSensor.hpp   
+    htm/regions/FileOutputRegion.cpp
+    htm/regions/FileOutputRegion.hpp
+    htm/regions/FileInputRegion.cpp
+    htm/regions/FileInputRegion.hpp  
+    htm/regions/DatabaseRegion.cpp
+    htm/regions/DatabaseRegion.hpp
 )
 
 set(types_files
@@ -188,12 +193,17 @@ set(utils_files
 )
 
 set(examples_files
-    examples/hotgym/Hotgym.cpp # contains conflicting main()
-    examples/hotgym/HelloSPTP.cpp
-    examples/hotgym/HelloSPTP.hpp
-    examples/napi_sine/napi_sine.cpp
+    examples/hello/hello.cpp # contains conflicting main()
+    examples/hello/HelloSPTP.cpp
+    examples/hello/HelloSPTP.hpp
+    examples/napi_hello/napi_hello.cpp
+    examples/napi_hello/napi_hello_database.cpp
     examples/mnist/MNIST_SP.cpp
+    examples/rest/server_core.hpp
+    examples/rest/server.cpp
+    examples/rest/client.cpp
 )
+
 
 #set up file tabs in Visual Studio
 source_group("algorithms" FILES ${algorithm_files})
@@ -262,6 +272,7 @@ endif()
 set(src_combined_htmcore_source_archives
     ${src_lib_static}
     ${yaml_LIBRARIES}
+    ${sqlite3_LIBRARIES}
     ${Boost_LIBRARIES}
     ${common_LIBRARIES}
     )
@@ -282,6 +293,7 @@ else()
 	set(all_object_locations)
 	set(src_externLibs
             ${yaml_LIBRARIES}
+            ${sqlite3_LIBRARIES}
             ${Boost_LIBRARIES}
             ${common_LIBRARIES}
             )
@@ -318,12 +330,12 @@ add_subdirectory(test)
 ########### EXAMPLES ##############################################
 ## Example custom executable
 #
-## Setup benchmark_hotgym
+## Setup hello
 #
-set(src_executable_hotgym benchmark_hotgym)
-add_executable(${src_executable_hotgym} examples/hotgym/Hotgym.cpp examples/hotgym/HelloSPTP.hpp examples/hotgym/HelloSPTP.cpp)
+set(src_executable_hello hello)
+add_executable(${src_executable_hello} examples/hello/hello.cpp examples/hello/HelloSPTP.hpp examples/hello/HelloSPTP.cpp)
 # link with the static library
-target_link_libraries(${src_executable_hotgym} 
+target_link_libraries(${src_executable_hello} 
     ${INTERNAL_LINKER_FLAGS}
     ${core_library}
     ${COMMON_OS_LIBS}
@@ -332,61 +344,75 @@ target_link_libraries(${src_executable_hotgym}
 # for future reference; to link to shared library, (Not on MSVC)
 #          link with ${src_lib_shared} rather than ${core_library}
                   
-target_compile_options( ${src_executable_hotgym} PUBLIC ${INTERNAL_CXX_FLAGS})
-target_compile_definitions(${src_executable_hotgym} PRIVATE ${COMMON_COMPILER_DEFINITIONS})
-target_include_directories(${src_executable_hotgym} PRIVATE 
+target_compile_options( ${src_executable_hello} PUBLIC ${INTERNAL_CXX_FLAGS})
+target_compile_definitions(${src_executable_hello} PRIVATE ${COMMON_COMPILER_DEFINITIONS})
+target_include_directories(${src_executable_hello} PRIVATE 
 		${CORE_LIB_INCLUDES} 
-		${EXTERNAL_INCLUDES}
+		SYSTEM ${EXTERNAL_INCLUDES}
 		)
-add_custom_target(hotgym
-          COMMAND ${src_executable_hotgym}
-          DEPENDS ${src_executable_hotgym}
-          COMMENT "Executing ${src_executable_hotgym}"
-          VERBATIM)
+
+###add_custom_target(benchmark_hello
+###          COMMAND ${src_executable_hello}
+###          DEPENDS ${src_executable_hello}
+###          COMMENT "Executing ${src_executable_hello}"
+###          VERBATIM)
 
 #########################################################
-## Dynamicly linked version of hotgym
+## Dynamicly linked version of hello
 if(MSVC)
 else()
-  set(src_dyn_executable_hotgym dynamic_hotgym)
-  add_executable(${src_dyn_executable_hotgym} examples/hotgym/Hotgym.cpp examples/hotgym/HelloSPTP.hpp examples/hotgym/HelloSPTP.cpp)
+  set(src_dyn_executable_hello dynamic_hello)
+  add_executable(${src_dyn_executable_hello} examples/hello/hello.cpp examples/hello/HelloSPTP.hpp examples/hello/HelloSPTP.cpp)
   # for Linux,OSx, link with the shared library
-  target_link_libraries(${src_dyn_executable_hotgym} 
+  target_link_libraries(${src_dyn_executable_hello} 
     ${INTERNAL_LINKER_FLAGS}
     ${src_lib_shared}
     ${COMMON_OS_LIBS}
   )
-  target_compile_options( ${src_dyn_executable_hotgym} PUBLIC ${INTERNAL_CXX_FLAGS})
-  target_compile_definitions(${src_dyn_executable_hotgym} PRIVATE ${COMMON_COMPILER_DEFINITIONS})
-  target_include_directories(${src_dyn_executable_hotgym} PRIVATE 
+  target_compile_options( ${src_dyn_executable_hello} PUBLIC ${INTERNAL_CXX_FLAGS})
+  target_compile_definitions(${src_dyn_executable_hello} PRIVATE ${COMMON_COMPILER_DEFINITIONS})
+  target_include_directories(${src_dyn_executable_hello} PRIVATE 
 		${CORE_LIB_INCLUDES} 
-		${EXTERNAL_INCLUDES}
+		SYSTEM ${EXTERNAL_INCLUDES}
 		)
 endif()
 
 #########################################################
-## NetworkAPI version of benchmark_sine
+## NetworkAPI version of hello
 
-set(src_executable_napi_sine napi_sine)
-add_executable(${src_executable_napi_sine} examples/napi_sine/napi_sine.cpp)
+set(src_executable_napi_hello napi_hello)
+add_executable(${src_executable_napi_hello} examples/napi_hello/napi_hello.cpp)
 # link with the static library
-target_link_libraries(${src_executable_napi_sine} 
+target_link_libraries(${src_executable_napi_hello} 
     ${INTERNAL_LINKER_FLAGS}
     ${core_library}
     ${COMMON_OS_LIBS}
 )                  
-target_compile_options( ${src_executable_napi_sine} PUBLIC ${INTERNAL_CXX_FLAGS})
-target_compile_definitions(${src_executable_napi_sine} PRIVATE ${COMMON_COMPILER_DEFINITIONS})
-target_include_directories(${src_executable_napi_sine} PRIVATE 
+target_compile_options( ${src_executable_napi_hello} PUBLIC ${INTERNAL_CXX_FLAGS})
+target_compile_definitions(${src_executable_napi_hello} PRIVATE ${COMMON_COMPILER_DEFINITIONS})
+target_include_directories(${src_executable_napi_hello} PRIVATE 
 		${CORE_LIB_INCLUDES} 
-		${EXTERNAL_INCLUDES}
+		SYSTEM ${EXTERNAL_INCLUDES}
 		)
-add_custom_target(sine_napi_run
-          COMMAND ${src_executable_napi_sine}
-          DEPENDS ${src_executable_napi_sine}
-          COMMENT "Executing ${src_executable_napi_sine}"
-          VERBATIM)
 
+#########################################################
+## NetworkAPI version of hello with database
+
+set(src_executable_napi_hello_database napi_hello_database)
+add_executable(${src_executable_napi_hello_database} examples/napi_hello/napi_hello_database.cpp)
+# link with the static library
+target_link_libraries(${src_executable_napi_hello_database} 
+    ${INTERNAL_LINKER_FLAGS}
+    ${core_library}
+    ${COMMON_OS_LIBS}
+)                  
+target_compile_options( ${src_executable_napi_hello_database} PUBLIC ${INTERNAL_CXX_FLAGS})
+target_compile_definitions(${src_executable_napi_hello_database} PRIVATE ${COMMON_COMPILER_DEFINITIONS})
+target_include_directories(${src_executable_napi_hello_database} PRIVATE 
+		${CORE_LIB_INCLUDES} 
+		SYSTEM ${EXTERNAL_INCLUDES}
+		)
+		
 #########################################################
 ## MNIST Spatial Pooler Example
 #
@@ -403,14 +429,40 @@ target_link_libraries(${src_executable_mnistsp}
   target_compile_definitions(${src_executable_mnistsp} PRIVATE MNIST_DATA_LOCATION=${mnist_SOURCE_DIR})
   target_include_directories(${src_executable_mnistsp} PRIVATE 
         ${CORE_LIB_INCLUDES} 
-        ${EXTERNAL_INCLUDES}
+	SYSTEM ${EXTERNAL_INCLUDES}
         )
-add_custom_target(mnist
-                  COMMAND ${src_executable_mnistsp}
-                  DEPENDS ${src_executable_mnistsp}
-                  COMMENT "Executing ${src_executable_mnistsp}"
-                  VERBATIM)
 
+###########################################################
+## REST server and client examples
+#
+  set(src_executable_rest_server rest_server)
+  add_executable(${src_executable_rest_server} examples/rest/server.cpp)
+  target_link_libraries(${src_executable_rest_server} 
+          ${INTERNAL_LINKER_FLAGS}
+          ${core_library}
+          ${COMMON_OS_LIBS}
+  )
+  target_compile_options(${src_executable_rest_server} PUBLIC ${INTERNAL_CXX_FLAGS})
+  target_compile_definitions(${src_executable_rest_server} PRIVATE ${COMMON_COMPILER_DEFINITIONS})
+  target_include_directories(${src_executable_rest_server} PRIVATE 
+        ${CORE_LIB_INCLUDES} 
+        examples/rest
+	SYSTEM ${EXTERNAL_INCLUDES}
+        )
+    
+  set(src_executable_rest_client rest_client)
+  add_executable(${src_executable_rest_client} examples/rest/client.cpp)
+  target_link_libraries(${src_executable_rest_client} 
+          ${INTERNAL_LINKER_FLAGS}
+          ${core_library}
+          ${COMMON_OS_LIBS}
+  )
+  target_compile_options(${src_executable_rest_client} PUBLIC ${INTERNAL_CXX_FLAGS})
+  target_compile_definitions(${src_executable_rest_client} PRIVATE ${COMMON_COMPILER_DEFINITIONS})
+  target_include_directories(${src_executable_rest_client} PRIVATE 
+        ${CORE_LIB_INCLUDES} 
+	SYSTEM ${EXTERNAL_INCLUDES}
+        )
 
 ############ INSTALL ######################################
 #
@@ -422,16 +474,19 @@ install(TARGETS
         ARCHIVE DESTINATION lib)
         
 install(TARGETS
-        ${src_executable_hotgym}
-        ${src_executable_napi_sine}
+        ${src_executable_hello}
+        ${src_executable_napi_hello}
+        ${src_executable_napi_hello_database}
         ${src_executable_mnistsp}
+        ${src_executable_rest_server}
+        ${src_executable_rest_client}
         RUNTIME DESTINATION bin
         LIBRARY DESTINATION lib
         ARCHIVE DESTINATION lib)
 if(MSVC)
 else()	
   install(TARGETS
-        ${src_dyn_executable_hotgym}
+        ${src_dyn_executable_hello}
         ${src_lib_shared}
         RUNTIME DESTINATION bin
         LIBRARY DESTINATION lib
@@ -448,6 +503,14 @@ install(DIRECTORY ${PROJECT_SOURCE_DIR}/htm
       FILES_MATCHING PATTERN "*.h*"
       PATTERN "*.hpp.in" EXCLUDE)
 
+install(DIRECTORY ${cereal_INCLUDE_DIRS}/cereal
+      MESSAGE_NEVER
+      DESTINATION include/
+      FILES_MATCHING PATTERN "*.h*"
+      PATTERN "*.hpp.in" EXCLUDE)
+
+install(FILES ${cpp-httplib_INCLUDE_DIRS}/httplib.h
+      DESTINATION include)
 
 install(DIRECTORY "${REPOSITORY_DIR}/external/common/include/"
       MESSAGE_NEVER

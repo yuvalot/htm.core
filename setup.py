@@ -251,7 +251,7 @@ def isMSVC_installed(ver):
   return true if ver is found.
   """
   vswhere = "C:\\Program Files (x86)\\Microsoft Visual Studio\\Installer\\vswhere.exe"
-  output = subprocess.check_output([vswhere, "-legacy", "-prerelease", "-format", "json"], universal_newlines=True)
+  output = subprocess.check_output([vswhere, "-products", "*", "-legacy", "-prerelease", "-format", "json"], universal_newlines=True)
   data = json.loads(output);
   for vs in data:
     if 'displayName' in vs and ver in vs['displayName']: return True
@@ -402,11 +402,12 @@ if __name__ == "__main__":
         "htm.examples": ["*.csv"],
     },
     #install extras by `pip install htm.core[examples]`
-    extras_require={'scikit-image>0.15.0':'examples',
-                    'sklearn':'examples',
-                    'matplotlib':'examples',
-                    'PIL':'examples',
-                    'scipy':'examples'
+    extras_require={'examples':['scikit-image>0.15.0',
+                    'sklearn',
+                    'matplotlib',
+                    'pillow',
+                    'requests',
+                    'scipy']
                    },
     zip_safe=False,
     cmdclass={

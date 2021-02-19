@@ -97,6 +97,8 @@ set(EXTERNAL_INCLUDES
 	${mnist_INCLUDE_DIRS}
 	${cereal_INCLUDE_DIRS}
 	${digestpp_INCLUDE_DIRS}
+	${cpp-httplib_INCLUDE_DIRS}
+	${sqlite3_INCLUDE_DIRS}
 	${common_INCLUDE_DIRS}
 	${REPOSITORY_DIR}/external/common/include
 )

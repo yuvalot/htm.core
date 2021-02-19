@@ -19,6 +19,7 @@ Direct access to the algorithms APIs has changed:
 * `SDRClassifier` split into two classes: `Classifier` and `Predictor` with new API.
 * `Anomaly` class is now built into the `TemporalMemory`
 * `SpatialPooler` & `TemporalMemory` have many small changes, see below.
+* String parameters are defined in the Spec as type "String" rather than as a byte array.
 
 ## API breaking changes in this repo
 
@@ -112,6 +113,14 @@ This is obsolete. Use getRegion('name') instead.
 
 * Region:  `GetInput()` and `GetOutput()` now return std::shared_ptr's rather than raw pointers.
 
+* Name changes: 
+  | Original                    | New                     |
+  | :-------------------------- | :---------------------  |
+  | RDSERegion                  | RESEEncoderRegion       |
+  | ScalarSensor                | ScalarEncoderRegion     |
+  | VectorFileEffector          | FileOutputRegion        |
+  | VectorFileSensor            | FileInputRegion         |
+
 
 ## Python API Changes
 
@@ -132,3 +141,5 @@ mostly just a thin wrapper around the C++ library.
 
 - Most algorithms now accept SDR's instead of numpy arrays.
   Recommend reading the documentation, see `python -m pydoc htm`
+
+- Parameters containing strings were originally defined in the NetworkAPI Spec as a byte array (i.e. type "Byte" and count 0).  Byte arrays are now 8 bit integers and strings use type "String" and count 1.

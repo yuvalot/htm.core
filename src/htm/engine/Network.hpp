@@ -77,6 +77,61 @@ public:
    */
   ~Network();
 
+   /**
+   * An alternate way to configure the network.
+   * Pass in an yaml or JSON string that defines all regions and links.
+   * YAML Syntax:
+   *      network:
+   *         - registerRegion:            (TODO:)
+   *             type: <region type>
+   *             path: <path to shared lib to link to>
+   *             class: <classname to load>
+   *
+   *         - addRegion:
+   *             name: <region name>
+   *             type: <region type>
+   *             params: <list of parameters>  (optional)
+   *             phase:  <optonal phase number> (optional)
+   *
+   *         - addLink:
+   *             src: <Name of the source region "." Output name>
+   *             dest: <Name of the destination region "." Input name>
+   *             delay: <iterations to delay> (optional, default=0)
+   *
+   *
+   * JSON syntax:
+    *   {network: [
+   *       {addRegion: {name: <region name>, type: <region type>, params: {<parameters>}, phase: <phase>}},
+   *       {addLink:   {src: "<region name>.<output name>", dest: "<region name>.<output name>", delay: <delay>}},
+   *    ]}
+  *
+   * JSON example:
+   *   {network: [
+   *       {addRegion: {name: "encoder", type: "RDSERegion", params: {size: 1000, sparsity: 0.2, radius: 0.03, seed: 2019, noise: 0.01}}},
+   *       {addRegion: {name: "sp", type: "SPRegion", params: {columnCount: 2048, globalInhibition: true}}},
+   *       {addRegion: {name: "tm", type: "TMRegion", params: {cellsPerColumn: 8, orColumnOutputs: true}}},
+   *       {addLink:   {src: "encoder.encoded", dest: "sp.bottomUpIn"}},
+   *       {addLink:   {src: "sp.bottomUpOut", dest: "tm.bottomUpIn"}}
+   *    ]}
+
+   *  On errors it throws an exception.
+   */
+  void configure(const std::string &yaml);
+  
+  /**
+   * Return the Spec for the region type as a JSON string.
+   * Note that the region does NOT have to have been previously added with addRegion( ).
+   *
+   * @param region_type  The name of the region implementation.
+   *                     This is the name of one of the built-in Regions (usually class name) 
+   *                     or the region type given to a custom region that has been registered.  
+   *                     Python implemented regions are registered as the class name with
+   *                     'py.' prepended.
+   * @returns  A JSON string containing the Spec.
+   */
+  std::string getSpecJSON(const std::string &region_type);
+
+
   /**
    * Initialize all elements of a network so that it can run.
    *
@@ -163,7 +218,9 @@ public:
   std::shared_ptr<Region> addRegion(const std::string &name,
   					                        const std::string &nodeType,
                                     const std::string &nodeParams);
-
+  std::shared_ptr<Region> addRegion(const std::string &name, 
+                                    const std::string &nodeType,
+                                    ValueMap& vm);
   /**
     * Add a region in a network from deserialized region
     *
@@ -223,6 +280,13 @@ public:
   void removeLink(const std::string &srcName, const std::string &destName,
                   const std::string &srcOutputName = "",
                   const std::string &destInputName = "");
+
+
+  /**
+   * Set the source data for a Link identified with the source as "INPUT" and <sourceName>.
+   */
+  virtual void setInputData(const std::string &sourceName, const Array &data);
+  virtual void setInputData(const std::string &sourceName, const Value &vm);
 
   /**
    * @}
@@ -412,6 +476,12 @@ public:
    * Removes a region implementation from the RegionImplFactory's list of packages
    */
   static void unregisterRegion(const std::string name);
+  
+  /*
+   * Returns a JSON string containing a list of registered region types.
+   *
+   */
+  static std::string getRegistrations();
 
   /*
    * Removes all region registrations in RegionImplFactory.

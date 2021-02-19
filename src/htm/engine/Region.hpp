@@ -37,6 +37,8 @@
 #include <htm/os/Timer.hpp>
 #include <htm/types/Serializable.hpp>
 #include <htm/types/Types.hpp>
+#include <htm/ntypes/Value.hpp>
+#include <htm/ntypes/Array.hpp>
 
 namespace htm {
 
@@ -105,18 +107,8 @@ public:
    *
    * @returns The spec that describes this region
    */
-  const std::shared_ptr<Spec> &getSpec() const { return spec_; }
+  const std::shared_ptr<Spec> getSpec() const { return spec_; }
 
-  /**
-   * Get the Spec of a region type without an instance.
-   *
-   * @param nodeType
-   *        A region type as a string
-   *
-   * @returns The Spec that describes this region type
-   */
-  static const std::shared_ptr<Spec> &
-  getSpecFromType(const std::string &nodeType);
 
   /**
    * @}
@@ -126,6 +118,12 @@ public:
    * @{
    *
    */
+   
+  /** 
+   * Get all parameter values for the region as a JSON string.
+   * @returns a JSON string.
+   */
+  std::string getParameters() const;
 
   /**
    * Get the parameter value as a specific type.
@@ -135,6 +133,7 @@ public:
    *
    * @returns The value of the parameter
    */
+  Byte getParameterByte(const std::string &name) const;
   Int32 getParameterInt32(const std::string &name) const;
   UInt32 getParameterUInt32(const std::string &name) const;
   Int64 getParameterInt64(const std::string &name) const;
@@ -142,6 +141,20 @@ public:
   Real32 getParameterReal32(const std::string &name) const;
   Real64 getParameterReal64(const std::string &name) const;
   bool getParameterBool(const std::string &name) const;
+
+  /**
+   * Get the parameter value as JSON
+   * if the tag is not given, it just returns the JSON encoded value.
+   * @param name
+   *        The name of the parameter
+   *
+   * @param tag  (optional)
+   *       if the tag IS NOT given (or blank), it returns just the JSON encoded value.
+   *       if the tag IS given, it returns <tag>: {"value": <JSON value>, "type": <type>}
+   *
+   * @returns The value of the parameter
+   */
+  std::string getParameterJSON(const std::string &name, bool withType = false) const;
 
   /**
    * Set the parameter value of a specific type.
@@ -152,6 +165,7 @@ public:
    * @param value
    *        The value of the parameter
    */
+  void setParameterByte(const std::string &name, Byte value);
   void setParameterInt32(const std::string &name, Int32 value);
   void setParameterUInt32(const std::string &name, UInt32 value);
   void setParameterInt64(const std::string &name, Int64 value);
@@ -159,6 +173,7 @@ public:
   void setParameterReal32(const std::string &name, Real32 value);
   void setParameterReal64(const std::string &name, Real64 value);
   void setParameterBool(const std::string &name, bool value);
+  void setParameterJSON(const std::string &name, const std::string& value);
 
   /**
    * Get the parameter as an @c Array value.
@@ -222,14 +237,14 @@ public:
    */
   void setParameterArray(const std::string &name, const Array &array);
 
-	
+
   /**
    * Get the number of elements in the array parameter's value.
    *
    * @param name
    *        The name of the parameter
 	 */
-  size_t getParameterArrayCount(const std::string &name);
+  size_t getParameterArrayCount(const std::string &name) const;
 
 
   /**
@@ -264,7 +279,7 @@ public:
    *
    * @see setParameterString()
    */
-  std::string getParameterString(const std::string &name);
+  std::string getParameterString(const std::string &name) const;
 
   /**
    * Tells whether the parameter is shared.
@@ -322,12 +337,6 @@ public:
    *			  region->getOutput(name)->getData();
    */
   virtual const Array &getOutputData(const std::string &outputName) const;
-	
-	/**
-	 * Set the input data.  The input buffer type remains, data is copied in
-	 * with conversion if needed.
-	 */
-	virtual void setInputData(const std::string &inputName, const Array& data);
 
 
   /**
@@ -410,9 +419,8 @@ public:
   // Internal methods.
 
   // New region from parameter spec
-  Region(std::string name, const std::string &type,
-         const std::string &nodeParams, Network *network = nullptr);
-
+  Region(const std::string &name, const std::string &type, const std::string &nodeParams, Network *network = nullptr);
+  Region(const std::string &name, const std::string &node, ValueMap &vm, Network *network = nullptr);
   Region(Network *network); // An empty region for deserialization.
   Region(); // A default constructor for region for deserialization.
 
@@ -482,7 +490,7 @@ public:
     getDims_(outDims, inDims);
     ar(cereal::make_nvp("output_dims", outDims));
     ar(cereal::make_nvp("input_dims",  inDims));
-		
+
 		// save the output buffers
     std::map<std::string, Array> buffers;
     getOutputBuffers_(buffers);

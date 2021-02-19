@@ -24,43 +24,57 @@ Methods related to inputs and outputs are in Region_io.cpp
 */
 
 #include <iostream>
+#include <memory>
 #include <set>
 #include <stdexcept>
 #include <string>
-#include <memory>
 
 #include <htm/engine/Input.hpp>
-#include <htm/engine/Output.hpp>
 #include <htm/engine/Link.hpp>
+#include <htm/engine/Output.hpp>
 #include <htm/engine/Region.hpp>
 #include <htm/engine/RegionImpl.hpp>
 #include <htm/engine/RegionImplFactory.hpp>
 #include <htm/engine/Spec.hpp>
-#include <htm/utils/Log.hpp>
 #include <htm/ntypes/Array.hpp>
 #include <htm/ntypes/BasicType.hpp>
-
+#include <htm/types/Sdr.hpp>
+#include <htm/utils/Log.hpp>
 
 namespace htm {
 
 class GenericRegisteredRegionImpl;
 
 // Create region from parameter spec
-Region::Region(std::string name, const std::string &nodeType,
-               const std::string &nodeParams, Network *network)
-    : name_(std::move(name)), type_(nodeType), initialized_(false),
-      network_(network), profilingEnabled_(false) {
+Region::Region(const std::string &name, const std::string &nodeType, const std::string &nodeParams, Network *network)
+    : name_(std::move(name)), type_(nodeType), initialized_(false), network_(network), profilingEnabled_(false) {
+  ValueMap vm;
+  vm.parse(nodeParams);
   // Set region spec and input/outputs before creating the RegionImpl so that the
   // Impl has access to the region info in its constructor.
   RegionImplFactory &factory = RegionImplFactory::getInstance();
   spec_ = factory.getSpec(nodeType);
   createInputsAndOutputs_();
-  impl_.reset(factory.createRegionImpl(nodeType, nodeParams, this));
-  
+  impl_.reset(factory.createRegionImpl(nodeType, vm, this));
+}
+Region::Region(const std::string &name, const std::string &nodeType, ValueMap &vm, Network *network) {
+  name_ = name;
+  type_ = nodeType;
+  initialized_ = false;
+  network_ = network;
+  profilingEnabled_ = false;
+
+  // Set region spec and input/outputs before creating the RegionImpl so that the
+  // Impl has access to the region info in its constructor.
+  RegionImplFactory &factory = RegionImplFactory::getInstance();
+  spec_ = factory.getSpec(nodeType);
+  createInputsAndOutputs_();
+  impl_.reset(factory.createRegionImpl(nodeType, vm, this));
+
   //std::cerr << "Region created " << getName() << "=" << nodeType << "\n";
   //auto outputs = getOutputs();
   //for (auto out : outputs) std::cerr << "   " << getName() << "." << out.first << "\n";
-  
+
 }
 
 Region::Region(Network *net) {
@@ -112,7 +126,7 @@ bool Region::hasOutgoingLinks() const {
 Region::~Region() {
   if (initialized_)
     uninitialize();
-    
+
   removeAllIncomingLinks();  // Note: link objects are stored on the Input object.
   outputs_.clear();
 
@@ -150,10 +164,6 @@ void Region::initialize() {
 }
 
 
-const std::shared_ptr<Spec>& Region::getSpecFromType(const std::string &nodeType) {
-  RegionImplFactory &factory = RegionImplFactory::getInstance();
-  return factory.getSpec(nodeType);
-}
 
 
 std::string Region::executeCommand(const std::vector<std::string> &args) {
@@ -269,7 +279,6 @@ void Region::setOutputDimensions(std::string name, const Dimensions& dim) {
   return out->setDimensions(dim);
 }
 
-
 // This is for backward compatability with API
 // Normally Output dimensions are set by setting parameters known to the implementation.
 // This sets a global dimension.
@@ -378,10 +387,6 @@ bool Region::operator==(const Region &o) const {
   return true;
 }
 
-
-
-
-
 // Internal methods called by RegionImpl.
 bool Region::hasOutput(const std::string &name) const {
   auto out = getOutput(name);
@@ -437,16 +442,6 @@ const Array& Region::getInputData(const std::string &inputName) const {
   const Array & data = ii->second->getData();
   return data;
 }
-void Region::setInputData(const std::string &inputName, const Array& data) {
-  auto ii = inputs_.find(inputName);
-  if (ii == inputs_.end())
-    NTA_THROW << "setInputData -- unknown input '" << inputName << "' on region "
-              << getName();
-  std::shared_ptr<Input> in = ii->second;
-	in->setDimensions( { (UInt)data.getCount() } );
-  Array& a = in->getData();
-	data.convertInto(a);
-}
 
 void Region::prepareInputs() {
   // Ask each input to prepare itself
@@ -457,6 +452,9 @@ void Region::prepareInputs() {
 
 
 // setParameter
+void Region::setParameterByte(const std::string &name, Byte value) {
+  impl_->setParameterByte(name, (Int64)-1, value);
+}
 
 void Region::setParameterInt32(const std::string &name, Int32 value) {
   impl_->setParameterInt32(name, (Int64)-1, value);
@@ -483,37 +481,178 @@ void Region::setParameterReal64(const std::string &name, Real64 value) {
 }
 
 void Region::setParameterBool(const std::string &name, bool value) {
-  impl_->setParameterBool(name, (Int64)-1, value);
+impl_->setParameterBool(name, (Int64)-1, value);
+}
+
+void Region::setParameterJSON(const std::string &name, const std::string &value) {
+  try {
+    Value vm;
+    vm.parse(value);
+
+    NTA_BasicType type = spec_->parameters.getByName(name).dataType;
+    switch (type) {
+    case NTA_BasicType_Byte:
+      setParameterByte(name, vm.as<Byte>());
+      break;
+    case NTA_BasicType_Int32:
+      setParameterInt32(name, vm.as<Int32>());
+      break;
+    case NTA_BasicType_UInt32:
+      setParameterUInt32(name, vm.as<UInt32>());
+      break;
+    case NTA_BasicType_Int64:
+      setParameterInt64(name, vm.as<Int64>());
+      break;
+    case NTA_BasicType_UInt64:
+      setParameterUInt64(name, vm.as<UInt64>());
+      break;
+    case NTA_BasicType_Real32:
+      setParameterReal32(name, vm.as<Real32>());
+      break;
+    case NTA_BasicType_Real64:
+      setParameterReal64(name, vm.as<Real64>());
+      break;
+    case NTA_BasicType_Bool:
+      setParameterBool(name, vm.as<bool>());
+      break;
+    case NTA_BasicType_Str:
+      setParameterString(name, vm.str());
+      break;
+
+    default:
+      NTA_THROW << "Unknow parameter type '" + std::string(BasicType::getName(type)) + "'";
+      break;
+    }
+  } catch (Exception &e) {
+    NTA_THROW << "Error setting parameter "+ getName() + "." + name+ "; " +e.getMessage();
+  }
+}
+
+
+// getParameters
+std::string Region::getParameters() const {
+   //std::cout << "getParameters() on " << getName() << "\n";
+
+  std::string json = "{\n";
+  for (size_t i = 0; i < spec_->parameters.getCount(); ++i) {
+    const std::pair<std::string, ParameterSpec> &item = spec_->parameters.getByIndex(i);
+    //std::cout << "getParameterJSON(" + getName() + '" << item.first << "')\n";
+    if(i!=0)
+    	json += ",\n"; // appending comma and newline each time, excluding first line
+    json += "  \"" + item.first + "\": "+getParameterJSON(item.first);
+  }
+  json += "\n}";
+  return json;
 }
 
 // getParameter
+Byte Region::getParameterByte(const std::string &name) const { return impl_->getParameterByte(name, (Int64)-1); }
 
-Int32 Region::getParameterInt32(const std::string &name) const {
-  return impl_->getParameterInt32(name, (Int64)-1);
-}
+Int32 Region::getParameterInt32(const std::string &name) const { return impl_->getParameterInt32(name, (Int64)-1); }
 
-Int64 Region::getParameterInt64(const std::string &name) const {
-  return impl_->getParameterInt64(name, (Int64)-1);
-}
+Int64 Region::getParameterInt64(const std::string &name) const { return impl_->getParameterInt64(name, (Int64)-1); }
 
-UInt32 Region::getParameterUInt32(const std::string &name) const {
-  return impl_->getParameterUInt32(name, (Int64)-1);
-}
+UInt32 Region::getParameterUInt32(const std::string &name) const { return impl_->getParameterUInt32(name, (Int64)-1); }
 
-UInt64 Region::getParameterUInt64(const std::string &name) const {
-  return impl_->getParameterUInt64(name, (Int64)-1);
-}
+UInt64 Region::getParameterUInt64(const std::string &name) const { return impl_->getParameterUInt64(name, (Int64)-1); }
 
-Real32 Region::getParameterReal32(const std::string &name) const {
-  return impl_->getParameterReal32(name, (Int64)-1);
-}
+Real32 Region::getParameterReal32(const std::string &name) const { return impl_->getParameterReal32(name, (Int64)-1); }
 
-Real64 Region::getParameterReal64(const std::string &name) const {
-  return impl_->getParameterReal64(name, (Int64)-1);
-}
+Real64 Region::getParameterReal64(const std::string &name) const { return impl_->getParameterReal64(name, (Int64)-1); }
 
-bool Region::getParameterBool(const std::string &name) const {
-  return impl_->getParameterBool(name, (Int64)-1);
+bool Region::getParameterBool(const std::string &name) const { return impl_->getParameterBool(name, (Int64)-1); }
+
+std::string Region::getParameterJSON(const std::string &name, bool withType) const {
+  // NOTE: if withType is not given or false, it just returns the JSON encoded value.
+  //       if withType IS given, it returns "{"value": <value>, "type": <type>}
+  NTA_BasicType type = NTA_BasicType_Last; // initialize to an invalid type.
+  Value vm;
+  //std::cout << "getParameterJSON(" << name << ")\n";
+  try {
+    auto p = spec_->parameters.getByName(name);
+    type = p.dataType;
+    size_t len = p.count;
+    if (len == 1) {
+      // This is a scalar value, not an array.
+
+      switch (type) {
+      case NTA_BasicType_Byte:
+        vm = getParameterByte(name);
+        break;
+      case NTA_BasicType_Int32:
+        vm = getParameterInt32(name);
+        break;
+      case NTA_BasicType_UInt32:
+        vm = getParameterUInt32(name);
+        break;
+      case NTA_BasicType_Int64:
+        vm = getParameterInt64(name);
+        break;
+      case NTA_BasicType_UInt64:
+        vm = getParameterUInt64(name);
+        break;
+      case NTA_BasicType_Real32:
+        vm = getParameterReal32(name);
+        break;
+      case NTA_BasicType_Real64:
+        vm = getParameterReal64(name);
+        break;
+      case NTA_BasicType_Bool:
+        vm = getParameterBool(name);
+        break;
+      case NTA_BasicType_Str:
+        vm = getParameterString(name);
+        break;
+
+      default:
+        NTA_THROW << "Unknow parameter type '" + std::string(BasicType::getName(type)) + "'";
+        break;
+      }
+      if (!withType)
+        return vm.to_json();
+      else
+        return "{\"value\": " + vm.to_json() + ", \"type\": \"" + std::string(BasicType::getName(type)) + "\"}";
+
+    } else {
+      // This is an array, not a scalar.
+      if (len == 0)
+        len = getParameterArrayCount(name);
+      // Pre-allocate the buffer in the Array object.
+      Array a(type);
+      a.allocateBuffer(len);
+      getParameterArray(name, a);
+      std::string data = a.toJSON();
+      if (!withType)
+        return data;
+
+      std::string dimStr;
+      type = a.getType();
+      if (type == NTA_BasicType_SDR) {
+        const SDR& sdr = a.getSDR();
+        auto d = sdr.dimensions;
+        dimStr = "[";
+        bool first = true;
+        for (UInt item : d) {
+          if (!first)
+            dimStr.append(", ");
+          first = false;
+          dimStr.append(std::to_string(item));
+        }
+        dimStr.append("]");
+      }
+      else
+        dimStr = "[" + std::to_string(a.getCount()) + "]";
+
+      return "{\"value\": " + data +
+              ", \"type\": \"" + std::string(BasicType::getName(type)) +
+              ", \"dim\": " + dimStr + "}";
+
+    }
+  } catch (Exception &e) {
+    NTA_THROW << "Error getting parameter " + getName() + "." + name + "; " + e.getMessage();
+  } catch (...) {
+    NTA_THROW << "Error getting parameter " + getName() + "." + name + "; ";
+  }
 }
 
 // array parameters
@@ -526,7 +665,7 @@ void Region::setParameterArray(const std::string &name, const Array &array) {
   impl_->setParameterArray(name, (Int64)-1, array);
 }
 
-size_t Region::getParameterArrayCount(const std::string &name) {
+size_t Region::getParameterArrayCount(const std::string &name) const {
   return impl_->getParameterArrayCount(name, (Int64)-1);
 }
 
@@ -534,7 +673,7 @@ void Region::setParameterString(const std::string &name, const std::string &s) {
   impl_->setParameterString(name, (Int64)-1, s);
 }
 
-std::string Region::getParameterString(const std::string &name) {
+std::string Region::getParameterString(const std::string &name) const {
   return impl_->getParameterString(name, (Int64)-1);
 }
 
