@@ -128,7 +128,7 @@ TEST(ClassifierRegionTest, asCategoryDecoder) {
   EXPECT_EQ(static_cast<UInt32>(titles[predicted]), A) << "expected the category of A";
   const Real64 *pdf = reinterpret_cast<const Real64 *>(classifier->getOutputData("pdf").getBuffer());
   VERBOSE << "Encoded A, Classifier predicted A with a probability of " << pdf[predicted] << std::endl;
-  ASSERT_NEAR(pdf[predicted], 0.947, 0.003);
+  ASSERT_NEAR(pdf[predicted], 0.950, 0.003);
 
   encoder->setParameterReal64("sensedValue", static_cast<Real64>(B));
   net.run(1);
