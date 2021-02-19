@@ -274,11 +274,36 @@ void TMRegion::compute() {
 }
 
 
+std::string TMRegion::executeCommand(const std::vector<std::string> &args, Int64 index) {
+
+  UInt32 argCount = (UInt32)args.size();
+  // Get the first argument (command string)
+  NTA_CHECK(argCount > 0) << "TMRegion: No command name";
+  string command = args[0];
+
+  // Process each command
+  if (command == "saveConnectionsToFile") {
+    NTA_CHECK(argCount > 1)
+        << "TMRegion: no path specified for " << command;
+
+
+    // string filename = ReadStringFromBuffer(*buf2);
+    string filePath(args[1]);
+
+    tm_->connections.saveToFile(filePath+".dump");
+
+    return "done";
+  }
+  else
+  NTA_THROW << "TMRegion - Unknown command:" << command;
+}
+
 /********************************************************************/
 
 Spec *TMRegion::createSpec() {
   auto ns = new Spec;
 
+  ns->name = "TMRegion";
   ns->description =
       "TMRegion. Class implementing the temporal memory algorithm as "
       "described in 'BAMI "
@@ -606,7 +631,7 @@ Spec *TMRegion::createSpec() {
 //
 ////////////////////////////////////////////////////////////////////////
 
-UInt32 TMRegion::getParameterUInt32(const std::string &name, Int64 index) {
+UInt32 TMRegion::getParameterUInt32(const std::string &name, Int64 index) const {
 
     if (name == "activationThreshold") {
       if (tm_)
@@ -660,7 +685,7 @@ UInt32 TMRegion::getParameterUInt32(const std::string &name, Int64 index) {
 }
 
 
-Int32 TMRegion::getParameterInt32(const std::string &name, Int64 index) {
+Int32 TMRegion::getParameterInt32(const std::string &name, Int64 index) const {
   if (name == "activationThreshold") {
     if (tm_)
       return tm_->getActivationThreshold();
@@ -673,7 +698,7 @@ Int32 TMRegion::getParameterInt32(const std::string &name, Int64 index) {
 }
 
 
-Real32 TMRegion::getParameterReal32(const std::string &name, Int64 index) {
+Real32 TMRegion::getParameterReal32(const std::string &name, Int64 index) const {
 
     if (name == "anomaly") {
       if (tm_)
@@ -710,7 +735,7 @@ Real32 TMRegion::getParameterReal32(const std::string &name, Int64 index) {
 }
 
 
-bool TMRegion::getParameterBool(const std::string &name, Int64 index) {
+bool TMRegion::getParameterBool(const std::string &name, Int64 index) const {
   if (name == "checkInputs") {
     if (tm_) {
       return tm_->getCheckInputs();
@@ -727,7 +752,7 @@ bool TMRegion::getParameterBool(const std::string &name, Int64 index) {
 }
 
 
-std::string TMRegion::getParameterString(const std::string &name, Int64 index) {
+std::string TMRegion::getParameterString(const std::string &name, Int64 index) const {
   return this->RegionImpl::getParameterString(name, index);
 }
 

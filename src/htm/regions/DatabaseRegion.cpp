@@ -262,7 +262,7 @@ void DatabaseRegion::setParameterString(const std::string &paramName,
 }
 
 std::string DatabaseRegion::getParameterString(const std::string &paramName,
-                                                   Int64 index) {
+                                                   Int64 index) const {
   if (paramName == "outputFile") {
     return filename_;
   } else {
@@ -295,12 +295,13 @@ DatabaseRegion::executeCommand(const std::vector<std::string> &args,
 Spec *DatabaseRegion::createSpec() {
 
   auto ns = new Spec;
+  ns->name = "DatabaseRegion";
   ns->description =
       "DatabaseRegion is a node that writes multiple scalar streams "
       "to a SQLite3 database file (.db). The target filename is specified "
       "using the 'outputFile' parameter at run time. On each "
       "compute, all inputs are written "
-      "to the database.\n";
+      "to the database.";
 
   for (UInt i = 0; i< MAX_NUMBER_OF_INPUTS; i ++){ // create 10 inputs, user don't have to use them all
 		ns->inputs.add("dataIn"+std::to_string(i),
@@ -319,9 +320,9 @@ Spec *DatabaseRegion::createSpec() {
                             "This parameter must be set at runtime before "
                             "the first compute is called. Throws an "
                             "exception if it is not set or "
-                            "the file cannot be written to.\n",
-                            NTA_BasicType_Byte,
-                            0,  // elementCount
+                            "the file cannot be written to.",
+                            NTA_BasicType_Str,
+                            1,  // elementCount
                             "", // constraints
                             "", // defaultValue
                             ParameterSpec::ReadWriteAccess));

@@ -45,7 +45,7 @@ std::string RegionImpl::getName() const { return region_->getName(); }
 // overridden by subclasses.
 
 #define getParameterInternalT(MethodT, Type)                                                                           \
-  Type RegionImpl::getParameter##MethodT(const std::string &name, Int64 index) {                                       \
+  Type RegionImpl::getParameter##MethodT(const std::string &name, Int64 index) const {                                       \
     if (!region_->getSpec()->parameters.contains(name))                                                                \
       NTA_THROW << "getParameter" #Type ": Region type " << getType() << ", parameter " << name                        \
                 << " does not exist in region spec";                                                                   \
@@ -59,10 +59,12 @@ std::string RegionImpl::getName() const { return region_->getName(); }
 
 #define getParameterT(Type) getParameterInternalT(Type, Type)
 
+getParameterT(Byte);
 getParameterT(Int32);
 getParameterT(UInt32);
 getParameterT(Int64);
-getParameterT(UInt64) getParameterT(Real32);
+getParameterT(UInt64); 
+getParameterT(Real32);
 getParameterT(Real64);
 getParameterInternalT(Bool, bool);
 
@@ -83,6 +85,7 @@ getParameterInternalT(Bool, bool);
 
 #define setParameterT(Type) setParameterInternalT(Type, Type)
 
+setParameterT(Byte);
 setParameterT(Int32);
 setParameterT(UInt32);
 setParameterT(Int64);
@@ -91,7 +94,7 @@ setParameterT(Real32);
 setParameterT(Real64);
 setParameterInternalT(Bool, bool);
 
-void RegionImpl::getParameterArray(const std::string &name, Int64 index, Array &array) {
+void RegionImpl::getParameterArray(const std::string &name, Int64 index, Array &array) const {
   if (!region_->getSpec()->parameters.contains(name))
     NTA_THROW << "setParameterArray: parameter " << name << " does not exist in Spec";
   ParameterSpec p = region_->getSpec()->parameters.getByName(name);
@@ -124,7 +127,7 @@ void RegionImpl::setParameterString(const std::string &name, Int64 index, const 
             << " but is not implemented.";
 }
 
-std::string RegionImpl::getParameterString(const std::string &name, Int64 index) {
+std::string RegionImpl::getParameterString(const std::string &name, Int64 index) const {
   if (!region_->getSpec()->parameters.contains(name))
     NTA_THROW << "getParameterString: parameter " << name << " does not exist in Spec";
   ParameterSpec p = region_->getSpec()->parameters.getByName(name);
@@ -137,7 +140,7 @@ std::string RegionImpl::getParameterString(const std::string &name, Int64 index)
   return "";
 }
 
-size_t RegionImpl::getParameterArrayCount(const std::string &name, Int64 index) {
+size_t RegionImpl::getParameterArrayCount(const std::string &name, Int64 index) const {
   // Default implementation for RegionImpls with no array parameters
   // that have a dynamic length.
   // std::map<std::string, ParameterSpec*>::iterator i =

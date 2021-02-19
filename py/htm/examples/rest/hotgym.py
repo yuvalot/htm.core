@@ -1,10 +1,26 @@
+# ------------------------------------------------------------------------------
+# HTM Community Edition of NuPIC
+# Copyright (C) 2019-2020, Li Meng Jun
+#
+# This program is free software: you can redistribute it and/or modify it under
+# the terms of the GNU Affero Public License version 3 as published by the Free
+# Software Foundation.
+#
+# This program is distributed in the hope that it will be useful, but WITHOUT
+# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+# FOR A PARTICULAR PURPOSE. See the GNU Affero Public License for more details.
+#
+# You should have received a copy of the GNU Affero Public License along with
+# this program.  If not, see http://www.gnu.org/licenses.
+# ------------------------------------------------------------------------------
+
 import csv
 import datetime
 import os
 import numpy as np
 import math
 
-from htm_rest_api import NetworkConfig, NetworkREST, get_classifer_predict
+from htm_rest_api import NetworkConfig, NetworkREST, get_classifer_predict, INPUT
 
 _EXAMPLE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 _INPUT_FILE_PATH = os.path.join(_EXAMPLE_DIR, "gymdata.csv")
@@ -115,7 +131,7 @@ def main(parameters=default_parameters, argv=None, verbose=True):
   net.add_link(scalarRegion, spRegion, 'encoded', 'bottomUpIn')
   net.add_link(spRegion, tmRegion, 'bottomUpOut', 'bottomUpIn')
   net.add_link(tmRegion, clsrRegion, 'bottomUpOut', 'pattern')
-  net.add_link(scalarRegion, clsrRegion, 'bucket', 'bucket')
+  net.add_link(INPUT, clsrRegion, 'clsr_bucket', 'bucket', 1)
 
   net.create()
 
@@ -135,6 +151,7 @@ def main(parameters=default_parameters, argv=None, verbose=True):
     # Call the encoders to create bit representations for each value.  These are SDR objects.
     dateRegion.param('sensedTime', int(dateString.timestamp()))
     scalarRegion.param('sensedValue', consumption)
+    net.input('clsr_bucket', consumption)
 
     # Predict what will happen, and then train the predictor based on what just happened.
     net.run()
