@@ -2,7 +2,6 @@ name: Release
 #TODO arm releases
 #TODO enable 32bit linux wheels builds?
 #TODO use older manylinux2010 for larger compatibility?
-#TODO enable python 3.8 builds for CIBW
 #TODO support py27 wheels?
 
 on:
@@ -111,7 +110,7 @@ jobs:
         CIBW_TEST_REQUIRES: pytest
         CIBW_TEST_COMMAND: "pytest {project}/py/tests {project}/bindings/py/tests"
         # Only build on Python >=3.7 and skip 32-bit builds
-        CIBW_BUILD: cp37-*
+        CIBW_BUILD: cp37-* cp38-*
         CIBW_SKIP: "*-win32 cp27-manylinux* *i686*"
         # build using the manylinux2014 image
         CIBW_MANYLINUX_X86_64_IMAGE: manylinux2014
