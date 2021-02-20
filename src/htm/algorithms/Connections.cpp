@@ -27,17 +27,21 @@
 
 #include <htm/algorithms/Connections.hpp>
 
+
 using std::endl;
 using std::string;
 using std::vector;
 using std::set;
 using namespace htm;
 
+//!using Permanence = UInt16; //TODO try this optimization, overrides Permanence(=Real) from Connections.hpp 
+
 Connections::Connections(const CellIdx numCells, 
 		         const Permanence connectedThreshold, 
 			 const bool timeseries) {
   initialize(numCells, connectedThreshold, timeseries);
 }
+
 
 void Connections::initialize(CellIdx numCells, Permanence connectedThreshold, bool timeseries) {
   cells_ = vector<CellData>(numCells);
@@ -59,11 +63,13 @@ void Connections::initialize(CellIdx numCells, Permanence connectedThreshold, bo
   reset();
 }
 
+
 UInt32 Connections::subscribe(ConnectionsEventHandler *handler) {
   UInt32 token = nextEventToken_++;
   eventHandlers_[token] = handler;
   return token;
 }
+
 
 void Connections::unsubscribe(UInt32 token) {
   delete eventHandlers_.at(token);
@@ -169,7 +175,7 @@ Synapse Connections::createSynapse(Segment segment,
   synapseData.segment         = segment;
   synapseData.id              = nextSynapseOrdinal_++; //TODO move these to SynData constructor
   // Start in disconnected state.
-  synapseData.permanence           = connectedThreshold_ - 1.0f;
+  synapseData.permanence           = connectedThreshold_ - static_cast<Permanence>(1.0);
   synapseData.presynapticMapIndex_ = 
     (Synapse)potentialSynapsesForPresynapticCell_[presynapticCell].size();
   potentialSynapsesForPresynapticCell_[presynapticCell].push_back(synapse);
@@ -187,6 +193,7 @@ Synapse Connections::createSynapse(Segment segment,
 
   return synapse;
 }
+
 
 bool Connections::segmentExists_(const Segment segment) const {
   if(segment >= segments_.size()) return false; //OOB segment
@@ -220,6 +227,7 @@ bool Connections::synapseExists_(const Synapse synapse, bool fast) const {
   return synapses_[synapse].permanence != -1;
   }
 }
+
 
 /**
  * Helper method to remove a synapse from a presynaptic map, by moving the
@@ -584,8 +592,8 @@ void Connections::raisePermanencesToThreshold(
   // Do a partial sort, it's faster than a full sort.
   std::nth_element(synapses.begin(), minPermSynPtr, synapses.end(), permanencesGreater);
 
-  const Real increment = connectedThreshold_ - synapses_[ *minPermSynPtr ].permanence;
-  if( increment <= 0 ) // If minPermSynPtr is already connected then ...
+  const auto increment = connectedThreshold_ - synapses_[ *minPermSynPtr ].permanence;
+  if( increment <= static_cast<Permanence>(0.0) ) // If minPermSynPtr is already connected then ...
     return;            // Enough synapses are already connected.
 
   // Raise the permanence of all synapses in the potential pool uniformly.

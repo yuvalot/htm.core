@@ -1454,7 +1454,7 @@ TEST(SpatialPoolerTest, testInitPermanence) {
 
   UInt arr[8] = {0, 1, 1, 0, 0, 1, 0, 1};
   vector<UInt> potential(&arr[0], &arr[8]);
-  vector<Real> perm = sp.initPermanence_(potential, 1.0);
+  auto perm = sp.initPermanence_(potential, 1.0);
   for (UInt i = 0; i < 8; i++)
     if (potential[i])
       ASSERT_GE(perm[i], synPermConnected);

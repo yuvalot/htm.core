@@ -862,7 +862,7 @@ public:
   @returns real number of a randomly generated permanence value for a synapses
   that is initialized in a connected state.
   */
-  Real initPermConnected_();
+  Permanence initPermConnected_();
   /**
       Returns a randomly generated permanence value for a synapses that is to be
       initialized in a non-connected state.
@@ -870,7 +870,7 @@ public:
       @returns real number of a randomly generated permanence value for a
      synapses that is to be initialized in a non-connected state.
   */
-  Real initPermNonConnected_();
+  Permanence initPermNonConnected_();
 
   /**
     Initializes the permanences of a column. The method
@@ -886,9 +886,9 @@ public:
     @param connectedPct   A real value between 0 or 1 specifying the percent of
     the input bits that will start off in a connected state.
   */
-  vector<Real> initPermanence_(const vector<UInt> &potential, Real connectedPct);
+  vector<Permanence> initPermanence_(const vector<UInt> &potential, const Real connectedPct);
 
-  void clip_(vector<Real> &perm) const;
+  void clip_(vector<Permanence> &perm) const;
 
   /**
       Performs inhibition. This method calculates the necessary values needed to
@@ -1182,7 +1182,7 @@ protected:
   bool globalInhibition_;
   Int numActiveColumnsPerInhArea_;
   const Real MAX_LOCALAREADENSITY = 0.5f; //require atleast 2 areas
-  Real localAreaDensity_;
+  Permanence localAreaDensity_;
   UInt stimulusThreshold_;
   UInt inhibitionRadius_;
   UInt dutyCyclePeriod_;
@@ -1193,10 +1193,10 @@ protected:
   bool wrapAround_;
   UInt updatePeriod_;
 
-  Real synPermInactiveDec_;
-  Real synPermActiveInc_;
-  Real synPermBelowStimulusInc_;
-  Real synPermConnected_;
+  Permanence synPermInactiveDec_;
+  Permanence synPermActiveInc_;
+  Permanence synPermBelowStimulusInc_;
+  Permanence synPermConnected_;
 
   vector<Real> boostFactors_;
   vector<Real> overlapDutyCycles_;

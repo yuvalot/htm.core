@@ -36,15 +36,25 @@
 
 namespace htm {
 
+
 //TODO instead of typedefs, use templates for proper type-checking?
 using CellIdx   = htm::ElemSparse; // CellIdx must match with ElemSparse, defined in Sdr.hpp
 using SegmentIdx= UInt16; /** Index of segment in cell. */
 using SynapseIdx= UInt16; /** Index of synapse in segment. */
 using Segment   = UInt32;    /** Index of segment's data. */
 using Synapse   = UInt32;    /** Index of synapse's data. */
-using Permanence= Real32; //TODO experiment with half aka float16
-constexpr const Permanence minPermanence = 0.0f;
-constexpr const Permanence maxPermanence = 1.0f;
+using Permanence= Real32;
+constexpr const Permanence minPermanence = static_cast<Permanence>(0.0);
+constexpr const Permanence maxPermanence = static_cast<Permanence>(1.0);
+
+ /**
+  * Epsilon is defined for the whole math and algorithms of the Numenta
+  * Platform, independently of the concrete type chosen to handle floating point
+  * numbers.
+  *     numeric_limits<float>::epsilon()  == 1.19209e-7
+  *     numeric_limits<double>::epsilon() == 2.22045e-16
+  */
+static constexpr const Permanence Epsilon = static_cast<Permanence>(1e-6);
 
 
 
@@ -296,7 +306,7 @@ public:
    * also (Kropff & Treves, 2007. http://dx.doi.org/10.2976/1.2793335).
    */
   Connections(const CellIdx numCells, 
-	      const Permanence connectedThreshold = 0.5f,
+	      const Permanence connectedThreshold = static_cast<Permanence>(0.5),
               const bool timeseries = false);
 
   virtual ~Connections() {} 
@@ -310,7 +320,7 @@ public:
    * @param timeseries         See constructor.
    */
   void initialize(const CellIdx numCells, 
-		  const Permanence connectedThreshold = 0.5f,
+		  const Permanence connectedThreshold = static_cast<Permanence>(0.5),
                   const bool timeseries = false);
 
   /**
