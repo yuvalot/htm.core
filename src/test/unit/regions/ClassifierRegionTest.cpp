@@ -100,7 +100,7 @@ TEST(ClassifierRegionTest, asCategoryDecoder) {
   enum classifier_categories { A, B, C };
   Network net;
 
-  std::shared_ptr<Region> encoder = net.addRegion("encoder", "RDSEEncoderRegion", "{size: 400, seed: 42, category: true, activeBits: 40}");
+  std::shared_ptr<Region> encoder = net.addRegion("encoder", "RDSEEncoderRegion", "{size: 600, seed: 42, category: true, activeBits: 40}");
   std::shared_ptr<Region> sp = net.addRegion("sp", "SPRegion", "{columnCount: 1000, globalInhibition: true}");
   std::shared_ptr<Region> classifier = net.addRegion("classifier", "ClassifierRegion", "{learn: true}");
 
@@ -128,7 +128,7 @@ TEST(ClassifierRegionTest, asCategoryDecoder) {
   EXPECT_EQ(static_cast<UInt32>(titles[predicted]), A) << "expected the category of A";
   const Real64 *pdf = reinterpret_cast<const Real64 *>(classifier->getOutputData("pdf").getBuffer());
   VERBOSE << "Encoded A, Classifier predicted A with a probability of " << pdf[predicted] << std::endl;
-  ASSERT_NEAR(pdf[predicted], 0.947, 0.003);
+  ASSERT_NEAR(pdf[predicted], 0.950, 0.003);
 
   encoder->setParameterReal64("sensedValue", static_cast<Real64>(B));
   net.run(1);
