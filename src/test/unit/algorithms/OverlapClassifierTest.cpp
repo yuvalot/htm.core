@@ -46,209 +46,140 @@ TEST(OverlapClassifierTest, ExampleUsageClassifier)
   SDR inputData({ 1000u });
       inputData.randomize( 0.02f );
   enum Category { A, B, C, D };
-  OverlapClassifier clsr;
-  clsr.learn( inputData, { Category::B } );
-  ASSERT_EQ(OverlapClassifier::argmax(clsr.infer(inputData)), Category::B);
+  OverlapClassifier clsr1;
+  clsr1.learn(inputData, {Category::B});
+  ASSERT_EQ(OverlapClassifier::argmax(clsr1.infer(inputData)), Category::B);
 
   // Example 2
   // Estimate a scalar value.  The Classifier only accepts categories, so
   // put real valued inputs into bins (AKA buckets) by subtracting the
   // minimum value and dividing by a resolution.
+  OverlapClassifier clsr2;
   double scalar = 567.8f;
   double minimum = 500.0f;
   double resolution = 10.0f;
-  clsr.learn( inputData, { (UInt)((scalar - minimum) / resolution) } );
-  ASSERT_EQ(OverlapClassifier::argmax(clsr.infer(inputData)) * resolution + minimum, 560.0f);
+  clsr2.learn( inputData, { (UInt)((scalar - minimum) / resolution) } );
+  ASSERT_EQ(OverlapClassifier::argmax(clsr2.infer(inputData)) * resolution + minimum, 560.0f);
 }
-
-/****
-TEST(OverlapClassifierTest, ExampleUsagePredictor) {
-  // Predict 1 and 2 time steps into the future.
-
-  // Make a sequence of 4 random SDRs. Each SDR has 1000 bits and 2% sparsity.
-  vector<SDR> sequence( 4u, vector<UInt>{ 1000u } );
-  for( SDR & inputData : sequence ) {
-      inputData.randomize( 0.02f );
-  }
-  // Make category labels for the sequence.
-  vector<UInt> labels = { 4, 5, 6, 7 };
-
-  // Make a Predictor and train it.
-  Predictor pred( vector<UInt>{ 1, 2 } );
-  pred.learn( 0, sequence[0], { labels[0] } );
-  pred.learn( 1, sequence[1], { labels[1] } );
-  pred.learn( 2, sequence[2], { labels[2] } );
-  pred.learn( 3, sequence[3], { labels[3] } );
-
-  // Give the predictor partial information, and make predictions
-  // about the future.
-  pred.reset();
-  Predictions A = pred.infer( sequence[0] );
-  ASSERT_EQ( argmax( A[1] ),  labels[1] );
-  ASSERT_EQ( argmax( A[2] ),  labels[2] );
-
-  Predictions B = pred.infer( sequence[1] );
-  ASSERT_EQ( argmax( B[1] ),  labels[2] );
-  ASSERT_EQ( argmax( B[2] ),  labels[3] );
-}
-
-
-TEST(OverlapClassifierTest, SingleValue) {
-  // Feed the same input 10 times, the corresponding probability should be
-  // very high
-  vector<UInt> steps{1u};
-  Predictor c(steps, 0.1f);
-
-  // Create a vector of input bit indices
-  SDR input1({10u}); input1.setSparse(SDR_sparse_t({ 1u, 5u, 9u }));
-  vector<UInt> bucketIdxList{4u};
-  for (UInt i = 0u; i < 10u; ++i) {
-    c.learn( i, input1, bucketIdxList );
-  }
-  Predictions result1 = c.infer( input1 );
-
-  ASSERT_EQ( argmax( result1[1u] ), 4u )
-      << "Incorrect prediction for bucket 4";
-
-  ASSERT_EQ( result1.size(), 1u );
-}
-
-
-TEST(OverlapClassifierTest, ComputeComplex) {
-  // More complex classification
-  // This test is ported from the Python unit test
-  Predictor c({1u}, 1.0f);
-
-  // Create a input vector
-  SDR input1({ 20u });
-  input1.setSparse(SDR_sparse_t({ 1u, 5u, 9u }));
-  vector<UInt> bucketIdxList1{ 4u };
-
-  // Create a input vector
-  SDR input2({ 20u });
-  input2.setSparse(SDR_sparse_t({ 0u, 6u, 9u, 11u }));
-  vector<UInt> bucketIdxList2{ 5u };
-
-  // Create input vectors
-  SDR input3({ 20u });
-  input3.setSparse(SDR_sparse_t({ 6u, 9u }));
-  vector<UInt> bucketIdxList3{ 5u };
-  vector<UInt> bucketIdxList4{ 4u };
-  vector<UInt> bucketIdxList5{ 4u };
-
-  c.learn(0, input1, bucketIdxList1);
-  c.learn(1, input2, bucketIdxList2);
-  c.learn(2, input3, bucketIdxList3);
-  c.learn(3, input1, bucketIdxList4);
-  auto result = c.infer(input1);
-
-  // Check the one-step prediction
-  ASSERT_EQ(result.size(), 1u)
-    << "Result should only have 1 key.";
-  ASSERT_EQ(6ul, result[1u].size()) << "Expected six bucket predictions";
-  ASSERT_LT(fabs(result[1u].at(0u) - 0.034234f), 0.000001f)
-      << "Incorrect prediction for bucket 0";
-  ASSERT_LT(fabs(result[1u].at(1u) - 0.034234f), 0.000001f)
-      << "Incorrect prediction for bucket 1";
-  ASSERT_LT(fabs(result[1u].at(2u) - 0.034234f), 0.000001f)
-      << "Incorrect prediction for bucket 2";
-  ASSERT_LT(fabs(result[1u].at(3u) - 0.034234f), 0.000001f)
-      << "Incorrect prediction for bucket 3";
-  ASSERT_LT(fabs(result[1u].at(4u) - 0.093058f), 0.000001f)
-      << "Incorrect prediction for bucket 4";
-  ASSERT_LT(fabs(result[1u].at(5u) - 0.770004f), 0.000001f)
-      << "Incorrect prediction for bucket 5";
-}
-****/
 
 TEST(OverlapClassifierTest, MultipleCategories) {
-  // Test multiple category classification with single compute calls
-  // This test is ported from the Python unit test
+  // Test multiple category classification
   OverlapClassifier c;
 
-  // Create an input vector
-  SDR input1({ 10 });
-  input1.setSparse(SDR_sparse_t({ 1u, 3u, 5u }));
-  vector<UInt> bucketIdxList1{ 0u, 1u };
+  // Create a set of random SDR's and have the classifier learn them.
+  // The index 0 to 999 is the category
+  // the patterns vector contains generated SDR's for each category 0 through 999.
+  // The SDR's have random bits with 2% sparsity.
+  // There is a slight chance that that some pattern could overlap
+  // with another pattern by one or even 2 bits by accedent but more than
+  // that would be extreamly unlikely.
+  std::vector<SDR> patterns;
+  for (size_t i = 0; i < 1000; i++) {
+    SDR s({2000});
+    s.randomize(0.02f);
+    patterns.push_back(s);
+  }
 
-  // Create an input vector
-  SDR input2({ 10 });
-  input2.setSparse(SDR_sparse_t({ 2u, 4u, 6u }));
-  vector<UInt> bucketIdxList2{ 2u, 3u };
+  // Now lets have the classifier learn these patterns
+  std::vector<UInt> category = {0};  // a one element array
+  for (size_t i = 0; i < 1000; i++) {
+    category[0] = static_cast<UInt>(i);
+    c.learn(patterns[i], category);
+  }
 
-  // Train  (note: only need to train with one sample for each pattern.)
-  c.learn( input1, bucketIdxList1 );
-  c.learn( input2, bucketIdxList2 );
+  // Test.  Lets pick on category 25
+  // pattern 25 should match category 25 at near 100%
+  PDF result1 = c.infer(patterns[25]);
+  EXPECT_EQ(OverlapClassifier::argmax(result1), 25) << "Learned category for pattern 25 not found.";
+  EXPECT_NEAR(result1[25], 1.0f, 0.001f) << "pattern 25 was not 100% probability for category 25.";
 
-  // Test
-  PDF result1 = c.infer( input1 );
-  PDF result2 = c.infer( input2 );
+  // Try one category with multiple patterns
+  // So store pattern 0 and pattern 1 along with pattern 25 for category 25.
+  c.learn(patterns[0], {25});    // pattern 0 will match category 0 and category 25
+  c.learn(patterns[1], {25});    // pattern 1 will match category 1 and category 25
 
-  ASSERT_LT(fabs(result1.at(0u) - 0.5f), 0.1f)
-      << "Incorrect prediction for bucket 0 (expected=0.5)";
-  ASSERT_LT(fabs(result1.at(1u) - 0.5f), 0.1f)
-      << "Incorrect prediction for bucket 1 (expected=0.5)";
+  // It should show category 25 as a match for patterns 0, 1, and 25.
+  // pattern 0 could be category 0 or category 25 so 50% each
+  // pattern 1 could be category 1 or category 25 so 50% each
+  result1 = c.infer(patterns[25]);
+  EXPECT_NEAR(result1[25], 1.0f, 0.001f) << "Learned pattern 25 no longer matchs category 25 at 100%";
+  result1 = c.infer(patterns[0]);
+  EXPECT_NEAR(result1[25], 0.5f, 0.001f) << "Learned pattern 0 has no match for category 25";
+  EXPECT_NEAR(result1[0], 0.5f, 0.001f) << "Learned pattern 0 has no match for category 0";
+  result1 = c.infer(patterns[1]);
+  EXPECT_NEAR(result1[25], 0.5f, 0.001f) << "Learned pattern 1 has no match for category 25";
+  EXPECT_NEAR(result1[1], 0.5f, 0.001f) << "Learned pattern 1 has no match for category 1";
 
-  ASSERT_LT(fabs(result2.at(2u) - 0.5f), 0.1f)
-      << "Incorrect prediction for bucket 2 (expected=0.5)";
-  ASSERT_LT(fabs(result2.at(3u) - 0.5f), 0.1f)
-      << "Incorrect prediction for bucket 3 (expected=0.5)";
+  // Other patterns should not match anything. 
+  SDR s_other({2000});
+  s_other.randomize(0.02f);  // generate another random pattern
+  result1 = c.infer(s_other);
+  EXPECT_NEAR(result1[25], 0.0f, 0.001f) << "Any pattern not learned should not match anything.";
+
 }
 
-/**
-TEST(OverlapClassifierTest, SaveLoad) {
-  vector<UInt> steps{ 1u };
-  Predictor c1(steps, 0.1f);
+TEST(OverlapClassifierTest, TwoBitOverlap) { 
+  // We want to see the probablilty of a match with 2 bits overlap.
+  // Create a set of 50 SDR's which have no overlap. 40 active bits each.
+  std::vector<SDR> patterns;
+  for (UInt i = 0; i < 50u; i++) {
+    SDR s({2000});
+    std::vector<UInt> sparse;
+    for (UInt j = 0; j < 40u; j++) {
+      sparse.push_back(i * 40u + j);
+    }
 
-  // Train a Predictor with a few different things.
-  SDR A({ 100u }); A.randomize( 0.10f );
-  for(UInt i = 0; i < 10u; i++)
-    { c1.learn(i, A, {4u}); }
-  c1.reset();
-  A.addNoise( 1.0f ); // Change every bit.
-  for(UInt i = 0; i < 10u; i++)
-    { c1.learn(i, A, {3u, 5u}); }
-  // Measure and save some output.
-  A.addNoise( 0.20f ); // Change two bits.
-  c1.reset();
-  const auto c1_out = c1.infer( A );
+    s.setSparse(sparse);
+    patterns.push_back(s);
+  }
+
+  OverlapClassifier c;
+  // Now lets have the classifier learn 49 of these patterns
+  std::vector<UInt> category = {0}; // a one element array
+  for (size_t i = 0; i < 49; i++) {
+    category[0] = static_cast<UInt>(i);
+    c.learn(patterns[i], category);
+  }
+
+  // Create an SDR which has only 2 bits that overlap with sdr 25.
+  SDR st = patterns[49];
+  std::vector<UInt>p = st.getSparse();
+  p[0] = patterns[25].getSparse()[0];
+  p[1] = patterns[25].getSparse()[1];
+  p[2] = patterns[25].getSparse()[2];
+  st.setSparse(p);
+  
+  PDF result1 = c.infer(st);
+  EXPECT_NEAR(result1[0], 0.0f, 0.001f) << "Unexpected probablility for a 2 bit overlap";
+}
+
+
+TEST(OverlapClassifierTest, SaveLoad) {
+  OverlapClassifier c1;
+
+  // Train a Classifier with a few different things.
+  SDR A({100u});  A.randomize(0.10f);
+  SDR B({100u});  B.randomize(0.10f);
+  SDR C({100u});  C.randomize(0.10f);
+  SDR D({100u});  D.randomize(0.10f);
+  c1.learn(A, {1u}); 
+  c1.learn(B, {2u});
+  c1.learn(C, {3u});
+  c1.learn(D, {4u});
+  const auto c1_out = c1.infer(A);
 
   // Save and load.
   stringstream ss;
   EXPECT_NO_THROW(c1.save(ss));
-  Predictor c2;
+  OverlapClassifier c2;
   EXPECT_NO_THROW(c2.load(ss));
 
   // Expect identical results.
   const auto c2_out = c2.infer( A );
   ASSERT_EQ(c1_out, c2_out);
 }
-***/
-
-TEST(OverlapClassifierTest, testSoftmaxOverflow) {
-  PDF values({ numeric_limits<Real>::max() });
-  OverlapClassifier::softmax(values.begin(), values.end());
-  auto result = values[0u];
-  ASSERT_FALSE(std::isnan(result));
-}
 
 
-TEST(OverlapClassifierTest, testSoftmax) {
-  PDF values {0.0f, 1.0f, 1.337f, 2.018f, 1.1f, 0.5f, 0.9f};
-  const PDF exp {
-    0.045123016137150938f,
-    0.12265707481088166f,
-    0.17181055613150184f,
-    0.3394723335640627f,
-    0.13555703197721547f,
-    0.074395276503465876f,
-    0.11098471087572169f};
 
-  OverlapClassifier::softmax(values.begin(), values.end());
-
-  for(auto i = 0u; i < exp.size(); i++) {
-    EXPECT_NEAR(values[i], exp[i], 0.000001f) << "softmax ["<< i <<"]";
-  }
-}
 
 } // end namespace

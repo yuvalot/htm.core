@@ -129,14 +129,16 @@ class OverlapClassifier : public Serializable
 public:
   /**
    * Constructor.
-   *
+   * @param theta - The threshold number of overlap bits an SDR must have to
+   *                be considered a match.  A value of 0 means compute a reasonable
+   *                value based on SDR size and sparsity.
    */
-  OverlapClassifier( );
+  OverlapClassifier(UInt theta = 0);
 
   /**
    * For use when deserializing.
    */
-  void initialize();
+  void initialize(UInt theta);
 
   /**
    * Compute the likelihoods for each category / bucket.
@@ -164,6 +166,7 @@ public:
   {
     ar(cereal::make_nvp("dimensions",    dimensions_),
        cereal::make_nvp("numCategories", numCategories_),
+       cereal::make_nvp("theta",         theta_),
        cereal::make_nvp("map",           map_));
   }
 
@@ -171,6 +174,7 @@ public:
   void load_ar(Archive & ar) {
     ar(cereal::make_nvp("dimensions",    dimensions_),
        cereal::make_nvp("numCategories", numCategories_), 
+       cereal::make_nvp("theta",         theta_),
        cereal::make_nvp("map",           map_));
   }
 
@@ -192,6 +196,7 @@ private:
   Real alpha_;
   UInt dimensions_;
   UInt numCategories_;
+  UInt theta_;
 
   /**
    * a multimap used to store the data.
@@ -210,129 +215,6 @@ private:
 
 
 
-/******************************************************************************/
-#if 0
-
-/**
- * The key is the step, for predicting multiple time steps into the future.
- * The value is a PDF (probability distribution function, of the result being in
- * each bucket or category).
- */
-//using Predictions = std::unordered_map<UInt, PDF>;
-
-/**
- * The Predictor class does N-Step ahead predictions.
- *
- * Internally, this class uses Classifiers to associate SDRs with future values.
- * This class handles missing datapoints.
- *
- * Compatibility Note:  This class is the replacement for the old SDRClassifier.
- * It no longer provides estimates of the actual value. Instead, users can get a rough estimate
- * from bucket-index. If more precision is needed, use more buckets in the encoder. 
- *
- * Example Usage:
- *   ```
- *    // Predict 1 and 2 time steps into the future.
- *    // Make a sequence of 4 random SDRs. Each SDR has 1000 bits and 2% sparsity.
- *    vector<SDR> sequence( 4, { 1000 } );
- *    for( SDR & inputData : sequence )
- *        inputData.randomize( 0.02 );
- *
- *    // Make category labels for the sequence.
- *    vector<UInt> labels = { 4, 5, 6, 7 };
- *
- *    // Make a Predictor and train it.
- *    Predictor pred( vector<UInt>{ 1, 2 } );
- *    pred.learn( 0, sequence[0], { labels[0] } );
- *    pred.learn( 1, sequence[1], { labels[1] } );
- *    pred.learn( 2, sequence[2], { labels[2] } );
- *    pred.learn( 3, sequence[3], { labels[3] } );
- *
- *    // Give the predictor partial information, and make predictions
- *    // about the future.
- *    pred.reset();
- *    Predictions A = pred.infer( sequence[0] );
- *    argmax( A[1] )  ->  labels[1]
- *    argmax( A[2] )  ->  labels[2]
- *
- *    Predictions B = pred.infer( sequence[1] );
- *    argmax( B[1] )  ->  labels[2]
- *    argmax( B[2] )  ->  labels[3]
- *    ```
- */
-class Predictor : public Serializable
-{
-public:
-  /**
-   * Constructor.
-   *
-   * @param steps - The number of steps into the future to learn and predict.
-   * @param alpha - The alpha used to adapt the weight matrix during learning. 
-   *                A larger alpha results in faster adaptation to the data.
-   *                (The default value will likely be OK in most cases.)
-   */
-  Predictor(const std::vector<UInt> &steps, Real alpha = 0.001f );
-
-  /**
-   * Constructor for use when deserializing.
-   */
-  Predictor() {}
-  void initialize(const std::vector<UInt> &steps, Real alpha = 0.001f );
-
-  /**
-   * For use with time series datasets.
-   */
-  void reset();
-
-  /**
-   * Compute the likelihoods.
-   *
-   * @param pattern: The active input SDR.
-   *
-   * @returns: A mapping from prediction step to PDF.
-   */
-  Predictions infer(const SDR &pattern) const;
-
-  /**
-   * Learn from example data.
-   *
-   * @param recordNum: An incrementing integer for each record. Gaps in
-   *                   numbers correspond to missing records.
-   * @param pattern: The active input SDR.
-   * @param bucketIdxList: Vector of the current value bucket indices or categories.
-   */
-  void learn(const UInt recordNum, 
-	     const SDR &pattern,
-             const std::vector<UInt> &bucketIdxList);
-
-  CerealAdapter;
-  template<class Archive>
-  void save_ar(Archive & ar) const
-  {
-    ar(cereal::make_nvp("steps",            steps_),
-       cereal::make_nvp("patternHistory",   patternHistory_),
-       cereal::make_nvp("recordNumHistory", recordNumHistory_),
-       cereal::make_nvp("classifiers",      classifiers_));
-  }
-
-  template<class Archive>
-  void load_ar(Archive & ar)
-    { ar( steps_, patternHistory_, recordNumHistory_, classifiers_ ); }
-
-private:
-  // The list of prediction steps to learn and infer.
-  std::vector<UInt> steps_;
-
-  // Stores the input pattern history, starting with the previous input.
-  std::deque<SDR>  patternHistory_;
-  std::deque<UInt> recordNumHistory_;
-  void checkMonotonic_(UInt recordNum) const;
-
-  // One per prediction step
-  std::unordered_map<UInt, Classifier> classifiers_;
-
-};      // End of Predictor class
-#endif
 
 
 }       // End of namespace htm

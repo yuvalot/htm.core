@@ -28,12 +28,13 @@ using namespace std;
 
 /******************************************************************************/
 
-OverlapClassifier::OverlapClassifier()
-  { initialize( ); }
+OverlapClassifier::OverlapClassifier(UInt theta)
+  { initialize(theta); }
 
-void OverlapClassifier::initialize() {
+void OverlapClassifier::initialize(UInt theta) {
   dimensions_ = 0;
   numCategories_ = 0u;
+  UInt theta_  = theta;
   map_.clear();
 }
 
@@ -77,7 +78,7 @@ PDF OverlapClassifier::infer(const SDR &pattern) const {
     return PDF(numCategories_, std::nan("")); //empty array []
   }
   NTA_ASSERT(pattern.size == dimensions_) << "Input SDR does not match previously seen size!";
-  PDF probabilities(numCategories_, 0.0);
+  PDF probabilities(numCategories_, 0.0); // starts out being number of overlap bits then is converted to probability of match.
 
   // Accumulate the number of overlaps this pattern has for each category.
   for( const auto bit : pattern.getSparse() ) {
@@ -85,7 +86,7 @@ PDF OverlapClassifier::infer(const SDR &pattern) const {
     Key key1;
     key1.bit = bit;
     key1.category = 0;
-    std::multimap<Key, SDR>::const_iterator it = map_.find(key1);
+    std::multimap<Key, SDR>::const_iterator it = map_.lower_bound(key1);
     while (it != map_.end() && it->first.bit == key1.bit) {
       if (probabilities[it->first.category] == 0.0) {   // category already processed?
         // found at least one SDR in the map with this bit turned on that we have not yet seen.
@@ -93,8 +94,19 @@ PDF OverlapClassifier::infer(const SDR &pattern) const {
         int cnt = pattern.getOverlap(it->second);
         probabilities[it->first.category] = static_cast<Real64>(cnt);
       }
+      it++;
     }
   }
+
+  //=================================================================
+  // We need something here to convert from overlap counts to probabilities.
+  // If there is no match with anything the returned probability should be 
+  // the probability of a false positive...or just 0 if nothing exceeds the theta
+  // overlap threshold needed to consider it a match.
+  //  probability of a false match = (x1/theta)((n-x1)/(x2-theta))
+  //
+  // How to compute a reasonable value for theta if not provided?
+  //=================================================================
 
   // Convert from accumulated votes to probability density function.
   softmax( probabilities.begin(), probabilities.end() );
