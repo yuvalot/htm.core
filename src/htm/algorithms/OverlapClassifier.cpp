@@ -34,8 +34,8 @@ OverlapClassifier::OverlapClassifier(UInt theta)
 void OverlapClassifier::initialize(UInt theta) {
   dimensions_ = 0;
   numCategories_ = 0u;
-  UInt theta_  = theta;
-  map_.clear();
+  learnedObjects_.clear();
+  UInt theta_ = theta;
 }
 
 
@@ -47,6 +47,15 @@ void OverlapClassifier::learn(const SDR &pattern, const vector<UInt> &categoryId
   }
   NTA_CHECK(pattern.size > 0) << "No Data passed to OverlapClassifier. Pattern is empty.";
   NTA_ASSERT(pattern.size == dimensions_) << "Input SDR does not match previously seen size!";
+
+  // If threshold theta is not specified in the constructor, assume it is 20% of sparsity with a minumum of 2.
+  // So, if there are 40 out of 2000 1's in the first pattern, the theta threshold will be 8.
+  // At least 8 bits must match before we say there is a probability of a match.
+  if (theta_ == 0) {
+    auto sparse_array = pattern.getSparse();
+    theta_ = static_cast<UInt>(sparse_array.size() * 0.2);
+    if (theta_ < 2) theta_ = 2;
+  }
 
   // Check if this is a new category and adjust the numCategories accordingly.
   const auto maxCategoryIdx = *max_element(categoryIdxList.cbegin(), categoryIdxList.cend());
@@ -61,15 +70,17 @@ void OverlapClassifier::learn(const SDR &pattern, const vector<UInt> &categoryId
       Key key;
       key.bit = bit;
       key.category = i;
-      std::multimap<Key, SDR>::iterator it = map_.find(key);
-      if (it == map_.end() || it->first.bit != key.bit || it->first.category != key.category)
-        map_.insert(std::pair<Key,SDR>(key, pattern));
+      std::multimap<Key, SDR>::iterator it = learnedObjects_.find(key);
+      if (it == learnedObjects_.end() || it->first.bit != key.bit || it->first.category != key.category)
+        learnedObjects_.insert(std::pair<Key, SDR>(key, pattern));
     }
   }
 }
 
 
 PDF OverlapClassifier::infer(const SDR &pattern) const {
+  // NOTE: if the classifier cannot find any category that matches, the returned PDF array is empty.
+
   // Check input dimensions, or if this is the first time the Classifier is used and dimensions
   // are unset, return zeroes.
   NTA_CHECK(pattern.size > 0) << "No Data pased to Classifier. Pattern is empty.";
@@ -81,35 +92,32 @@ PDF OverlapClassifier::infer(const SDR &pattern) const {
   PDF probabilities(numCategories_, 0.0); // starts out being number of overlap bits then is converted to probability of match.
 
   // Accumulate the number of overlaps this pattern has for each category.
+  bool has_match = false;
   for( const auto bit : pattern.getSparse() ) {
-    // for each bit, use multimap to get a list of all entries that contain at least this one bit.
+    // for each bit, use the multimap to get a list of all entries that contain at least this one bit.
+    // This should shorten the search somewhat.
     Key key1;
     key1.bit = bit;
     key1.category = 0;
-    std::multimap<Key, SDR>::const_iterator it = map_.lower_bound(key1);
-    while (it != map_.end() && it->first.bit == key1.bit) {
+    std::multimap<Key, SDR>::const_iterator it = learnedObjects_.lower_bound(key1);
+    while (it != learnedObjects_.end() && it->first.bit == key1.bit) {
       if (probabilities[it->first.category] == 0.0) {   // category already processed?
         // found at least one SDR in the map with this bit turned on that we have not yet seen.
         // See if that SDR has any other overlapping bits
-        int cnt = pattern.getOverlap(it->second);
+        UInt cnt = pattern.getOverlap(it->second);
         probabilities[it->first.category] = static_cast<Real64>(cnt);
+        if (cnt >= theta_)
+          has_match = true;
       }
       it++;
     }
   }
 
-  //=================================================================
-  // We need something here to convert from overlap counts to probabilities.
-  // If there is no match with anything the returned probability should be 
-  // the probability of a false positive...or just 0 if nothing exceeds the theta
-  // overlap threshold needed to consider it a match.
-  //  probability of a false match = (x1/theta)((n-x1)/(x2-theta))
-  //
-  // How to compute a reasonable value for theta if not provided?
-  //=================================================================
-
   // Convert from accumulated votes to probability density function.
-  softmax( probabilities.begin(), probabilities.end() );
+  if (has_match)
+    softmax(probabilities.begin(), probabilities.end());
+  else
+    probabilities.clear();
   return probabilities;
 }
 
@@ -118,12 +126,13 @@ PDF OverlapClassifier::infer(const SDR &pattern) const {
 
 
 bool OverlapClassifier::operator==(const OverlapClassifier &other) const {
-  if (alpha_ != other.alpha_) return false;
+  if (theta_ != other.theta_) return false;
   if (dimensions_ != other.dimensions_) return false; 
   if (numCategories_ != other.numCategories_) return false;
-  if (map_.size() != other.map_.size()) return false;
+  if (learnedObjects_.size() != other.learnedObjects_.size())
+    return false;
   std::multimap<Key, SDR>::const_iterator a, b;
-  for (a = map_.begin(), b = other.map_.begin(); a != map_.end(); a++,b++) {
+  for (a = learnedObjects_.begin(), b = other.learnedObjects_.begin(); a != learnedObjects_.end(); a++, b++) {
     if (a->first.bit != b->first.bit)
       return false;
     if (a->first.category != b->first.category)

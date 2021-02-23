@@ -48,7 +48,9 @@ TEST(OverlapClassifierTest, ExampleUsageClassifier)
   enum Category { A, B, C, D };
   OverlapClassifier clsr1;
   clsr1.learn(inputData, {Category::B});
-  ASSERT_EQ(OverlapClassifier::argmax(clsr1.infer(inputData)), Category::B);
+  PDF prob = clsr1.infer(inputData);
+  ASSERT_TRUE(prob.size() > 0)  << "Did not find a match";
+  ASSERT_EQ(OverlapClassifier::argmax(prob), Category::B) << "did not match with category B";
 
   // Example 2
   // Estimate a scalar value.  The Classifier only accepts categories, so
@@ -59,7 +61,9 @@ TEST(OverlapClassifierTest, ExampleUsageClassifier)
   double minimum = 500.0f;
   double resolution = 10.0f;
   clsr2.learn( inputData, { (UInt)((scalar - minimum) / resolution) } );
-  ASSERT_EQ(OverlapClassifier::argmax(clsr2.infer(inputData)) * resolution + minimum, 560.0f);
+  prob = clsr2.infer(inputData);
+  ASSERT_TRUE(prob.size() > 0) << "Did not find anything that matched";
+  ASSERT_EQ(OverlapClassifier::argmax(prob) * resolution + minimum, 560.0f);
 }
 
 TEST(OverlapClassifierTest, MultipleCategories) {
@@ -93,7 +97,7 @@ TEST(OverlapClassifierTest, MultipleCategories) {
   EXPECT_EQ(OverlapClassifier::argmax(result1), 25) << "Learned category for pattern 25 not found.";
   EXPECT_NEAR(result1[25], 1.0f, 0.001f) << "pattern 25 was not 100% probability for category 25.";
 
-  // Try one category with multiple patterns
+  // Try one category with multiple patterns learned
   // So store pattern 0 and pattern 1 along with pattern 25 for category 25.
   c.learn(patterns[0], {25});    // pattern 0 will match category 0 and category 25
   c.learn(patterns[1], {25});    // pattern 1 will match category 1 and category 25
@@ -102,11 +106,14 @@ TEST(OverlapClassifierTest, MultipleCategories) {
   // pattern 0 could be category 0 or category 25 so 50% each
   // pattern 1 could be category 1 or category 25 so 50% each
   result1 = c.infer(patterns[25]);
+  ASSERT_FALSE(result1.empty()) << "Nothing matched with pattern 25";
   EXPECT_NEAR(result1[25], 1.0f, 0.001f) << "Learned pattern 25 no longer matchs category 25 at 100%";
   result1 = c.infer(patterns[0]);
+  ASSERT_FALSE(result1.empty()) << "Nothing matched with pattern 0";
   EXPECT_NEAR(result1[25], 0.5f, 0.001f) << "Learned pattern 0 has no match for category 25";
   EXPECT_NEAR(result1[0], 0.5f, 0.001f) << "Learned pattern 0 has no match for category 0";
   result1 = c.infer(patterns[1]);
+  ASSERT_FALSE(result1.empty()) << "Nothing matched with pattern 1";
   EXPECT_NEAR(result1[25], 0.5f, 0.001f) << "Learned pattern 1 has no match for category 25";
   EXPECT_NEAR(result1[1], 0.5f, 0.001f) << "Learned pattern 1 has no match for category 1";
 
@@ -114,44 +121,9 @@ TEST(OverlapClassifierTest, MultipleCategories) {
   SDR s_other({2000});
   s_other.randomize(0.02f);  // generate another random pattern
   result1 = c.infer(s_other);
-  EXPECT_NEAR(result1[25], 0.0f, 0.001f) << "Any pattern not learned should not match anything.";
-
+  EXPECT_TRUE(result1.empty()) << "Any pattern not overlapping with one that is learned should not match anything.";
 }
 
-TEST(OverlapClassifierTest, TwoBitOverlap) { 
-  // We want to see the probablilty of a match with 2 bits overlap.
-  // Create a set of 50 SDR's which have no overlap. 40 active bits each.
-  std::vector<SDR> patterns;
-  for (UInt i = 0; i < 50u; i++) {
-    SDR s({2000});
-    std::vector<UInt> sparse;
-    for (UInt j = 0; j < 40u; j++) {
-      sparse.push_back(i * 40u + j);
-    }
-
-    s.setSparse(sparse);
-    patterns.push_back(s);
-  }
-
-  OverlapClassifier c;
-  // Now lets have the classifier learn 49 of these patterns
-  std::vector<UInt> category = {0}; // a one element array
-  for (size_t i = 0; i < 49; i++) {
-    category[0] = static_cast<UInt>(i);
-    c.learn(patterns[i], category);
-  }
-
-  // Create an SDR which has only 2 bits that overlap with sdr 25.
-  SDR st = patterns[49];
-  std::vector<UInt>p = st.getSparse();
-  p[0] = patterns[25].getSparse()[0];
-  p[1] = patterns[25].getSparse()[1];
-  p[2] = patterns[25].getSparse()[2];
-  st.setSparse(p);
-  
-  PDF result1 = c.infer(st);
-  EXPECT_NEAR(result1[0], 0.0f, 0.001f) << "Unexpected probablility for a 2 bit overlap";
-}
 
 
 TEST(OverlapClassifierTest, SaveLoad) {

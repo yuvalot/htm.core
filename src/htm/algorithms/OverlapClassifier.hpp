@@ -1,7 +1,8 @@
 /* ---------------------------------------------------------------------
  * HTM Community Edition of NuPIC
  * Copyright (C) 2016, Numenta, Inc.
- *               2019, David McDougall
+ *               2019, David McDougall (provided SDRClassifier from which this was derived)
+ *               2021, David Keeney
  *
  * Unless you have an agreement with Numenta, Inc., for a separate license for
  * this software code, the following terms and conditions apply:
@@ -34,7 +35,6 @@
 #define NTA_OVERLAP_CLASSIFIER_HPP
 
 #include <deque>
-#include <unordered_map>
 #include <vector>
 #include <map>
 
@@ -116,13 +116,9 @@ public:
  *
  * During learning, the SDR and its corresponding category index are stored in
  * a multimap.  This only takes one sample for each category to remember the bits.
- * If multiple SCR samples are given for a category, the OR of all SDR bits are stored for the category.
+ * If multiple SCR samples are given for a category, the OR of all SDR bits are stored 
+ * for that category.
  *
- * References:
- *  - J. S. Bridle. Probabilistic interpretation of feedforward classification
- *    network outputs, with relationships to statistical pattern recognition
- *  - In F. Fogleman-Soulie and J.Herault, editors, Neurocomputing: Algorithms,
- *    Architectures and Applications, pp 227-236, Springer-Verlag, 1990
  */
 class OverlapClassifier : public Serializable
 {
@@ -146,7 +142,7 @@ public:
    * @param pattern: The SDR containing the active input bits.
    * @returns: The Probablility Distribution Function (PDF) of the categories.
    *           This is indexed by the category label.
-   *           Or empty array ([]) if Classifier hasn't called learn() before. 
+   *           Or empty array ([]) if Classifier cannot find anything that matches what has been learned. 
    */
   PDF infer(const SDR & pattern) const;
 
@@ -167,15 +163,15 @@ public:
     ar(cereal::make_nvp("dimensions",    dimensions_),
        cereal::make_nvp("numCategories", numCategories_),
        cereal::make_nvp("theta",         theta_),
-       cereal::make_nvp("map",           map_));
+       cereal::make_nvp("learnedObjects",learnedObjects_));
   }
 
   template<class Archive>
   void load_ar(Archive & ar) {
     ar(cereal::make_nvp("dimensions",    dimensions_),
        cereal::make_nvp("numCategories", numCategories_), 
-       cereal::make_nvp("theta",         theta_),
-       cereal::make_nvp("map",           map_));
+       cereal::make_nvp("theta",         theta_), 
+       cereal::make_nvp("learnedObjects",learnedObjects_));
   }
 
   bool operator==(const OverlapClassifier &other) const;
@@ -193,23 +189,22 @@ public:
 
 
 private:
-  Real alpha_;
-  UInt dimensions_;
-  UInt numCategories_;
-  UInt theta_;
+  UInt dimensions_;       // expected dimension.  All SDR's must have the same dimensions.
+  UInt numCategories_;    // The number of learned objects (size of the returned PDF array)
+  UInt theta_;            // Minimum number of overlaps for a compare to be considered a match
 
   /**
-   * a multimap used to store the data.
-   * Key is [ on bit index ][ category-index ]
-   * For each sample, there is an entry in the map for each [bit-index and category-index] combination.
-   * The value associated with it is the pattern SDR associated during learning with the category-index.
+   * A multimap used to store the learned data.
+   *   Key is [ on bit index ][ category-index ]
+   *   For each sample, there is an entry in the map for each [bit-index and category-index] combination.
+   * The value in the map is the SDR associated during learning with the category-index.
    */
   struct KeyComp {
     bool operator()(const Key &lhs, const Key &rhs) const {
       return (lhs.bit < rhs.bit || (lhs.bit == rhs.bit && lhs.category < rhs.category)); 
     }
   };
-  std::multimap<Key, SDR, KeyComp> map_;
+  std::multimap<Key, SDR, KeyComp> learnedObjects_;
 
 };
 
@@ -218,4 +213,4 @@ private:
 
 
 }       // End of namespace htm
-#endif  // End of ifdef NTA_SDR_CLASSIFIER_HPP
+#endif  // End of ifdef NTA_OVERLAP_CLASSIFIER_HPP
