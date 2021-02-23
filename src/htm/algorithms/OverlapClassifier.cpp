@@ -35,7 +35,7 @@ void OverlapClassifier::initialize(UInt theta) {
   dimensions_ = 0;
   numCategories_ = 0u;
   learnedObjects_.clear();
-  UInt theta_ = theta;
+  theta_ = theta;
 }
 
 
