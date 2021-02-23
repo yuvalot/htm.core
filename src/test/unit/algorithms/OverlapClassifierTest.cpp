@@ -94,7 +94,7 @@ TEST(OverlapClassifierTest, MultipleCategories) {
   // Test.  Lets pick on category 25
   // pattern 25 should match category 25 at near 100%
   PDF result1 = c.infer(patterns[25]);
-  EXPECT_EQ(OverlapClassifier::argmax(result1), 25) << "Learned category for pattern 25 not found.";
+  EXPECT_EQ(OverlapClassifier::argmax(result1), 25u) << "Learned category for pattern 25 not found.";
   EXPECT_NEAR(result1[25], 1.0f, 0.001f) << "pattern 25 was not 100% probability for category 25.";
 
   // Try one category with multiple patterns learned
