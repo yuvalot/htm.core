@@ -46,7 +46,7 @@ TEST(SDRClassifierTest, ExampleUsageClassifier)
   enum Category { A, B, C, D };
   Classifier clsr;
   clsr.learn( inputData, { Category::B } );
-  ASSERT_EQ( Classifier::argmax( clsr.infer( inputData ) ),  Category::B );
+  ASSERT_EQ( argmax( clsr.infer( inputData ) ),  Category::B );
 
   // Estimate a scalar value.  The Classifier only accepts categories, so
   // put real valued inputs into bins (AKA buckets) by subtracting the
@@ -55,7 +55,7 @@ TEST(SDRClassifierTest, ExampleUsageClassifier)
   double minimum = 500.0f;
   double resolution = 10.0f;
   clsr.learn( inputData, { (UInt)((scalar - minimum) / resolution) } );
-  ASSERT_EQ(Classifier::argmax(clsr.infer(inputData)) * resolution + minimum, 560.0f);
+  ASSERT_EQ( argmax( clsr.infer( inputData ) ) * resolution + minimum,  560.0f );
 }
 
 
@@ -82,12 +82,12 @@ TEST(SDRClassifierTest, ExampleUsagePredictor)
   // about the future.
   pred.reset();
   Predictions A = pred.infer( sequence[0] );
-  ASSERT_EQ(Classifier::argmax(A[1]), labels[1]);
-  ASSERT_EQ(Classifier::argmax(A[2]), labels[2]);
+  ASSERT_EQ( argmax( A[1] ),  labels[1] );
+  ASSERT_EQ( argmax( A[2] ),  labels[2] );
 
   Predictions B = pred.infer( sequence[1] );
-  ASSERT_EQ(Classifier::argmax(B[1]), labels[2]);
-  ASSERT_EQ(Classifier::argmax(B[2]), labels[3]);
+  ASSERT_EQ( argmax( B[1] ),  labels[2] );
+  ASSERT_EQ( argmax( B[2] ),  labels[3] );
 }
 
 
@@ -105,7 +105,7 @@ TEST(SDRClassifierTest, SingleValue) {
   }
   Predictions result1 = c.infer( input1 );
 
-  ASSERT_EQ(Classifier::argmax(result1[1u]), 4u)
+  ASSERT_EQ( argmax( result1[1u] ), 4u )
       << "Incorrect prediction for bucket 4";
 
   ASSERT_EQ( result1.size(), 1u );
@@ -227,7 +227,7 @@ TEST(SDRClassifierTest, SaveLoad) {
 
 TEST(SDRClassifierTest, testSoftmaxOverflow) {
   PDF values({ numeric_limits<Real>::max() });
-  Classifier::softmax(values.begin(), values.end());
+  softmax(values.begin(), values.end());
   auto result = values[0u];
   ASSERT_FALSE(std::isnan(result));
 }
@@ -244,7 +244,7 @@ TEST(SDRClassifierTest, testSoftmax) {
     0.074395276503465876f,
     0.11098471087572169f};
 
-  Classifier::softmax(values.begin(), values.end());
+  softmax(values.begin(), values.end());
 
   for(auto i = 0u; i < exp.size(); i++) {
     EXPECT_NEAR(values[i], exp[i], 0.000001f) << "softmax ["<< i <<"]";

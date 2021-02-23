@@ -28,7 +28,7 @@ using namespace std;
 /**
  * Returns the category with the greatest probablility.
  */
-static UInt argmax(const PDF &data)
+UInt htm::argmax( const PDF & data )
   { return UInt( max_element( data.begin(), data.end() ) - data.begin() ); }
 
 
@@ -127,6 +127,22 @@ std::vector<Real64> Classifier::calculateError_(const std::vector<UInt> &categor
 }
 
 
+void htm::softmax(PDF::iterator begin, PDF::iterator end) {
+  if( begin == end ) {
+    return;
+  }
+  const auto maxVal = *max_element(begin, end);
+  for (auto itr = begin; itr != end; ++itr) {
+    *itr = std::exp(*itr - maxVal); // x[i] = e ^ (x[i] - maxVal)
+  }
+  // Sum of all elements raised to exp(elem) each.
+  const Real sum = (Real) std::accumulate(begin, end, 0.0);
+  NTA_ASSERT(sum > 0.0f);
+  for (auto itr = begin; itr != end; ++itr) {
+    *itr /= sum;
+  }
+}
+
 
 bool Classifier::operator==(const Classifier &other) const {
   if (alpha_ != other.alpha_) return false;
@@ -142,25 +158,7 @@ bool Classifier::operator==(const Classifier &other) const {
   return true;
 }
 
-/**
- * Helper function for Classifier::infer.  Converts the raw data accumulators
- * into a PDF.
- */
-void Classifier::softmax(PDF::iterator begin, PDF::iterator end) {
-  if (begin == end) {
-    return;
-  }
-  const auto maxVal = *max_element(begin, end);
-  for (auto itr = begin; itr != end; ++itr) {
-    *itr = std::exp(*itr - maxVal); // x[i] = e ^ (x[i] - maxVal)
-  }
-  // Sum of all elements raised to exp(elem) each.
-  const Real sum = (Real)std::accumulate(begin, end, 0.0);
-  NTA_ASSERT(sum > 0.0f);
-  for (auto itr = begin; itr != end; ++itr) {
-    *itr /= sum;
-  }
-}
+
 
 /******************************************************************************/
 

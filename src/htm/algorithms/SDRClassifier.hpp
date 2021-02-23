@@ -56,6 +56,10 @@ namespace htm {
 using PDF = std::vector<Real64>; //Real64 (not Real/float) must be used here, 
 // ... otherwise precision is lost and Predictor never reaches sufficient results.
 
+/**
+ * Returns the category with the greatest probablility.
+ */
+UInt argmax( const PDF & data );
 
 /**
  * The SDR Classifier takes the form of a single layer classification network.
@@ -157,16 +161,6 @@ public:
   bool operator==(const Classifier &other) const;
   bool operator!=(const Classifier &other) const { return !operator==(other); }
 
-  /**
-   * Returns the category with the greatest probablility.
-   */
-  static UInt argmax(const PDF &data) { return UInt(max_element(data.begin(), data.end()) - data.begin()); }
-  /**
-   * Helper function for Classifier::infer.  Converts the raw data accumulators
-   * into a PDF.
-   */
-  static void softmax(PDF::iterator begin, PDF::iterator end);
-
 private:
   Real alpha_;
   UInt dimensions_;
@@ -184,6 +178,11 @@ private:
                                       const SDR &pattern) const;
 };
 
+/**
+ * Helper function for Classifier::infer.  Converts the raw data accumulators
+ * into a PDF.
+ */
+void softmax(PDF::iterator begin, PDF::iterator end);
 
 
 /******************************************************************************/
