@@ -48,12 +48,12 @@ void OverlapClassifier::learn(const SDR &pattern, const vector<UInt> &categoryId
   NTA_CHECK(pattern.size > 0) << "No Data passed to OverlapClassifier. Pattern is empty.";
   NTA_ASSERT(pattern.size == dimensions_) << "Input SDR does not match previously seen size!";
 
-  // If threshold theta is not specified in the constructor, assume it is 20% of sparsity with a minumum of 2.
-  // So, if there are 40 out of 2000 1's in the first pattern, the theta threshold will be 8.
-  // At least 8 bits must match before we say there is a probability of a match.
+  // If threshold theta is not specified in the constructor, assume it is 10% of sparsity with a minumum of 2.
+  // So, if there are 40 out of 2000 1's in the first pattern, the theta threshold will be 4.
+  // At least 4 bits must match before we say there is a probability of a match.
   if (theta_ == 0) {
     auto sparse_array = pattern.getSparse();
-    theta_ = static_cast<UInt>(sparse_array.size() * 0.2);
+    theta_ = static_cast<UInt>(sparse_array.size() * 0.1);
     if (theta_ < 2) theta_ = 2;
   }
 
