@@ -39,7 +39,7 @@ def load_ds(name, num_test, shape=None):
     X = data['data']
     if shape is not None:
         new_shape = shape.insert(0, sz)
-        X = np.reshape(X, shape)
+        X = np.reshape(X.to_numpy(), shape)
 
     y = data['target'].astype(np.int32)
     # split to train/test data
