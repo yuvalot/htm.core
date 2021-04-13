@@ -117,15 +117,16 @@ Segment Connections::createSegment(const CellIdx cell,
   NTA_ASSERT(numSegments(cell) <= maxSegmentsPerCell);
 
   //proceed to create a new segment
+  const SegmentData& segmentData = SegmentData(cell, iteration_, nextSegmentOrdinal_++);
   Segment segment;
   if (!destroyedSegments_.empty() ) { //reuse old, destroyed segs
     segment = destroyedSegments_.back();
     destroyedSegments_.pop_back();
+    segments_[segment] = segmentData;
   } else { //create a new segment
     NTA_CHECK(segments_.size() < std::numeric_limits<Segment>::max()) << "Add segment failed: Range of Segment (data-type) insufficinet size."
 	    << (size_t)segments_.size() << " < " << (size_t)std::numeric_limits<Segment>::max();
     segment = static_cast<Segment>(segments_.size());
-    const SegmentData& segmentData = SegmentData(cell, iteration_, nextSegmentOrdinal_++);
     segments_.push_back(segmentData);
   }
 
