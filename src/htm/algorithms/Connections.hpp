@@ -774,8 +774,8 @@ public:
    * @retval Number of synapses.
    */
   size_t numSynapses() const {
-    NTA_ASSERT(synapses_.size() >= destroyedSynapses_);
-    return synapses_.size() - destroyedSynapses_;
+    NTA_ASSERT(synapses_.size() >= destroyedSynapses_.size());
+    return synapses_.size() - destroyedSynapses_.size();
   }
 
   /**
@@ -874,7 +874,7 @@ private:
   std::vector<SegmentData> segments_;
   size_t                   destroyedSegments_ = 0;
   std::vector<SynapseData> synapses_;
-  size_t                   destroyedSynapses_ = 0;
+  std::vector<Synapse>     destroyedSynapses_;
   Permanence               connectedThreshold_; //TODO make const
   UInt32 iteration_ = 0;
 

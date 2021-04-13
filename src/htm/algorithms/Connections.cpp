@@ -47,6 +47,7 @@ void Connections::initialize(CellIdx numCells, Permanence connectedThreshold, bo
   cells_ = vector<CellData>(numCells);
   segments_.clear();
   synapses_.clear();
+  destroyedSynapses_.clear();
   potentialSynapsesForPresynapticCell_.clear();
   connectedSynapsesForPresynapticCell_.clear();
   potentialSegmentsForPresynapticCell_.clear();
@@ -166,8 +167,16 @@ Synapse Connections::createSynapse(Segment segment,
   // Get an index into the synapses_ list, for the new synapse to reside at.
   NTA_ASSERT(synapses_.size() < std::numeric_limits<Synapse>::max()) << "Add synapse failed: Range of Synapse (data-type) insufficient size."
 	    << synapses_.size() << " < " << (size_t)std::numeric_limits<Synapse>::max();
-  const Synapse synapse = static_cast<Synapse>(synapses_.size()); //TODO work on cache locality. Have all Synapse, SynapseData on Segment in continuous mem block ?
-  synapses_.emplace_back(SynapseData());
+  Synapse synapse;
+  if (!destroyedSynapses_.empty() ) {
+    synapse = destroyedSynapses_.back();
+    destroyedSynapses_.pop_back();
+  } else {
+    NTA_CHECK(synapses_.size() < std::numeric_limits<Synapse>::max()) << "Add synapse failed: Range of Synapse (data-type) insufficient size."
+	    << synapses_.size() << " < " << (size_t)std::numeric_limits<Synapse>::max();
+    synapse = static_cast<Synapse>(synapses_.size());
+    synapses_.emplace_back();
+  }
 
   // Fill in the new synapse's data
   SynapseData &synapseData    = synapses_[synapse];
@@ -325,11 +334,7 @@ void Connections::destroySynapse(const Synapse synapse) {
   NTA_ASSERT(*synapseOnSegment == synapse);
 
   segmentData.synapses.erase(synapseOnSegment);
-  //Note: dataForSynapse(synapse) are not deleted, unfortunately. And are still accessible. 
-  //To mark them as "removed", we set SynapseData.permanence = -1, this can be used for a quick check later
-  synapseData.permanence = -1; //marking as "removed"
-  destroyedSynapses_++;
-  NTA_ASSERT(not synapseExists_(synapse));
+  destroyedSynapses_.push_back(synapse);
 }
 
 
@@ -811,7 +816,7 @@ std::ostream& operator<< (std::ostream& stream, const Connections& self)
          << "%) Saturated (" <<   (Real) synapsesSaturated / self.numSynapses() << "%)" << std::endl;
   stream << "    Synapses pruned (" << (Real) self.prunedSyns_ / self.numSynapses() 
 	 << "%) Segments pruned (" << (Real) self.prunedSegs_ / self.numSegments() << "%)" << std::endl;
-  stream << "    Buffer for destroyed synapses: " << self.destroyedSynapses_
+  stream << "    Buffer for destroyed synapses: " << self.destroyedSynapses_.size() 
 	 << "    Buffer for destroyed segments: " << self.destroyedSegments_ << std::endl;
 
   return stream;
