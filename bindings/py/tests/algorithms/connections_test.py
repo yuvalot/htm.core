@@ -430,17 +430,12 @@ class ConnectionsTest(unittest.TestCase):
     co = Connections(NUM_CELLS, 0.51)
     self.assertEqual(co.numSegments(), 0, "there are zero segments yet")
 
-    # removing while no segments exist
-    co.destroySegment(1)
-
     # successfully remove
     seg = co.createSegment(1, 20)
     self.assertEqual(co.numSegments(), 1)
     n = co.numConnectedSynapses(seg) #uses dataForSegment()
     co.destroySegment(seg)
     self.assertEqual(co.numSegments(), 0, "segment should have been removed")
-    with pytest.raises(RuntimeError):
-      n2 = co.numConnectedSynapses(seg)
     
 
 
