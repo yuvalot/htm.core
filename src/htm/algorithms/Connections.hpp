@@ -453,7 +453,6 @@ public:
    * @retval Cell that this segment is on.
    */
   CellIdx cellForSegment(const Segment segment) const {
-    NTA_ASSERT(segmentExists_(segment));
     return segments_[segment].cell;
   }
 
@@ -492,11 +491,9 @@ public:
    * @retval Segment data.
    */
   const SegmentData &dataForSegment(const Segment segment) const {
-    NTA_CHECK(segmentExists_(segment));
     return segments_[segment];
   }
   SegmentData& dataForSegment(const Segment segment) { //editable access, needed by SP
-    NTA_CHECK(segmentExists_(segment));
     return segments_[segment];
   }
 
@@ -816,15 +813,6 @@ public:
   void unsubscribe(UInt32 token);
 
 protected:
-  /**
-   * Check whether this segment still exists on its cell.
-   *
-   * @param Segment
-   *
-   * @retval True if it's still in its cell's segment list.
-   */
-  bool segmentExists_(const Segment segment) const;
-
   /**
    * Check whether this synapse still exists "in Connections" ( on its segment).
    * After calling `synapseCreate()` this should be True, after `synapseDestroy()` 

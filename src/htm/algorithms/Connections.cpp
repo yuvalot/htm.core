@@ -210,14 +210,6 @@ Synapse Connections::createSynapse(Segment segment,
 }
 
 
-bool Connections::segmentExists_(const Segment segment) const {
-  if(segment >= segments_.size()) return false; //OOB segment
-
-  const SegmentData &segmentData = segments_[segment];
-  const vector<Segment> &segmentsOnCell = cells_[segmentData.cell].segments;
-  return (std::find(segmentsOnCell.cbegin(), segmentsOnCell.cend(), segment) != segmentsOnCell.cend()); //TODO if too slow, also create "fast" variant, as synapseExists_()
-}
-
 bool Connections::synapseExists_(const Synapse synapse, bool fast) const {
   if(synapse >= synapses_.size()) return false; //out of bounds. Can happen after serialization, where only existing synapses are stored.
 
@@ -268,7 +260,6 @@ void Connections::removeSynapseFromPresynapticMap_(
 
 
 void Connections::destroySegment(const Segment segment) {
-  if(not segmentExists_(segment)) return;
 
   for (auto h : eventHandlers_) {
     h.second->onDestroySegment(segment);
