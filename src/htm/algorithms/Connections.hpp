@@ -755,9 +755,7 @@ public:
    * @retval Number of segments.
    */
   size_t numSegments() const { 
-	  NTA_ASSERT(segments_.size() >= destroyedSegments_);
-	  return segments_.size() - destroyedSegments_; 
-  }
+	  return segments_.size() - destroyedSegments_.size(); }
 
   /**
    * Gets the number of segments on a cell.
@@ -872,7 +870,7 @@ protected:
 private:
   std::vector<CellData>    cells_;
   std::vector<SegmentData> segments_;
-  size_t                   destroyedSegments_ = 0;
+  std::vector<Segment>     destroyedSegments_;
   std::vector<SynapseData> synapses_;
   std::vector<Synapse>     destroyedSynapses_;
   Permanence               connectedThreshold_; //TODO make const
