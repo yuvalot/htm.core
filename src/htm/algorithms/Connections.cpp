@@ -103,7 +103,7 @@ void Connections::pruneSegment_(const CellIdx& cell) {
 Segment Connections::createSegment(const CellIdx cell, 
 	                           const SegmentIdx maxSegmentsPerCell) {
 
-  //limit number of segmets per cell. If exceeded, remove the least recently used ones.
+  // Limit number of segments per cell. If exceeded, remove the least recently used ones.
   NTA_CHECK(maxSegmentsPerCell > 0);
   NTA_CHECK(cell < numCells());
   while (numSegments(cell) >= maxSegmentsPerCell) {
@@ -111,15 +111,15 @@ Segment Connections::createSegment(const CellIdx cell,
   }
   NTA_ASSERT(numSegments(cell) <= maxSegmentsPerCell);
 
-  //proceed to create a new segment
+  // Proceed to create a new segment.
   NTA_CHECK(segments_.size() < std::numeric_limits<Segment>::max()) << "Add segment failed: Range of Segment (data-type) insufficinet size."
 	    << (size_t)segments_.size() << " < " << (size_t)std::numeric_limits<Segment>::max();
   const Segment segment = static_cast<Segment>(segments_.size());
-  const SegmentData& segmentData = SegmentData(cell, iteration_, nextSegmentOrdinal_++);
+  const SegmentData& segmentData = SegmentData(cell, iteration_);
   segments_.push_back(segmentData);
 
   CellData &cellData = cells_[cell];
-  cellData.segments.push_back(segment); //assign the new segment to its mother-cell
+  cellData.segments.push_back(segment); // Assign the new segment to its mother-cell.
 
   for (auto h : eventHandlers_) {
     h.second->onCreateSegment(segment);
@@ -853,7 +853,6 @@ bool Connections::operator==(const Connections &o) const {
   NTA_CHECK(potentialSegmentsForPresynapticCell_ == o.potentialSegmentsForPresynapticCell_);
   NTA_CHECK(connectedSegmentsForPresynapticCell_ == o.connectedSegmentsForPresynapticCell_);
 
-  NTA_CHECK (nextSegmentOrdinal_ == o.nextSegmentOrdinal_ ) << "Connections equals: nextSegmentOrdinal_";
   NTA_CHECK (nextSynapseOrdinal_ == o.nextSynapseOrdinal_ ) << "Connections equals: nextSynapseOrdinal_";
 
   NTA_CHECK (timeseries_ == o.timeseries_ ) << "Connections equals: timeseries_";
