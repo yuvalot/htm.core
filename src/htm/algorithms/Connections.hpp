@@ -865,9 +865,9 @@ protected:
                               std::vector<Segment> &segmentsForPresynapticCell);
 
   /** 
-   *  Remove least recently used Segment from cell. 
+   *  Remove least useful Segment from cell. 
    */
-  void pruneLRUSegment_(const CellIdx& cell);
+  void pruneSegment_(const CellIdx& cell);
 
 private:
   std::vector<CellData>    cells_;

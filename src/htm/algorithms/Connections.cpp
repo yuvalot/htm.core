@@ -77,30 +77,27 @@ void Connections::unsubscribe(UInt32 token) {
 }
 
 
-void Connections::pruneLRUSegment_(const CellIdx& cell) {
-  const auto& destroyCandidates = segmentsForCell(cell);
-#ifdef NTA_ASSERTIONS_ON
-  const auto numBefore = destroyCandidates.size();
-#endif
-  const auto compareSegmentsByLRU = [&](const Segment a, const Segment b) {
-    if(dataForSegment(a).lastUsed == dataForSegment(b).lastUsed) {
-      return a < b; //needed for deterministic sort
+void Connections::pruneSegment_(const CellIdx& cell) {
+  // This uses a simple heuristic to determine how "useful" a segment is.
+  // Heuristic = sum(synapse.permanence ^ power for synapse on segment)
+  // Where power is a positive integer.
+  // This heuristic favors keeping segments which have many strong synapses over
+  // segments with fewer or weaker synapses.
+  auto leastUsefulSegment   = std::numeric_limits<Segment>::max();
+  auto leastUsefulHeuristic = std::numeric_limits<double>::max();
+  for (const Segment& segment : segmentsForCell(cell)) {
+    auto heuristic = 0.0f;
+    for (const Synapse& syn : synapsesForSegment(segment)) {
+      const auto p = dataForSynapse(syn).permanence;
+      heuristic += p * p;
     }
-    else return dataForSegment(a).lastUsed < dataForSegment(b).lastUsed; //sort segments by access time
-  };
-
-  const auto leastRecentlyUsedSegment = std::min_element(destroyCandidates.cbegin(),
-                                                         destroyCandidates.cend(), 
-							 compareSegmentsByLRU);
-#ifdef NTA_ASSERTIONS_ON
-  if(destroyCandidates.size() > 0) {
-    // the removed seg should be the "oldest", least recently used. So any other is more recent. We don't check all, but randomly ([0])
-    NTA_ASSERT(dataForSegment(*leastRecentlyUsedSegment).lastUsed <= dataForSegment(destroyCandidates[0]).lastUsed) 
-	    << "Should remove the least recently used segment,but older exists.";
+    if ((heuristic < leastUsefulHeuristic)
+        || (heuristic == leastUsefulHeuristic && segment < leastUsefulSegment)) { // Needed for deterministic sort.
+      leastUsefulSegment = segment;
+      leastUsefulHeuristic = heuristic;
+    }
   }
-#endif
-  destroySegment(*leastRecentlyUsedSegment);
-  NTA_ASSERT(destroyCandidates.size() < numBefore) << "A segment should have been pruned, but wasn't!";
+  destroySegment(leastUsefulSegment);
 }
 
 Segment Connections::createSegment(const CellIdx cell, 
@@ -110,7 +107,7 @@ Segment Connections::createSegment(const CellIdx cell,
   NTA_CHECK(maxSegmentsPerCell > 0);
   NTA_CHECK(cell < numCells());
   while (numSegments(cell) >= maxSegmentsPerCell) {
-    pruneLRUSegment_(cell);
+    pruneSegment_(cell);
   }
   NTA_ASSERT(numSegments(cell) <= maxSegmentsPerCell);
 
