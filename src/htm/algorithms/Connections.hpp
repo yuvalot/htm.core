@@ -453,7 +453,6 @@ public:
    * @retval Cell that this segment is on.
    */
   CellIdx cellForSegment(const Segment segment) const {
-    NTA_ASSERT(segmentExists_(segment));
     return segments_[segment].cell;
   }
 
@@ -492,11 +491,9 @@ public:
    * @retval Segment data.
    */
   const SegmentData &dataForSegment(const Segment segment) const {
-    NTA_CHECK(segmentExists_(segment));
     return segments_[segment];
   }
   SegmentData& dataForSegment(const Segment segment) { //editable access, needed by SP
-    NTA_CHECK(segmentExists_(segment));
     return segments_[segment];
   }
 
@@ -755,9 +752,7 @@ public:
    * @retval Number of segments.
    */
   size_t numSegments() const { 
-	  NTA_ASSERT(segments_.size() >= destroyedSegments_);
-	  return segments_.size() - destroyedSegments_; 
-  }
+	  return segments_.size() - destroyedSegments_.size(); }
 
   /**
    * Gets the number of segments on a cell.
@@ -774,8 +769,8 @@ public:
    * @retval Number of synapses.
    */
   size_t numSynapses() const {
-    NTA_ASSERT(synapses_.size() >= destroyedSynapses_);
-    return synapses_.size() - destroyedSynapses_;
+    NTA_ASSERT(synapses_.size() >= destroyedSynapses_.size());
+    return synapses_.size() - destroyedSynapses_.size();
   }
 
   /**
@@ -818,15 +813,6 @@ public:
   void unsubscribe(UInt32 token);
 
 protected:
-  /**
-   * Check whether this segment still exists on its cell.
-   *
-   * @param Segment
-   *
-   * @retval True if it's still in its cell's segment list.
-   */
-  bool segmentExists_(const Segment segment) const;
-
   /**
    * Check whether this synapse still exists "in Connections" ( on its segment).
    * After calling `synapseCreate()` this should be True, after `synapseDestroy()` 
@@ -872,9 +858,9 @@ protected:
 private:
   std::vector<CellData>    cells_;
   std::vector<SegmentData> segments_;
-  size_t                   destroyedSegments_ = 0;
+  std::vector<Segment>     destroyedSegments_;
   std::vector<SynapseData> synapses_;
-  size_t                   destroyedSynapses_ = 0;
+  std::vector<Synapse>     destroyedSynapses_;
   Permanence               connectedThreshold_; //TODO make const
   UInt32 iteration_ = 0;
 

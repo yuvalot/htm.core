@@ -216,13 +216,6 @@ class ConnectionsTest(unittest.TestCase):
     co.destroySynapse(syn1)
     self.assertEqual(co.numSynapses(), 0)
 
-    with pytest.raises(RuntimeError): # NTA_CHECK, data for removed synapse must not be accessible!
-      permRemoved = co.permanenceForSynapse(syn1)
-      assert permRemoved == perm1
-
-    # double remove should be just ignored
-    co.destroySynapse(syn1)
-    
 
 
   def testNumSynapses(self):
@@ -437,17 +430,12 @@ class ConnectionsTest(unittest.TestCase):
     co = Connections(NUM_CELLS, 0.51)
     self.assertEqual(co.numSegments(), 0, "there are zero segments yet")
 
-    # removing while no segments exist
-    co.destroySegment(1)
-
     # successfully remove
     seg = co.createSegment(1, 20)
     self.assertEqual(co.numSegments(), 1)
     n = co.numConnectedSynapses(seg) #uses dataForSegment()
     co.destroySegment(seg)
     self.assertEqual(co.numSegments(), 0, "segment should have been removed")
-    with pytest.raises(RuntimeError):
-      n2 = co.numConnectedSynapses(seg)
     
 
 

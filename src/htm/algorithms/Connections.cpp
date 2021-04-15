@@ -46,7 +46,9 @@ Connections::Connections(const CellIdx numCells,
 void Connections::initialize(CellIdx numCells, Permanence connectedThreshold, bool timeseries) {
   cells_ = vector<CellData>(numCells);
   segments_.clear();
+  destroyedSegments_.clear();
   synapses_.clear();
+  destroyedSynapses_.clear();
   potentialSynapsesForPresynapticCell_.clear();
   connectedSynapsesForPresynapticCell_.clear();
   potentialSegmentsForPresynapticCell_.clear();
@@ -115,11 +117,18 @@ Segment Connections::createSegment(const CellIdx cell,
   NTA_ASSERT(numSegments(cell) <= maxSegmentsPerCell);
 
   //proceed to create a new segment
-  NTA_CHECK(segments_.size() < std::numeric_limits<Segment>::max()) << "Add segment failed: Range of Segment (data-type) insufficinet size."
-	    << (size_t)segments_.size() << " < " << (size_t)std::numeric_limits<Segment>::max();
-  const Segment segment = static_cast<Segment>(segments_.size());
   const SegmentData& segmentData = SegmentData(cell, iteration_, nextSegmentOrdinal_++);
-  segments_.push_back(segmentData);
+  Segment segment;
+  if (!destroyedSegments_.empty() ) { //reuse old, destroyed segs
+    segment = destroyedSegments_.back();
+    destroyedSegments_.pop_back();
+    segments_[segment] = segmentData;
+  } else { //create a new segment
+    NTA_CHECK(segments_.size() < std::numeric_limits<Segment>::max()) << "Add segment failed: Range of Segment (data-type) insufficinet size."
+	    << (size_t)segments_.size() << " < " << (size_t)std::numeric_limits<Segment>::max();
+    segment = static_cast<Segment>(segments_.size());
+    segments_.push_back(segmentData);
+  }
 
   CellData &cellData = cells_[cell];
   cellData.segments.push_back(segment); //assign the new segment to its mother-cell
@@ -164,10 +173,17 @@ Synapse Connections::createSynapse(Segment segment,
   } //else: the new synapse is not duplicit, so keep creating it. 
 
   // Get an index into the synapses_ list, for the new synapse to reside at.
-  NTA_ASSERT(synapses_.size() < std::numeric_limits<Synapse>::max()) << "Add synapse failed: Range of Synapse (data-type) insufficient size."
+  Synapse synapse;
+  if (!destroyedSynapses_.empty() ) {
+    synapse = destroyedSynapses_.back();
+    destroyedSynapses_.pop_back();
+  } else {
+    NTA_CHECK(synapses_.size() < std::numeric_limits<Synapse>::max())
+      << "Add synapse failed: Range of Synapse (data-type) insufficient size."
 	    << synapses_.size() << " < " << (size_t)std::numeric_limits<Synapse>::max();
-  const Synapse synapse = static_cast<Synapse>(synapses_.size()); //TODO work on cache locality. Have all Synapse, SynapseData on Segment in continuous mem block ?
-  synapses_.emplace_back(SynapseData());
+    synapse = static_cast<Synapse>(synapses_.size());
+    synapses_.emplace_back();
+  }
 
   // Fill in the new synapse's data
   SynapseData &synapseData    = synapses_[synapse];
@@ -194,14 +210,6 @@ Synapse Connections::createSynapse(Segment segment,
   return synapse;
 }
 
-
-bool Connections::segmentExists_(const Segment segment) const {
-  if(segment >= segments_.size()) return false; //OOB segment
-
-  const SegmentData &segmentData = segments_[segment];
-  const vector<Segment> &segmentsOnCell = cells_[segmentData.cell].segments;
-  return (std::find(segmentsOnCell.cbegin(), segmentsOnCell.cend(), segment) != segmentsOnCell.cend()); //TODO if too slow, also create "fast" variant, as synapseExists_()
-}
 
 bool Connections::synapseExists_(const Synapse synapse, bool fast) const {
   if(synapse >= synapses_.size()) return false; //out of bounds. Can happen after serialization, where only existing synapses are stored.
@@ -253,7 +261,6 @@ void Connections::removeSynapseFromPresynapticMap_(
 
 
 void Connections::destroySegment(const Segment segment) {
-  if(not segmentExists_(segment)) return;
 
   for (auto h : eventHandlers_) {
     h.second->onDestroySegment(segment);
@@ -273,9 +280,7 @@ void Connections::destroySegment(const Segment segment) {
   NTA_ASSERT(*segmentOnCell == segment);
 
   cellData.segments.erase(segmentOnCell);
-  destroyedSegments_++;
-
-  NTA_ASSERT(not segmentExists_(segment));
+  destroyedSegments_.push_back(segment);
 }
 
 
@@ -325,11 +330,7 @@ void Connections::destroySynapse(const Synapse synapse) {
   NTA_ASSERT(*synapseOnSegment == synapse);
 
   segmentData.synapses.erase(synapseOnSegment);
-  //Note: dataForSynapse(synapse) are not deleted, unfortunately. And are still accessible. 
-  //To mark them as "removed", we set SynapseData.permanence = -1, this can be used for a quick check later
-  synapseData.permanence = -1; //marking as "removed"
-  destroyedSynapses_++;
-  NTA_ASSERT(not synapseExists_(synapse));
+  destroyedSynapses_.push_back(synapse);
 }
 
 
@@ -811,8 +812,8 @@ std::ostream& operator<< (std::ostream& stream, const Connections& self)
          << "%) Saturated (" <<   (Real) synapsesSaturated / self.numSynapses() << "%)" << std::endl;
   stream << "    Synapses pruned (" << (Real) self.prunedSyns_ / self.numSynapses() 
 	 << "%) Segments pruned (" << (Real) self.prunedSegs_ / self.numSegments() << "%)" << std::endl;
-  stream << "    Buffer for destroyed synapses: " << self.destroyedSynapses_
-	 << "    Buffer for destroyed segments: " << self.destroyedSegments_ << std::endl;
+  stream << "    Buffer for destroyed synapses: " << self.destroyedSynapses_.size() 
+	 << "    Buffer for destroyed segments: " << self.destroyedSegments_.size() << std::endl;
 
   return stream;
 }
