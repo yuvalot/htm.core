@@ -129,12 +129,11 @@ struct SynapseData: public Serializable {
  * The cell that this segment is on.
  */
 struct SegmentData: public Serializable {
-  SegmentData(const CellIdx cell, Segment id, UInt32 lastUsed = 0) : cell(cell), numConnected(0), lastUsed(lastUsed), id(id) {} //default constructor
+  SegmentData(const CellIdx cell, Segment id) : cell(cell), numConnected(0), id(id) {} //default constructor
 
   std::vector<Synapse> synapses;
   CellIdx cell; //mother cell that this segment originates from
   SynapseIdx numConnected; //number of permanences from `synapses` that are >= synPermConnected, ie connected synapses
-  UInt32 lastUsed = 0; //last used time (iteration). Used for segment pruning by "least recently used" (LRU) in `createSegment`
   Segment id; 
 
   //Serialize
@@ -145,13 +144,12 @@ struct SegmentData: public Serializable {
     ar(CEREAL_NVP(synapses),
        CEREAL_NVP(cell),
        CEREAL_NVP(numConnected),
-       CEREAL_NVP(lastUsed),
        CEREAL_NVP(id)
     );
   }
   template<class Archive>
   void load_ar(Archive & ar) {
-    ar( synapses, cell, numConnected, lastUsed, id);
+    ar( synapses, cell, numConnected, id);
   }
 
   //equals op==
@@ -160,7 +158,6 @@ struct SegmentData: public Serializable {
       NTA_CHECK(synapses == o.synapses) << "SegmentData equals: synapses";
       NTA_CHECK(cell == o.cell) << "SegmentData equals: cell";
       NTA_CHECK(numConnected == o.numConnected) << "SegmentData equals: numConnected";
-      NTA_CHECK(lastUsed == o.lastUsed) << "SegmentData equals: lastUsed";
       NTA_CHECK(id == o.id) << "SegmentData equals: id";
 
     } catch(const htm::Exception& ex) {
@@ -328,10 +325,10 @@ public:
    *
    * @param cell Cell to create segment on.
    *
-   * @param maxSegmetsPerCell Optional. Enforce limit on maximum number of segments that can be
-   * created on a Cell. If the limit is exceeded, call `destroySegment` to remove least used segments 
-   * (ordered by LRU `SegmentData.lastUsed`). Default value is numeric_limits::max() of the data-type, 
-   * so effectively disabled. 
+   * @param maxSegmentsPerCell Optional. Enforce limit on maximum number of segments that can be
+   * created on a Cell. If the limit is exceeded, call `destroySegment` to remove least useful segments 
+   * (as determined by a heuristic). Default value is numeric_limits::max() of the data-type, 
+   * so effectively disabled.
    *
    * @retval Unique ID of the created segment `seg`. Use `dataForSegment(seg)` to obtain the segment's data. 
    * Use  `idxOfSegmentOnCell()` to get SegmentIdx of `seg` on this `cell`. 
@@ -697,9 +694,7 @@ public:
     ar(CEREAL_NVP(potentialSegmentsForPresynapticCell_));
     ar(CEREAL_NVP(connectedSegmentsForPresynapticCell_));
 
-    ar(CEREAL_NVP(nextSegmentOrdinal_));
     ar(CEREAL_NVP(nextSynapseOrdinal_));
-
     ar(CEREAL_NVP(timeseries_));
     ar(CEREAL_NVP(previousUpdates_));
     ar(CEREAL_NVP(currentUpdates_));
@@ -726,9 +721,7 @@ public:
     ar(CEREAL_NVP(potentialSegmentsForPresynapticCell_));
     ar(CEREAL_NVP(connectedSegmentsForPresynapticCell_));
 
-    ar(CEREAL_NVP(nextSegmentOrdinal_));
     ar(CEREAL_NVP(nextSynapseOrdinal_));
-
     ar(CEREAL_NVP(timeseries_));
     ar(CEREAL_NVP(previousUpdates_));
     ar(CEREAL_NVP(currentUpdates_));
@@ -851,9 +844,9 @@ protected:
                               std::vector<Segment> &segmentsForPresynapticCell);
 
   /** 
-   *  Remove least recently used Segment from cell. 
+   *  Remove least useful Segment from cell. 
    */
-  void pruneLRUSegment_(const CellIdx& cell);
+  void pruneSegment_(const CellIdx& cell);
 
 private:
   std::vector<CellData>    cells_;
@@ -873,9 +866,7 @@ private:
   std::unordered_map<CellIdx, std::vector<Segment>, identity> potentialSegmentsForPresynapticCell_;
   std::unordered_map<CellIdx, std::vector<Segment>, identity> connectedSegmentsForPresynapticCell_;
 
-  Segment nextSegmentOrdinal_ = 0;
   Synapse nextSynapseOrdinal_ = 0;
-
   // These three members should be used when working with highly correlated
   // data. The vectors store the permanence changes made by adaptSegment.
   bool timeseries_;

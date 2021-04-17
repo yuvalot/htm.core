@@ -79,45 +79,42 @@ void Connections::unsubscribe(UInt32 token) {
 }
 
 
-void Connections::pruneLRUSegment_(const CellIdx& cell) {
-  const auto& destroyCandidates = segmentsForCell(cell);
-#ifdef NTA_ASSERTIONS_ON
-  const auto numBefore = destroyCandidates.size();
-#endif
-  const auto compareSegmentsByLRU = [&](const Segment a, const Segment b) {
-    if(dataForSegment(a).lastUsed == dataForSegment(b).lastUsed) {
-      return a < b; //needed for deterministic sort
+void Connections::pruneSegment_(const CellIdx& cell) {
+  // This uses a simple heuristic to determine how "useful" a segment is.
+  // Heuristic = sum(synapse.permanence ^ power for synapse on segment)
+  // Where power is a positive integer.
+  // This heuristic favors keeping segments which have many strong synapses over
+  // segments with fewer or weaker synapses.
+  auto leastUsefulSegment   = std::numeric_limits<Segment>::max();
+  auto leastUsefulHeuristic = std::numeric_limits<double>::max();
+  for (const Segment& segment : segmentsForCell(cell)) {
+    auto heuristic = 0.0f;
+    for (const Synapse& syn : synapsesForSegment(segment)) {
+      const auto p = dataForSynapse(syn).permanence;
+      heuristic += p * p;
     }
-    else return dataForSegment(a).lastUsed < dataForSegment(b).lastUsed; //sort segments by access time
-  };
-
-  const auto leastRecentlyUsedSegment = std::min_element(destroyCandidates.cbegin(),
-                                                         destroyCandidates.cend(), 
-							 compareSegmentsByLRU);
-#ifdef NTA_ASSERTIONS_ON
-  if(destroyCandidates.size() > 0) {
-    // the removed seg should be the "oldest", least recently used. So any other is more recent. We don't check all, but randomly ([0])
-    NTA_ASSERT(dataForSegment(*leastRecentlyUsedSegment).lastUsed <= dataForSegment(destroyCandidates[0]).lastUsed) 
-	    << "Should remove the least recently used segment,but older exists.";
+    if ((heuristic < leastUsefulHeuristic)
+        || (heuristic == leastUsefulHeuristic && segment < leastUsefulSegment)) { // Needed for deterministic sort.
+      leastUsefulSegment = segment;
+      leastUsefulHeuristic = heuristic;
+    }
   }
-#endif
-  destroySegment(*leastRecentlyUsedSegment);
-  NTA_ASSERT(destroyCandidates.size() < numBefore) << "A segment should have been pruned, but wasn't!";
+  destroySegment(leastUsefulSegment);
 }
 
 Segment Connections::createSegment(const CellIdx cell, 
 	                           const SegmentIdx maxSegmentsPerCell) {
 
-  //limit number of segmets per cell. If exceeded, remove the least recently used ones.
+  // Limit number of segments per cell. If exceeded, remove the least recently used ones.
   NTA_CHECK(maxSegmentsPerCell > 0);
   NTA_CHECK(cell < numCells());
   while (numSegments(cell) >= maxSegmentsPerCell) {
-    pruneLRUSegment_(cell);
+    pruneSegment_(cell);
   }
   NTA_ASSERT(numSegments(cell) <= maxSegmentsPerCell);
 
-  //proceed to create a new segment
-  const SegmentData& segmentData = SegmentData(cell, iteration_, nextSegmentOrdinal_++);
+  // Proceed to create a new segment.
+  const SegmentData& segmentData = SegmentData(cell, iteration_);
   Segment segment;
   if (!destroyedSegments_.empty() ) { //reuse old, destroyed segs
     segment = destroyedSegments_.back();
@@ -131,7 +128,7 @@ Segment Connections::createSegment(const CellIdx cell,
   }
 
   CellData &cellData = cells_[cell];
-  cellData.segments.push_back(segment); //assign the new segment to its mother-cell
+  cellData.segments.push_back(segment); // Assign the new segment to its mother-cell.
 
   for (auto h : eventHandlers_) {
     h.second->onCreateSegment(segment);
@@ -857,7 +854,6 @@ bool Connections::operator==(const Connections &o) const {
   NTA_CHECK(potentialSegmentsForPresynapticCell_ == o.potentialSegmentsForPresynapticCell_);
   NTA_CHECK(connectedSegmentsForPresynapticCell_ == o.connectedSegmentsForPresynapticCell_);
 
-  NTA_CHECK (nextSegmentOrdinal_ == o.nextSegmentOrdinal_ ) << "Connections equals: nextSegmentOrdinal_";
   NTA_CHECK (nextSynapseOrdinal_ == o.nextSynapseOrdinal_ ) << "Connections equals: nextSynapseOrdinal_";
 
   NTA_CHECK (timeseries_ == o.timeseries_ ) << "Connections equals: timeseries_";
