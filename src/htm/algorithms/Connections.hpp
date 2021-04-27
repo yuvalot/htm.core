@@ -126,12 +126,11 @@ struct SynapseData: public Serializable {
  * The cell that this segment is on.
  */
 struct SegmentData: public Serializable {
-  SegmentData(const CellIdx cell, Segment id) : cell(cell), numConnected(0), id(id) {} //default constructor
+  SegmentData(const CellIdx cell) : cell(cell), numConnected(0) {} //default constructor
 
   std::vector<Synapse> synapses;
   CellIdx cell; //mother cell that this segment originates from
   SynapseIdx numConnected; //number of permanences from `synapses` that are >= synPermConnected, ie connected synapses
-  Segment id; 
 
   //Serialize
   SegmentData() {}; //empty constructor for serialization, do not use
@@ -140,13 +139,12 @@ struct SegmentData: public Serializable {
   void save_ar(Archive & ar) const {
     ar(CEREAL_NVP(synapses),
        CEREAL_NVP(cell),
-       CEREAL_NVP(numConnected),
-       CEREAL_NVP(id)
+       CEREAL_NVP(numConnected)
     );
   }
   template<class Archive>
   void load_ar(Archive & ar) {
-    ar( synapses, cell, numConnected, id);
+    ar( synapses, cell, numConnected);
   }
 
   //equals op==
@@ -155,7 +153,6 @@ struct SegmentData: public Serializable {
       NTA_CHECK(synapses == o.synapses) << "SegmentData equals: synapses";
       NTA_CHECK(cell == o.cell) << "SegmentData equals: cell";
       NTA_CHECK(numConnected == o.numConnected) << "SegmentData equals: numConnected";
-      NTA_CHECK(id == o.id) << "SegmentData equals: id";
 
     } catch(const htm::Exception& ex) {
       UNUSED(ex);    // this avoids the warning if ex is not used.

@@ -114,7 +114,7 @@ Segment Connections::createSegment(const CellIdx cell,
   NTA_ASSERT(numSegments(cell) <= maxSegmentsPerCell);
 
   // Proceed to create a new segment.
-  const SegmentData& segmentData = SegmentData(cell, iteration_);
+  const SegmentData& segmentData = SegmentData(cell);
   Segment segment;
   if (!destroyedSegments_.empty() ) { //reuse old, destroyed segs
     segment = destroyedSegments_.back();
@@ -396,8 +396,8 @@ bool Connections::compareSegments(const Segment a, const Segment b) const {
   const SegmentData &bData = segments_[b];
   // default sort by cell
   if (aData.cell == bData.cell)
-    //fallback to ordinals:
-    return aData.id < bData.id; //TODO is segment's id/ordinals needed?
+    // fallback to segment index
+    return a < b;
   else return aData.cell < bData.cell;
 }
 
