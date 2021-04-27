@@ -75,7 +75,6 @@ struct SynapseData: public Serializable {
   Permanence permanence;
   Segment segment;
   Synapse presynapticMapIndex_;
-  Synapse id;
 
   SynapseData() {}
 
@@ -86,13 +85,12 @@ struct SynapseData: public Serializable {
     ar(CEREAL_NVP(permanence),
        CEREAL_NVP(presynapticCell),
        CEREAL_NVP(segment),
-       CEREAL_NVP(presynapticMapIndex_),
-       CEREAL_NVP(id)
+       CEREAL_NVP(presynapticMapIndex_)
     );
   }
   template<class Archive>
   void load_ar(Archive & ar) {
-    ar( permanence, presynapticCell, segment, presynapticMapIndex_, id);
+    ar( permanence, presynapticCell, segment, presynapticMapIndex_);
   }
 
   //operator==
@@ -102,7 +100,6 @@ struct SynapseData: public Serializable {
     NTA_CHECK(permanence == o.permanence ) << "SynapseData equals: permanence";
     NTA_CHECK(segment == o.segment ) << "SynapseData equals: segment";
     NTA_CHECK(presynapticMapIndex_ == o.presynapticMapIndex_ ) << "SynapseData equals: presynapticMapIndex_";
-    NTA_CHECK(id == o.id ) << "SynapseData equals: id";
     } catch(const htm::Exception& ex) {
       UNUSED(ex);    // this avoids the warning if ex is not used.
       //NTA_WARN << "SynapseData equals: " << ex.what(); //Note: uncomment for debug, tells you 
@@ -694,7 +691,6 @@ public:
     ar(CEREAL_NVP(potentialSegmentsForPresynapticCell_));
     ar(CEREAL_NVP(connectedSegmentsForPresynapticCell_));
 
-    ar(CEREAL_NVP(nextSynapseOrdinal_));
     ar(CEREAL_NVP(timeseries_));
     ar(CEREAL_NVP(previousUpdates_));
     ar(CEREAL_NVP(currentUpdates_));
@@ -721,7 +717,6 @@ public:
     ar(CEREAL_NVP(potentialSegmentsForPresynapticCell_));
     ar(CEREAL_NVP(connectedSegmentsForPresynapticCell_));
 
-    ar(CEREAL_NVP(nextSynapseOrdinal_));
     ar(CEREAL_NVP(timeseries_));
     ar(CEREAL_NVP(previousUpdates_));
     ar(CEREAL_NVP(currentUpdates_));
@@ -866,7 +861,6 @@ private:
   std::unordered_map<CellIdx, std::vector<Segment>, identity> potentialSegmentsForPresynapticCell_;
   std::unordered_map<CellIdx, std::vector<Segment>, identity> connectedSegmentsForPresynapticCell_;
 
-  Synapse nextSynapseOrdinal_ = 0;
   // These three members should be used when working with highly correlated
   // data. The vectors store the permanence changes made by adaptSegment.
   bool timeseries_;
