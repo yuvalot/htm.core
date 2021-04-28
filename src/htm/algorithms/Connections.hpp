@@ -75,7 +75,6 @@ struct SynapseData: public Serializable {
   Permanence permanence;
   Segment segment;
   Synapse presynapticMapIndex_;
-  Synapse id;
 
   SynapseData() {}
 
@@ -86,13 +85,12 @@ struct SynapseData: public Serializable {
     ar(CEREAL_NVP(permanence),
        CEREAL_NVP(presynapticCell),
        CEREAL_NVP(segment),
-       CEREAL_NVP(presynapticMapIndex_),
-       CEREAL_NVP(id)
+       CEREAL_NVP(presynapticMapIndex_)
     );
   }
   template<class Archive>
   void load_ar(Archive & ar) {
-    ar( permanence, presynapticCell, segment, presynapticMapIndex_, id);
+    ar( permanence, presynapticCell, segment, presynapticMapIndex_);
   }
 
   //operator==
@@ -102,7 +100,6 @@ struct SynapseData: public Serializable {
     NTA_CHECK(permanence == o.permanence ) << "SynapseData equals: permanence";
     NTA_CHECK(segment == o.segment ) << "SynapseData equals: segment";
     NTA_CHECK(presynapticMapIndex_ == o.presynapticMapIndex_ ) << "SynapseData equals: presynapticMapIndex_";
-    NTA_CHECK(id == o.id ) << "SynapseData equals: id";
     } catch(const htm::Exception& ex) {
       UNUSED(ex);    // this avoids the warning if ex is not used.
       //NTA_WARN << "SynapseData equals: " << ex.what(); //Note: uncomment for debug, tells you 
@@ -129,12 +126,11 @@ struct SynapseData: public Serializable {
  * The cell that this segment is on.
  */
 struct SegmentData: public Serializable {
-  SegmentData(const CellIdx cell, Segment id) : cell(cell), numConnected(0), id(id) {} //default constructor
+  SegmentData(const CellIdx cell) : cell(cell), numConnected(0) {} //default constructor
 
   std::vector<Synapse> synapses;
   CellIdx cell; //mother cell that this segment originates from
   SynapseIdx numConnected; //number of permanences from `synapses` that are >= synPermConnected, ie connected synapses
-  Segment id; 
 
   //Serialize
   SegmentData() {}; //empty constructor for serialization, do not use
@@ -143,13 +139,12 @@ struct SegmentData: public Serializable {
   void save_ar(Archive & ar) const {
     ar(CEREAL_NVP(synapses),
        CEREAL_NVP(cell),
-       CEREAL_NVP(numConnected),
-       CEREAL_NVP(id)
+       CEREAL_NVP(numConnected)
     );
   }
   template<class Archive>
   void load_ar(Archive & ar) {
-    ar( synapses, cell, numConnected, id);
+    ar( synapses, cell, numConnected);
   }
 
   //equals op==
@@ -158,7 +153,6 @@ struct SegmentData: public Serializable {
       NTA_CHECK(synapses == o.synapses) << "SegmentData equals: synapses";
       NTA_CHECK(cell == o.cell) << "SegmentData equals: cell";
       NTA_CHECK(numConnected == o.numConnected) << "SegmentData equals: numConnected";
-      NTA_CHECK(id == o.id) << "SegmentData equals: id";
 
     } catch(const htm::Exception& ex) {
       UNUSED(ex);    // this avoids the warning if ex is not used.
@@ -694,7 +688,6 @@ public:
     ar(CEREAL_NVP(potentialSegmentsForPresynapticCell_));
     ar(CEREAL_NVP(connectedSegmentsForPresynapticCell_));
 
-    ar(CEREAL_NVP(nextSynapseOrdinal_));
     ar(CEREAL_NVP(timeseries_));
     ar(CEREAL_NVP(previousUpdates_));
     ar(CEREAL_NVP(currentUpdates_));
@@ -721,7 +714,6 @@ public:
     ar(CEREAL_NVP(potentialSegmentsForPresynapticCell_));
     ar(CEREAL_NVP(connectedSegmentsForPresynapticCell_));
 
-    ar(CEREAL_NVP(nextSynapseOrdinal_));
     ar(CEREAL_NVP(timeseries_));
     ar(CEREAL_NVP(previousUpdates_));
     ar(CEREAL_NVP(currentUpdates_));
@@ -866,7 +858,6 @@ private:
   std::unordered_map<CellIdx, std::vector<Segment>, identity> potentialSegmentsForPresynapticCell_;
   std::unordered_map<CellIdx, std::vector<Segment>, identity> connectedSegmentsForPresynapticCell_;
 
-  Synapse nextSynapseOrdinal_ = 0;
   // These three members should be used when working with highly correlated
   // data. The vectors store the permanence changes made by adaptSegment.
   bool timeseries_;

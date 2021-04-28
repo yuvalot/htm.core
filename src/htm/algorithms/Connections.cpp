@@ -114,7 +114,7 @@ Segment Connections::createSegment(const CellIdx cell,
   NTA_ASSERT(numSegments(cell) <= maxSegmentsPerCell);
 
   // Proceed to create a new segment.
-  const SegmentData& segmentData = SegmentData(cell, iteration_);
+  const SegmentData& segmentData = SegmentData(cell);
   Segment segment;
   if (!destroyedSegments_.empty() ) { //reuse old, destroyed segs
     segment = destroyedSegments_.back();
@@ -186,7 +186,6 @@ Synapse Connections::createSynapse(Segment segment,
   SynapseData &synapseData    = synapses_[synapse];
   synapseData.presynapticCell = presynapticCell;
   synapseData.segment         = segment;
-  synapseData.id              = nextSynapseOrdinal_++; //TODO move these to SynData constructor
   // Start in disconnected state.
   synapseData.permanence           = connectedThreshold_ - static_cast<Permanence>(1.0);
   synapseData.presynapticMapIndex_ = 
@@ -316,17 +315,15 @@ void Connections::destroySynapse(const Synapse synapse) {
       potentialSegmentsForPresynapticCell_.erase( presynCell );
     }
   }
-  
-  const auto synapseOnSegment = std::lower_bound(segmentData.synapses.cbegin(), 
-		                          segmentData.synapses.cend(),
-					  synapse,
-					  [&](const Synapse a, const Synapse b) -> bool { return dataForSynapse(a).id < dataForSynapse(b).id;}
-					  ); 
 
-  NTA_ASSERT(synapseOnSegment != segmentData.synapses.cend());
-  NTA_ASSERT(*synapseOnSegment == synapse);
+  for(auto i = 0u; i < segmentData.synapses.size(); i++) {
+    if (segmentData.synapses[i] == synapse) {
+      segmentData.synapses[i] = segmentData.synapses.back();
+      segmentData.synapses.pop_back();
+      break;
+    }
+  }
 
-  segmentData.synapses.erase(synapseOnSegment);
   destroyedSynapses_.push_back(synapse);
 }
 
@@ -399,8 +396,8 @@ bool Connections::compareSegments(const Segment a, const Segment b) const {
   const SegmentData &bData = segments_[b];
   // default sort by cell
   if (aData.cell == bData.cell)
-    //fallback to ordinals:
-    return aData.id < bData.id; //TODO is segment's id/ordinals needed?
+    // fallback to segment index
+    return a < b;
   else return aData.cell < bData.cell;
 }
 
@@ -853,8 +850,6 @@ bool Connections::operator==(const Connections &o) const {
   NTA_CHECK(connectedSynapsesForPresynapticCell_ == o.connectedSynapsesForPresynapticCell_);
   NTA_CHECK(potentialSegmentsForPresynapticCell_ == o.potentialSegmentsForPresynapticCell_);
   NTA_CHECK(connectedSegmentsForPresynapticCell_ == o.connectedSegmentsForPresynapticCell_);
-
-  NTA_CHECK (nextSynapseOrdinal_ == o.nextSynapseOrdinal_ ) << "Connections equals: nextSynapseOrdinal_";
 
   NTA_CHECK (timeseries_ == o.timeseries_ ) << "Connections equals: timeseries_";
   NTA_CHECK (previousUpdates_ == o.previousUpdates_ ) << "Connections equals: previousUpdates_";
