@@ -107,10 +107,6 @@ This may also be a list for when the input has multiple categories.)",
                 py::arg("pattern"),
                 py::arg("classification"));
 
-        // TODO: Pickle support
-
-        // pickle
-        // https://github.com/pybind/pybind11/issues/1061
         py_Classifier.def(py::pickle(
             [](const Classifier& self)
         {
@@ -217,10 +213,6 @@ This may also be a list for when the input has multiple categories.)",
                 py::arg("pattern"),
                 py::arg("classification"));
 
-        // TODO: Pickle support
-
-        // pickle
-        // https://github.com/pybind/pybind11/issues/1061
         py_Predictor.def(py::pickle(
             [](const Predictor& self)
         {

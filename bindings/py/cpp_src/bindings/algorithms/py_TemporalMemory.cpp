@@ -176,10 +176,12 @@ Argument anomalyMode (optional, default ANMode::RAW) selects mode for `TM.anomal
 
 				// saving and loading from file
         py_HTM.def("saveToFile",
-				    [](TemporalMemory &self, const std::string& filename) {self.saveToFile(filename,SerializableFormat::BINARY); });
+				    [](TemporalMemory &self, const std::string& filename) {self.saveToFile(filename,SerializableFormat::BINARY); },
+R"(See also standard library function: pickle.dump(...))");
 
         py_HTM.def("loadFromFile",
-				    [](TemporalMemory &self, const std::string& filename) { return self.loadFromFile(filename,SerializableFormat::BINARY); });
+				    [](TemporalMemory &self, const std::string& filename) { return self.loadFromFile(filename,SerializableFormat::BINARY); },
+R"(See also standard library function: pickle.load(...))");
 
         // writeToString, save TM to a JSON encoded string usable by loadFromString()
         py_HTM.def("writeToString", [](const TemporalMemory& self)
@@ -191,17 +193,17 @@ Argument anomalyMode (optional, default ANMode::RAW) selects mode for `TM.anomal
             self.save(os, JSON);
 
             return os.str();
-        });
+        },
+R"(See also standard library function: pickle.dumps(...))");
         // loadFromString, loads TM from a JSON encoded string produced by writeToString().
         py_HTM.def("loadFromString", [](TemporalMemory& self, const std::string& inString)
         {
             std::stringstream inStream(inString);
             self.load(inStream, JSON);
-        });
+        },
+R"(See also standard library function: pickle.loads(...))");
 
 
-        // pickle
-        // https://github.com/pybind/pybind11/issues/1061
         py_HTM.def(py::pickle(
             [](const HTM_t& self)
         {
