@@ -385,9 +385,10 @@ R"(Returns the total number of mini-columns.)");
 
         py_HTM.def_property_readonly("connections", [](const HTM_t &self)
             { return self.connections; },
-R"(Internal Connections object. Danger!
-Modifying this may detrimentally effect the TM.
-The Connections class API is subject to change.)");
+R"(Internal Connections object.
+This attribute is READ ONLY. It returns a copy of the
+Connections object and changes to it are discarded.
+Warning: The Connections class API is subject to change.)");
 
         py_HTM.def_property_readonly("externalPredictiveInputs", [](const HTM_t &self)
             { return self.externalPredictiveInputs; },
