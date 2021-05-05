@@ -431,7 +431,11 @@ Argument output An SDR representing the winning columns after
                 buf << self;
                 return buf.str(); });
 
-        py_SpatialPooler.def_property_readonly("connections", &SpatialPooler::getConnections, "SP's internal connections (read-only) Warning: the Connections is subject to change.");
+        py_SpatialPooler.def_property_readonly("connections", &SpatialPooler::getConnections,
+R"(Internal Connections object.
+This attribute is READ ONLY. It returns a copy of the
+Connections object and changes to it are discarded.
+Warning: The Connections class API is subject to change.)");
 
         // pickle
         py_SpatialPooler.def(py::pickle(
