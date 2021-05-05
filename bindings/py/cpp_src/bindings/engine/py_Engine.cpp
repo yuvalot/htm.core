@@ -435,8 +435,8 @@ namespace htm_ext
 
         py_Network.def("save",      &htm::Network::save)
             .def("load",            &htm::Network::load)
-            .def("saveToFile",      &htm::Network::saveToFile, py::arg("file"), py::arg("fmt") = SerializableFormat::BINARY)
-            .def("loadFromFile",    &htm::Network::loadFromFile, py::arg("file"), py::arg("fmt") = SerializableFormat::BINARY)
+            .def("saveToFile",      static_cast<void (htm::Network::*)(std::string, std::string) const>(&htm::Network::saveToFile), py::arg("file"), py::arg("fmt") = "BINARY")
+            .def("loadFromFile",    static_cast<void (htm::Network::*)(std::string, std::string)>(&htm::Network::loadFromFile), py::arg("file"), py::arg("fmt") = "BINARY")
             .def("__eq__",          &htm::Network::operator==);
             
         py_Network.def(py::pickle(

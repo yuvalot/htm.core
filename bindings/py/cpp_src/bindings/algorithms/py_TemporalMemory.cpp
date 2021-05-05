@@ -175,11 +175,15 @@ Argument anomalyMode (optional, default ANMode::RAW) selects mode for `TM.anomal
                            py::scoped_estream_redirect>());
 
 				// saving and loading from file
-        py_HTM.def("saveToFile",
-				    [](TemporalMemory &self, const std::string& filename) {self.saveToFile(filename,SerializableFormat::BINARY); });
+       py_HTM.def("saveToFile",
+         static_cast<void (htm::TemporalMemory::*)(std::string, std::string) const>(&htm::TemporalMemory::saveToFile), 
+         py::arg("file"), py::arg("fmt") = "BINARY",
+         R"(Serializes object to file. file: filename to write to.  fmt: format, one of 'BINARY', 'PORTABLE', 'JSON', or 'XML')");
 
-        py_HTM.def("loadFromFile",
-				    [](TemporalMemory &self, const std::string& filename) { return self.loadFromFile(filename,SerializableFormat::BINARY); });
+       py_HTM.def("loadFromFile",    
+         static_cast<void (htm::TemporalMemory::*)(std::string, std::string)>(&htm::TemporalMemory::loadFromFile), 
+         py::arg("file"), py::arg("fmt") = "BINARY",
+         R"(Deserializes object from file. file: filename to read from.  fmt: format recorded by saveToFile(). )");
 
         // writeToString, save TM to a JSON encoded string usable by loadFromString()
         py_HTM.def("writeToString", [](const TemporalMemory& self)
@@ -191,14 +195,15 @@ Argument anomalyMode (optional, default ANMode::RAW) selects mode for `TM.anomal
             self.save(os, JSON);
 
             return os.str();
-        });
+        },
+R"(See also standard library function: pickle.dumps(...))");
         // loadFromString, loads TM from a JSON encoded string produced by writeToString().
         py_HTM.def("loadFromString", [](TemporalMemory& self, const std::string& inString)
         {
             std::stringstream inStream(inString);
             self.load(inStream, JSON);
-        });
-
+        },
+R"(See also standard library function: pickle.loads(...))");
 
         // pickle
         // https://github.com/pybind/pybind11/issues/1061

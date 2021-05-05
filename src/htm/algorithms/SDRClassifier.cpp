@@ -53,7 +53,6 @@ PDF Classifier::infer(const SDR & pattern) const {
     return PDF(numCategories_, std::nan("")); //empty array []
   }
   NTA_ASSERT(pattern.size == dimensions_) << "Input SDR does not match previously seen size!";
-
   // Accumulate feed forward input.
   PDF probabilities( numCategories_, 0.0f );
   for( const auto bit : pattern.getSparse() ) {
@@ -67,6 +66,12 @@ PDF Classifier::infer(const SDR & pattern) const {
   return probabilities;
 }
 
+void Classifier::learn(const SDR &pattern, UInt category)
+{
+  std::vector<UInt> categoryList;
+  categoryList.push_back(category);
+  learn(pattern, categoryList);
+}
 
 void Classifier::learn(const SDR &pattern, const vector<UInt> &categoryIdxList)
 {
@@ -97,6 +102,7 @@ void Classifier::learn(const SDR &pattern, const vector<UInt> &categoryIdxList)
   const auto& error = calculateError_(categoryIdxList, pattern);
   for( const auto& bit : pattern.getSparse() ) {
     for(size_t i = 0u; i < numCategories_; i++) {
+      NTA_ASSERT(weights_[i].size() < bit) << "bit index was > pattern size in weights.";
       weights_[bit][i] += alpha_ * error[i];
     }
   }
@@ -108,6 +114,7 @@ std::vector<Real64> Classifier::calculateError_(const std::vector<UInt> &categor
 		                                const SDR &pattern) const {
   // compute predicted likelihoods
   auto likelihoods = infer(pattern);
+  
 
   // Compute target likelihoods
   PDF targetDistribution(numCategories_ + 1u, 0.0f);
@@ -189,6 +196,12 @@ Predictions Predictor::infer(const SDR &pattern) const {
   return result;
 }
 
+void Predictor::learn(const UInt recordNum, const SDR &pattern, UInt bucketIdx)
+{
+  std::vector<UInt> bucketIdxList;
+  bucketIdxList.push_back(bucketIdx);
+  learn(recordNum, pattern, bucketIdxList);
+}
 
 void Predictor::learn(const UInt recordNum, //TODO make recordNum optional, autoincrement as steps 
 		      const SDR &pattern,

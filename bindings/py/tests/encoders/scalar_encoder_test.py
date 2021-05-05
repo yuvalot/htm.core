@@ -301,6 +301,27 @@ class ScalarEncoder_Test(unittest.TestCase):
         assert( mtr.activationFrequency.max() < 1.75 * .10 )
         assert( mtr.overlap.min() > .85 )
 
-    @pytest.mark.skip(reason="Known issue: https://github.com/htm-community/htm.core/issues/160")
     def testPickle(self):
-        assert(False) # TODO: Unimplemented
+      p = ScalarEncoderParameters()
+      p.size       = 100
+      p.activeBits = 10
+      p.minimum    = 0
+      p.maximum    = 20
+      p.clipInput  = True
+
+      enc = ScalarEncoder( p )
+      import pickle
+
+      picklestr = pickle.dumps(enc)
+      enc2 = pickle.loads(picklestr)
+      #assert enc.parameters == enc2.parameters
+
+      assert enc.size == enc2.size
+
+      out =  SDR( enc.parameters.size )
+      out2 = SDR( enc2.parameters.size )
+      enc.encode(10, out)
+      enc2.encode(10, out2)
+      assert out == out2
+      #TODO add enc == enc2
+
