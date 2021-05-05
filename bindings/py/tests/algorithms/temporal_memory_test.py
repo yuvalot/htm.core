@@ -99,7 +99,6 @@ class TemporalMemoryBindingsTest(unittest.TestCase):
                      "Simple NuPIC TemporalMemory pickle/unpickle failed.")
 
 
-  @pytest.mark.skip(reason="Fails with rapidjson internal assertion -- indicates a bad serialization")
   def testNupicTemporalMemorySavingToString(self):
     """Test writing to and reading from TemporalMemory."""
     inputs = SDR( 100 ).randomize( .05 )
