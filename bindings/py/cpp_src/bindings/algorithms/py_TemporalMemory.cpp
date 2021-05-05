@@ -204,10 +204,7 @@ R"(See also standard library function: pickle.dumps(...))");
             self.load(inStream, JSON);
         },
 R"(See also standard library function: pickle.loads(...))");
-<<<<<<< HEAD
-=======
 
->>>>>>> 5a25f9b05217e3403924cf4f27dd5437957b4bc4
 
         py_HTM.def(py::pickle(
             [](const HTM_t& self)
