@@ -225,51 +225,47 @@ public:
 
 
 
-  virtual inline void saveToFile(const std::string filePath, const SerializableFormat fmt=SerializableFormat::BINARY) const {
-    const std::string dirPath = Path::getParent(filePath);
-    Directory::create(dirPath, true, true);
-    std::ios_base::openmode mode = std::ios_base::out;
-    if (fmt <= SerializableFormat::PORTABLE) {
-      mode |= std::ios_base::binary;
-    }
-    std::ofstream out(filePath, mode);
-    save(out, fmt);
-    out.close();
-  }
-
+  virtual inline void saveToFile(std::string filePath, SerializableFormat fmt=SerializableFormat::BINARY) const {
+    std::string dirPath = Path::getParent(filePath);
+	  Directory::create(dirPath, true, true);
+		std::ios_base::openmode mode = std::ios_base::out;
+		if (fmt <= SerializableFormat::PORTABLE) mode |= std::ios_base::binary;
+	  std::ofstream out(filePath, mode);
+	  out.precision(std::numeric_limits<double>::digits10 + 1);
+	  out.precision(std::numeric_limits<float>::digits10 + 1);
+		save(out, fmt);
+		out.close();
+	}
 
   // NOTE: for BINARY and PORTABLE the stream must be ios_base::binary or it will crash on Windows.
-  virtual inline void save(std::ostream &out, const SerializableFormat fmt=SerializableFormat::BINARY) const {
+  virtual inline void save(std::ostream &out, SerializableFormat fmt=SerializableFormat::BINARY) const {
     ArWrapper arw;
     arw.fmt = fmt;
-    //avoid rounding errs in de/serialization
-    out.precision(std::numeric_limits<double>::digits10);
-
-    switch(fmt) {
-      case SerializableFormat::BINARY:  {
-        cereal::BinaryOutputArchive ar(out);
-        arw.binary_out = &ar;
-      } break;
-      case SerializableFormat::PORTABLE: {
-        cereal::PortableBinaryOutputArchive ar( out, cereal::PortableBinaryOutputArchive::Options::Default() );
-        arw.portable_out = &ar;
-      } break;
-      case SerializableFormat::JSON: {
-        cereal::JSONOutputArchive ar(out, cereal::JSONOutputArchive::Options::Default());
-        arw.json_out = &ar;
-      } break;
-      case SerializableFormat::XML: {
-        cereal::XMLOutputArchive ar(out, cereal::XMLOutputArchive::Options::Default());
-        arw.xml_out = &ar;
-      } break;
-      default: { 
-        NTA_THROW << "unknown serialization format.";
-	break;
-      }
-    }
-    cereal_adapter_save(arw);
+		switch(fmt) {
+		case SerializableFormat::BINARY:  {
+      cereal::BinaryOutputArchive ar(out);
+      arw.binary_out = &ar;
+      cereal_adapter_save(arw);
+    } break;
+		case SerializableFormat::PORTABLE: {
+      cereal::PortableBinaryOutputArchive ar( out, cereal::PortableBinaryOutputArchive::Options::Default() );
+      arw.portable_out = &ar;
+      cereal_adapter_save(arw);
+    } break;
+		case SerializableFormat::JSON: {
+      cereal::JSONOutputArchive ar(out, cereal::JSONOutputArchive::Options::Default());
+      arw.json_out = &ar;
+      cereal_adapter_save(arw);
+    } break;
+		case SerializableFormat::XML: {
+      cereal::XMLOutputArchive ar(out, cereal::XMLOutputArchive::Options::Default());
+      arw.xml_out = &ar;
+      cereal_adapter_save(arw);
+    } break;
+		default: NTA_THROW << "unknown serialization format.";
+      break;
+		}
   }
-
 
   virtual inline void loadFromFile(std::string filePath, SerializableFormat fmt=SerializableFormat::BINARY) {
 		std::ios_base::openmode mode = std::ios_base::in;
