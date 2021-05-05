@@ -75,7 +75,6 @@ struct SynapseData: public Serializable {
   Permanence permanence;
   Segment segment;
   Synapse presynapticMapIndex_;
-  Synapse id;
 
   SynapseData() {}
 
@@ -86,13 +85,12 @@ struct SynapseData: public Serializable {
     ar(CEREAL_NVP(permanence),
        CEREAL_NVP(presynapticCell),
        CEREAL_NVP(segment),
-       CEREAL_NVP(presynapticMapIndex_),
-       CEREAL_NVP(id)
+       CEREAL_NVP(presynapticMapIndex_)
     );
   }
   template<class Archive>
   void load_ar(Archive & ar) {
-    ar( permanence, presynapticCell, segment, presynapticMapIndex_, id);
+    ar( permanence, presynapticCell, segment, presynapticMapIndex_);
   }
 
   //operator==
@@ -102,7 +100,6 @@ struct SynapseData: public Serializable {
     NTA_CHECK(permanence == o.permanence ) << "SynapseData equals: permanence";
     NTA_CHECK(segment == o.segment ) << "SynapseData equals: segment";
     NTA_CHECK(presynapticMapIndex_ == o.presynapticMapIndex_ ) << "SynapseData equals: presynapticMapIndex_";
-    NTA_CHECK(id == o.id ) << "SynapseData equals: id";
     } catch(const htm::Exception& ex) {
       UNUSED(ex);    // this avoids the warning if ex is not used.
       //NTA_WARN << "SynapseData equals: " << ex.what(); //Note: uncomment for debug, tells you 
@@ -129,13 +126,11 @@ struct SynapseData: public Serializable {
  * The cell that this segment is on.
  */
 struct SegmentData: public Serializable {
-  SegmentData(const CellIdx cell, Segment id, UInt32 lastUsed = 0) : cell(cell), numConnected(0), lastUsed(lastUsed), id(id) {} //default constructor
+  SegmentData(const CellIdx cell) : cell(cell), numConnected(0) {} //default constructor
 
   std::vector<Synapse> synapses;
   CellIdx cell; //mother cell that this segment originates from
   SynapseIdx numConnected; //number of permanences from `synapses` that are >= synPermConnected, ie connected synapses
-  UInt32 lastUsed = 0; //last used time (iteration). Used for segment pruning by "least recently used" (LRU) in `createSegment`
-  Segment id; 
 
   //Serialize
   SegmentData() {}; //empty constructor for serialization, do not use
@@ -144,14 +139,12 @@ struct SegmentData: public Serializable {
   void save_ar(Archive & ar) const {
     ar(CEREAL_NVP(synapses),
        CEREAL_NVP(cell),
-       CEREAL_NVP(numConnected),
-       CEREAL_NVP(lastUsed),
-       CEREAL_NVP(id)
+       CEREAL_NVP(numConnected)
     );
   }
   template<class Archive>
   void load_ar(Archive & ar) {
-    ar( synapses, cell, numConnected, lastUsed, id);
+    ar( synapses, cell, numConnected);
   }
 
   //equals op==
@@ -160,8 +153,6 @@ struct SegmentData: public Serializable {
       NTA_CHECK(synapses == o.synapses) << "SegmentData equals: synapses";
       NTA_CHECK(cell == o.cell) << "SegmentData equals: cell";
       NTA_CHECK(numConnected == o.numConnected) << "SegmentData equals: numConnected";
-      NTA_CHECK(lastUsed == o.lastUsed) << "SegmentData equals: lastUsed";
-      NTA_CHECK(id == o.id) << "SegmentData equals: id";
 
     } catch(const htm::Exception& ex) {
       UNUSED(ex);    // this avoids the warning if ex is not used.
@@ -328,10 +319,10 @@ public:
    *
    * @param cell Cell to create segment on.
    *
-   * @param maxSegmetsPerCell Optional. Enforce limit on maximum number of segments that can be
-   * created on a Cell. If the limit is exceeded, call `destroySegment` to remove least used segments 
-   * (ordered by LRU `SegmentData.lastUsed`). Default value is numeric_limits::max() of the data-type, 
-   * so effectively disabled. 
+   * @param maxSegmentsPerCell Optional. Enforce limit on maximum number of segments that can be
+   * created on a Cell. If the limit is exceeded, call `destroySegment` to remove least useful segments 
+   * (as determined by a heuristic). Default value is numeric_limits::max() of the data-type, 
+   * so effectively disabled.
    *
    * @retval Unique ID of the created segment `seg`. Use `dataForSegment(seg)` to obtain the segment's data. 
    * Use  `idxOfSegmentOnCell()` to get SegmentIdx of `seg` on this `cell`. 
@@ -453,7 +444,6 @@ public:
    * @retval Cell that this segment is on.
    */
   CellIdx cellForSegment(const Segment segment) const {
-    NTA_ASSERT(segmentExists_(segment));
     return segments_[segment].cell;
   }
 
@@ -492,11 +482,9 @@ public:
    * @retval Segment data.
    */
   const SegmentData &dataForSegment(const Segment segment) const {
-    NTA_CHECK(segmentExists_(segment));
     return segments_[segment];
   }
   SegmentData& dataForSegment(const Segment segment) { //editable access, needed by SP
-    NTA_CHECK(segmentExists_(segment));
     return segments_[segment];
   }
 
@@ -700,9 +688,6 @@ public:
     ar(CEREAL_NVP(potentialSegmentsForPresynapticCell_));
     ar(CEREAL_NVP(connectedSegmentsForPresynapticCell_));
 
-    ar(CEREAL_NVP(nextSegmentOrdinal_));
-    ar(CEREAL_NVP(nextSynapseOrdinal_));
-
     ar(CEREAL_NVP(timeseries_));
     ar(CEREAL_NVP(previousUpdates_));
     ar(CEREAL_NVP(currentUpdates_));
@@ -729,9 +714,6 @@ public:
     ar(CEREAL_NVP(potentialSegmentsForPresynapticCell_));
     ar(CEREAL_NVP(connectedSegmentsForPresynapticCell_));
 
-    ar(CEREAL_NVP(nextSegmentOrdinal_));
-    ar(CEREAL_NVP(nextSynapseOrdinal_));
-
     ar(CEREAL_NVP(timeseries_));
     ar(CEREAL_NVP(previousUpdates_));
     ar(CEREAL_NVP(currentUpdates_));
@@ -755,9 +737,7 @@ public:
    * @retval Number of segments.
    */
   size_t numSegments() const { 
-	  NTA_ASSERT(segments_.size() >= destroyedSegments_);
-	  return segments_.size() - destroyedSegments_; 
-  }
+	  return segments_.size() - destroyedSegments_.size(); }
 
   /**
    * Gets the number of segments on a cell.
@@ -774,8 +754,8 @@ public:
    * @retval Number of synapses.
    */
   size_t numSynapses() const {
-    NTA_ASSERT(synapses_.size() >= destroyedSynapses_);
-    return synapses_.size() - destroyedSynapses_;
+    NTA_ASSERT(synapses_.size() >= destroyedSynapses_.size());
+    return synapses_.size() - destroyedSynapses_.size();
   }
 
   /**
@@ -819,15 +799,6 @@ public:
 
 protected:
   /**
-   * Check whether this segment still exists on its cell.
-   *
-   * @param Segment
-   *
-   * @retval True if it's still in its cell's segment list.
-   */
-  bool segmentExists_(const Segment segment) const;
-
-  /**
    * Check whether this synapse still exists "in Connections" ( on its segment).
    * After calling `synapseCreate()` this should be True, after `synapseDestroy()` 
    * its False.
@@ -865,16 +836,16 @@ protected:
                               std::vector<Segment> &segmentsForPresynapticCell);
 
   /** 
-   *  Remove least recently used Segment from cell. 
+   *  Remove least useful Segment from cell. 
    */
-  void pruneLRUSegment_(const CellIdx& cell);
+  void pruneSegment_(const CellIdx& cell);
 
 private:
   std::vector<CellData>    cells_;
   std::vector<SegmentData> segments_;
-  size_t                   destroyedSegments_ = 0;
+  std::vector<Segment>     destroyedSegments_;
   std::vector<SynapseData> synapses_;
-  size_t                   destroyedSynapses_ = 0;
+  std::vector<Synapse>     destroyedSynapses_;
   Permanence               connectedThreshold_; //TODO make const
   UInt32 iteration_ = 0;
 
@@ -886,9 +857,6 @@ private:
   std::unordered_map<CellIdx, std::vector<Synapse>, identity> connectedSynapsesForPresynapticCell_;
   std::unordered_map<CellIdx, std::vector<Segment>, identity> potentialSegmentsForPresynapticCell_;
   std::unordered_map<CellIdx, std::vector<Segment>, identity> connectedSegmentsForPresynapticCell_;
-
-  Segment nextSegmentOrdinal_ = 0;
-  Synapse nextSynapseOrdinal_ = 0;
 
   // These three members should be used when working with highly correlated
   // data. The vectors store the permanence changes made by adaptSegment.

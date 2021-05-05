@@ -248,18 +248,20 @@ Argument wrapAround boolean value that determines whether or not inputs
 				
 				// saving and loading from file
         py_SpatialPooler.def("saveToFile", 
-				    [](SpatialPooler &self, const std::string& filename) {self.saveToFile(filename,SerializableFormat::BINARY); });  
-				
+				    [](SpatialPooler &self, const std::string& filename) {self.saveToFile(filename,SerializableFormat::BINARY); },
+R"(See also standard library function: pickle.dump(...))");
+
         py_SpatialPooler.def("loadFromFile",
-				    [](SpatialPooler &self, const std::string& filename) { return self.loadFromFile(filename,SerializableFormat::BINARY); }); 
-				
+				    [](SpatialPooler &self, const std::string& filename) { return self.loadFromFile(filename,SerializableFormat::BINARY); },
+R"(See also standard library function: pickle.load(...))");
 
         // loadFromString, loads SP from a JSON encoded string produced by writeToString().
         py_SpatialPooler.def("loadFromString", [](SpatialPooler& self, const std::string& inString)
         {
             std::stringstream inStream(inString);
             self.load(inStream, JSON);
-        });
+        },
+R"(See also standard library function: pickle.loads(...))");
 
         // writeToString, save SP to a JSON encoded string usable by loadFromString()
         py_SpatialPooler.def("writeToString", [](const SpatialPooler& self)
@@ -271,7 +273,8 @@ Argument wrapAround boolean value that determines whether or not inputs
             self.save(os, JSON);
 
             return os.str();
-        });
+        },
+R"(See also standard library function: pickle.dumps(...))");
 
         // compute
         py_SpatialPooler.def("compute", [](SpatialPooler& self, const SDR& input, const bool learn, SDR& output)
