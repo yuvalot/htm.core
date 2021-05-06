@@ -96,6 +96,7 @@ not allow for decoding SDRs into the inputs which likely created it.
 
 To inspect this run:
 $ python -m htm.examples.encoders.rdse --help)");
+        py_RDSE.def(py::init<>(), R"( For use with loadFromFile. )");
         py_RDSE.def(py::init<RDSE_Parameters>());
 
         py_RDSE.def_property_readonly("parameters",

@@ -278,7 +278,7 @@ class SimHashDocumentEncoder_Test(unittest.TestCase):
         output1 = enc1.encode(document)
         
         # change the parameters so we know the params were replaced from contents in file.
-        # Note: we should have constructor without parameters for this situation.
+        # Note: we should have a constructor without parameters for this situation.
         params.size = 10
         params.sparsity = 0.5  
         enc2 = SimHashDocumentEncoder(params)

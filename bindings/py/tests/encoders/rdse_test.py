@@ -321,8 +321,7 @@ class RDSE_Test(unittest.TestCase):
         filename = 'RDSE_testPickle'
         rdse.saveToFile(filename, 'JSON')
         
-        """
-        rdse_loaded =  RDSE
+        rdse_loaded =  RDSE()
         rdse_loaded.loadFromFile(filename, 'JSON')
         
         value_to_encode = 69003        
@@ -330,6 +329,5 @@ class RDSE_Test(unittest.TestCase):
         SDR_loaded = rdse_loaded.encode(value_to_encode)
 
         assert(SDR_original == SDR_loaded)
-        """
         
         

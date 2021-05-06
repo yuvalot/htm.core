@@ -236,7 +236,7 @@ public:
 		out.close();
 	}
   virtual inline void saveToFile(std::string filePath) const {
-    // pybind11 was having problems with the default so making it a separate function.
+    // pybind11 was having problems with the default so I am making it a separate overload.
     saveToFile(filePath, SerializableFormat::BINARY);
   }
   virtual inline void saveToFile(std::string filePath, std::string fmt) const {
@@ -290,7 +290,7 @@ public:
 		in.close();
 	}
   virtual inline void loadFromFile(std::string filePath) {
-    // pybind11 was having problems with the default so making it a separate function.
+    // pybind11 was having problems with the default so I am making it a separate function.
     loadFromFile(filePath, SerializableFormat::BINARY);
   }
   virtual inline void loadFromFile(std::string filePath, std::string fmt) {

@@ -106,6 +106,7 @@ this contiguous block varies continuously with the input value.
 To inspect this run:
 $ python -m htm.examples.encoders.scalar_encoder --help)");
 
+    py_ScalarEnc.def(py::init<>(), R"( For use with loadFromFile. )");
     py_ScalarEnc.def(py::init<ScalarEncoderParameters&>(), R"()");
     py_ScalarEnc.def_property_readonly("parameters",
         [](const ScalarEncoder &self) { return self.parameters; },

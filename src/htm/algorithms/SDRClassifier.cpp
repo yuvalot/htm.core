@@ -66,6 +66,9 @@ PDF Classifier::infer(const SDR & pattern) const {
   return probabilities;
 }
 
+
+// An overload of learn(SDR, vector) so that a single category can be learned
+// without having to construct a vector before calling.
 void Classifier::learn(const SDR &pattern, UInt category)
 {
   std::vector<UInt> categoryList;
@@ -73,6 +76,8 @@ void Classifier::learn(const SDR &pattern, UInt category)
   learn(pattern, categoryList);
 }
 
+// If you have more than one category to be learned with this pattern,
+// pass in an array of categories using this overlay.
 void Classifier::learn(const SDR &pattern, const vector<UInt> &categoryIdxList)
 {
   // If this is the first time the Classifier is being used, weights are empty, 

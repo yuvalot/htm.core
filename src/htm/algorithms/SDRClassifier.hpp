@@ -136,7 +136,8 @@ public:
    * Learn from example data.
    *
    * @param pattern:  The active input bit SDR.
-   * @param categoryIdxList:  The current categories or bucket indices.
+   * @param categoryIdxList:  The current categories or bucket indices to be learned for this pattern.
+   *                          This can be a single integer category or a vector of categories.
    */
   void learn(const SDR & pattern, UInt categoryIdx);
   void learn(const SDR & pattern, const std::vector<UInt> & categoryIdxList);

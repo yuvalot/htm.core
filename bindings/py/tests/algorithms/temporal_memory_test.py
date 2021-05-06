@@ -82,7 +82,6 @@ class TemporalMemoryBindingsTest(unittest.TestCase):
     self.assertTrue(speed < 40.0)
 
 
-  @pytest.mark.skipif(sys.version_info < (3, 6), reason="Fails for python2 with segmentation fault")
   def testNupicTemporalMemoryPickling(self):
     """Test pickling / unpickling of NuPIC TemporalMemory."""
 

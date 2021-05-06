@@ -24,7 +24,6 @@
 #define NTA_ENCODERS_SCALAR
 
 #include <htm/types/Types.hpp>
-#include <htm/utils/Log.hpp>
 #include <htm/encoders/BaseEncoder.hpp>
 
 namespace htm {
