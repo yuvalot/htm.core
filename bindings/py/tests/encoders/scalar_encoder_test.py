@@ -22,6 +22,8 @@ import numpy as np
 import unittest
 import pytest
 import time
+import os
+import sys
 
 from htm.encoders.scalar_encoder import ScalarEncoder, ScalarEncoderParameters
 from htm.bindings.sdr import SDR, Metrics
@@ -324,4 +326,31 @@ class ScalarEncoder_Test(unittest.TestCase):
       enc2.encode(10, out2)
       assert out == out2
       #TODO add enc == enc2
+
+    def testJSONSerialization(self):
+        """
+        This test is to insure that Python can access the C++ serialization functions.
+        Serialization is tested more completely in C++ unit tests. Just checking 
+        that Python can access it.
+        """
+        p = ScalarEncoderParameters()
+        p.size       = 100
+        p.activeBits = 10
+        p.minimum    = 0
+        p.maximum    = 20
+        p.clipInput  = True
+
+        encoder1 = ScalarEncoder(p)
+        filename = 'ScalarEncoder_testSerialization.json'
+        encoder1.saveToFile(filename, "JSON")
+        
+        encoder2 =  ScalarEncoder()
+        encoder2.loadFromFile(filename, "JSON")
+        
+        value_to_encode = 69003        
+        SDR_original = encoder1.encode(value_to_encode)
+        SDR_loaded = encoder2.encode(value_to_encode)
+
+        assert(SDR_original == SDR_loaded)
+        os.remove(filename)
 

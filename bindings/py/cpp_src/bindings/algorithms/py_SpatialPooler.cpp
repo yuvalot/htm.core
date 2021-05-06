@@ -247,13 +247,16 @@ Argument wrapAround boolean value that determines whether or not inputs
         py_SpatialPooler.def("setMinPctOverlapDutyCycles", &SpatialPooler::setMinPctOverlapDutyCycles);
 				
 				// saving and loading from file
-        py_SpatialPooler.def("saveToFile", 
-				    [](SpatialPooler &self, const std::string& filename) {self.saveToFile(filename,SerializableFormat::BINARY); },
-R"(See also standard library function: pickle.dump(...))");
+       py_SpatialPooler.def("saveToFile",
+         static_cast<void (htm::SpatialPooler::*)(std::string, std::string) const>(&htm::SpatialPooler::saveToFile), 
+         py::arg("file"), py::arg("fmt") = "BINARY",
+         R"(Serializes object to file. file: filename to write to.  fmt: format, one of 'BINARY', 'PORTABLE', 'JSON', or 'XML')");
 
-        py_SpatialPooler.def("loadFromFile",
-				    [](SpatialPooler &self, const std::string& filename) { return self.loadFromFile(filename,SerializableFormat::BINARY); },
-R"(See also standard library function: pickle.load(...))");
+       py_SpatialPooler.def("loadFromFile",    
+         static_cast<void (htm::SpatialPooler::*)(std::string, std::string)>(&htm::SpatialPooler::loadFromFile), 
+         py::arg("file"), py::arg("fmt") = "BINARY",
+         R"(Deserializes object from file. file: filename to read from.  fmt: format recorded by saveToFile(). )");
+				
 
         // loadFromString, loads SP from a JSON encoded string produced by writeToString().
         py_SpatialPooler.def("loadFromString", [](SpatialPooler& self, const std::string& inString)

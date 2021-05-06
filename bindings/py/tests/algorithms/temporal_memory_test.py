@@ -82,7 +82,6 @@ class TemporalMemoryBindingsTest(unittest.TestCase):
     self.assertTrue(speed < 40.0)
 
 
-  @pytest.mark.skipif(sys.version_info < (3, 6), reason="Fails for python2 with segmentation fault")
   def testNupicTemporalMemoryPickling(self):
     """Test pickling / unpickling of NuPIC TemporalMemory."""
 
@@ -126,9 +125,9 @@ class TemporalMemoryBindingsTest(unittest.TestCase):
 
     # The TM now has some data in it, try serialization.
     file = "temporalMemory_test_save2.bin"
-    tm.saveToFile(file)
+    tm.saveToFile(file, "JSON")
     tm3 = TM()
-    tm3.loadFromFile(file)
+    tm3.loadFromFile(file, "JSON")
     self.assertEqual(str(tm), str(tm3), "TemporalMemory serialization (using saveToFile/loadFromFile) failed.")
     os.remove(file)
 

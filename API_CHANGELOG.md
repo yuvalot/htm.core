@@ -143,3 +143,8 @@ mostly just a thin wrapper around the C++ library.
   Recommend reading the documentation, see `python -m pydoc htm`
 
 - Parameters containing strings were originally defined in the NetworkAPI Spec as a byte array (i.e. type "Byte" and count 0).  Byte arrays are now 8 bit integers and strings use type "String" and count 1.
+
+- Classifier::learn(SDR, label)
+  The `label` argument can now be an unsigned integer (the label index) or it can be a vector containing a set of label indexes that relate to this pattern.
+  This was done because syntax such as `{4}` passed as the label, intended to create a vector with one element, is now being rejected by at least one compiler.  
+  So, just pass the label index directly if there is only one. 

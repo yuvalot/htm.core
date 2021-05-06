@@ -149,22 +149,23 @@ public:
    * @{
    */
   /**
-   *    saveToFile(path)          Open a file and stream to it. (Binary)
+   *    saveToFile(path [, fmt])  Open a file and stream to it. 
    *    save(ostream f [, fmt])   Stream to your stream.  
    *    f << net;                 Output human readable text. 
    *
-   *    loadFromFile(path)
+   *    loadFromFile(path [, fmt])
    *    load(istream f [, fmt])
    *
    * @path The filename into which to save/load the streamed serialization.
    * @f    The stream with which to save/load the serialization.
    * @fmt  Format: One of following from enum SerializableFormat
-   *   BINARY   - A binary format which is the fastest but not portable between platforms (default).
-   *   PORTABLE - Another Binary format, not quite as fast but is portable between platforms.
-   *   JSON     - Human readable JSON text format. Slow.
-   *   XML      - Human readable XML text format. Even slower.
+   *   SerializableFormat::BINARY   - A binary format which is the fastest but not portable between platforms (default).
+   *   SerializableFormat::PORTABLE - Another Binary format, not quite as fast but is portable between platforms.
+   *   SerializableFormat::JSON     - Human readable JSON text format. Slow.
+   *   SerializableFormat::XML      - Human readable XML text format. Even slower.
+   * or an std::string, one of "BINARY", "PORTABLE", "JSON", "XML".
    *
-	 * See Serializable base class for more details.
+	 * See Serializable base class for more details (types/Serializable.hpp).
 	 */
   CerealAdapter;  // see Serializable.hpp
   // FOR Cereal Serialization

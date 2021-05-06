@@ -19,6 +19,8 @@
 #include <pybind11/pybind11.h>
 #include <pybind11/numpy.h>
 #include <pybind11/stl.h>
+#include <pybind11/iostream.h>
+#include <sstream>
 namespace py = pybind11;
 
 #include <htm/encoders/ScalarEncoder.hpp>
@@ -104,6 +106,7 @@ this contiguous block varies continuously with the input value.
 To inspect this run:
 $ python -m htm.examples.encoders.scalar_encoder --help)");
 
+    py_ScalarEnc.def(py::init<>(), R"( For use with loadFromFile. )");
     py_ScalarEnc.def(py::init<ScalarEncoderParameters&>(), R"()");
     py_ScalarEnc.def_property_readonly("parameters",
         [](const ScalarEncoder &self) { return self.parameters; },
@@ -123,6 +126,21 @@ fields are filled in automatically.)");
         return output; },
 R"()");
 
+// Serialization
+// loadFromString
+    py_ScalarEnc.def("loadFromString", [](ScalarEncoder& self, const py::bytes& inString) {
+      std::stringstream inStream(inString.cast<std::string>());
+      self.load(inStream, JSON);
+    });
+
+    // writeToString
+    py_ScalarEnc.def("writeToString", [](const ScalarEncoder& self) {
+      std::ostringstream os;
+      os.flags(std::ios_base::scientific);
+      os.precision(std::numeric_limits<double>::digits10 + 1);
+      self.save(os, JSON); // see serialization in bindings for SP, py_SpatialPooler.cpp for explanation
+      return py::bytes( os.str() );
+   });
 
   // pickle
   py_ScalarEnc.def(py::pickle( 
@@ -157,6 +175,16 @@ R"()");
     return enc;
   }));
 
+// loadFromFile
+//    
+   py_ScalarEnc.def("saveToFile",
+                     static_cast<void (htm::ScalarEncoder::*)(std::string, std::string) const>(&htm::ScalarEncoder::saveToFile), 
+                     py::arg("file"), py::arg("fmt") = "BINARY",
+R"(Serializes object to file. file: filename to write to.  fmt: format, one of 'BINARY', 'PORTABLE', 'JSON', or 'XML')");
+
+   py_ScalarEnc.def("loadFromFile",    static_cast<void (htm::ScalarEncoder::*)(std::string, std::string)>(&htm::ScalarEncoder::loadFromFile), 
+                     py::arg("file"), py::arg("fmt") = "BINARY",
+R"(Deserializes object from file. file: filename to read from.  fmt: format recorded by saveToFile(). )");
 
 
   }
