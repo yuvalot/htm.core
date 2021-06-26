@@ -10,7 +10,7 @@ from htm.encoders.rdse import RDSE, RDSE_Parameters
 from htm.encoders.date import DateEncoder
 from htm.bindings.algorithms import SpatialPooler
 from htm.bindings.algorithms import TemporalMemory
-from htm.algorithms.anomaly_likelihood import AnomalyLikelihood #FIXME use TM.anomaly instead, but it gives worse results than the py.AnomalyLikelihood now
+from htm.algorithms.anomaly_likelihood import AnomalyLikelihood
 from htm.bindings.algorithms import Predictor
 
 _EXAMPLE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -41,13 +41,7 @@ default_parameters = {
         'newSynapseCount': 32,
         'permanenceDec': 0.1,
         'permanenceInc': 0.1},
- 'anomaly': {
-   'likelihood': 
-       {#'learningPeriod': int(math.floor(self.probationaryPeriod / 2.0)),
-        #'probationaryPeriod': self.probationaryPeriod-default_parameters["anomaly"]["likelihood"]["learningPeriod"],
-        'probationaryPct': 0.1,
-        'reestimationPeriod': 100} #These settings are copied from NAB
- }
+  'anomaly': {'period': 1000},
 }
 
 def main(parameters=default_parameters, argv=None, verbose=True):
@@ -113,13 +107,7 @@ def main(parameters=default_parameters, argv=None, verbose=True):
   )
   tm_info = Metrics( [tm.numberOfCells()], 999999999 )
 
-  # setup likelihood, these settings are used in NAB
-  anParams = parameters["anomaly"]["likelihood"]
-  probationaryPeriod = int(math.floor(float(anParams["probationaryPct"])*len(records)))
-  learningPeriod     = int(math.floor(probationaryPeriod / 2.0))
-  anomaly_history = AnomalyLikelihood(learningPeriod= learningPeriod,
-                                      estimationSamples= probationaryPeriod - learningPeriod,
-                                      reestimationPeriod= anParams["reestimationPeriod"])
+  anomaly_history = AnomalyLikelihood(parameters["anomaly"]["period"])
 
   predictor = Predictor( steps=[1, 5], alpha=parameters["predictor"]['sdrc_alpha'] )
   predictor_resolution = 1
@@ -165,9 +153,8 @@ def main(parameters=default_parameters, argv=None, verbose=True):
       else:
         predictions[n].append(float('nan'))
 
-    anomalyLikelihood = anomaly_history.anomalyProbability( consumption, tm.anomaly )
     anomaly.append( tm.anomaly )
-    anomalyProb.append( anomalyLikelihood )
+    anomalyProb.append( anomaly_history.compute(tm.anomaly) )
 
     predictor.learn(count, tm.getActiveCells(), int(consumption / predictor_resolution))
 
@@ -228,9 +215,10 @@ def main(parameters=default_parameters, argv=None, verbose=True):
     plt.xlabel("Time")
     plt.ylabel("Power Consumption")
     inputs = np.array(inputs) / max(inputs)
-    plt.plot(np.arange(len(inputs)), inputs, 'red',
-             np.arange(len(inputs)), anomaly, 'blue',)
-    plt.legend(labels=('Input', 'Anomaly Score'))
+    plt.plot(np.arange(len(inputs)), inputs, 'black',
+             np.arange(len(inputs)), anomaly, 'blue',
+             np.arange(len(inputs)), anomalyProb, 'red',)
+    plt.legend(labels=('Input', 'Instantaneous Anomaly', 'Anomaly Likelihood'))
     plt.show()
 
   return -accuracy[5]
