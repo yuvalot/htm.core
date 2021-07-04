@@ -199,6 +199,7 @@ std::ostream & operator<<(std::ostream & out, const ScalarEncoder &self)
   out << "  periodic:  " << self.parameters.periodic   << ",\n";
   out << "  category:  " << self.parameters.category   << ",\n";
   out << "  activeBits:" << self.parameters.activeBits << ",\n";
+  out << "  sparsity:"   << self.parameters.sparsity   << ",\n";
   out << "  resolution:" << self.parameters.resolution << std::endl;
   return out;
 }
