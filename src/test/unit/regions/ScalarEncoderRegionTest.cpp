@@ -357,7 +357,7 @@ namespace testing
       "defaultValue": "false"
     },
     "sparsity": {
-      "description": "How sparce it is as a ratio of active bits to size.Use one of: 'activeBits' or 'sparsity'.",
+      "description": "Sparsity is the number of active bits divided by the total number of bits. Use one of: 'activeBits' or 'sparsity'.",
       "type": "Real32",
       "count": 1,
       "access": "Create",

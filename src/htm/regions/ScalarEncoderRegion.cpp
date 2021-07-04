@@ -214,7 +214,7 @@ ScalarEncoderRegion::~ScalarEncoderRegion() {}
                                   ParameterSpec::CreateAccess));
   ns->parameters.add("sparsity",
                     ParameterSpec(
-                                  "How sparce it is as a ratio of active bits to size."
+                                  "Sparsity is the number of active bits divided by the total number of bits. "
                                   "Use one of: 'activeBits' or 'sparsity'.",
                                   NTA_BasicType_Real32,
                                   1,       // elementCount
