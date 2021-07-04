@@ -67,7 +67,7 @@ namespace htm_ext
             .def(py::init<UInt, UInt, UInt>());
 
         // members
-        py_Dimensions.def("getCount", &Dimensions::getCount)
+        py_Dimensions.def("getCount", &Dimensions::getCount) 
             .def("size", &Dimensions::size)
             .def("empty", &Dimensions::empty)
             .def("clear", &Dimensions::clear)

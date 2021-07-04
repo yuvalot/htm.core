@@ -31,8 +31,8 @@ from htm.bindings.engine_internal import Dimensions
 class NetworkAPI_Dimensions_Test(unittest.TestCase):
   """ Unit tests for Dimensions class. """
 
-  def testStatus(self):
-    # test of the status conditions of a Dimensions object
+  def testDimensionsMembers(self):
+    # test of the status conditions of a Dimensions object  
     dim1 = Dimensions()
     self.assertEqual(dim1.empty(), True)
     self.assertEqual(dim1.size(), 0)
