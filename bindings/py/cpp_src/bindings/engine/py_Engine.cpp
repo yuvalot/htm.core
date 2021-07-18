@@ -67,13 +67,22 @@ namespace htm_ext
             .def(py::init<UInt, UInt, UInt>());
 
         // members
-        py_Dimensions.def("getCount", &Dimensions::getCount)
+        py_Dimensions.def("getCount", &Dimensions::getCount) 
             .def("size", &Dimensions::size)
+            .def("empty", &Dimensions::empty)
+            .def("clear", &Dimensions::clear)
+            .def("resize", &Dimensions::resize)
+            .def("push_back", &Dimensions::push_back)
+            .def("push_front", &Dimensions::push_front)
             .def("isUnspecified", &Dimensions::isUnspecified)
             .def("isDontcare", &Dimensions::isDontcare)
             .def("isSpecified", &Dimensions::isSpecified)
             .def("isInvalid", &Dimensions::isInvalid)
             .def("toString", &Dimensions::toString, "", py::arg("humanReadable") = true)
+            .def("asVector", [](const Dimensions &self) {
+                const std::vector<UInt>& vect_arr = self.asVector();
+                py::array ret =  py::cast(vect_arr);
+                return ret;})
             ;
 
         // operator overloading
