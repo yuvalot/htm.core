@@ -44,6 +44,7 @@ struct CoordinateEncoderParameters : public RDSE_Parameters {
 
 /*
  * TODO: DOCUMENTATION
+ TODO: EXPLAIN how this works...
  */
 class CoordinateEncoder : public BaseEncoder<const std::vector<Real64> &>
 {
