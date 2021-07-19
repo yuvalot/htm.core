@@ -2,6 +2,12 @@
 
 Also see [API_CHANGELOG](API_CHANGELOG.md).
 
+* Changed method of pruning segments from least-recently-used to a heuristic based on the synapse permanences.
+
+## 2.1.0
+* REST API for htm.core
+* Ubuntu 20.04 LTS supported
+
 ## 2.0.0
 * changed repository name from nupic.core to htm.core
 * Added support for Visual Studio 2019

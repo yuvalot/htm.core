@@ -50,8 +50,7 @@ UInt countNonzero(const vector<UInt> &vec) {
 }
 
 bool almost_eq(Real a, Real b) {
-  Real diff = a - b;
-  return (diff > -1e-5 && diff < 1e-5);
+  return (fabs(a - b) < 1e-5);
 }
 
 bool check_vector_eq(UInt arr[], vector<UInt> vec) {  //TODO replace with ArrayBase, VectorHelpers or teplates
@@ -195,24 +194,18 @@ void check_spatial_eq(const SpatialPooler& sp1, const SpatialPooler& sp2) {
     delete[] potential2;
   }
 
+  // check get permanences
   for (UInt i = 0; i < numColumns; i++) {
-    auto perm1 = new Real[numInputs];
-    auto perm2 = new Real[numInputs];
-    sp1.getPermanence(i, perm1);
-    sp2.getPermanence(i, perm2);
-    ASSERT_TRUE(check_vector_eq(perm1, perm2, numInputs));
-    delete[] perm1;
-    delete[] perm2;
+    const auto& perm1 = sp1.getPermanence(i);
+    const auto& perm2 = sp2.getPermanence(i);
+    ASSERT_TRUE(check_vector_eq(perm1, perm2));
   }
 
+  // check get connected synapses
   for (UInt i = 0; i < numColumns; i++) {
-    auto con1 = new UInt[numInputs];
-    auto con2 = new UInt[numInputs];
-    sp1.getConnectedSynapses(i, con1);
-    sp2.getConnectedSynapses(i, con2);
-    ASSERT_TRUE(check_vector_eq(con1, con2, numInputs));
-    delete[] con1;
-    delete[] con2;
+    const auto& con1 = sp1.getPermanence(i, sp1.connections.getConnectedThreshold());
+    const auto& con2 = sp2.getPermanence(i, sp2.connections.getConnectedThreshold());
+    ASSERT_TRUE(check_vector_eq(con1, con2));
   }
 
   auto conCounts1 = new UInt[numColumns];
@@ -432,6 +425,7 @@ TEST(SpatialPoolerTest, testUpdateMinDutyCyclesLocal) {
         /*potentialPct*/ 0.5f,
         /*globalInhibition*/ false,
         /*localAreaDensity*/ 0.2f,
+       /*numActiveColumnsPerInhArea */ 0,
         /*stimulusThreshold*/ 1,
         /*synPermInactiveDec*/ 0.008f,
         /*synPermActiveInc*/ 0.05f,
@@ -473,6 +467,7 @@ TEST(SpatialPoolerTest, testUpdateMinDutyCyclesLocal) {
         /*potentialPct*/ 0.5f,
         /*globalInhibition*/ false,
         /*localAreaDensity*/ 0.2f,
+       /*numActiveColumnsPerInhArea */ 0,
         /*stimulusThreshold*/ 1,
         /*synPermInactiveDec*/ 0.008f,
         /*synPermActiveInc*/ 0.05f,
@@ -833,10 +828,8 @@ TEST(SpatialPoolerTest, testAdaptSynapses) {
 
   sp.adaptSynapses_(input1, activeColumns);
   for (UInt column = 0; column < numColumns; column++) {
-    auto permArr = new Real[numInputs];
-    sp.getPermanence(column, permArr);
-    ASSERT_TRUE(check_vector_eq(truePermanences1[column], permArr, numInputs));
-    delete[] permArr;
+    const auto& permArr = sp.getPermanence(column);
+    ASSERT_TRUE(check_vector_eq(truePermanences1[column], permArr));
   }
 
   UInt potentialArr2[4][8] = {{1, 1, 1, 0, 0, 0, 0, 0},
@@ -873,10 +866,8 @@ TEST(SpatialPoolerTest, testAdaptSynapses) {
 
   sp.adaptSynapses_(input2, activeColumns);
   for (UInt column = 0; column < numColumns; column++) {
-    auto permArr = new Real[numInputs];
-    sp.getPermanence(column, permArr);
-    ASSERT_TRUE(check_vector_eq(truePermanences2[column], permArr, numInputs));
-    delete[] permArr;
+    const auto& permArr = sp.getPermanence(column);
+    ASSERT_TRUE(check_vector_eq(truePermanences2[column], permArr));
   }
 }
 
@@ -925,8 +916,7 @@ TEST(SpatialPoolerTest, testBumpUpWeakColumns) {
   sp.bumpUpWeakColumns_();
 
   for (UInt i = 0; i < numColumns; i++) {
-    Real perm[8];
-    sp.getPermanence(i, perm);
+    const auto& perm = sp.getPermanence(i);
     for(UInt z = 0; z < numInputs; z++)
       ASSERT_FLOAT_EQ( truePermArr[i][z], perm[z] );
   }
@@ -972,6 +962,7 @@ TEST(SpatialPoolerTest, testUpdateBoostFactors) {
   SpatialPooler sp;
   setup(sp, 5, 6);
 
+  { //test1
   Real32 initActiveDutyCycles1[] = {0.1f, 0.1f, 0.1f, 0.1f, 0.1f, 0.1f};
   Real32 initBoostFactors1[] = {0, 0, 0, 0, 0, 0};
   vector<Real32> trueBoostFactors1 = {1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f};
@@ -982,8 +973,11 @@ TEST(SpatialPoolerTest, testUpdateBoostFactors) {
   sp.setActiveDutyCycles(initActiveDutyCycles1);
   sp.updateBoostFactors_();
   sp.getBoostFactors(resultBoostFactors1.data());
+  ASSERT_EQ(resultBoostFactors1.size(), trueBoostFactors1.size());
   ASSERT_TRUE(check_vector_eq(trueBoostFactors1, resultBoostFactors1));
+  }
 
+  {
   Real32 initActiveDutyCycles2[] = {0.1f, 0.3f, 0.02f, 0.04f, 0.7f, 0.12f};
   Real32 initBoostFactors2[] = {0, 0, 0, 0, 0, 0};
   vector<Real32> trueBoostFactors2 = {3.10599f, 0.42035f,    6.91251f,
@@ -995,13 +989,15 @@ TEST(SpatialPoolerTest, testUpdateBoostFactors) {
   sp.setActiveDutyCycles(initActiveDutyCycles2);
   sp.updateBoostFactors_();
   sp.getBoostFactors(resultBoostFactors2.data());
-
+  ASSERT_EQ(resultBoostFactors2.size(), trueBoostFactors2.size());
   ASSERT_TRUE(check_vector_eq(trueBoostFactors2, resultBoostFactors2));
+  }
 
+  {
   Real32 initActiveDutyCycles3[] = {0.1f, 0.3f, 0.02f, 0.04f, 0.7f, 0.12f};
   Real initBoostFactors3[] = {0, 0, 0, 0, 0, 0};
-  vector<Real32> trueBoostFactors3 = {1.25441f, 0.840857f, 1.47207f,
-                                      1.41435f, 0.377822f, 1.20523f};
+  const vector<Real32> trueBoostFactors3 = {1.28586f, 0.795669f, 1.40094f,
+	                                    1.62534f, 0.367879f, 1.16682f};
   vector<Real32> resultBoostFactors3(6, 0);
   sp.setWrapAround(true);
   sp.setGlobalInhibition(false);
@@ -1011,23 +1007,27 @@ TEST(SpatialPoolerTest, testUpdateBoostFactors) {
   sp.setActiveDutyCycles(initActiveDutyCycles3);
   sp.updateBoostFactors_();
   sp.getBoostFactors(resultBoostFactors3.data());
-
+  ASSERT_EQ(resultBoostFactors3.size(), trueBoostFactors3.size());
   ASSERT_TRUE(check_vector_eq(trueBoostFactors3, resultBoostFactors3));
+  }
 
+  { //test4: global inh + inh radius + boost str
   Real32 initActiveDutyCycles4[] = {0.1f, 0.3f, 0.02f, 0.04f, 0.7f, 0.12f};
   Real32 initBoostFactors4[] = {0, 0, 0, 0, 0, 0};
-  vector<Real32> trueBoostFactors4 = {1.94773f, 0.263597f,   4.33476f,
-                                      3.549f,   0.00482795f, 1.59467f};
+  vector<Real32> trueBoostFactors4 = {54.598148f, 7.38906f, 121.51038f,
+	                              99.4843f, 0.135335f, 44.70118f};
   vector<Real32> resultBoostFactors4(6, 0);
   sp.setGlobalInhibition(true);
-  sp.setBoostStrength(10);
+  sp.setBoostStrength(10.0);
   sp.setInhibitionRadius(3);
   sp.setBoostFactors(initBoostFactors4);
   sp.setActiveDutyCycles(initActiveDutyCycles4);
   sp.updateBoostFactors_();
   sp.getBoostFactors(resultBoostFactors4.data());
-
-  ASSERT_TRUE(check_vector_eq(trueBoostFactors3, resultBoostFactors3));
+  //for(UInt i=0; i< resultBoostFactors4.size(); i++) std::cout << std::fixed << std::setprecision(6) << "res " << resultBoostFactors4[i] << " vs " << trueBoostFactors4[i] << " is " << (fabs(resultBoostFactors4[i] - trueBoostFactors4[i]) < 1e-5) << "\n"; //debug
+  ASSERT_EQ(resultBoostFactors4.size(), trueBoostFactors4.size()) << "size mismatch: " << resultBoostFactors4.size() << " vs. " << trueBoostFactors4.size();
+  ASSERT_TRUE(check_vector_eq(trueBoostFactors4, resultBoostFactors4));
+  }
 }
 
 
@@ -1107,16 +1107,16 @@ TEST(SpatialPoolerTest, testInhibitColumns) {
   Real overlapsArray[10] = {10, 21, 34, 4, 18, 3, 12, 5, 7, 1};
 
   overlapsReal.assign(&overlapsArray[0], &overlapsArray[numColumns]);
-  sp.inhibitColumnsGlobal_(overlapsReal, density, activeColumnsGlobal);
+  activeColumnsGlobal = sp.inhibitColumnsGlobal_(overlapsReal, density);
   overlapsReal.assign(&overlapsArray[0], &overlapsArray[numColumns]);
-  sp.inhibitColumnsLocal_(overlapsReal, density, activeColumnsLocal);
+  activeColumnsLocal = sp.inhibitColumnsLocal_(overlapsReal, density);
 
   sp.setInhibitionRadius(5);
   sp.setGlobalInhibition(true);
   sp.setLocalAreaDensity(density);
 
   overlaps.assign(&overlapsArray[0], &overlapsArray[numColumns]);
-  sp.inhibitColumns_(overlaps, activeColumns);
+  activeColumns = sp.inhibitColumns_(overlaps);
 
   ASSERT_TRUE(check_vector_eq(activeColumns, activeColumnsGlobal));
   ASSERT_TRUE(!check_vector_eq(activeColumns, activeColumnsLocal));
@@ -1125,7 +1125,7 @@ TEST(SpatialPoolerTest, testInhibitColumns) {
   sp.setInhibitionRadius(numColumns + 1);
 
   overlaps.assign(&overlapsArray[0], &overlapsArray[numColumns]);
-  sp.inhibitColumns_(overlaps, activeColumns);
+  activeColumns = sp.inhibitColumns_(overlaps);
 
   ASSERT_TRUE(check_vector_eq(activeColumns, activeColumnsGlobal));
   ASSERT_TRUE(!check_vector_eq(activeColumns, activeColumnsLocal));
@@ -1136,12 +1136,12 @@ TEST(SpatialPoolerTest, testInhibitColumns) {
   sp.setInhibitionRadius(inhibitionRadius);
 
   overlapsReal.assign(&overlapsArray[0], &overlapsArray[numColumns]);
-  sp.inhibitColumnsGlobal_(overlapsReal, density, activeColumnsGlobal);
+  activeColumnsGlobal = sp.inhibitColumnsGlobal_(overlapsReal, density);
   overlapsReal.assign(&overlapsArray[0], &overlapsArray[numColumns]);
-  sp.inhibitColumnsLocal_(overlapsReal, density, activeColumnsLocal);
+  activeColumnsLocal = sp.inhibitColumnsLocal_(overlapsReal, density);
 
   overlaps.assign(&overlapsArray[0], &overlapsArray[numColumns]);
-  sp.inhibitColumns_(overlaps, activeColumns);
+  activeColumns = sp.inhibitColumns_(overlaps);
 
   ASSERT_TRUE(!check_vector_eq(activeColumns, activeColumnsGlobal));
   ASSERT_TRUE(check_vector_eq(activeColumns, activeColumnsLocal));
@@ -1162,7 +1162,7 @@ TEST(SpatialPoolerTest, testInhibitColumnsGlobal) {
   density = 0.3f;
   Real overlapsArray[10] = {1, 2, 1, 4, 8, 3, 12, 5, 4, 1};
   overlaps.assign(&overlapsArray[0], &overlapsArray[numColumns]);
-  sp.inhibitColumnsGlobal_(overlaps, density, activeColumns);
+  activeColumns = sp.inhibitColumnsGlobal_(overlaps, density);
   UInt trueActiveArray1[3] = {4, 6, 7};
 
   trueActive.assign(numColumns, 0);
@@ -1181,7 +1181,7 @@ TEST(SpatialPoolerTest, testInhibitColumnsGlobal) {
   density = 0.5f;
   Real overlapsArray2[10] = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
   overlaps.assign(&overlapsArray2[0], &overlapsArray2[numColumns]);
-  sp.inhibitColumnsGlobal_(overlaps, density, activeColumns);
+  activeColumns = sp.inhibitColumnsGlobal_(overlaps, density);
   UInt trueActiveArray2[5] = {5, 6, 7, 8, 9};
 
   for (auto &elem : trueActiveArray2) {
@@ -1191,7 +1191,6 @@ TEST(SpatialPoolerTest, testInhibitColumnsGlobal) {
   for (auto &activeColumn : activeColumns) {
     active[activeColumn] = 1;
   }
-
   ASSERT_TRUE(check_vector_eq(trueActive, active));
 }
 
@@ -1206,7 +1205,7 @@ TEST(SpatialPoolerTest, testValidateGlobalInhibitionParameters) {
   SDR out1( {sp.getNumColumns()} );
   //throws
   EXPECT_ANY_THROW(sp.setLocalAreaDensity(0.02f));
-//  EXPECT_THROW(sp.compute(input, false, out1), htm::LoggingException);
+//  EXPECT_THROW(sp.compute(input, false, out1), htm::Exception);
   //good parameter
   EXPECT_NO_THROW(sp.setLocalAreaDensity(0.1f));
   EXPECT_NO_THROW(sp.compute(input, false, out1));
@@ -1239,6 +1238,7 @@ TEST(SpatialPoolerTest, testInhibitColumnsLocal) {
         /*potentialPct*/ 0.5f,
         /*globalInhibition*/ false,
         /*localAreaDensity*/ 0.1f,
+        /*numActiveColumnsPerInhArea */ 0,
         /*stimulusThreshold*/ 1,
         /*synPermInactiveDec*/ 0.008f,
         /*synPermActiveInc*/ 0.05f,
@@ -1264,7 +1264,7 @@ TEST(SpatialPoolerTest, testInhibitColumnsLocal) {
     overlaps.assign(&overlapsArray1[0], &overlapsArray1[10]);
     UInt trueActive[5] = {1, 2, 5, 6, 9};
     sp.setInhibitionRadius(inhibitionRadius);
-    sp.inhibitColumnsLocal_(overlaps, density, active);
+    active = sp.inhibitColumnsLocal_(overlaps, density);
     ASSERT_EQ(5ul, active.size());
     ASSERT_TRUE(check_vector_eq(trueActive, active));
 
@@ -1275,8 +1275,8 @@ TEST(SpatialPoolerTest, testInhibitColumnsLocal) {
     inhibitionRadius = 3;
     density = 0.5;
     sp.setInhibitionRadius(inhibitionRadius);
-    sp.inhibitColumnsLocal_(overlaps, density, active);
-    ASSERT_TRUE(active.size() == 6);
+    active = sp.inhibitColumnsLocal_(overlaps, density);
+    ASSERT_EQ(active.size(), (size_t)6);
     ASSERT_TRUE(check_vector_eq(trueActive2, active));
 
     // Test arbitration
@@ -1288,9 +1288,9 @@ TEST(SpatialPoolerTest, testInhibitColumnsLocal) {
     inhibitionRadius = 3;
     density = 0.25;
     sp.setInhibitionRadius(inhibitionRadius);
-    sp.inhibitColumnsLocal_(overlaps, density, active);
+    active = sp.inhibitColumnsLocal_(overlaps, density);
 
-    ASSERT_TRUE(active.size() == 4);
+    ASSERT_EQ(active.size(), (size_t)4);
     ASSERT_TRUE(check_vector_eq(trueActive3, active));
   }
 
@@ -1303,6 +1303,7 @@ TEST(SpatialPoolerTest, testInhibitColumnsLocal) {
         /*potentialPct*/ 0.5f,
         /*globalInhibition*/ false,
         /*localAreaDensity*/ 0.1f,
+        /*numActiveColumnsPerInhArea */ 0,
         /*stimulusThreshold*/ 1,
         /*synPermInactiveDec*/ 0.008f,
         /*synPermActiveInc*/ 0.05f,
@@ -1328,7 +1329,7 @@ TEST(SpatialPoolerTest, testInhibitColumnsLocal) {
     overlaps.assign(&overlapsArray1[0], &overlapsArray1[10]);
     UInt trueActive[6] = {1, 2, 5, 6, 8, 9};
     sp.setInhibitionRadius(inhibitionRadius);
-    sp.inhibitColumnsLocal_(overlaps, density, active);
+    active = sp.inhibitColumnsLocal_(overlaps, density);
     ASSERT_EQ(6ul, active.size());
     ASSERT_TRUE(check_vector_eq(trueActive, active));
 
@@ -1339,7 +1340,7 @@ TEST(SpatialPoolerTest, testInhibitColumnsLocal) {
     inhibitionRadius = 3;
     density = 0.5;
     sp.setInhibitionRadius(inhibitionRadius);
-    sp.inhibitColumnsLocal_(overlaps, density, active);
+    active = sp.inhibitColumnsLocal_(overlaps, density);
     ASSERT_TRUE(active.size() == 6);
     ASSERT_TRUE(check_vector_eq(trueActive2, active));
 
@@ -1352,7 +1353,7 @@ TEST(SpatialPoolerTest, testInhibitColumnsLocal) {
     inhibitionRadius = 3;
     density = 0.25;
     sp.setInhibitionRadius(inhibitionRadius);
-    sp.inhibitColumnsLocal_(overlaps, density, active);
+    active = sp.inhibitColumnsLocal_(overlaps, density);
 
     ASSERT_TRUE(active.size() == 4ul);
     ASSERT_TRUE(check_vector_eq(trueActive3, active));
@@ -1413,7 +1414,7 @@ TEST(SpatialPoolerTest, testSetPermanence) {
                          //  -       -       -       -       -
                          {0.200f, 0.101f, 0.050f, 0.000f, 1.000f}};
                          //  -       -       -      Clip    Clip
-  UInt trueConnectedSynapses[5][5] = {{0, 1, 1, 0, 0},
+  Real trueConnectedSynapses[5][5] = {{0, 1, 1, 0, 0},
                                       {1, 0, 0, 1, 0},
                                       {0, 0, 1, 1, 0},
                                       {1, 0, 1, 0, 0},
@@ -1422,18 +1423,17 @@ TEST(SpatialPoolerTest, testSetPermanence) {
   for (UInt i = 0; i < 5; i++) {
     sp.setPotential(i, potential);
     sp.setPermanence(i, permArr[i]);
-    auto permArr = new Real[numInputs];
-    auto connectedArr = new UInt[numInputs];
     auto connectedCountsArr = new UInt[numColumns];
-    sp.getPermanence(i, permArr);
-    sp.getConnectedSynapses(i, connectedArr);
+    const auto& permArr = sp.getPermanence(i);
+    const auto& connectedArr = sp.getPermanence(i, sp.connections.getConnectedThreshold());
     sp.getConnectedCounts(connectedCountsArr);
-    ASSERT_TRUE(check_vector_eq(truePerm[i], permArr, numInputs));
-    ASSERT_TRUE(
-        check_vector_eq(trueConnectedSynapses[i], connectedArr, numInputs));
-    ASSERT_TRUE(trueConnectedCount[i] == connectedCountsArr[i]);
-    delete[] permArr;
-    delete[] connectedArr;
+    
+    ASSERT_TRUE(check_vector_eq(truePerm[i], permArr));
+    ASSERT_EQ(trueConnectedCount[i], connectedCountsArr[i]);
+    for(UInt j=0; j < numInputs; j++) {
+      if(trueConnectedSynapses[i][j] == 0) ASSERT_EQ(connectedArr[j], 0.0f);
+      else ASSERT_TRUE(connectedArr[j] > 0.0f);
+    }
     delete[] connectedCountsArr;
   }
 }
@@ -1448,13 +1448,13 @@ TEST(SpatialPoolerTest, testInitPermanence) {
   SpatialPooler sp;
   Real synPermConnected = 0.2f;
   Real synPermActiveInc = 0.05f;
-  sp.initialize(inputDim, columnDim, 16u, 0.5f, true, 0.5f, 0u, 0.01f, 0.1f,
+  sp.initialize(inputDim, columnDim, 16u, 0.5f, true, 0.5f, 0u, 0u, 0.01f, 0.1f,
                 synPermConnected);
   sp.setSynPermActiveInc(synPermActiveInc);
 
   UInt arr[8] = {0, 1, 1, 0, 0, 1, 0, 1};
   vector<UInt> potential(&arr[0], &arr[8]);
-  vector<Real> perm = sp.initPermanence_(potential, 1.0);
+  auto perm = sp.initPermanence_(potential, 1.0);
   for (UInt i = 0; i < 8; i++)
     if (potential[i])
       ASSERT_GE(perm[i], synPermConnected);
@@ -1469,7 +1469,7 @@ TEST(SpatialPoolerTest, testInitPermanence) {
       ASSERT_LT(perm[i], 1e-5);
 
   inputDim[0] = 100;
-  sp.initialize(inputDim, columnDim, 16u, 0.5f, true, 0.5f, 0u, 0.01f, 0.1f,
+  sp.initialize(inputDim, columnDim, 16u, 0.5f, true, 0.5f, 0u, 0u, 0.01f, 0.1f,
                 synPermConnected);
   sp.setSynPermActiveInc(synPermActiveInc);
   potential.clear();
@@ -1490,7 +1490,7 @@ TEST(SpatialPoolerTest, testInitPermanence) {
 TEST(SpatialPoolerTest, testInitPermConnected) {
   Real synPermConnected = 0.2f;
   Real synPermMax       = 1.0f;
-  SpatialPooler sp({10}, {10}, 16u, 0.5f, true, 0.5f, 0u, 0.01f, 0.1f,
+  SpatialPooler sp({10}, {10}, 16u, 0.5f, true, 0.5f, /*numActiveColumnsPerInhArea*/0u, 0u, 0.01f, 0.1f,
                    synPermConnected);
 
   for (UInt i = 0; i < 100; i++) {
@@ -1503,7 +1503,7 @@ TEST(SpatialPoolerTest, testInitPermConnected) {
 
 TEST(SpatialPoolerTest, testInitPermNonConnected) {
   Real32 synPermConnected = 0.2f;
-  SpatialPooler sp({10}, {10}, 16u, 0.5f, true, 0.5f, 0u, 0.01f, 0.1f,
+  SpatialPooler sp({10}, {10}, 16u, 0.5f, true, 0.5f, /*numActiveColumnsPerInhArea*/0u, 0u, 0.01f, 0.1f,
                    synPermConnected);
   EXPECT_EQ(sp.getSynPermMax(), 1.0f);
 
@@ -1724,6 +1724,7 @@ TEST(SpatialPoolerTest, ZeroOverlap_NoStimulusThreshold_GlobalInhibition) {
                    /*potentialPct*/ 0.5f,
                    /*globalInhibition*/ true,
                    /*localAreaDensity*/ 0.1f,
+                   /*numActiveColumnsPerInhArea */ 0,
                    /*stimulusThreshold*/ 0,
                    /*synPermInactiveDec*/ 0.008f,
                    /*synPermActiveInc*/ 0.05f,
@@ -1751,7 +1752,8 @@ TEST(SpatialPoolerTest, ZeroOverlap_StimulusThreshold_GlobalInhibition) {
                    /*potentialRadius*/ 5,
                    /*potentialPct*/ 0.5f,
                    /*globalInhibition*/ true,
-                   /*localAreaDensity*/ 0.1f,
+                   /*localAreaDensity*/ 0.1f,            
+                   /*numActiveColumnsPerInhArea */ 0,
                    /*stimulusThreshold*/ 1,
                    /*synPermInactiveDec*/ 0.008f,
                    /*synPermActiveInc*/ 0.05f,
@@ -1772,14 +1774,15 @@ TEST(SpatialPoolerTest, ZeroOverlap_StimulusThreshold_GlobalInhibition) {
 
 
 TEST(SpatialPoolerTest, ZeroOverlap_NoStimulusThreshold_LocalInhibition) {
-  const UInt inputSize = 10;
-  const UInt nColumns = 20;
+  const UInt inputSize = 100;
+  const UInt nColumns = 200;
 
   SpatialPooler sp({inputSize}, {nColumns},
                    /*potentialRadius*/ 5,
                    /*potentialPct*/ 0.5f,
                    /*globalInhibition*/ false,
                    /*localAreaDensity*/ 0.1f,
+                   /*numActiveColumnsPerInhArea */ 0,
                    /*stimulusThreshold*/ 0,
                    /*synPermInactiveDec*/ 0.008f,
                    /*synPermActiveInc*/ 0.05f,
@@ -1800,14 +1803,15 @@ TEST(SpatialPoolerTest, ZeroOverlap_NoStimulusThreshold_LocalInhibition) {
 
 
 TEST(SpatialPoolerTest, ZeroOverlap_StimulusThreshold_LocalInhibition) {
-  const UInt inputSize = 10;
-  const UInt nColumns = 20;
+  const UInt inputSize = 100;
+  const UInt nColumns = 200;
 
   SpatialPooler sp({inputSize}, {nColumns},
                    /*potentialRadius*/ 10,
                    /*potentialPct*/ 0.5f,
                    /*globalInhibition*/ false,
                    /*localAreaDensity*/ 0.1f,
+                   /*numActiveColumnsPerInhArea */ 0,
                    /*stimulusThreshold*/ 1,
                    /*synPermInactiveDec*/ 0.008f,
                    /*synPermActiveInc*/ 0.05f,
@@ -2016,6 +2020,7 @@ TEST(SpatialPoolerTest, testConstructorVsInitialize) {
       /*potentialPct*/ 0.5f,
       /*globalInhibition*/ true,
       /*localAreaDensity*/ 0.1f,
+      /*numActiveColumnsPerInhArea */ 0,
       /*stimulusThreshold*/ 0,
       /*synPermInactiveDec*/ 0.008f,
       /*synPermActiveInc*/ 0.05f,
@@ -2036,6 +2041,7 @@ TEST(SpatialPoolerTest, testConstructorVsInitialize) {
       /*potentialPct*/ 0.5f,
       /*globalInhibition*/ true,
       /*localAreaDensity*/ 0.1f,
+      /*numActiveColumnsPerInhArea */ 0,
       /*stimulusThreshold*/ 0,
       /*synPermInactiveDec*/ 0.008f,
       /*synPermActiveInc*/ 0.05f,
@@ -2081,6 +2087,7 @@ TEST(SpatialPoolerTest, ExactOutput) {
                    /*potentialPct*/ 0.5f,
                    /*globalInhibition*/ true,
                    /*localAreaDensity*/ 0.05f,
+                   /*numActiveColumnsPerInhArea */ 0,
                    /*stimulusThreshold*/ 3u,
                    /*synPermInactiveDec*/ 0.008f,
                    /*synPermActiveInc*/ 0.05f,
@@ -2097,7 +2104,16 @@ TEST(SpatialPoolerTest, ExactOutput) {
     inputs.randomize( 0.15f, rng );
     sp.compute(inputs, true, columns);
   }
+
+#if defined __aarch64__ || defined __arm__
+#undef _ARCH_DETERMINISTIC
+#else
+#define _ARCH_DETERMINISTIC
+#endif
+
+#ifdef _ARCH_DETERMINISTIC
   ASSERT_EQ( columns, gold_sdr );
+#endif
 }
 
 

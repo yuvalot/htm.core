@@ -24,11 +24,13 @@
 
 #include <iostream>
 #include <vector>
+#include <unordered_map>
 #include <iomanip> // std::setprecision
 #include <htm/algorithms/Connections.hpp>
 #include <htm/types/Types.hpp>
 #include <htm/types/Serializable.hpp>
 #include <htm/types/Sdr.hpp>
+#include <htm/utils/Topology.hpp>
 
 
 namespace htm {
@@ -36,8 +38,6 @@ namespace htm {
 using namespace std;
 
 /**
- * CLA spatial pooler implementation in C++.
- *
  * ### Description
  * The Spatial Pooler is responsible for creating a sparse distributed
  * representation of the input. Given an input it computes a set of sparse
@@ -61,24 +61,23 @@ using namespace std;
 class SpatialPooler : public Serializable
 {
 public:
-
-  const Real MAX_LOCALAREADENSITY = 0.5f; //require atleast 2 areas
-
   SpatialPooler();
   SpatialPooler(const vector<UInt> inputDimensions, const vector<UInt> columnDimensions,
-                UInt potentialRadius = 16u, Real potentialPct = 0.5f,
-                bool globalInhibition = true, 
-		Real localAreaDensity = 0.05f, //5%
-                UInt stimulusThreshold = 0u, 
-		Real synPermInactiveDec = 0.008f,
-                Real synPermActiveInc = 0.05f, 
-		Real synPermConnected = 0.1f,
-                Real minPctOverlapDutyCycles = 0.001f,
-                UInt dutyCyclePeriod = 1000u, 
-		Real boostStrength = 0.0f,
-                Int seed = 1, 
-		UInt spVerbosity = 0u, 
-		bool wrapAround = true);
+    UInt potentialRadius = 16u, 
+    Real potentialPct = 0.5f,
+    bool globalInhibition = true, 
+    Real localAreaDensity = 0.05f, //5%
+    UInt numActiveColumnsPerInhArea = 0,
+    UInt stimulusThreshold = 0u, 
+    Real synPermInactiveDec = 0.008f,
+    Real synPermActiveInc = 0.05f, 
+    Real synPermConnected = 0.1f,
+    Real minPctOverlapDutyCycles = 0.001f,
+    UInt dutyCyclePeriod = 1000u, 
+    Real boostStrength = 0.0f,
+    Int seed = 1, 
+    UInt spVerbosity = 0u, 
+    bool wrapAround = true);
 
   virtual ~SpatialPooler() {}
 
@@ -139,7 +138,23 @@ public:
         most N columns remain ON within a local inhibition area, where
         N = localAreaDensity * (total number of columns in inhibition
         area)
-        Default: 0.05 (5%)	
+        Default: 0.05 (5%)
+
+	If localAreaDensity is set to any value less than  0, 
+	output sparsity will be determined by the numActivePerInhArea.
+
+  @param numActiveColumnsPerInhArea An alternate way to control the sparsity of
+        active columns. When numActivePerInhArea > 0, the inhibition logic will insure that
+        at most 'numActivePerInhArea' columns remain ON within a local
+        inhibition area (the size of which is set by the internally
+        calculated inhibitionRadius). When using this method, as columns
+        learn and grow their effective receptive fields, the
+        inhibitionRadius will grow, and hence the net density of the
+        active columns will *decrease*. This is in contrast to the
+        localAreaDensity method, which keeps the density of active
+        columns the same regardless of the size of their receptive
+        fields.
+	If numActivePerInhArea is specified (> 0) then it overrides localAreaDensity. 
 
   @param stimulusThreshold This is a number specifying the minimum
         number of synapses that must be active in order for a column to
@@ -203,6 +218,7 @@ public:
 	     Real potentialPct = 0.5f,
              bool globalInhibition = true, 
 	     Real localAreaDensity = 0.05f,
+	     UInt numActiveColumnsPerInhArea = 0,
              UInt stimulusThreshold = 0u,
              Real synPermInactiveDec = 0.01f, Real synPermActiveInc = 0.1f,
              Real synPermConnected = 0.1f, Real minPctOverlapDutyCycles = 0.001f,
@@ -269,6 +285,7 @@ public:
        CEREAL_NVP(potentialPct_),
        CEREAL_NVP(initConnectedPct_),
        CEREAL_NVP(globalInhibition_),
+       CEREAL_NVP(numActiveColumnsPerInhArea_),
        CEREAL_NVP(localAreaDensity_),
        CEREAL_NVP(stimulusThreshold_),
        CEREAL_NVP(inhibitionRadius_),
@@ -283,13 +300,19 @@ public:
        CEREAL_NVP(synPermBelowStimulusInc_),
        CEREAL_NVP(synPermConnected_),
        CEREAL_NVP(minPctOverlapDutyCycles_),
-       CEREAL_NVP(wrapAround_));
+       CEREAL_NVP(wrapAround_),
+       CEREAL_NVP(version_)
+    );
     ar(CEREAL_NVP(boostFactors_));
     ar(CEREAL_NVP(overlapDutyCycles_));
     ar(CEREAL_NVP(activeDutyCycles_));
     ar(CEREAL_NVP(minOverlapDutyCycles_));
     ar(CEREAL_NVP(connections_));
     ar(CEREAL_NVP(rng_));
+    ar(CEREAL_NVP(minActiveDutyCycles_));
+    ar(CEREAL_NVP(boostedOverlaps_)); //boostedOverlaps_ are re-created in each compute() 
+    //...but if deserialized SP does some other action, it may get out of order.
+
   }
   // FOR Cereal Deserialization
   template<class Archive>
@@ -302,6 +325,7 @@ public:
        CEREAL_NVP(potentialPct_),
        CEREAL_NVP(initConnectedPct_),
        CEREAL_NVP(globalInhibition_),
+       CEREAL_NVP(numActiveColumnsPerInhArea_),
        CEREAL_NVP(localAreaDensity_),
        CEREAL_NVP(stimulusThreshold_),
        CEREAL_NVP(inhibitionRadius_),
@@ -316,16 +340,20 @@ public:
        CEREAL_NVP(synPermBelowStimulusInc_),
        CEREAL_NVP(synPermConnected_),
        CEREAL_NVP(minPctOverlapDutyCycles_),
-       CEREAL_NVP(wrapAround_));
+       CEREAL_NVP(wrapAround_),
+       CEREAL_NVP(version_)
+    );
     ar(CEREAL_NVP(boostFactors_));
     ar(CEREAL_NVP(overlapDutyCycles_));
     ar(CEREAL_NVP(activeDutyCycles_));
     ar(CEREAL_NVP(minOverlapDutyCycles_));
     ar(CEREAL_NVP(connections_));
     ar(CEREAL_NVP(rng_));
+    ar(CEREAL_NVP(minActiveDutyCycles_));
+    ar(CEREAL_NVP(boostedOverlaps_));
 
-    // initialize ephemeral members
-    boostedOverlaps_.resize(numColumns_);
+    //re-initialize map
+    neighborMap_ = Neighborhood::updateAllNeighbors(inhibitionRadius_, columnDimensions_, wrapAround_, /*skip_center=*/true);
   }
 
   /**
@@ -395,6 +423,23 @@ public:
   enabled.
   */
   void setGlobalInhibition(bool globalInhibition);
+
+  /**
+  Returns the number of active columns per inhibition area.
+
+  @returns integer number of active columns per inhbition area, Returns a
+  value less than 0 if parameter is unused.
+  */
+  Int getNumActiveColumnsPerInhArea() const;
+
+  /**
+  Sets the number of active columns per inhibition area. 
+  Invalidates the 'localAreaDensity' parameter.
+
+  @param numActiveColumnsPerInhArea integer number of active columns per
+  inhibition area.
+  */
+  void setNumActiveColumnsPerInhArea(UInt numActiveColumnsPerInhArea);
 
   /**
   Returns the local area density. Returns a value less than 0 if parameter
@@ -708,10 +753,12 @@ public:
 
   @param column integer of column index.
 
-  @param permanence real array to store permanence values for the selected
-  column.
+  @param threshold : only output synapses with `permanence >= threshold`.
+         This can be used to get connected synapses. 
+
+  @return vector with Permanence values for given column, 
   */
-  void getPermanence(UInt column, Real permanence[]) const;
+  vector<Real> getPermanence(const UInt column, const Permanence threshold = 0.0f) const;
   /**
   Sets the permanence values for a given column. 'permanence' size
   must match the number of inputs.
@@ -722,16 +769,6 @@ public:
   */
   void setPermanence(UInt column, const Real permanence[]);
 
-  /**
-  Returns the connected synapses for a given column.
-  'connectedSynapses' size must match the number of inputs.
-
-  @param column integer of column index.
-
-  @param connectedSynapses integer array to store the connected synapses for a
-  given column.
-  */
-  void getConnectedSynapses(UInt column, UInt connectedSynapses[]) const;
 
   /**
   Returns the number of connected synapses for all columns.
@@ -825,7 +862,7 @@ public:
   @returns real number of a randomly generated permanence value for a synapses
   that is initialized in a connected state.
   */
-  Real initPermConnected_();
+  Permanence initPermConnected_();
   /**
       Returns a randomly generated permanence value for a synapses that is to be
       initialized in a non-connected state.
@@ -833,7 +870,7 @@ public:
       @returns real number of a randomly generated permanence value for a
      synapses that is to be initialized in a non-connected state.
   */
-  Real initPermNonConnected_();
+  Permanence initPermNonConnected_();
 
   /**
     Initializes the permanences of a column. The method
@@ -849,9 +886,9 @@ public:
     @param connectedPct   A real value between 0 or 1 specifying the percent of
     the input bits that will start off in a connected state.
   */
-  vector<Real> initPermanence_(const vector<UInt> &potential, Real connectedPct);
+  vector<Permanence> initPermanence_(const vector<UInt> &potential, const Real connectedPct);
 
-  void clip_(vector<Real> &perm) const;
+  void clip_(vector<Permanence> &perm) const;
 
   /**
       Performs inhibition. This method calculates the necessary values needed to
@@ -864,11 +901,11 @@ public:
      in a "connected state" (connected synapses) that are connected to input
      bits which are turned on.
 
-      @param activeColumns an int array containing the indices of the active
-     columns.
+      @return activeColumns
+      a sparse SDR vector containing the indices of the active columns.
+      Internally delegates to local/global inhibition functions.
   */
-  void inhibitColumns_(const vector<Real> &overlaps,
-                       vector<CellIdx> &activeColumns) const;
+  std::vector<CellIdx> inhibitColumns_(const vector<Real> &overlaps) const;
 
   /**
      Perform global inhibition.
@@ -888,11 +925,10 @@ public:
      @param density
      a real number of the fraction of columns to survive inhibition.
 
-     @param activeColumns
-     an int array containing the indices of the active columns.
+     @return activeColumns
+     an (sprase SDR) vector containing the indices of the active columns.
   */
-  void inhibitColumnsGlobal_(const vector<Real> &overlaps, Real density,
-                             vector<UInt> &activeColumns) const;
+  std::vector<CellIdx> inhibitColumnsGlobal_(const vector<Real> &overlaps, const Real density) const;
 
   /**
      Performs local inhibition.
@@ -917,11 +953,10 @@ public:
      local fashion, the exact fraction of surviving columns is likely to
      vary.
 
-     @param activeColumns
-     an int array containing the indices of the active columns.
+     @return activeColumns
+     an (sparse SDR) vector containing the indices of the active columns.
   */
-  void inhibitColumnsLocal_(const vector<Real> &overlaps, Real density,
-                            vector<UInt> &activeColumns) const;
+  std::vector<CellIdx> inhibitColumnsLocal_(const vector<Real> &overlaps, const Real density) const;
 
   /**
       The primary method in charge of learning.
@@ -1145,7 +1180,9 @@ protected:
   Real potentialPct_;
   Real initConnectedPct_;
   bool globalInhibition_;
-  Real localAreaDensity_;
+  Int numActiveColumnsPerInhArea_;
+  const Real MAX_LOCALAREADENSITY = 0.5f; //require atleast 2 areas
+  Permanence localAreaDensity_;
   UInt stimulusThreshold_;
   UInt inhibitionRadius_;
   UInt dutyCyclePeriod_;
@@ -1156,10 +1193,10 @@ protected:
   bool wrapAround_;
   UInt updatePeriod_;
 
-  Real synPermInactiveDec_;
-  Real synPermActiveInc_;
-  Real synPermBelowStimulusInc_;
-  Real synPermConnected_;
+  Permanence synPermInactiveDec_;
+  Permanence synPermActiveInc_;
+  Permanence synPermBelowStimulusInc_;
+  Permanence synPermConnected_;
 
   vector<Real> boostFactors_;
   vector<Real> overlapDutyCycles_;
@@ -1183,7 +1220,10 @@ protected:
   Random rng_;
 
 public:
-  const Connections &connections = connections_;
+  const Connections& connections = connections_; //for inspection of details in connections. Const, so users cannot break the SP internals.
+  const Connections& getConnections() const { return connections_; } // as above, but for use in pybind11
+private:
+  std::unordered_map<UInt, std::vector<UInt>> neighborMap_; // col -> vector neighbors
 };
 
 std::ostream & operator<<(std::ostream & out, const SpatialPooler &sp);

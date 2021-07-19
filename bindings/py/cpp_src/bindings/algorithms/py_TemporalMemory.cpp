@@ -151,8 +151,22 @@ Argument anomalyMode (optional, default ANMode::RAW) selects mode for `TM.anomal
                 , py::arg("maxSynapsesPerSegment") = 255
                 , py::arg("checkInputs") = true
                 , py::arg("externalPredictiveInputs") = 0u
-		, py::arg("anomalyMode") = TemporalMemory::ANMode::RAW 
+		, py::arg("anomalyMode") = TemporalMemory::ANMode::RAW
 		);
+
+    py_HTM.def("getColumnDimensions", &TemporalMemory::getColumnDimensions);
+    py_HTM.def("getCellsPerColumn", &TemporalMemory::getCellsPerColumn);
+    py_HTM.def("getActivationThreshold", &TemporalMemory::getActivationThreshold);
+    py_HTM.def("getInitialPermanence", &TemporalMemory::getInitialPermanence);
+    py_HTM.def("getConnectedPermanence", &TemporalMemory::getConnectedPermanence);
+    py_HTM.def("getMinThreshold", &TemporalMemory::getMinThreshold);
+    py_HTM.def("getMaxNewSynapseCount", &TemporalMemory::getMaxNewSynapseCount);
+    py_HTM.def("getPermanenceIncrement", &TemporalMemory::getPermanenceIncrement);
+    py_HTM.def("getPermanenceDecrement", &TemporalMemory::getPermanenceDecrement);
+    py_HTM.def("getPredictedSegmentDecrement", &TemporalMemory::getPredictedSegmentDecrement);
+    py_HTM.def("getMaxSegmentsPerCell", &TemporalMemory::getMaxSegmentsPerCell);
+    py_HTM.def("getMaxSynapsesPerSegment", &TemporalMemory::getMaxSynapsesPerSegment);
+    py_HTM.def("getCheckInputs", &TemporalMemory::getCheckInputs);
 
         py_HTM.def("printParameters",
             [](const HTM_t& self)
@@ -161,11 +175,15 @@ Argument anomalyMode (optional, default ANMode::RAW) selects mode for `TM.anomal
                            py::scoped_estream_redirect>());
 
 				// saving and loading from file
-        py_HTM.def("saveToFile", 
-				    [](TemporalMemory &self, const std::string& filename) {self.saveToFile(filename,SerializableFormat::BINARY); });  
-				
-        py_HTM.def("loadFromFile",
-				    [](TemporalMemory &self, const std::string& filename) { return self.loadFromFile(filename,SerializableFormat::BINARY); }); 
+       py_HTM.def("saveToFile",
+         static_cast<void (htm::TemporalMemory::*)(std::string, std::string) const>(&htm::TemporalMemory::saveToFile), 
+         py::arg("file"), py::arg("fmt") = "BINARY",
+         R"(Serializes object to file. file: filename to write to.  fmt: format, one of 'BINARY', 'PORTABLE', 'JSON', or 'XML')");
+
+       py_HTM.def("loadFromFile",    
+         static_cast<void (htm::TemporalMemory::*)(std::string, std::string)>(&htm::TemporalMemory::loadFromFile), 
+         py::arg("file"), py::arg("fmt") = "BINARY",
+         R"(Deserializes object from file. file: filename to read from.  fmt: format recorded by saveToFile(). )");
 
         // writeToString, save TM to a JSON encoded string usable by loadFromString()
         py_HTM.def("writeToString", [](const TemporalMemory& self)
@@ -177,17 +195,17 @@ Argument anomalyMode (optional, default ANMode::RAW) selects mode for `TM.anomal
             self.save(os, JSON);
 
             return os.str();
-        });
+        },
+R"(See also standard library function: pickle.dumps(...))");
         // loadFromString, loads TM from a JSON encoded string produced by writeToString().
         py_HTM.def("loadFromString", [](TemporalMemory& self, const std::string& inString)
         {
             std::stringstream inStream(inString);
             self.load(inStream, JSON);
-        });
+        },
+R"(See also standard library function: pickle.loads(...))");
 
 
-        // pickle
-        // https://github.com/pybind/pybind11/issues/1061
         py_HTM.def(py::pickle(
             [](const HTM_t& self)
         {
@@ -245,12 +263,12 @@ Argument learn
     Whether or not learning is enabled.
 
 Argument externalPredictiveInputsActive
-    (optional) SDR of active external predictive inputs.  
+    (optional) SDR of active external predictive inputs.
     TM must be set up with the 'externalPredictiveInputs' constructor parameter for this use.
 
 Argument externalPredictiveInputsWinners
     (optional) SDR of winning external predictive inputs.  When learning, only these
-    inputs are considered active.  
+    inputs are considered active.
     externalPredictiveInputsWinners must be a subset of externalPredictiveInputsActive.
 )",
                 py::arg("activeColumns"),
@@ -352,6 +370,15 @@ Argument cell
 
 Returns the created segment (index handle).)");
 
+        py_HTM.def("cellsToColumns", [](const HTM_t& self, const SDR &cellsSDR )
+	{ return self.cellsToColumns(cellsSDR); },
+R"(Converts cells SDR to corresponding columns SDR.
+
+Argument cells
+	SDR with bits that represents cells.
+
+Returns SDR with bits that represents columns.)");
+
         py_HTM.def("numberOfCells",   &HTM_t::numberOfCells,
 R"(Returns the number of cells in this TemporalMemory.)");
 
@@ -360,9 +387,10 @@ R"(Returns the total number of mini-columns.)");
 
         py_HTM.def_property_readonly("connections", [](const HTM_t &self)
             { return self.connections; },
-R"(Internal Connections object. Danger!
-Modifying this may detrimentally effect the TM.
-The Connections class API is subject to change.)");
+R"(Internal Connections object.
+This attribute is READ ONLY. It returns a copy of the
+Connections object and changes to it are discarded.
+Warning: The Connections class API is subject to change.)");
 
         py_HTM.def_property_readonly("externalPredictiveInputs", [](const HTM_t &self)
             { return self.externalPredictiveInputs; },

@@ -140,6 +140,8 @@
 #include <htm/engine/Region.hpp>
 #include <htm/ntypes/Dimensions.hpp>
 #include <htm/types/Serializable.hpp>
+#include <htm/engine/Spec.hpp>
+#include <htm/ntypes/Value.hpp>
 
 namespace htm {
 
@@ -167,18 +169,19 @@ public:
 
 
   /* ------- Parameter support in the base class. ---------*/
-  // The default implementation of all of these methods goes through
-  // set/getParameterFromBuffer, which is compatible with NuPIC 1.
-  // RegionImpl subclasses may override for higher performance.
 
-  virtual Int32 getParameterInt32(const std::string &name, Int64 index);
-  virtual UInt32 getParameterUInt32(const std::string &name, Int64 index);
-  virtual Int64 getParameterInt64(const std::string &name, Int64 index);
-  virtual UInt64 getParameterUInt64(const std::string &name, Int64 index);
-  virtual Real32 getParameterReal32(const std::string &name, Int64 index);
-  virtual Real64 getParameterReal64(const std::string &name, Int64 index);
-  virtual bool getParameterBool(const std::string &name, Int64 index);
+  virtual Byte getParameterByte(const std::string& name, Int64 index) const;
+  virtual Int32 getParameterInt32(const std::string &name, Int64 index) const;
+  virtual UInt32 getParameterUInt32(const std::string &name, Int64 index) const;
+  virtual Int64 getParameterInt64(const std::string &name, Int64 index) const;
+  virtual UInt64 getParameterUInt64(const std::string &name, Int64 index) const;
+  virtual Real32 getParameterReal32(const std::string &name, Int64 index) const;
+  virtual Real64 getParameterReal64(const std::string &name, Int64 index) const;
+  virtual bool getParameterBool(const std::string &name, Int64 index) const;
 
+
+  virtual void setParameterByte(const std::string &name, Int64 index,
+                                 Byte value);
   virtual void setParameterInt32(const std::string &name, Int64 index,
                                  Int32 value);
   virtual void setParameterUInt32(const std::string &name, Int64 index,
@@ -194,14 +197,23 @@ public:
   virtual void setParameterBool(const std::string &name, Int64 index,
                                 bool value);
 
-  virtual void getParameterArray(const std::string &name, Int64 index,
-                                 Array &array);
+  virtual void getParameterArray(const std::string &name, Int64 index, Array &array) const;
   virtual void setParameterArray(const std::string &name, Int64 index,
                                  const Array &array);
 
   virtual void setParameterString(const std::string &name, Int64 index,
                                   const std::string &s);
-  virtual std::string getParameterString(const std::string &name, Int64 index);
+  virtual std::string getParameterString(const std::string &name, Int64 index) const;
+
+  /**
+   * Array-valued parameters may have a size determined at runtime.
+   * This method returns the number of elements in the named parameter.
+   * If parameter is not an array type, may throw an exception or return 1.
+   *
+   * Must be implemented only if the node has one or more array
+   * parameters with a dynamically-determined length.
+   */
+  virtual size_t getParameterArrayCount(const std::string &name, Int64 index) const;
 
   /* -------- Methods that must be implemented by subclasses -------- */
 
@@ -275,15 +287,6 @@ public:
   virtual Dimensions askImplForOutputDimensions(const std::string &name);
 
 
-  /**
-   * Array-valued parameters may have a size determined at runtime.
-   * This method returns the number of elements in the named parameter.
-   * If parameter is not an array type, may throw an exception or return 1.
-   *
-   * Must be implemented only if the node has one or more array
-   * parameters with a dynamically-determined length.
-   */
-  virtual size_t getParameterArrayCount(const std::string &name, Int64 index);
 
   /**
    * Set Global dimensions on a region.
@@ -294,6 +297,9 @@ public:
   virtual void setDimensions(Dimensions dim) { dim_ = std::move(dim); }
   virtual Dimensions getDimensions() const { return dim_; }
 
+  virtual ValueMap ValidateParameters(const ValueMap &vm, Spec* ns);
+
+  static Spec *parseSpec(const std::string &yaml);
 
 protected:
   // A pointer to the Region object. This is the portion visible
@@ -305,8 +311,8 @@ protected:
 	//       This pointer must NOT be deleted.
   Region* region_;
 
-  /* -------- Methods provided by the base class for use by subclasses --------
-   */
+  // A local copy of the spec.
+  std::shared_ptr<Spec> spec_;
 
   // Region level dimensions.  This is set by the parameter "{dim: [2,3]}"
   // or by region->setDimensions(d);
@@ -314,24 +320,15 @@ protected:
   // applied to the default output buffer.
   Dimensions dim_;
 
-  // ---
-  /// Callback for subclasses to get an output stream during serialize()
-  /// (for output) and the deserializing constructor (for input)
-  /// It is invalid to call this method except inside serialize() in a subclass.
-  ///
-  /// Only one serialization stream may be open at a time. Calling
-  /// getSerializationXStream a second time automatically closes the
-  /// first stream. Any open stream is closed when serialize() returns.
-  // ---
-  //std::ostream &getSerializationOutputStream(const std::string &name);
-  //std::istream &getSerializationInputStream(const std::string &name);
-  //std::string getSerializationPath(const std::string &name);
 
   // These methods provide access to inputs and outputs
   // They raise an exception if the named input or output is
   // not found.
-  Input *getInput(const std::string &name) const;
-  Output *getOutput(const std::string &name) const;
+  inline bool hasOutput(const std::string &name) const { return region_->hasOutput(name); }
+  inline bool hasInput(const std::string &name) const { return region_->hasInput(name); }
+
+  std::shared_ptr<Input> getInput(const std::string &name) const;
+  std::shared_ptr<Output> getOutput(const std::string &name) const;
   Dimensions getInputDimensions(const std::string &name="") const;
   Dimensions getOutputDimensions(const std::string &name="") const;
 

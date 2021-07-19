@@ -20,7 +20,6 @@
 #include <htm/engine/Input.hpp>
 #include <htm/engine/Link.hpp>
 #include <htm/engine/Network.hpp>
-#include <htm/engine/NuPIC.hpp>
 #include <htm/engine/Output.hpp>
 #include <htm/engine/Region.hpp>
 #include <htm/engine/Spec.hpp>
@@ -40,7 +39,6 @@
 #include <algorithm>  // for max()
 #include <sstream>
 
-
 namespace testing {
 
 using namespace htm;
@@ -57,12 +55,12 @@ TEST(CppRegionTest, testCppLinkingFanIn) {
   Real64 *buffer2;
   Real64 *buffer3;
 
-  std::shared_ptr<Region> region1 = net.addRegion("region1", "TestNode", "{count: 64}");
-  std::shared_ptr<Region> region2 = net.addRegion("region2", "TestNode", "{count: 64}");
+  std::shared_ptr<Region> region1 = net.addRegion("region1", "TestNode", "dim: [64]");
+  std::shared_ptr<Region> region2 = net.addRegion("region2", "TestNode", "dim: [64]");
   std::shared_ptr<Region> region3 = net.addRegion("region3", "TestNode", "");
 
-  net.link("region1", "region3"); 
-  net.link("region2", "region3"); 
+  net.link("region1", "region3");
+  net.link("region2", "region3");
 
   net.initialize();
 
@@ -111,10 +109,10 @@ TEST(CppRegionTest, testCppLinkingFanIn) {
 TEST(CppRegionTest, testCppLinkingSDR) {
   Network net;
 
-  std::shared_ptr<Region> region1 = net.addRegion("region1", "ScalarSensor", "{dim: [6,1], n: 6, w: 2}");
+  std::shared_ptr<Region> region1 = net.addRegion("region1", "ScalarEncoderRegion", "{dim: [6,1], n: 6, w: 2}");
   std::shared_ptr<Region> region2 = net.addRegion("region2", "SPRegion", "{dim: [20,3]}");
 
-  net.link("region1", "region2"); 
+  net.link("region1", "region2");
 
   net.initialize();
 
@@ -125,7 +123,7 @@ TEST(CppRegionTest, testCppLinkingSDR) {
   EXPECT_EQ(r1dims[1], 1u) << " actual dims: " << r1dims.toString();
 
 
-  region1->compute(); 
+  region1->compute();
   VERBOSE << "Checking region1 output after first iteration..." << std::endl;
   const Array r1OutputArray = region1->getOutputData("encoded");
   VERBOSE << r1OutputArray << "\n";
@@ -146,31 +144,26 @@ TEST(CppRegionTest, testCppLinkingSDR) {
   EXPECT_EQ(r2dims.size(), 2u) << " actual dims: " << r2dims.toString();
   EXPECT_EQ(r2dims[0], 20u) << " actual dims: " << r2dims.toString(); //match dims of SPRegion constructed above
   EXPECT_EQ(r2dims[1], 3u) << " actual dims: " << r2dims.toString();
-  
+
   const Array r2OutputArray = region2->getOutputData("bottomUpOut");
   EXPECT_EQ(r2OutputArray.getType(), NTA_BasicType_SDR);
   EXPECT_EQ(r2OutputArray.getSDR().dimensions, r2dims)
       << "Expected dimensions on the output to match dimensions on the buffer.";
   VERBOSE << r2OutputArray << "\n";
   SDR exp({20u, 3u});
-  exp.setSparse(SDR_sparse_t{
-    4, 21, 32, 46
-  });
+  exp.setSparse(SDR_sparse_t{10, 38, 57});
   EXPECT_EQ(r2OutputArray, exp.getDense()) << "got " << r2OutputArray;
 }
 
 
 
 TEST(CppRegionTest, testYAML) {
-  const char *params = "{count: 42, int32Param: 1234, real64Param: 23.1}";
-  //  badparams contains a non-existent parameter
-  const char *badparams = "{int32Param: 1234, real64Param: 23.1, badParam: 4}";
+  const char *params = "{dim: [42], int32Param: 1234, real64Param: 23.1}";
 
   Network net;
   std::shared_ptr<Region> level1;
-  EXPECT_THROW(net.addRegion("level1", "TestNode", badparams), exception);
 
-  EXPECT_NO_THROW({level1 = net.addRegion("level1", "TestNode", params);});
+  level1 = net.addRegion("level1", "TestNode", params);
 
   net.initialize();
 
@@ -200,8 +193,7 @@ TEST(CppRegionTest, realmain) {
 
   size_t count1 = n.getRegions().size();
   EXPECT_TRUE(count1 == 0u);
-  std::shared_ptr<Region> level1 = n.addRegion("level1", "TestNode", "{count: 2}");
-
+  std::shared_ptr<Region> level1 = n.addRegion("level1", "TestNode", "{dim: [2]}");
 
   size_t count = n.getRegions().size();
   EXPECT_TRUE(count == 1u);
@@ -272,16 +264,38 @@ TEST(CppRegionTest, realmain) {
 
 TEST(CppRegionTest, RegionSerialization) {
 	Network n;
-	
-	std::shared_ptr<Region> r1 = n.addRegion("testnode", "TestNode", "{count: 2}");
-	
+
+  std::shared_ptr<Region> r1 = n.addRegion("testnode", "TestNode", "{dim: [2]}");
+
 	std::stringstream ss;
 	r1->save(ss);
-	
+
 	Region r2(&n);
 	r2.load(ss);
 	EXPECT_EQ(*r1.get(), r2);
 }
 
+TEST(CppRegionTest, ValidateParameters) {
 
-} //ns
+  Value vm;
+  vm.parse("[true,false]");
+  EXPECT_TRUE(vm[0].as<bool>());
+  EXPECT_FALSE(vm[1].as<bool>());
+  EXPECT_STREQ("[true, false]", vm.to_json().c_str());
+
+  bool buf[] = {true, false};
+  Array va(NTA_BasicType_Bool, &buf[0], 2);
+  EXPECT_STREQ("[true, false]", va.toJSON().c_str());
+
+  Network n;
+  std::shared_ptr<Region> r1 = n.addRegion("testnode", "TestNode", "{dim: [2]}");
+  Array a;
+  // The default value for 'boolArrayParam' is an array [false, true, false, true].
+  r1->getParameterArray("boolArrayParam", a);
+  EXPECT_STREQ("[false, true, false, true]", a.toJSON().c_str());
+
+  EXPECT_ANY_THROW(std::shared_ptr<Region> r2 = n.addRegion("testnode", "TestNode", "{invalid_field_name: \"abc\", dim: [2]}"));
+  
+}
+
+} // namespace testing

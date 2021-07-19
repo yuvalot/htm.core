@@ -30,7 +30,6 @@
 #include <htm/engine/Spec.hpp>
 #include <htm/ntypes/Array.hpp>
 #include <htm/ntypes/ArrayBase.hpp>
-#include <htm/ntypes/Value.hpp>
 #include <htm/regions/SPRegion.hpp>
 #include <htm/utils/Log.hpp>
 
@@ -44,10 +43,11 @@ SPRegion::SPRegion(const ValueMap &values, Region *region)
   // parameters out of the map and set aside so we can pass them to the SpatialPooler
   // algorithm when we create it during initialization().
   args_.columnCount = values.getScalarT<UInt32>("columnCount", 0);
-  args_.potentialRadius = values.getScalarT<UInt32>("potentialRadius", 0);
+  args_.potentialRadius = values.getScalarT<UInt32>("potentialRadius", 16u);
   args_.potentialPct = values.getScalarT<Real32>("potentialPct", 0.5);
   args_.globalInhibition = values.getScalarT<bool>("globalInhibition", true);
   args_.localAreaDensity = values.getScalarT<Real32>("localAreaDensity", 0.05f);
+  args_.numActiveColumnsPerInhArea = values.getScalarT<UInt32>("numActiveColumnsPerInhArea", 0);
   args_.stimulusThreshold = values.getScalarT<UInt32>("stimulusThreshold", 0);
   args_.synPermInactiveDec = values.getScalarT<Real32>("synPermInactiveDec", 0.008f);
   args_.synPermActiveInc = values.getScalarT<Real32>("synPermActiveInc", 0.05f);
@@ -71,7 +71,7 @@ SPRegion::SPRegion(const ValueMap &values, Region *region)
     dim_ = Dimensions(args_.columnCount);
   else
     args_.columnCount = (UInt32)dim_.getCount();
-
+  args_.inputWidth = 0;  // size of the input buffer before initialization
 
 }
 
@@ -85,7 +85,7 @@ SPRegion::~SPRegion() {}
 
 void SPRegion::initialize() {
   // Output buffers should already have been created diring initialize or deserialize.
-  Output *out = getOutput("bottomUpOut");
+  std::shared_ptr<Output> out = getOutput("bottomUpOut");
   Array &outputBuffer = out->getData();
   NTA_CHECK(outputBuffer.getType() == NTA_BasicType_SDR);
   UInt32 columnCount = (UInt32)outputBuffer.getCount();
@@ -98,8 +98,8 @@ void SPRegion::initialize() {
   // algorithm requires input.
   //
   // If there are more than one input link (FAN-IN), the input buffer will be the
-  // concatination of all incomming buffers.  
-  Input *in = getInput("bottomUpIn");
+  // concatination of all incomming buffers.
+  std::shared_ptr<Input> in = getInput("bottomUpIn");
   NTA_CHECK(in != nullptr);
   if (!in->hasIncomingLinks())
      NTA_THROW << "SPRegion::initialize - No input links were configured for this SP region.\n";
@@ -135,7 +135,7 @@ void SPRegion::initialize() {
   sp_ = std::unique_ptr<SpatialPooler>( new SpatialPooler(
       inputDimensions, columnDimensions, args_.potentialRadius,
       args_.potentialPct, args_.globalInhibition, args_.localAreaDensity,
-      args_.stimulusThreshold,
+      args_.numActiveColumnsPerInhArea, args_.stimulusThreshold,
       args_.synPermInactiveDec, args_.synPermActiveInc, args_.synPermConnected,
       args_.minPctOverlapDutyCycles, args_.dutyCyclePeriod, args_.boostStrength,
       args_.seed, args_.spVerbosity, args_.wrapAround));
@@ -159,15 +159,34 @@ void SPRegion::compute() {
   // Call SpatialPooler compute
   sp_->compute(inputBuffer.getSDR(), args_.learningMode, outputBuffer.getSDR());
 
-
+  // trace facility
   NTA_DEBUG << "compute " << *getOutput("bottomUpOut") << "\n";
 
 }
 
-std::string SPRegion::executeCommand(const std::vector<std::string> &args,Int64 index) {
-  // The Spatial Pooler does not execute any Commands.
-  return "";
+std::string SPRegion::executeCommand(const std::vector<std::string> &args, Int64 index) {
+
+  UInt32 argCount = (UInt32)args.size();
+  // Get the first argument (command string)
+  NTA_CHECK(argCount > 0) << "SPRegion: No command name";
+  string command = args[0];
+
+  // Process each command
+  if (command == "saveConnectionsToFile") {
+    NTA_CHECK(argCount > 1)
+        << "SPRegion: no path specified for " << command;
+
+
+    // string filename = ReadStringFromBuffer(*buf2);
+    string filePath(args[1]);
+
+    sp_->connections.saveToFile(filePath+".dump");
+
+    return "done";
+  }
+  NTA_THROW << "SPRegion - Unknown command:" << command;
 }
+
 
 // This is the per-node output size. This is called by Link to determine how big 
 // to create the output buffers during Region::initialization(). It calls this
@@ -185,12 +204,12 @@ size_t SPRegion::getNodeOutputElementCount(const std::string &outputName) const 
 
 Spec *SPRegion::createSpec() {
   auto ns = new Spec;
-
+  ns->name = "SPRegion";
   ns->description =
       "SPRegion. This implements the Spatial Pooler algorithm as a plugin "
       "for the Network framework.  The Spatial Pooler manages relationships "
       "between the columns of a region and the inputs bits. The primary "
-      "public interface to this function is the \"compute\" method, which "
+      "public interface to this function is the 'compute' method, which "
       "takes in an input vector and returns a list of activeColumns columns.";
 
 
@@ -236,7 +255,7 @@ Spec *SPRegion::createSpec() {
                     NTA_BasicType_UInt32,             // type
                     1,                                // elementCount
                     "",                               // constraints
-                    "0",                              // defaultValue
+                    "16",                              // defaultValue
                     ParameterSpec::ReadWriteAccess)); // access
 
   ns->parameters.add(
@@ -275,7 +294,7 @@ Spec *SPRegion::createSpec() {
           NTA_BasicType_Bool,               // type
           1,                                // elementCount
           "bool",                           // constraints
-          "false",                          // defaultValue
+          "true",                          // defaultValue
           ParameterSpec::ReadWriteAccess)); // access
 
   ns->parameters.add(
@@ -289,11 +308,41 @@ Spec *SPRegion::createSpec() {
           "inhibition logic will insure that at most N columns remain ON "
           "within a local inhibition area, where N = localAreaDensity * "
           "(total number of columns in inhibition area). "
-	  "Default 0.05 (5%)",
+	  "Default 0.05 (5%)"
+	  "Mutually exclusive with numActiveColumnsPerInhArea. ",
           NTA_BasicType_Real32,             // type
           1,                                // elementCount
           "",                               // constraints
           "0.05",                           // defaultValue
+          ParameterSpec::ReadWriteAccess)); // access
+
+  ns->parameters.add(
+      "numActiveColumnsPerInhArea",
+      ParameterSpec("(int)\n"
+          "An alternate way to control the density of the active columns.If "
+          "numActiveColumnsPerInhArea is specified then localAreaDensity is "
+          "set to -1 (disabled), and vice versa. When using "
+          "numActiveColumnsPerInhArea, the inhibition logic will insure that "
+          "at most 'numActiveColumnsPerInhArea' columns remain ON within a "
+          "local inhibition area (the size of which is set by the internally "
+          "calculated inhibitionRadius, which is in turn determined from "
+          "the average size of the connected receptive fields of all "
+          "columns).When using this method, as columns learn and grow "
+          "their effective receptive fields, the inhibitionRadius will grow, "
+          "and hence the net density of the active columns will *decrease*. "
+          "This is in contrast to the localAreaDensity method, which keeps "
+          "the density of active columns the same regardless of the size "
+          "of their receptive fields.\n"
+          "@rhyolight: numActiveColumnsPerInhArea is a manually set model "
+          "parameter. We almost always set it to 2% of the total column count "
+          "(if 2048 minicolumns, it is typically 40). Watch the HTM School video "
+          "about topology, it explains the minicolumn competition a bit better. "
+          "It makes more sense when you think about topology, which requires "
+          "local inhibition. Default ``0 (OFF)``.",
+          NTA_BasicType_UInt32,             // type
+          1,                                // elementCount
+          "",                               // constraints
+          "0",                             // defaultValue
           ParameterSpec::ReadWriteAccess)); // access
 
   ns->parameters.add(
@@ -342,7 +391,7 @@ Spec *SPRegion::createSpec() {
       ParameterSpec("(float)\n"
                     "The default connected threshold.Any synapse whose "
                     "permanence value is "
-                    "above the connected threshold is a \"connected synapse\", "
+                    "above the connected threshold is a 'connected synapse', "
                     "meaning it can "
                     "contribute to the cell's firing. Default ``0.1``.",
                     NTA_BasicType_Real32,             // type
@@ -374,7 +423,7 @@ Spec *SPRegion::createSpec() {
           "when "
           "either its previously learned inputs are no longer ever active, or "
           "when "
-          "the vast majority of them have been \"hijacked\" by other "
+          "the vast majority of them have been 'hijacked' by other "
           "columns.Default "
           "``0.001``.",
           NTA_BasicType_Real32,             // type
@@ -426,7 +475,7 @@ Spec *SPRegion::createSpec() {
           NTA_BasicType_Int32,           // type
           1,                             // elementCount
           "",                            // constraints
-          "-1",                          // defaultValue
+          "1",                          // defaultValue
           ParameterSpec::CreateAccess)); // access
 
   ns->parameters.add(
@@ -452,25 +501,6 @@ Spec *SPRegion::createSpec() {
           "true",             // defaultValue
           ParameterSpec::ReadWriteAccess)); // access
 
-  /* ---- other parameters ----- */
-  ns->parameters.add(
-      "spInputNonZeros",
-      ParameterSpec("The indices of the non-zero inputs to the spatial pooler",
-          NTA_BasicType_SDR,            // type
-          0,                               // elementCount
-          "",                              // constraints
-          "",                              // defaultValue
-          ParameterSpec::ReadOnlyAccess)); // access
-
-  ns->parameters.add(
-      "spOutputNonZeros",
-      ParameterSpec(
-          "The indices of the non-zero outputs from the spatial pooler",
-          NTA_BasicType_SDR,            // type
-          0,                               // elementCount
-          "",                              // constraints
-          "",                              // defaultValue
-          ParameterSpec::ReadOnlyAccess)); // access
 
 
   /* The last group is for parameters that aren't specific to spatial pooler */
@@ -495,8 +525,8 @@ Spec *SPRegion::createSpec() {
 
   ns->parameters.add("spatialImp",
       ParameterSpec("SpatialPooler type or option. not used.",
-          NTA_BasicType_Byte,              // type
-          0,                               // elementCount
+          NTA_BasicType_Str,               // type
+          1,                               // elementCount
           "",                              // constraints
           "",                              // defaultValue
           ParameterSpec::ReadOnlyAccess)); // access
@@ -541,7 +571,7 @@ Spec *SPRegion::createSpec() {
 //
 ////////////////////////////////////////////////////////////////////////
 
-UInt32 SPRegion::getParameterUInt32(const std::string &name, Int64 index) {
+UInt32 SPRegion::getParameterUInt32(const std::string &name, Int64 index) const {
   NTA_CHECK(name.size() > 0);
   switch (name[0]) {
   case 'a':
@@ -578,6 +608,14 @@ UInt32 SPRegion::getParameterUInt32(const std::string &name, Int64 index) {
       return args_.learningMode;
     }
     break;
+  case 'n':
+    if (name == "numActiveColumnsPerInhArea") {
+      if (sp_)
+        return sp_->getNumActiveColumnsPerInhArea();
+      else
+        return args_.numActiveColumnsPerInhArea;
+    }
+    break;
   case 'p':
     if (name == "potentialRadius") {
       if (sp_)
@@ -603,21 +641,21 @@ UInt32 SPRegion::getParameterUInt32(const std::string &name, Int64 index) {
   return this->RegionImpl::getParameterUInt32(name, index); // default
 }
 
-Int32 SPRegion::getParameterInt32(const std::string &name, Int64 index) {
+Int32 SPRegion::getParameterInt32(const std::string &name, Int64 index) const {
   if (name == "seed") {
     return args_.seed;
   }
   return this->RegionImpl::getParameterInt32(name, index); // default
 }
 
-UInt64 SPRegion::getParameterUInt64(const std::string &name, Int64 index) {
+UInt64 SPRegion::getParameterUInt64(const std::string &name, Int64 index) const {
   if (name == "computeCallback") {
     return (UInt64)computeCallback_;
   }
   return this->RegionImpl::getParameterUInt64(name, index); // default
 }
 
-Real32 SPRegion::getParameterReal32(const std::string &name, Int64 index) {
+Real32 SPRegion::getParameterReal32(const std::string &name, Int64 index) const {
   switch (name[0]) {
   case 'b':
     if (name == "boostStrength") {
@@ -675,7 +713,7 @@ Real32 SPRegion::getParameterReal32(const std::string &name, Int64 index) {
   return this->RegionImpl::getParameterReal32(name, index); // default
 }
 
-bool SPRegion::getParameterBool(const std::string &name, Int64 index) {
+bool SPRegion::getParameterBool(const std::string &name, Int64 index) const {
   if (name == "globalInhibition") {
     if (sp_)
       return sp_->getGlobalInhibition();
@@ -692,23 +730,42 @@ bool SPRegion::getParameterBool(const std::string &name, Int64 index) {
 }
 
 // copy the contents of the requested array into the caller's array.
-// Allocate the buffer if one is not provided.  Convert data types if needed.
-void SPRegion::getParameterArray(const std::string &name, Int64 index, Array &array) {
-  if (name == "spatialPoolerInput") {
-    array = getInput("bottomUpIn")->getData().copy();
+// Allocate the buffer in the Array object if one is not provided.  Convert data types if needed.
+//
+// This may be confusing.  These 4 'array parameters' were part of the original function set so 
+// I am keeping them in the function for backward compatibility but they are removed from the
+// Spec. Originally getInputData( ) and getOutputData( ) functions did not exist so an app could 
+// not directly access the input and output buffers.  These Array 'parameters' were a way for the 
+// app to sample the buffer data but this was only available on the SPRegion.  Now that we have 
+// the more generic functions the Array parameters in SPRegion are redundant.  
+// Also note that 'spInputNonZeros' and 'spOutputNonZeros' were a way to get the sparse arrays 
+// from the buffers.   Now that we have the SDR type there is a better way to get the sparse array.
+void SPRegion::getParameterArray(const std::string &name, Int64 index, Array &array) const {
+  if (!region_->isInitialized())
+    return;
+  if (name == "spatialPoolerInput") { 
+    // returns the dense array from the SDR
+    array = getInput("bottomUpIn")->getData().get_as(NTA_BasicType_UInt32);
   } else if (name == "spatialPoolerOutput") {
-    array = getOutput("bottomUpOut")->getData().copy();
+    // returns the dense array from the SDR
+    array = getOutput("bottomUpOut")->getData().get_as(NTA_BasicType_UInt32);
   } else if (name == "spInputNonZeros") {
-    array = getInput("bottomUpIn")->getData().copy();
+    // returns the sparse array from the SDR
+    const SDR_sparse_t& v = getInput("bottomUpIn")->getData().getSDR().getSparse();
+    array = Array(v);
   } else if (name == "spOutputNonZeros") {
-    array = getOutput("bottomUpOut")->getData().copy();
+    // returns the sparse array from the SDR
+    const SDR_sparse_t& v = getOutput("bottomUpOut")->getData().getSDR().getSparse();
+    array = Array(v);
   }
   else {
     this->RegionImpl::getParameterArray(name, index, array);
   }
 }
 
-size_t SPRegion::getParameterArrayCount(const std::string &name, Int64 index) {
+size_t SPRegion::getParameterArrayCount(const std::string &name, Int64 index) const {
+  if (!region_->isInitialized())
+    return 0;
   if (name == "spatialPoolerInput") {
     return getInput("bottomUpIn")->getData().getCount();
   } else if (name == "spatialPoolerOutput") {
@@ -717,13 +774,13 @@ size_t SPRegion::getParameterArrayCount(const std::string &name, Int64 index) {
     const SDR_sparse_t& v = getInput("bottomUpIn")->getData().getSDR().getSparse();
     return v.size();
   } else if (name == "spOutputNonZeros") {
-    const SDR_sparse_t& v = getInput("bottomUpOut")->getData().getSDR().getSparse();
+    const SDR_sparse_t& v = getOutput("bottomUpOut")->getData().getSDR().getSparse();
     return v.size();
   }
   return 0;
 }
 
-std::string SPRegion::getParameterString(const std::string &name, Int64 index) {
+std::string SPRegion::getParameterString(const std::string &name, Int64 index) const {
   if (name == "spatialImp") {
     return spatialImp_;
   }
@@ -745,6 +802,14 @@ void SPRegion::setParameterUInt32(const std::string &name, Int64 index,
   case 'l':
     if (name == "learningMode") {
       args_.learningMode = (value != 0);
+      return;
+    }
+    break;
+  case 'n':
+    if (name == "numActiveColumnsPerInhArea") {
+      if (sp_)
+        sp_->setNumActiveColumnsPerInhArea(value);
+      args_.numActiveColumnsPerInhArea = value;
       return;
     }
     break;
@@ -869,6 +934,7 @@ bool SPRegion::operator==(const RegionImpl &o) const {
   if (args_.potentialPct != other.args_.potentialPct) return false;
   if (args_.globalInhibition != other.args_.globalInhibition) return false;
   if (args_.localAreaDensity != other.args_.localAreaDensity) return false;
+  if (args_.numActiveColumnsPerInhArea != other.args_.numActiveColumnsPerInhArea) return false;
   if (args_.stimulusThreshold != other.args_.stimulusThreshold) return false;
   if (args_.synPermInactiveDec != other.args_.synPermInactiveDec) return false;
   if (args_.synPermActiveInc != other.args_.synPermActiveInc) return false;

@@ -85,7 +85,7 @@
 //   constructor A(sdr)               - Buffer initialized from SDR
 //   constructor A(vector)            - Buffer initialized from vector
 //   B = A;                           - Shallow copy, B has same, type, buffer, size
-//   B = A.copy()                     - Creates B as a copy of A.
+//   B = A.copy()                     - Creates B as a deep copy of A.
 //   A.populate(vector)               - fills A from vector, with conversion, A retains type.
 //
 //
@@ -112,6 +112,8 @@
 // A.has_buffer()                    -- returns true if a buffer has been allocated.
 // A.is_instance(B)                  -- returns true if B is shared with A
 // A.RefreshCache()                  -- tells SDR to update cache
+// A.toJSON()                        -- returns a JSON serialization containing contents of A.
+// A.toYAML()                        -- returns a YAML serialization containing contents of A.
 // A.save(stream)                    -- serialize
 // A.load(stream)                    -- deserialize
 // cout << A << std::endl;           -- stream out
@@ -121,7 +123,8 @@
 // A != B                            -- not equals overload
 //
 // SERIALIZATION
-// Two serialization methods are supported.
+// Three serialization methods are supported.
+//
 // The simplest is a std::istream/std::ostream interface.
 //
 //      Array A;
@@ -133,27 +136,24 @@
 //      Array A(type);
 //      f >> A;      // deserializes A
 //
-//  The second method is YAML serialization.
-//  For example, see Network.cpp
+//  The second serialization method is YAML serialization using Cereal.
+//      Array A;
+//        ...A gets populated
+//      A.save(ofstream &f, SerializableFormat::JSON);
+//
+//      Array A;
+//      A.load(ifstream &f, SerializableFormat::JSON);
+//
+//  The third serialization method is YAML or JSON serialization using our YAML parser
 //
 //     Array A;
 //        ...A gets populated
-//     YAML::Emitter out;
-//     out << YAML::BeginDoc;
-//       ...
-//     A.serialize(out);      // serializes Array A
-//       ...
-//     out << YAML::EndDoc;
-//    OFStream f;
-//    f.open(filename.c_str());
-//    f << out.c_str();
-//    f.close();
-// or
-//    const YAML::Node doc = YAML::LoadFile(filename);
-//      ...
-//    Array A(type);
-//    A.deserialize(doc);      // deserializes Array A, populating buffer.
-//      ...
+//     A.toYAML();
+//    or
+//     A.toJSON();
+//
+//     Array A;
+//     A.fromYAML();    handles both YAML and JSON
 // ---
 
 #ifndef NTA_ARRAY_HPP
@@ -167,6 +167,7 @@
 #include <htm/ntypes/Dimensions.hpp>
 #include <htm/utils/Log.hpp>
 #include <htm/types/Serializable.hpp>
+#include <htm/types/Sdr.hpp>
 
 namespace htm {
 class Array : public ArrayBase {
@@ -184,7 +185,7 @@ public:
   /**
    * Initialize by copying in from a raw C-type buffer.  See ArrayBase
    */
-  Array(NTA_BasicType type, void *buffer, size_t count)
+  Array(NTA_BasicType type, const void *buffer, size_t count)
       : ArrayBase(type, buffer, count) {}
 
   /**
@@ -201,8 +202,14 @@ public:
   Array(const std::vector<T> &vect) 
       : ArrayBase(BasicType::getType<T>()) {
     allocateBuffer(vect.size());
-    if (has_buffer())
-      memcpy(getBuffer(), vect.data(), count_ * BasicType::getSize(type_));
+    if (has_buffer()) {
+      // iterate the elements in the vector so we don't need to worry about the size of it's internal elements.
+      T *ptr = (T *)getBuffer();
+      for (size_t i = 0; i < count_; i++) {
+        ptr[i] = vect[i];
+      }
+    }
+
   }
 
   // copy constructor
@@ -224,13 +231,27 @@ public:
   Array copy() const {
     Array a(type_);
     if (getCount() > 0) {
-      if (type_ == NTA_BasicType_SDR)
+      if (type_ == NTA_BasicType_SDR) {
         a.allocateBuffer(getSDR().dimensions);
-      else
+        // for an SDR, bulk copy the buffer inside the SDR
+        std::memcpy(static_cast<char *>(a.getBuffer()), static_cast<const char *>(getBuffer()),
+                    getCount() * BasicType::getSize(type_));
+      }
+      else if (type_ == NTA_BasicType_Str) {
         a.allocateBuffer(getCount());
-      std::memcpy(static_cast<char *>(a.getBuffer()), static_cast<const char *>(getBuffer()),
-             getCount() * BasicType::getSize(type_));
-    }
+        // String values must be copied one at a time.
+        const std::string *ptr1 = static_cast<const std::string *>(getBuffer());
+        std::string *ptr2 = static_cast<std::string *>(a.getBuffer());
+        for (size_t i = 0; i < getCount(); i++) {
+          ptr2[i] = ptr1[i];
+        }
+      } else {
+        a.allocateBuffer(getCount());
+        // numeric values can be bulk copied
+        std::memcpy(static_cast<char *>(a.getBuffer()), static_cast<const char *>(getBuffer()),
+                    getCount() * BasicType::getSize(type_));
+      }
+   }
     return a;
   }
 
@@ -285,6 +306,14 @@ public:
     return a;
   }
 
+  template <typename T> inline T item(size_t index) const {
+    NTA_CHECK(index < count_) << "index out of range.";
+    NTA_CHECK(BasicType::getType<T>() == type_) << "incorrect type. Expecting " << BasicType::getName(type_);
+    const T *buf = static_cast<const T *>(getBuffer());
+    return buf[index];
+  }
+
+
   /**
     * Type conversion
     * This will do a full copy into a shared buffer.
@@ -309,9 +338,18 @@ public:
     NTA_CHECK(type_ != NTA_BasicType_SDR) << "subset() not valid for SDR";
     Array a(type_);
     a.allocateBuffer(count);
-    std::memcpy(a.getBuffer(),
-            static_cast<const char *>(getBuffer()) + offset * BasicType::getSize(type_),
-            count * BasicType::getSize(type_));
+    if (type_ == NTA_BasicType_Str) {
+      // String values must be copied one at a time.
+      const std::string *ptr1 = static_cast<const std::string *>(getBuffer());
+      std::string *ptr2 = static_cast<std::string *>(a.getBuffer());
+      for (size_t i = 0; i < count; i++) {
+        ptr2[i] = ptr1[i + offset];
+      }
+    } else {
+      // bulk copy all numeric arrays
+      std::memcpy(a.getBuffer(), static_cast<const char *>(getBuffer()) + offset * BasicType::getSize(type_),
+                  count * BasicType::getSize(type_));
+    }
     return a;
   }
 };

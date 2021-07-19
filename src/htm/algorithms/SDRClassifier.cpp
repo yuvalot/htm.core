@@ -47,7 +47,8 @@ void Classifier::initialize(const Real alpha)
 PDF Classifier::infer(const SDR & pattern) const {
   // Check input dimensions, or if this is the first time the Classifier is used and dimensions
   // are unset, return zeroes.
-  if( dimensions_ == 0 ) {
+  NTA_CHECK(pattern.size > 0) << "No Data pased to Classifier. Pattern is empty.";
+  if (dimensions_ == 0) {
     NTA_WARN << "Classifier: must call `learn` before `infer`.";
     return PDF(numCategories_, std::nan("")); //empty array []
   }
@@ -67,6 +68,17 @@ PDF Classifier::infer(const SDR & pattern) const {
 }
 
 
+// An overload of learn(SDR, vector) so that a single category can be learned
+// without having to construct a vector before calling.
+void Classifier::learn(const SDR &pattern, UInt category)
+{
+  std::vector<UInt> categoryList;
+  categoryList.push_back(category);
+  learn(pattern, categoryList);
+}
+
+// If you have more than one category to be learned with this pattern,
+// pass in an array of categories using this overlay.
 void Classifier::learn(const SDR &pattern, const vector<UInt> &categoryIdxList)
 {
   // If this is the first time the Classifier is being used, weights are empty, 
@@ -78,6 +90,7 @@ void Classifier::learn(const SDR &pattern, const vector<UInt> &categoryIdxList)
       weights_.push_back( initialEmptyWeights );
     }
   }
+  NTA_CHECK(pattern.size > 0) << "No Data passed to Classifier. Pattern is empty.";
   NTA_ASSERT(pattern.size == dimensions_) << "Input SDR does not match previously seen size!";
 
   // Check if this is a new category & resize the weights table to hold it.
@@ -129,12 +142,28 @@ void htm::softmax(PDF::iterator begin, PDF::iterator end) {
     *itr = std::exp(*itr - maxVal); // x[i] = e ^ (x[i] - maxVal)
   }
   // Sum of all elements raised to exp(elem) each.
-  const Real sum = (Real) std::accumulate(begin, end, 0.0f);
+  const Real sum = (Real) std::accumulate(begin, end, 0.0);
   NTA_ASSERT(sum > 0.0f);
   for (auto itr = begin; itr != end; ++itr) {
     *itr /= sum;
   }
 }
+
+
+bool Classifier::operator==(const Classifier &other) const {
+  if (alpha_ != other.alpha_) return false;
+  if (dimensions_ != other.dimensions_) return false; 
+  if (numCategories_ != other.numCategories_) return false;
+  if (weights_.size() != other.weights_.size()) return false;
+  for (size_t i = 0; i < weights_.size();  i++) {
+    if (weights_[i].size() != other.weights_[i].size()) return false;
+    for (size_t j = 0; j < weights_[i].size(); j++) {
+      if (weights_[i][j] != other.weights_[i][j]) return false;
+    }
+  }
+  return true;
+}
+
 
 
 /******************************************************************************/
@@ -171,6 +200,12 @@ Predictions Predictor::infer(const SDR &pattern) const {
   return result;
 }
 
+void Predictor::learn(const UInt recordNum, const SDR &pattern, UInt bucketIdx)
+{
+  std::vector<UInt> bucketIdxList;
+  bucketIdxList.push_back(bucketIdx);
+  learn(recordNum, pattern, bucketIdxList);
+}
 
 void Predictor::learn(const UInt recordNum, //TODO make recordNum optional, autoincrement as steps 
 		      const SDR &pattern,

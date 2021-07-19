@@ -39,7 +39,7 @@
 # Note: on MSVC, run startupMSVC.bat after deleting the build folder.
 
 cmake_minimum_required(VERSION 3.7)
-project(htm_core CXX)
+project(htm_core CXX C)
 
 set(CMAKE_VERBOSE_MAKEFILE OFF)
 
@@ -54,7 +54,7 @@ include(GNUInstallDirs)
 include(ExternalProject)
 set(EP_BASE ${CMAKE_BINARY_DIR})
 if (MSVC)
-  set(EXTERNAL_CXX_FLAGS /EHsc "$<$<CONFIG:Release>:/MD>" "$<$<CONFIG:Debug>:/MDd>")
+  set(EXTERNAL_CXX_FLAGS /EHsc /W0 "$<$<CONFIG:Release>:/MD>" "$<$<CONFIG:Debug>:/MDd>")
 else()
   set(EXTERNAL_CXX_FLAGS -fPIC)
 endif()
@@ -79,9 +79,9 @@ FILE(REMOVE "${EXPORT_FILE_NAME}")
 include(common.cmake)
 
 
-################
-# Yaml-cpp
-include(YamlCppLib.cmake)
+
+# LibYaml
+include(libYaml.cmake)
 
 
 ################
@@ -120,4 +120,13 @@ include(cereal.cmake)
 #################
 # digestpp hash digest repo
 include(digestpp.cmake)
+
+#################
+# cpp-httplib webserver and client
+include(cpp-httplib.cmake)
+
+#################
+#  Sqlite3  SQL Database
+include(sqlite3.cmake)
+
 

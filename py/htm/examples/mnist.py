@@ -39,7 +39,7 @@ def load_ds(name, num_test, shape=None):
     X = data['data']
     if shape is not None:
         new_shape = shape.insert(0, sz)
-        X = np.reshape(X, shape)
+        X = np.reshape(X.to_numpy(), shape)
 
     y = data['target'].astype(np.int32)
     # split to train/test data
@@ -114,7 +114,7 @@ def main(parameters=default_parameters, argv=None, verbose=True):
 
     # Training Loop
     for i in range(len(train_images)):
-        img, lbl = random.choice(training_data)
+        img, lbl = training_data[i]
         encode(img, enc)
         sp.compute( enc, True, columns )
         sdrc.learn( columns, lbl ) #TODO SDRClassifier could accept string as a label, currently must be int

@@ -25,19 +25,23 @@
 #include <htm/engine/RegisteredRegionImplCpp.hpp>
 #include <htm/engine/Output.hpp>
 #include <htm/engine/Input.hpp>
+#include <htm/engine/RawInput.hpp>
 #include <htm/engine/Spec.hpp>
-#include <htm/engine/YAMLUtils.hpp>
 #include <htm/ntypes/Value.hpp>
 #include <htm/os/Env.hpp>
 #include <htm/os/Path.hpp>
 
 // Built-in Region implementations
 #include <htm/regions/TestNode.hpp>
-#include <htm/regions/ScalarSensor.hpp>
-#include <htm/regions/VectorFileEffector.hpp>
-#include <htm/regions/VectorFileSensor.hpp>
+#include <htm/regions/DateEncoderRegion.hpp>
+#include <htm/regions/ScalarEncoderRegion.hpp>
+#include <htm/regions/RDSEEncoderRegion.hpp>
+#include <htm/regions/FileOutputRegion.hpp>
+#include <htm/regions/FileInputRegion.hpp>
+#include <htm/regions/DatabaseRegion.hpp>
 #include <htm/regions/SPRegion.hpp>
 #include <htm/regions/TMRegion.hpp>
+#include <htm/regions/ClassifierRegion.hpp>
 
 
 #include <htm/utils/Log.hpp>
@@ -79,6 +83,21 @@ void RegionImplFactory::unregisterRegion(const std::string nodeType) {
   }
 }
 
+std::string RegionImplFactory::getRegistrations() {
+  RegionImplFactory& instance = getInstance();  // force load of built-ins.
+  
+  std::string json = "{\n";
+  for (auto iter = instance.regionTypeMap.begin(); iter != instance.regionTypeMap.end(); ++iter) {
+     if (iter->first != "RawInput") {
+       if (json.size() > 3) json += ",\n";
+       json += "  \""+iter->first+"\": "
+               "{\"class\": \""+iter->second->className()+"\""
+               ", \"module\": \""+iter->second->moduleName()+"\"}";
+     }
+  }
+  json += "\n}";
+  return json;
+}
 
 RegionImplFactory &RegionImplFactory::getInstance() {
   static RegionImplFactory instance;
@@ -86,13 +105,25 @@ RegionImplFactory &RegionImplFactory::getInstance() {
   // Initialize the Built-in Regions
   if (instance.regionTypeMap.empty()) {
     // Create internal C++ regions
-
-	  instance.addRegionType("ScalarSensor",       new RegisteredRegionImplCpp<ScalarSensor>());
+	  instance.addRegionType("DateEncoderRegion",  new RegisteredRegionImplCpp<DateEncoderRegion>());
+    instance.addRegionType("ScalarEncoderRegion", new RegisteredRegionImplCpp<ScalarEncoderRegion>());
+    instance.addRegionType("RDSEEncoderRegion",  new RegisteredRegionImplCpp<RDSEEncoderRegion>());
     instance.addRegionType("TestNode",           new RegisteredRegionImplCpp<TestNode>());
-    instance.addRegionType("VectorFileEffector", new RegisteredRegionImplCpp<VectorFileEffector>());
-    instance.addRegionType("VectorFileSensor",   new RegisteredRegionImplCpp<VectorFileSensor>());
+    instance.addRegionType("FileOutputRegion",   new RegisteredRegionImplCpp<FileOutputRegion>());
+    instance.addRegionType("FileInputRegion",    new RegisteredRegionImplCpp<FileInputRegion>());
+    instance.addRegionType("DatabaseRegion",     new RegisteredRegionImplCpp<DatabaseRegion>());
     instance.addRegionType("SPRegion",           new RegisteredRegionImplCpp<SPRegion>());
-    instance.addRegionType("TMRegion",            new RegisteredRegionImplCpp<TMRegion>());
+    instance.addRegionType("TMRegion",           new RegisteredRegionImplCpp<TMRegion>());
+    instance.addRegionType("ClassifierRegion",   new RegisteredRegionImplCpp<ClassifierRegion>());
+
+    // Renamed Regions
+    instance.addRegionType("ScalarSensor", new RegisteredRegionImplCpp<ScalarEncoderRegion>());
+    instance.addRegionType("RDSERegion", new RegisteredRegionImplCpp<RDSEEncoderRegion>());
+    instance.addRegionType("VectorFileEffector", new RegisteredRegionImplCpp<FileOutputRegion>());
+    instance.addRegionType("VectorFileSensor", new RegisteredRegionImplCpp<FileInputRegion>());
+
+    // Infrastructure
+    instance.addRegionType("RawInput", new RegisteredRegionImplCpp<RawInput>());
   }
 
   return instance;
@@ -108,13 +139,10 @@ void RegionImplFactory::addRegionType(const std::string nodeType, RegisteredRegi
 
 
 RegionImpl *RegionImplFactory::createRegionImpl(const std::string nodeType,
-                                                const std::string nodeParams,
+                                                ValueMap vm,
                                                 Region *region) {
 
   RegionImpl *impl = nullptr;
-  std::shared_ptr<Spec>& ns = getSpec(nodeType);
-  ValueMap vm = YAMLUtils::toValueMap(nodeParams.c_str(), ns->parameters,
-                                      nodeType, region->getName());
 
   if (regionTypeMap.find(nodeType) != regionTypeMap.end()) {
     impl = regionTypeMap[nodeType]->createRegionImpl(vm, region);
@@ -123,10 +151,43 @@ RegionImpl *RegionImplFactory::createRegionImpl(const std::string nodeType,
   }
 
   // If the parameter 'dim' was defined, parse that out as a global parameter.
+  // This parameter can be used with any Region without the region needing to define it in its Spec.
+  // dim: [1,2]                 means set the default dimension for the region.
+  // dim: 25                    means set the default dimension to this single dimension.
+  // dim: {"bottomUpIn": [5]}   means set the dimensions on the input or output with the name "bottomUpIn"
+  // dim: {"bottomUpIn": [5], "bottomUpOut": [2000]}   means set both of these dimensions.
+
   if (vm.contains("dim")) {
-    std::shared_ptr<Array> dim = vm.getArray("dim");
-    Dimensions d(dim->asVector<UInt32>());
-    impl->setDimensions(d);
+    const Value vm1 = vm["dim"];
+    if (vm1.isSequence()) {
+      Dimensions dim(vm1.asVector<UInt>());
+      impl->setDimensions(dim);
+    } else if (vm1.isScalar()) {
+      Dimensions dim(vm1.as<UInt>());
+      impl->setDimensions(dim);
+    } else if (vm1.isMap()) {
+      for (auto itr : vm1) {
+        std::string name = itr.first;
+        Value &vm3 = itr.second;
+        if (vm3.isScalar()) {
+          Dimensions dim(vm3.as<UInt>());
+          if (region->hasOutput(name))
+            region->setOutputDimensions(name, dim);
+          else if (region->hasInput(name))
+            region->setInputDimensions(name, dim);
+        } else if (vm3.isSequence()) {
+          Dimensions dim(vm3.asVector<UInt>());
+          if (region->hasOutput(name))
+            region->setOutputDimensions(name, dim);
+          else if (region->hasInput(name))
+            region->setInputDimensions(name, dim);
+        } else {
+          NTA_THROW << "Syntax error in parameter 'dim', name='" << name << "'";
+        }
+      }
+    } else {
+      NTA_THROW << "Syntax error in parameter 'dim'";
+    }
   }
 
   return impl;
@@ -146,7 +207,7 @@ RegionImpl *RegionImplFactory::deserializeRegionImpl(const std::string nodeType,
 
 
 
-std::shared_ptr<Spec>& RegionImplFactory::getSpec(const std::string nodeType) {
+std::shared_ptr<Spec> RegionImplFactory::getSpec(const std::string nodeType) {
   auto it = regionSpecMap.find(nodeType);
   if (it == regionSpecMap.end()) {
 	NTA_THROW << "getSpec() -- unknown node type: '" << nodeType
@@ -155,10 +216,17 @@ std::shared_ptr<Spec>& RegionImplFactory::getSpec(const std::string nodeType) {
   return it->second;
 }
 
+
+
 void RegionImplFactory::cleanup() {
   RegionImplFactory& instance = getInstance();
   instance.regionTypeMap.clear();
   instance.regionSpecMap.clear();
 }
+
+// definitions for our class variables.
+std::map<const std::string, std::shared_ptr<RegisteredRegionImpl> > RegionImplFactory::regionTypeMap;
+std::map<const std::string, std::shared_ptr<Spec> > RegionImplFactory::regionSpecMap;
+
 
 } // namespace htm

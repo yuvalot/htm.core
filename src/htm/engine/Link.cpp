@@ -23,11 +23,12 @@
 #include <htm/engine/Link.hpp>
 #include <htm/engine/Output.hpp>
 #include <htm/engine/Region.hpp>
+#include <htm/os/Path.hpp>  // for trim( )
 #include <htm/ntypes/Array.hpp>
 #include <htm/ntypes/BasicType.hpp>
 #include <htm/utils/Log.hpp>
 
-// By calling  LogItem::setLogLevel(LogLevel_Verbose)
+// By calling  Network::setLogLevel(LogLevel_Verbose)
 // you can enable the NTA_DEBUG macros below.
 
 namespace htm {
@@ -42,7 +43,7 @@ Link::Link(const std::string &linkType, const std::string &linkParams,
 }
 
 Link::Link(const std::string &linkType, const std::string &linkParams,
-           Output *srcOutput, Input *destInput, const size_t propagationDelay) {
+           std::shared_ptr<Output> srcOutput, std::shared_ptr<Input> destInput, const size_t propagationDelay) {
   commonConstructorInit_(linkType, linkParams, srcOutput->getRegion()->getName(),
                          destInput->getRegion()->getName(), srcOutput->getName(),
                          destInput->getName(), propagationDelay);
@@ -54,8 +55,6 @@ Link::Link(const std::string &linkType, const std::string &linkParams,
 
 Link::Link() {  // needed for deserialization
   destOffset_ = 0;
-  src_ = nullptr;
-  dest_ = nullptr;
   initialized_ = false;
 }
 
@@ -75,8 +74,6 @@ void Link::commonConstructorInit_(const std::string &linkType,
   propagationDelay_ = propagationDelay;
   destOffset_ = 0;
   is_FanIn_ = false;
-  src_ = nullptr;
-  dest_ = nullptr;
   initialized_ = false;
 
 }
@@ -92,9 +89,9 @@ void Link::initialize(size_t destinationOffset, bool is_FanIn) {
   // and initialized.
 
   // Make sure we have been attached to a real network
-  NTA_CHECK(src_ != nullptr)
+  NTA_CHECK(src_)
       << "Link::initialize() and src_ Output object not set.";
-  NTA_CHECK(dest_ != nullptr)
+  NTA_CHECK(dest_)
       << "Link::initialize() and dest_ Input object not set.";
  
   destOffset_ = destinationOffset;
@@ -154,27 +151,58 @@ const std::string Link::toString() const {
   return ss.str();
 }
 
-void Link::connectToNetwork(Output *src, Input *dest) {
+void Link::connectToNetwork(std::shared_ptr<Output> src, std::shared_ptr<Input> dest) {
   NTA_CHECK(src != nullptr);
   NTA_CHECK(dest != nullptr);
 
-  src_ = src;
-  dest_ = dest;
+  src_ = src.get();
+  dest_ = dest.get();
+  
+  
+  // Process link parameters at this point.
+  std::string params = Path::trim(linkParams_);
+  if (!params.empty()) {
+    // a link parameter was provided.
+    Value vm;
+    vm.parse(params);
+    if (vm.contains("dim")) {
+      // A dimension was provided.  This will set the dimensions on the source.
+      // which will usually propogate to the destination Input.
+      //     dim: [1,2]
+      //     dim: 25 
+      const Value vm1 = vm["dim"];
+      if (vm1.isSequence()) {
+        Dimensions dim(vm1.asVector<UInt>());
+        
+        src_->setDimensions(dim);
+      } else if (vm1.isScalar()) {
+        Dimensions dim(vm1.as<UInt>());
+        src_->setDimensions(dim);
+      } else {
+        NTA_THROW << "Unexepected syntax in dim parameter of the Link. " << params;
+      }
+
+    } else {
+      NTA_THROW << "unknown parameter specified in Link. " << params;
+    }
+  }
+
+  
 }
 
 // The methods below only work on connected links.
-Output &Link::getSrc() const
+Output* Link::getSrc() const
 
 {
-  NTA_CHECK(src_ != nullptr)
+  NTA_CHECK(src_)
       << "Link::getSrc() can only be called on a connected link";
-  return *src_;
+  return src_;
 }
 
-Input &Link::getDest() const {
-  NTA_CHECK(dest_ != nullptr)
+Input* Link::getDest() const {
+  NTA_CHECK(dest_)
       << "Link::getDest() can only be called on a connected link";
-  return *dest_;
+  return dest_;
 }
 
 
@@ -191,7 +219,7 @@ void Link::compute() {
   const Array &src = propagationDelay_ ? propagationDelayBuffer_.front() : src_->getData();
   Array &dest = dest_->getData();
 
-  NTA_DEBUG << "Link::compute: " << getMoniker() << "; copying to dest input"
+  NTA_DEBUG << "compute Link: copying " << getMoniker()
               << "; delay=" << propagationDelay_ << "; size=" << src.getCount()
               << " type=" << BasicType::getName(src.getType())
               << " --> " << BasicType::getName(dest.getType()) << std::endl;

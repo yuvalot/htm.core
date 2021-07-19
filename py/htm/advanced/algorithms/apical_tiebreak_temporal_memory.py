@@ -541,7 +541,7 @@ class ApicalTiebreakTemporalMemory(object):
                 numSynapsesToReachMax = self.maxSynapsesPerSegment - synapseCounts
                 maxNew = min(maxNew, numSynapsesToReachMax)
             if maxNew > 0:
-                connections.growSynapsesToSample(segment, growthCandidates, maxNew, self.initialPermanence, self.rng)
+                connections.growSynapses(segment, growthCandidates, self.initialPermanence, self.rng, maxNew)
 
 
     def _learnOnNewSegments(self, connections, newSegmentCells, growthCandidates):
@@ -556,7 +556,7 @@ class ApicalTiebreakTemporalMemory(object):
             
         for cell in  newSegmentCells:
             newSegment = connections.createSegment(cell, self.maxSegmentsPerCell)
-            connections.growSynapsesToSample(newSegment, growthCandidates, numNewSynapses, self.initialPermanence, self.rng)
+            connections.growSynapses(newSegment, growthCandidates, self.initialPermanence, self.rng, maxNew=numNewSynapses)
 
 
     def _chooseBestSegmentPerCell(self,
@@ -1074,8 +1074,8 @@ class ApicalTiebreakSequenceMemory(ApicalTiebreakTemporalMemory):
 
         apicalInputSDR = SDR(self.apicalInputSize)
 
-        basalInputSDR = SDR(self.basalInputSize)
-        basalInputSDR.sparse = self.activeCells
+        activeCellsSDR = SDR(self.columnCount * self.cellsPerColumn)
+        activeCellsSDR.sparse = self.activeCells
 
         if apicalGrowthCandidates is None:
             apicalGrowthCandidates = apicalInput
@@ -1084,11 +1084,11 @@ class ApicalTiebreakSequenceMemory(ApicalTiebreakTemporalMemory):
         self.prevPredictedCells = self.predictedCells
 
         apicalInputSDR.sparse = self.prevApicalInput
-        self.activateCells(activeColumns, basalInputSDR, apicalInputSDR, self.winnerCells, self.prevApicalGrowthCandidates, learn)
+        self.activateCells(activeColumns, activeCellsSDR, apicalInputSDR, self.winnerCells, self.prevApicalGrowthCandidates, learn)
         
         apicalInputSDR.sparse = apicalInput
-        basalInputSDR.sparse = self.activeCells
-        self.depolarizeCells(basalInputSDR, apicalInputSDR, learn)
+        activeCellsSDR.sparse = self.activeCells
+        self.depolarizeCells(activeCellsSDR, apicalInputSDR, learn)
 
         self.prevApicalInput = apicalInput.copy()
         self.prevApicalGrowthCandidates = apicalGrowthCandidates.copy()

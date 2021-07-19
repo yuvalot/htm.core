@@ -18,7 +18,7 @@
  * --------------------------------------------------------------------- */
  
 /*---------------------------------------------------------------------
-  * This is a test of the VectorFileEffector and VectorFileSensor modules.  
+  * This is a test of the FileInputRegion and FileOutputRegion modules.  
   *
   * For those not familiar with GTest:
   *     ASSERT_TRUE(value)   -- Fatal assertion that the value is true.  Test terminates if false.
@@ -34,7 +34,6 @@
   */
 
 
-#include <htm/engine/NuPIC.hpp>
 #include <htm/engine/Network.hpp>
 #include <htm/engine/Region.hpp>
 #include <htm/engine/Spec.hpp>
@@ -49,9 +48,7 @@
 #include <htm/os/Path.hpp>
 #include <htm/os/Timer.hpp>
 #include <htm/os/Directory.hpp>
-#include <htm/engine/YAMLUtils.hpp>
 #include <htm/regions/SPRegion.hpp>
-#include <htm/utils/LogItem.hpp>
 
 
 #include <string>
@@ -67,7 +64,6 @@
 
 
 
-#include "yaml-cpp/yaml.h"
 #include "gtest/gtest.h"
 #include "RegionTestUtilities.hpp"
 
@@ -75,8 +71,8 @@
 static bool verbose = false;  // turn this on to print extra stuff for debugging the test.
 
 // The following string should contain a valid expected Spec - manually verified. 
-#define EXPECTED_EFFECTOR_SPEC_COUNT  1  // The number of parameters expected in the VectorFileEffector Spec
-#define EXPECTED_SENSOR_SPEC_COUNT  11    // The number of parameters expected in the VectorFileSensor Spec
+#define EXPECTED_EFFECTOR_SPEC_COUNT  1   // The number of parameters expected in the FileOutputRegion Spec
+#define EXPECTED_SENSOR_SPEC_COUNT  11    // The number of parameters expected in the FileInputRegion Spec
 
 using namespace htm;
 namespace testing 
@@ -98,7 +94,7 @@ namespace testing
     Network net;
 
     // create an Effector region with default parameters
-    std::shared_ptr<Region> region1 = net.addRegion("region1", "VectorFileEffector", "");  // use default configuration
+    std::shared_ptr<Region> region1 = net.addRegion("region1", "FileOutputRegion", "");  // use default configuration
 
 		std::set<std::string> excluded;
     checkGetSetAgainstSpec(region1, EXPECTED_EFFECTOR_SPEC_COUNT, excluded, verbose);
@@ -110,7 +106,7 @@ namespace testing
     Network net;
 
     // create an Sensor region with default parameters
-    std::shared_ptr<Region> region1 = net.addRegion("region1", "VectorFileSensor", "");  // use default configuration
+    std::shared_ptr<Region> region1 = net.addRegion("region1", "FileInputRegion", "");  // use default configuration
 
     std::set<std::string> excluded = {"scalingMode", "position"};
     checkGetSetAgainstSpec(region1, EXPECTED_SENSOR_SPEC_COUNT, excluded, verbose);
@@ -129,7 +125,7 @@ namespace testing
 
     Network net;
     std::string params = "{dim: [" + std::to_string(dataWidth) + "]}";
-    std::shared_ptr<Region> region1 = net.addRegion("region1", "VectorFileSensor", params);
+    std::shared_ptr<Region> region1 = net.addRegion("region1", "FileInputRegion", params);
     EXPECT_EQ(region1->getParameterInt32("position"), -1);
 
     region1->executeCommand({ "loadFile", test_input_file });
@@ -139,7 +135,7 @@ namespace testing
     EXPECT_EQ(region1->getParameterInt32("position"), 0);
     Array a = region1->getOutputData("dataOut");
     VERBOSE << "1st vector=" << a << std::endl;
-    Array expected1(std::vector<Real32>({ 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f }));
+    Array expected1(std::vector<Real64>({ 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f }));
     EXPECT_TRUE(a == expected1);
 
 
@@ -148,7 +144,7 @@ namespace testing
     EXPECT_EQ(region1->getParameterInt32("position"), 5);
     a = region1->getOutputData("dataOut");
     VERBOSE << "5th vector=" << a << std::endl;
-    Array expected5(std::vector<Real32>({ 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f }));
+    Array expected5(std::vector<Real64>({ 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f }));
     EXPECT_TRUE(a == expected5);
 
     // cleanup
@@ -157,8 +153,8 @@ namespace testing
 
 	TEST(VectorFileTest, testLinking)
 	{
-    // This is a minimal end-to-end test containing an Effector and a Sensor region
-    // this test will hook up the VectorFileSensor to a VectorFileEffector to capture the results.
+    // This is a minimal end-to-end test containing an File input and a File output region
+    // this test will hook up the FileInputRegion to a FileOutputRegion to capture the results.
     //
     std::string test_input_file = "TestOutputDir/TestInput.csv";
     std::string test_output_file = "TestOutputDir/TestOutput.csv";
@@ -173,8 +169,8 @@ namespace testing
     // Explicit parameters:  (Yaml format...but since YAML is a superset of JSON, 
     // you can use JSON format as well)
 
-    std::shared_ptr<Region> region1 = net.addRegion("region1", "VectorFileSensor", "{activeOutputCount: 10}");
-    std::shared_ptr<Region> region3 = net.addRegion("region3", "VectorFileEffector", "{outputFile: '"+ test_output_file + "'}");
+    std::shared_ptr<Region> region1 = net.addRegion("region1", "FileInputRegion", "{activeOutputCount: 10}");
+    std::shared_ptr<Region> region3 = net.addRegion("region3", "FileOutputRegion", "{outputFile: '"+ test_output_file + "'}");
 
 
     net.link("region1", "region3", "", "", "dataOut", "dataIn");
@@ -187,25 +183,25 @@ namespace testing
     net.initialize();
 
     VERBOSE << "Execute once." << std::endl;
-    //LogItem::setLogLevel(LogLevel_Verbose);
+    //NTA_LOG_LEVEL = LogLevel::LogLevel_Verbose;
     net.run(1);
-    //LogItem::setLogLevel(LogLevel_None);
+    //NTA_LOG_LEVEL = LogLevel::LogLevel_None;
 
 	  VERBOSE << "Checking data after first iteration..." << std::endl;
     EXPECT_EQ(region1->getParameterInt32("position"), 0);
-    VERBOSE << "  VectorFileSensor Output" << std::endl;
+    VERBOSE << "  FileInputRegion Output" << std::endl;
     Array r1OutputArray = region1->getOutputData("dataOut");
     EXPECT_EQ(r1OutputArray.getCount(), dataWidth);
-    EXPECT_TRUE(r1OutputArray.getType() == NTA_BasicType_Real32)
+    EXPECT_TRUE(r1OutputArray.getType() == NTA_BasicType_Real64)
             << "actual type is " << BasicType::getName(r1OutputArray.getType());
 
     Array r3InputArray = region3->getInputData("dataIn");
-    ASSERT_TRUE(r3InputArray.getType() == NTA_BasicType_Real32)
+    ASSERT_TRUE(r3InputArray.getType() == NTA_BasicType_Real64)
       << "actual type is " << BasicType::getName(r3InputArray.getType());
     ASSERT_TRUE(r3InputArray.getCount() == dataWidth);
 
-		VERBOSE << "  VectorFileSensor  output: " << r1OutputArray << std::endl;
-    VERBOSE << "  VectorFileEffector input: " << r3InputArray << std::endl;
+		VERBOSE << "  FileInputRegion  output: " << r1OutputArray << std::endl;
+    VERBOSE << "  FileOutputRegion input: " << r3InputArray << std::endl;
 		
 
 	  // execute network several more times and check that it has output.
@@ -216,8 +212,8 @@ namespace testing
 
     r1OutputArray = region1->getOutputData("dataOut");
     r3InputArray = region3->getInputData("dataIn");
-		VERBOSE << "  VectorFileSensor  output: " << r1OutputArray << std::endl;
-    VERBOSE << "  VectorFileEffector input: " << r3InputArray << std::endl;
+		VERBOSE << "  FileInputRegion  output: " << r1OutputArray << std::endl;
+    VERBOSE << "  FileOutputRegion input: " << r3InputArray << std::endl;
     EXPECT_TRUE(r3InputArray == r1OutputArray);
 
     // cleanup
@@ -246,8 +242,8 @@ TEST(VectorFileTest, testSerialization)
 	  Network net3;
 
 	  VERBOSE << "Setup first network and save it" << std::endl;
-    std::shared_ptr<Region> n1region1 = net1.addRegion("region1", "VectorFileSensor", "{activeOutputCount: "+std::to_string(dataWidth) +"}");
-    std::shared_ptr<Region> n1region3 = net1.addRegion("region3", "VectorFileEffector", "{outputFile: '"+ test_output_file + "'}");
+    std::shared_ptr<Region> n1region1 = net1.addRegion("region1", "FileInputRegion", "{activeOutputCount: "+std::to_string(dataWidth) +"}");
+    std::shared_ptr<Region> n1region3 = net1.addRegion("region3", "FileOutputRegion", "{outputFile: '"+ test_output_file + "'}");
     net1.link("region1", "region3", "", "", "dataOut", "dataIn");
 
     VERBOSE << "Load Data." << std::endl;

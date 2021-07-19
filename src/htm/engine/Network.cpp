@@ -27,7 +27,6 @@ Implementation of the Network class
 #include <htm/engine/Input.hpp>
 #include <htm/engine/Link.hpp>
 #include <htm/engine/Network.hpp>
-#include <htm/engine/NuPIC.hpp> // for register/unregister
 #include <htm/engine/Output.hpp>
 #include <htm/engine/Region.hpp>
 #include <htm/engine/RegionImplFactory.hpp>
@@ -36,19 +35,31 @@ Implementation of the Network class
 #include <htm/os/Path.hpp>
 #include <htm/ntypes/BasicType.hpp>
 #include <htm/utils/Log.hpp>
+#include <htm/ntypes/Value.hpp>
 
 namespace htm {
 
 class RegisteredRegionImpl;
 
+thread_local LogLevel NTA_LOG_LEVEL; 
+
+
 Network::Network() {
   commonInit();
-  NuPIC::registerNetwork(this);
+}
+
+// move constructor
+Network::Network(Network &&n) noexcept {
+  regions_ = std::move(n.regions_);
+  minEnabledPhase_ = n.minEnabledPhase_;
+  maxEnabledPhase_ = n.maxEnabledPhase_;
+  phaseInfo_ = std::move(n.phaseInfo_);
+  callbacks_ = n.callbacks_;
+  iteration_ = n.iteration_;
 }
 
 Network::Network(const std::string& filename) {
   commonInit();
-  NuPIC::registerNetwork(this);
   loadFromFile(filename);
 }
 
@@ -58,13 +69,9 @@ void Network::commonInit() {
   iteration_ = 0;
   minEnabledPhase_ = 0;
   maxEnabledPhase_ = 0;
-  // automatic initialization of NuPIC, so users don't
-  // have to call NuPIC::initialize
-  NuPIC::init();
 }
 
 Network::~Network() {
-  NuPIC::unregisterNetwork(this);
   /**
    * Teardown choreography:
    * - unintialize all regions because otherwise we won't be able to disconnect
@@ -86,11 +93,65 @@ Network::~Network() {
   }
 
   // 3. delete the regions
-  // They are in Shared_ptr so no need to delete regions.
+  // They are in a map of Shared_ptr so regions are deleted when it goes out of scope.
 }
 
-std::shared_ptr<Region> Network::addRegion(const std::string &name, const std::string &nodeType,
-                           const std::string &nodeParams) {
+
+void Network::configure(const std::string &yaml) {
+  ValueMap vm;
+  vm.parse(yaml);
+
+  NTA_CHECK(vm.isMap() && vm.contains("network")) << "Expected yaml string to start with 'network:'.";
+  Value &v1 = vm["network"];
+  NTA_CHECK(v1.isSequence()) << "Expected a sequence of entries starting with a command.";
+  for (size_t i = 0; i < v1.size(); i++) {
+    NTA_CHECK(v1[i].isMap()) << "Expcted a command";
+    for (auto cmd : v1[i]) {
+      if (cmd.first == "registerRegion") {
+        std::string type = cmd.second["type"].str();
+        std::string path = cmd.second["path"].str();
+        std::string classname = cmd.second["classname"].str();
+        // TODO:  
+        NTA_THROW << "For now you can only use the built-in C++ regions with the REST API.";
+      } else if (cmd.first == "addRegion") {
+        std::string name = cmd.second["name"].str();
+        std::string type = cmd.second["type"].str();
+        ValueMap params;
+        if (cmd.second.contains("params")) params = cmd.second["params"];
+        addRegion(name, type, params);
+
+        UInt32 phase = 0;
+        if (cmd.second.contains("phase")) {
+          phase = cmd.second["phase"].as<int>();
+          std::set<UInt32> phases;
+          phases.insert(phase);
+          setPhases(name, phases);
+        }
+      } else if (cmd.first == "addLink") {
+        std::string src = cmd.second["src"].str();
+        std::string dest = cmd.second["dest"].str();
+        std::string dim = "";
+        std::vector<std::string> vsrc = Path::split(src, '.');
+        std::vector<std::string> vdest = Path::split(dest, '.');
+        int propagationDelay = 0;
+        if (cmd.second.contains("delay"))
+          propagationDelay = cmd.second["delay"].as<int>();
+        if (cmd.second.contains("dim")) {
+          dim = cmd.second.to_json();
+        }
+        NTA_CHECK(vsrc.size() == 2) << "Expecting source domain name '.' output name.";
+        NTA_CHECK(vdest.size() == 2) << "Expecting destination domain name '.' input name.";
+
+        link(vsrc[0], vdest[0], "", dim, vsrc[1], vdest[1], propagationDelay);
+      }
+    }
+  }
+}
+
+
+std::shared_ptr<Region> Network::addRegion(const std::string &name, 
+                                           const std::string &nodeType,
+                                           const std::string &nodeParams) {
   if (regions_.find(name) != regions_.end())
     NTA_THROW << "Region with name '" << name << "' already exists in network";
   std::shared_ptr<Region> r = std::make_shared<Region>(name, nodeType, nodeParams, this);
@@ -102,16 +163,29 @@ std::shared_ptr<Region> Network::addRegion(const std::string &name, const std::s
   return r;
 }
 
+std::shared_ptr<Region> Network::addRegion(const std::string &name, 
+                                           const std::string &nodeType,
+                                           ValueMap& vm) {
+  if (regions_.find(name) != regions_.end())
+    NTA_THROW << "Region with name '" << name << "' already exists in network";
+  std::shared_ptr<Region> r = std::make_shared<Region>(name, nodeType, vm, this);
+  regions_[name] = r;
+  initialized_ = false;
+
+  setDefaultPhase_(r.get());
+  return r;
+}
+
+
 std::shared_ptr<Region> Network::addRegion(std::shared_ptr<Region>& r) {
   NTA_CHECK(r != nullptr);
   r->network_ = this;
   regions_[r->getName()] = r;
+  
+  // If a region is added, initially set the phase to the default phase.
+  // The phase can be changed later.
+  setDefaultPhase_(r.get());
 
-  // We must make a copy of the phases set here because
-  // setPhases_ will be passing this back down into
-  // the region.
-  std::set<UInt32> phases = r->getPhases();
-  setPhases_(r.get(), phases);
   return r;
 }
 
@@ -152,13 +226,11 @@ void Network::setPhases_(Region *r, std::set<UInt32> &phases) {
     if (item != phaseInfo_[i].end() && !insertPhase) {
       phaseInfo_[i].erase(item);
     } else if (insertPhase) {
+      // add the new phase(s_
       phaseInfo_[i].insert(r);
     }
   }
 
-  // keep track (redundantly) of phases inside the Region also, for
-  // serialization
-  r->setPhases(phases);
 
   resetEnabledPhases_();
 }
@@ -245,9 +317,13 @@ std::shared_ptr<Link> Network::link(const std::string &srcRegionName,
 
   // Find the regions
   auto itrSrc = regions_.find(srcRegionName);
-  if (itrSrc == regions_.end())
-    NTA_THROW << "Network::link -- source region '" << srcRegionName
-              << "' does not exist";
+  if (itrSrc == regions_.end()) {
+    if (srcRegionName != "INPUT")
+      NTA_THROW << "Network::link -- source region '" << srcRegionName << "' does not exist";
+    // Our special InputRegion does not exist. But we are using it so we need to create it.
+    ValueMap vm;  // Empty parameters.
+    Network::addRegion(srcRegionName, "RawInput", vm);  // Note: will have no Outputs defined.
+  }
   std::shared_ptr<Region> srcRegion = regions_[srcRegionName];
 
   auto itrDest = regions_.find(destRegionName);
@@ -257,29 +333,57 @@ std::shared_ptr<Link> Network::link(const std::string &srcRegionName,
   std::shared_ptr<Region> destRegion = regions_[destRegionName];
 
   // Find the inputs/outputs
+  // get the destination Input object
+  std::string inputName = destInputName;
+  if (inputName == "") {
+    const std::shared_ptr<Spec> &destSpec = destRegion->getSpec();
+    inputName = destSpec->getDefaultInputName();
+  }
+
+  std::shared_ptr<Input> destInput = destRegion->getInput(inputName);
+  if (destInput == nullptr) {
+    NTA_THROW << "Network::link -- input '" << inputName << " does not exist on region " << destRegionName;
+  }
+
+  // get the source Output object
   std::string outputName = srcOutputName;
   if (outputName == "") {
     const std::shared_ptr<Spec>& srcSpec = srcRegion->getSpec();
     outputName = srcSpec->getDefaultOutputName();
   }
 
-  Output *srcOutput = srcRegion->getOutput(outputName);
-  if (srcOutput == nullptr)
-    NTA_THROW << "Network::link -- output " << outputName
-              << " does not exist on region " << srcRegionName;
+  std::shared_ptr<Output> srcOutput = srcRegion->getOutput(outputName);
+  if (srcOutput == nullptr) {
+    if (srcRegionName == "INPUT") {
+      // This is our special source region for manually setting inputs using a link
+      // Get the data type from the destination Input object and create an output.
+      NTA_BasicType type = destInput->getDataType();
+      srcOutput = std::make_shared<Output>(srcRegion.get(), outputName, type);
 
-  std::string inputName = destInputName;
-  if (inputName == "") {
-    const std::shared_ptr<Spec>& destSpec = destRegion->getSpec();
-    inputName = destSpec->getDefaultInputName();
+      Dimensions dim;
+      std::string params = Path::trim(linkParams);
+      if (!params.empty()) {
+        Value v;
+        v.parse(linkParams);
+        if (v.isMap() && v.contains("dim")) {
+          Value v1 = v["dim"];
+          if (v1.isSequence())
+            dim = Dimensions(v1.asVector<UInt>());
+          else if (v1.isScalar())
+            dim = Dimensions(v1.as<UInt>());
+        }
+      }
+      if (dim.empty())
+        NTA_THROW << "Link declared with Special \"INPUT\" source requires dimensions in link parameters. Something like "
+                     "{dim: 100} or {dim: [10,20]}";
+
+      srcOutput->setDimensions(dim);
+      srcOutput->initialize();  // allocates the buffer
+      srcRegion->outputs_[outputName] = srcOutput;
+    } else {
+      NTA_THROW << "Network::link -- output " << outputName << " does not exist on region " << srcRegionName;
+    }
   }
-
-  Input *destInput = destRegion->getInput(inputName);
-  if (destInput == nullptr) {
-    NTA_THROW << "Network::link -- input '" << inputName
-              << " does not exist on region " << destRegionName;
-  }
-
 
   // Create the link itself
   auto link = std::make_shared<Link>(linkType, linkParams, srcOutput, destInput, propagationDelay);
@@ -313,7 +417,7 @@ void Network::removeLink(const std::string &srcRegionName,
   else
     inputName = destInputName;
 
-  Input *destInput = destRegion->getInput(inputName);
+  std::shared_ptr<Input> destInput = destRegion->getInput(inputName);
   if (destInput == nullptr) {
     NTA_THROW << "Network::unlink -- input '" << inputName
               << " does not exist on region " << destRegionName;
@@ -332,6 +436,48 @@ void Network::removeLink(const std::string &srcRegionName,
   // Finally, remove the link
   destInput->removeLink(link);
 }
+
+
+
+/**
+ * Set the source data for a Link identified with the source as "INPUT" and <sourceName>.
+ */
+void Network::setInputData(const std::string& sourceName, const Array& data) {
+  // The placeholder region "INPUT" with an output of <sourceName> should already exist if the link was defined.
+  std::shared_ptr<Region> region = getRegion("INPUT"); 
+  Array &a = region->getOutput(sourceName)->getData(); // we actually populate an output buffer that will be moved to input.
+  NTA_CHECK(a.getCount() == data.getCount())
+      << "setInputData: Number of elements in buffer ( " << a.getCount() << " ) do not match target dimensions.";
+  if (a.getType() == data.getType()) {
+    a = data;  // assign the buffer without copy
+  }  else {
+    data.convertInto(a);  // copy the data with conversion.
+  }
+}
+
+void Network::setInputData(const std::string &sourceName, const Value& vm) {
+  // The placeholder region "INPUT" with an output of <sourceName> should already exist if the link was defined.
+  std::shared_ptr<Region> region = getRegion("INPUT");
+  Array &a =  region->getOutput(sourceName)->getData(); // populate this output buffer that will be moved to the input.
+  NTA_BasicType type = a.getType();
+
+  NTA_CHECK(vm.contains("data"))
+      << "Unexpected YAML or JSON format. Expecting something like {data: [1,0,1]}";
+
+  NTA_CHECK(vm["data"].isSequence())
+      << "Unexpected YAML or JSON format. Expecting something like {data: [1,0,1]}";
+
+  if (type == NTA_BasicType_SDR) {
+    NTA_CHECK(a.getCount() >= vm.size())
+        << "setInputData: Number of elements in buffer ( " << a.getCount() << " ) do not match target dimensions.";
+  } else {
+    NTA_CHECK(a.getCount() == vm.size())
+        << "setInputData: Number of elements in buffer ( " << a.getCount() << " ) do not match target dimensions.";
+  }
+
+  a.fromValue(vm);
+}
+
 
 void Network::run(int n) {
   if (!initialized_) {
@@ -367,7 +513,7 @@ void Network::run(int n) {
       const std::shared_ptr<Region> r = p.second;
 
       for (const auto &inputTuple : r->getInputs()) {
-        for (const auto pLink : inputTuple.second->getLinks()) {
+        for (const auto &pLink : inputTuple.second->getLinks()) {
           pLink->shiftBufferedData();
         }
       }
@@ -393,12 +539,10 @@ void Network::initialize() {
   /*
    * 1. Calculate all Input/Output dimensions by evaluating links.
    */
-  for (auto p: regions_) {
-    std::shared_ptr<Region> r = p.second;
-    // evaluateLinks returns the number
-    // of links which still need to be
-    // evaluated.
-    r->evaluateLinks();
+  for (auto phase : phaseInfo_) { // evaluate regions in execution order
+    for (auto r : phase) {
+      r->evaluateLinks();
+    }
   }
 
 
@@ -436,16 +580,21 @@ std::shared_ptr<Region> Network::getRegion(const std::string& name) const {
   return itr->second;
 }
 
+std::string Network::getSpecJSON(const std::string &type) {
+  RegionImplFactory &factory = RegionImplFactory::getInstance();
+  const std::shared_ptr<Spec> spec = factory.getSpec(type);
+  return spec->toString();
+}
+
+
 
 std::vector<std::shared_ptr<Link>> Network::getLinks() const {
   std::vector<std::shared_ptr<Link>> links;
 
-  for (UInt32 phase = minEnabledPhase_; phase <= maxEnabledPhase_; phase++) {
-    for (auto r : phaseInfo_[phase]) {
-      for (auto &input : r->getInputs()) {
-        for (auto &link : input.second->getLinks()) {
-          links.push_back(link);
-        }
+  for (auto p : regions_) {
+    for (auto &input : p.second->getInputs()) {
+      for (auto &link : input.second->getLinks()) {
+        links.push_back(link);
       }
     }
   }
@@ -518,13 +667,9 @@ void Network::post_load() {
   for(auto p: regions_) {
     std::shared_ptr<Region>& r = p.second;
     r->network_ = this;
-    std::set<UInt32> phases = r->getPhases();
-    setPhases_(r.get(), phases);
     r->evaluateLinks();      // Create the input buffers.
   }
 
-  NTA_CHECK(maxEnabledPhase_ < phaseInfo_.size())
-      << "maxphase: " << maxEnabledPhase_ << " size: " << phaseInfo_.size();
 
   // Note: When serialized, the output buffers are saved
   //       by each Region.  After restore we need to
@@ -550,7 +695,7 @@ void Network::post_load() {
     r->prepareInputs();
 
     for (const auto &inputTuple : r->getInputs()) {
-      for (const auto pLink : inputTuple.second->getLinks()) {
+      for (const auto &pLink : inputTuple.second->getLinks()) {
         pLink->shiftBufferedData();
       }
     }
@@ -560,6 +705,65 @@ void Network::post_load() {
   initialized_ = true;
 
 }
+
+std::string Network::phasesToString() const {
+  std::stringstream ss;
+  ss << "{";
+  ss << "minEnabledPhase_: " << minEnabledPhase_ << ", ";
+  ss << "maxEnabledPhase_: " << maxEnabledPhase_ << ", ";
+  ss << "info: [";
+  for (auto phase : phaseInfo_) {
+    ss << "[";
+    for (auto region : phase) {
+      ss << region->getName() << ", ";
+    }
+    ss << "]";
+  }
+  ss << "]}";
+  return ss.str();
+}
+void Network::phasesFromString(const std::string& phaseString) {
+  std::string content = phaseString;
+  content.erase(std::remove(content.begin(), content.end(), ','), content.end());
+  std::stringstream ss(content);
+  std::string tag;
+  std::set<Region *> phase;
+  
+  NTA_CHECK(ss.peek() == '{') << "Invalid phase deserialization";
+  ss.ignore(1);
+  ss >> tag;
+  NTA_CHECK(tag == "minEnabledPhase_:");
+  ss >> minEnabledPhase_;
+  ss >> tag;
+  NTA_CHECK(tag == "maxEnabledPhase_:");
+  ss >> maxEnabledPhase_;
+  ss >> tag;
+  NTA_CHECK(tag == "info:") << "Invalid phase deserialization";
+  ss >> std::ws;
+  NTA_CHECK(ss.peek() == '[') << "Invalid phase deserialization";
+  ss.ignore(1);
+  ss >> std::ws;
+  while (ss.peek() != ']') {
+    ss >> std::ws;
+    if (ss.peek() == '[') {
+      ss.ignore(1);
+      ss >> std::ws;
+      while (ss.peek() != ']') {
+        ss >> tag;
+        auto it = regions_.find(tag);
+        NTA_CHECK(it != regions_.end()) << "Region '" << tag << "' not found while decoding phase.";
+        phase.insert(it->second.get());
+        ss >> std::ws;
+      }
+      ss.ignore(1); // ']'
+      phaseInfo_.push_back(phase);
+      phase.clear();
+    }
+  }
+  ss >> std::ws;
+  ss.ignore(1); // ']'
+}
+
 
 void Network::enableProfiling() {
   for (auto p: regions_) {
@@ -594,6 +798,11 @@ void Network::registerRegion(const std::string name, RegisteredRegionImpl *wrapp
 void Network::unregisterRegion(const std::string name) {
 	RegionImplFactory::unregisterRegion(name);
 }
+
+std::string Network::getRegistrations() {
+  return RegionImplFactory::getRegistrations();
+}
+
 void Network::cleanup() {
     RegionImplFactory::cleanup();
 }
@@ -637,7 +846,7 @@ std::ostream &operator<<(std::ostream &f, const Network &n) {
   f << "Links: [\n";
   for(auto iter = n.regions_.cbegin(); iter != n.regions_.cend(); ++iter) {
     std::shared_ptr<Region> r = iter->second;
-    const std::map<std::string, Input*> inputs = r->getInputs();
+    const std::map<std::string, std::shared_ptr<Input>> inputs = r->getInputs();
     for (const auto & inputs_input : inputs)
     {
       const std::vector<std::shared_ptr<Link>>& links = inputs_input.second->getLinks();

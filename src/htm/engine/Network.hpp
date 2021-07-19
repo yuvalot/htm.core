@@ -58,31 +58,79 @@ public:
 
   /**
    *
-   * Create an new Network and register it to NuPIC.
+   * Create an new Network
    *
-   * @note Creating a Network will auto-initialize NuPIC.
    */
   Network();
   Network(const std::string& filename);
 
   /**
-   * Cannot copy or assign a Network object.
+   * Cannot copy or assign a Network object. But can be moved.
    */
+  Network(Network &&) noexcept; // move is allowed
   Network(const Network&) = delete;
   void operator=(const Network&) = delete;
 
   /**
    * Destructor.
    *
-   * Destruct the network and unregister it from NuPIC:
-   *
-   * - Uninitialize all regions
-   * - Remove all links
-   * - Delete the regions themselves
-   *
-   * @todo Should we document the tear down steps above?
    */
   ~Network();
+
+   /**
+   * An alternate way to configure the network.
+   * Pass in an yaml or JSON string that defines all regions and links.
+   * YAML Syntax:
+   *      network:
+   *         - registerRegion:            (TODO:)
+   *             type: <region type>
+   *             path: <path to shared lib to link to>
+   *             class: <classname to load>
+   *
+   *         - addRegion:
+   *             name: <region name>
+   *             type: <region type>
+   *             params: <list of parameters>  (optional)
+   *             phase:  <optonal phase number> (optional)
+   *
+   *         - addLink:
+   *             src: <Name of the source region "." Output name>
+   *             dest: <Name of the destination region "." Input name>
+   *             delay: <iterations to delay> (optional, default=0)
+   *
+   *
+   * JSON syntax:
+    *   {network: [
+   *       {addRegion: {name: <region name>, type: <region type>, params: {<parameters>}, phase: <phase>}},
+   *       {addLink:   {src: "<region name>.<output name>", dest: "<region name>.<output name>", delay: <delay>}},
+   *    ]}
+  *
+   * JSON example:
+   *   {network: [
+   *       {addRegion: {name: "encoder", type: "RDSERegion", params: {size: 1000, sparsity: 0.2, radius: 0.03, seed: 2019, noise: 0.01}}},
+   *       {addRegion: {name: "sp", type: "SPRegion", params: {columnCount: 2048, globalInhibition: true}}},
+   *       {addRegion: {name: "tm", type: "TMRegion", params: {cellsPerColumn: 8, orColumnOutputs: true}}},
+   *       {addLink:   {src: "encoder.encoded", dest: "sp.bottomUpIn"}},
+   *       {addLink:   {src: "sp.bottomUpOut", dest: "tm.bottomUpIn"}}
+   *    ]}
+
+   *  On errors it throws an exception.
+   */
+  void configure(const std::string &yaml);
+  
+  /**
+   * Return the Spec for the region type as a JSON string.
+   * Note that the region does NOT have to have been previously added with addRegion( ).
+   *
+   * @param region_type  The name of the region implementation.
+   *                     This is the name of one of the built-in Regions (usually class name) 
+   *                     or the region type given to a custom region that has been registered.  
+   *                     Python implemented regions are registered as the class name with
+   *                     'py.' prepended.
+   * @returns  A JSON string containing the Spec.
+   */
+  std::string getSpecJSON(const std::string &region_type);
+
 
   /**
    * Initialize all elements of a network so that it can run.
@@ -101,46 +149,51 @@ public:
    * @{
    */
   /**
-   *    saveToFile(path)          Open a file and stream to it. (Binary)
+   *    saveToFile(path [, fmt])  Open a file and stream to it. 
    *    save(ostream f [, fmt])   Stream to your stream.  
    *    f << net;                 Output human readable text. 
    *
-   *    loadFromFile(path)
+   *    loadFromFile(path [, fmt])
    *    load(istream f [, fmt])
    *
    * @path The filename into which to save/load the streamed serialization.
    * @f    The stream with which to save/load the serialization.
    * @fmt  Format: One of following from enum SerializableFormat
-   *   BINARY   - A binary format which is the fastest but not portable between platforms (default).
-   *   PORTABLE - Another Binary format, not quite as fast but is portable between platforms.
-   *   JSON     - Human readable JSON text format. Slow.
-   *   XML      - Human readable XML text format. Even slower.
+   *   SerializableFormat::BINARY   - A binary format which is the fastest but not portable between platforms (default).
+   *   SerializableFormat::PORTABLE - Another Binary format, not quite as fast but is portable between platforms.
+   *   SerializableFormat::JSON     - Human readable JSON text format. Slow.
+   *   SerializableFormat::XML      - Human readable XML text format. Even slower.
+   * or an std::string, one of "BINARY", "PORTABLE", "JSON", "XML".
    *
-	 * See Serializable base class for more details.
+	 * See Serializable base class for more details (types/Serializable.hpp).
 	 */
   CerealAdapter;  // see Serializable.hpp
   // FOR Cereal Serialization
   template<class Archive>
   void save_ar(Archive& ar) const {
     const std::vector<std::shared_ptr<Link>> links = getLinks();
+    std::string phases = phasesToString();
     std::string name = "Network";
     ar(cereal::make_nvp("name", name));
     ar(cereal::make_nvp("iteration", iteration_));
     ar(cereal::make_nvp("Regions", regions_));
     ar(cereal::make_nvp("links", links));
+    ar(cereal::make_nvp("phases", phases));
   }
   
   // FOR Cereal Deserialization
   template<class Archive>
   void load_ar(Archive& ar) {
     std::vector<std::shared_ptr<Link>> links;
-    std::string name;
+    std::string name, phases;
     ar(cereal::make_nvp("name", name));  // ignore value
     ar(cereal::make_nvp("iteration", iteration_));
     ar(cereal::make_nvp("Regions", regions_));
     ar(cereal::make_nvp("links", links));
+    ar(cereal::make_nvp("phases", phases));
 
     post_load(links);
+    phasesFromString(phases);
   }
 
   /**
@@ -166,7 +219,9 @@ public:
   std::shared_ptr<Region> addRegion(const std::string &name,
   					                        const std::string &nodeType,
                                     const std::string &nodeParams);
-
+  std::shared_ptr<Region> addRegion(const std::string &name, 
+                                    const std::string &nodeType,
+                                    ValueMap& vm);
   /**
     * Add a region in a network from deserialized region
     *
@@ -226,6 +281,13 @@ public:
   void removeLink(const std::string &srcName, const std::string &destName,
                   const std::string &srcOutputName = "",
                   const std::string &destInputName = "");
+
+
+  /**
+   * Set the source data for a Link identified with the source as "INPUT" and <sourceName>.
+   */
+  virtual void setInputData(const std::string &sourceName, const Array &data);
+  virtual void setInputData(const std::string &sourceName, const Value &vm);
 
   /**
    * @}
@@ -378,12 +440,14 @@ public:
    */
   void resetProfiling();
 	
-	/**
-	 * Set one of the debug levels: LogLevel_None = 0, LogLevel_Minimal, LogLevel_Normal, LogLevel_Verbose
+  /**
+   * Set one of the debug levels: LogLevel_None = 0, LogLevel_Minimal, LogLevel_Normal, LogLevel_Verbose
    */
-	void setLogLevel(LogLevel level) {
-	    LogItem::setLogLevel(level);
-	}
+  static LogLevel setLogLevel(LogLevel level) {
+    LogLevel prev = NTA_LOG_LEVEL;
+    NTA_LOG_LEVEL = level;
+    return prev;
+  }
 
 
   /**
@@ -413,6 +477,12 @@ public:
    * Removes a region implementation from the RegionImplFactory's list of packages
    */
   static void unregisterRegion(const std::string name);
+  
+  /*
+   * Returns a JSON string containing a list of registered region types.
+   *
+   */
+  static std::string getRegistrations();
 
   /*
    * Removes all region registrations in RegionImplFactory.
@@ -446,6 +516,8 @@ private:
   // information, we set enabled phases to min/max for
   // the network
   void resetEnabledPhases_();
+  std::string phasesToString() const;
+  void phasesFromString(const std::string& phaseString);
 
   bool initialized_;
 	
