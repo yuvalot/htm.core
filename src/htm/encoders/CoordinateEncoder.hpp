@@ -33,13 +33,56 @@
 namespace htm {
 
 /*
- * TODO: DOCUMENTATION
+ * Parameters for the CoordinateEncoder
+ *
+ * Members "activeBits" & "sparsity" are mutually exclusive, specify exactly one
+ * of them.
  */
-struct CoordinateEncoderParameters : public RDSE_Parameters {
+struct CoordinateEncoderParameters {
   /*
-   * TODO: DOCUMENTATION
+   * Member "numDimensions" is length of the input coordinate vector.
    */
-  UInt numDimensions;
+  UInt numDimensions = 0u;
+
+  /**
+   * Member "size" is the total number of bits in the encoded output SDR.
+   */
+  UInt size = 0u;
+
+  /**
+   * Member "activeBits" is the number of true bits in the encoded output SDR.
+   */
+  UInt activeBits = 0u;
+
+  /**
+   * Member "sparsity" is the fraction of bits in the encoded output which this
+   * encoder will activate. This is an alternative way to specify the member
+   * "activeBits".
+   */
+  Real sparsity = 0.0f;
+
+  /**
+   * Member "radius" Two inputs separated by more than the radius have
+   * non-overlapping representations. Two inputs separated by less than the
+   * radius will in general overlap in at least some of their bits. You can
+   * think of this as the radius of the input.
+   */
+  Real radius = 0.0f;
+
+  /**
+   * Member "resolution" Two inputs separated by greater than, or equal to the
+   * resolution will in general have different representations.
+   */
+  Real resolution = 1.0f;
+
+  /**
+   * Member "seed" forces different encoders to produce different outputs, even
+   * if the inputs and all other parameters are the same.  Two encoders with the
+   * same seed, parameters, and input will produce identical outputs.
+   *
+   * The seed 0 is special.  Seed 0 is replaced with a random number.
+   */
+  UInt seed = 0u;
 };
 
 /*
@@ -57,19 +100,34 @@ public:
 
   void encode(const std::vector<Real64> &coordinates, SDR &output) override;
 
-
-  CerealAdapter;
-
+  CerealAdapter;  // see Serializable.hpp
+  // FOR Cereal Serialization
   template<class Archive>
-  void save_ar(Archive & ar) const
-  {
-    ar(neighborhood_); // TODO: Finish this!
+  void save_ar(Archive& ar) const {
+    std::string name = "CoordinateEncoder";
+    ar(cereal::make_nvp("name", name));
+    ar(cereal::make_nvp("size", args_.size));
+    ar(cereal::make_nvp("activeBits", args_.activeBits));
+    ar(cereal::make_nvp("sparsity", args_.sparsity));
+    ar(cereal::make_nvp("radius", args_.radius));
+    ar(cereal::make_nvp("resolution", args_.resolution));
+    ar(cereal::make_nvp("seed", args_.seed));
+    ar(cereal::make_nvp("neighborhood", neighborhood_));
   }
-
+  // FOR Cereal Deserialization
   template<class Archive>
-  void load_ar(Archive & ar)
-  {
-    ar(neighborhood_); // TODO: Finish this!
+  void load_ar(Archive& ar) {
+    std::string name;
+    ar(cereal::make_nvp("name", name));
+    NTA_CHECK(name == "CoordinateEncoder");
+    ar(cereal::make_nvp("size", args_.size));
+    ar(cereal::make_nvp("activeBits", args_.activeBits));
+    ar(cereal::make_nvp("sparsity", args_.sparsity));
+    ar(cereal::make_nvp("radius", args_.radius));
+    ar(cereal::make_nvp("resolution", args_.resolution));
+    ar(cereal::make_nvp("seed", args_.seed));
+    ar(cereal::make_nvp("neighborhood", neighborhood_));
+    // BaseEncoder<Real64>::initialize({ args_.size }); // TODO!
   }
 
   ~CoordinateEncoder() override {};

@@ -33,31 +33,40 @@ CoordinateEncoder::CoordinateEncoder(const CoordinateEncoderParameters &paramete
   { initialize( parameters ); }
 
 void CoordinateEncoder::initialize( const CoordinateEncoderParameters &parameters ) {
-  // Check parameters:  This has all of the same constraints as the RDSE does.
-  // The RDSE will raise an exception if the parameters are bad.
-  try {
-    RDSE dummy( parameters );
-  } catch(Exception& ex) {
-    NTA_THROW << "CoordinateEncoder: parsing parameters failed. Reason: " << ex.what(); 
-  }
+  // Check parameters.
+  NTA_CHECK( parameters.size > 0u );
   NTA_CHECK( parameters.numDimensions > 0u );
+  UInt num_active_args = 0;
+  if( parameters.activeBits > 0u)   { num_active_args++; }
+  if( parameters.sparsity   > 0.0f) { num_active_args++; }
+  NTA_CHECK( num_active_args != 0u )
+      << "Missing argument, need one of: 'activeBits' or 'sparsity'.";
+  NTA_CHECK( num_active_args == 1u )
+      << "Too many arguments, choose only one of: 'activeBits' or 'sparsity'.";
 
-  RDSE rdse(parameters);
-  BaseEncoder<const vector<Real64> &>::initialize({ parameters.size });
+  // Save the parameters and fill in any missing ones.
   args_ = parameters;
-  // Fill in remaining parameters.
-  args_.activeBits = rdse.parameters.activeBits;
-  args_.sparsity   = rdse.parameters.sparsity;
-  args_.seed       = rdse.parameters.seed;
-  // args_.resolution = TODO
-  // args_.radius = (Real64) 2.0f * radius / maxExtent; // TODO Is this right?
-  NTA_CHECK(args_.radius == 0.0f); // For now disable.
+  // Determine number of activeBits.
+  if( args_.sparsity > 0.0f ) {
+    NTA_CHECK( args_.sparsity >= 0.0f );
+    NTA_CHECK( args_.sparsity <= 1.0f );
+    args_.activeBits = (UInt) round( args_.size * args_.sparsity );
+    NTA_CHECK( args_.activeBits > 0u );
+  }
+  // Determine sparsity. Always calculate this even if it was given, to correct for rounding error.
+  args_.sparsity = (Real) args_.activeBits / args_.size;
+  while( args_.seed == 0u ) {
+    args_.seed = Random().getUInt32();
+  }
+
+  BaseEncoder<const vector<Real64> &>::initialize({ parameters.size });
 
   // Find radius of sphere in numDimensions & volume of activeBits.
   const Real volume     = (Real) args_.activeBits;
   const Real nd         = (Real) args_.numDimensions;
   const Real radiusToND = volume * tgamma( nd / 2.0f + 1.0f ) / pow( M_PI, nd / 2.0f );
   const Real radius     = pow( radiusToND, 1.0f / nd );
+  args_.radius = (Real64) 2.0f * radius;
 
   // Find all coordinates inside of the sphere's bounding box.
   UInt maxExtent = (UInt) 2 * radius + 3; // Pad the box so that the sphere does not touch the edge.

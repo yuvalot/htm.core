@@ -33,17 +33,47 @@ namespace htm_ext
 {
   void init_CoordinateEncoder(py::module& m)
   {
-    py::class_<CoordinateEncoderParameters, RDSE_Parameters>
+    py::class_<CoordinateEncoderParameters>
                             py_CoordEncParams(m, "CoordinateEncoderParameters",
-R"(TODO: DOCUMENTATION)");
+R"(Parameters for the CoordinateEncoder
+
+Members "activeBits" & "sparsity" are mutually exclusive, specify exactly one
+of them.)");
 
     py_CoordEncParams.def(py::init<>());
 
     py_CoordEncParams.def_readwrite("numDimensions", &CoordinateEncoderParameters::numDimensions,
-R"(TODO: DOCUMENTATION)");
+R"(Member "numDimensions" is length of the input coordinate vector.)");
+
+    py_CoordEncParams.def_readwrite("size", &CoordinateEncoderParameters::size,
+R"(Member "size" is the total number of bits in the encoded output SDR.)");
+
+    py_CoordEncParams.def_readwrite("sparsity", &CoordinateEncoderParameters::sparsity,
+R"(Member "sparsity" is the fraction of bits in the encoded output which this
+encoder will activate. This is an alternative way to specify the member
+"activeBits".)");
+
+    py_CoordEncParams.def_readwrite("activeBits", &CoordinateEncoderParameters::activeBits,
+R"(Member "activeBits" is the number of true bits in the encoded output SDR.)");
+
+    py_CoordEncParams.def_readwrite("radius", &CoordinateEncoderParameters::radius,
+R"(Two inputs separated by more than the radius will have non-overlapping
+representations. Two inputs separated by less than the radius will in general
+overlap in at least some of their bits.)");
+
+    py_CoordEncParams.def_readwrite("resolution", &CoordinateEncoderParameters::resolution,
+R"(Two inputs separated by greater than, or equal to the resolution will
+in general have different representations.)");
+
+    py_CoordEncParams.def_readwrite("seed", &CoordinateEncoderParameters::seed,
+R"(Member "seed" forces different encoders to produce different outputs, even if
+the inputs and all other parameters are the same.  Two encoders with the same
+seed, parameters, and input will produce identical outputs.
+
+The seed 0 is special.  Seed 0 is replaced with a random number.)");
 
     py::class_<CoordinateEncoder> py_CoordinateEncoder(m, "CoordinateEncoder",
-R"(TODO: DOCSTRINGS!)");
+R"(TODO: DOCSTRING!)");
 
     py_CoordinateEncoder.def(py::init<CoordinateEncoderParameters&>());
 
@@ -64,5 +94,18 @@ fields are filled in automatically.)");
             self.encode( value, *sdr );
             return sdr;
     });
+
+    py_CoordinateEncoder.def(py::pickle(
+      [](const CoordinateEncoder& self) {
+        std::stringstream ss;
+        self.save(ss);
+        return py::bytes( ss.str() );
+      },
+      [](py::bytes &s) {
+        std::stringstream ss( s.cast<std::string>() );
+        std::unique_ptr<CoordinateEncoder> self(new CoordinateEncoder());
+        self->load(ss);
+        return self;
+    }));
   }
 }

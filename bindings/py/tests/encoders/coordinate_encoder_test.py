@@ -29,20 +29,23 @@ from htm.bindings.encoders import CoordinateEncoder, CoordinateEncoderParameters
 class CoordinateEncoderTest(unittest.TestCase):
     def testConstructor(self):
         params1 = CoordinateEncoderParameters()
+        params1.numDimensions = 1
         params1.size     = 100
         params1.sparsity = .10
         params1.radius   = 10
         R1 = CoordinateEncoder( params1 )
 
         params2 = R1.parameters
-        params2.sparsity = 0 # Remove duplicate arguments
-        params2.radius   = 0 # Remove duplicate arguments
+        params2.numDimensions = 1
+        params2.size     = 100
+        params2.sparsity = .10
+        params2.radius   = 10
         R2 = CoordinateEncoder( params2 )
 
         A = SDR( R1.parameters.size )
-        R1.encode( 66, A )
+        R1.encode( [66], A )
 
-        B = R2.encode( 66 )
+        B = R2.encode( [66] )
         assert( A == B )
 
     def testErrorChecks(self):
@@ -50,14 +53,21 @@ class CoordinateEncoderTest(unittest.TestCase):
         params1.size     = 100
         params1.sparsity = .10
         params1.radius   = 10
+        # Test missing numDimensions
+        with self.assertRaises(RuntimeError):
+            R1 = CoordinateEncoder( params1 )
+
+        params1.numDimensions = 1
         R1 = CoordinateEncoder( params1 )
         A = SDR([10, 10])
-        R1.encode( 33, A )
+        R1.encode( [33], A )
 
         # Test wrong input dimensions
         B = SDR( 1 )
         with self.assertRaises(RuntimeError):
-            R1.encode( 3, B )
+            R1.encode( [3], B )
+        with self.assertRaises(RuntimeError):
+            R1.encode( 3, A )
 
         # Test invalid parameters, size == 0
         params1.size = 0
@@ -73,12 +83,14 @@ class CoordinateEncoderTest(unittest.TestCase):
 
         # Test missing activeBits
         params2 = CoordinateEncoderParameters()
+        params2.numDimensions = 1
         params2.size     = 100
         params2.radius   = 10
         with self.assertRaises(RuntimeError):
             CoordinateEncoder( params2 )
         # Test missing resolution/radius
         params3 = CoordinateEncoderParameters()
+        params3.numDimensions = 1
         params3.size       = 100
         params3.activeBits = 10
         with self.assertRaises(RuntimeError):
@@ -86,6 +98,7 @@ class CoordinateEncoderTest(unittest.TestCase):
 
         # Test too many parameters: activeBits & sparsity
         params4 = CoordinateEncoderParameters()
+        params4.numDimensions = 1
         params4.size       = 100
         params4.sparsity   = .6
         params4.activeBits = 10
@@ -94,6 +107,7 @@ class CoordinateEncoderTest(unittest.TestCase):
             CoordinateEncoder( params4 )
         # Test too many parameters: resolution & radius
         params5 = CoordinateEncoderParameters()
+        params5.numDimensions = 1
         params5.size       = 100
         params5.activeBits = 10
         params5.radius     = 4
@@ -198,6 +212,7 @@ class CoordinateEncoderTest(unittest.TestCase):
         """ Verify that distant values have little to no semantic similarity.
         Also measure sparsity & activation frequency. """
         P = CoordinateEncoderParameters()
+        P.numDimensions = 1
         P.size     = 2000
         P.sparsity = .08
         P.radius   = 12
@@ -206,9 +221,10 @@ class CoordinateEncoderTest(unittest.TestCase):
         num_samples = 1000
         A = SDR( R.parameters.size )
         M = Metrics( A, num_samples + 1 )
+        print(R.parameters.radius)
         for i in range( num_samples ):
             X = i * R.parameters.radius
-            R.encode( X, A )
+            R.encode( [X], A )
         print( M )
         assert(M.overlap.max()  < .15 )
         assert(M.overlap.mean() < .10 )
@@ -233,24 +249,41 @@ class CoordinateEncoderTest(unittest.TestCase):
         P.radius   = 12
         P.seed     = 42
         R = CoordinateEncoder( P )
-        A = R.encode( 987654 )
+        A = R.encode( [987654] )
         print( A )
         assert( A == GOLD )
 
     def testSeed(self):
         P = CoordinateEncoderParameters()
+        P.numDimensions = 1
         P.size     = 1000
         P.sparsity = .08
         P.radius   = 12
         P.seed     = 98
         R = CoordinateEncoder( P )
-        A = R.encode( 987654 )
+        A = R.encode( [987654] )
 
         P.seed = 99
         R = CoordinateEncoder( P )
-        B = R.encode( 987654 )
+        B = R.encode( [987654] )
         assert( A != B )
 
-    @unittest.skip(reason="Known issue: https://github.com/htm-community/nupic.cpp/issues/160")
     def testPickle(self):
-        assert(False) # TODO: Unimplemented
+        """
+        The pickling is successfull if pickle serializes and de-serialize the
+        object, and both copies of the object yield identical encodings.
+        """
+        params = CoordinateEncoderParameters()
+        params.numDimensions = 3
+        params.size = 200
+        params.sparsity = 0.05
+        params.resolution = 0.1
+        params.seed = 42
+        enc = CoordinateEncoder(params)
+
+        enc2 = pickle.loads(pickle.dumps(rdse, f))
+
+        value_to_encode = (67, -3., 0)
+        SDR_original = enc.encode(value_to_encode)
+        SDR_loaded   = enc2.encode(value_to_encode)
+        assert SDR_original == SDR_loaded
