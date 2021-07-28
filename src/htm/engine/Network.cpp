@@ -208,10 +208,6 @@ void Network::setPhases_(Region *r, std::set<UInt32> &phases) {
     // with a phase much greater than the phase of any other
     // region. This sanity check catches such problems,
     // though it should arguably be legal to set any phase.
-    if (maxNewPhase - nextPhase > 3)
-      NTA_THROW << "Attempt to set phase of " << maxNewPhase
-                << " when expected next phase is " << nextPhase
-                << " -- this is probably an error.";
 
     phaseInfo_.resize(maxNewPhase + 1);
   }
