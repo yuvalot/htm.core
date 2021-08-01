@@ -157,9 +157,14 @@ Sometimes we want the app to provide the data that will be in the input buffer o
 
 The source_name argument is an identifier of your choice that matches the link which will be used. This allows the app to provide multiple streams of data, each with their own source_name and their own corresponding link.
 
-Since the link will not be able to infer the dimensions on this source, this link declaration must include the dimsions of the data that the app will be providing.  This dimension will be available for the link to infer the dimensions of the input which is the target of the link.
+Since the link will not be able to infer the dimensions on this source, this link declaration must include the dimensions of the data that the app will be providing.  This dimension will be available for the link to infer the dimensions of the input which is the target of the link.  For example, use `"{dim: [<dimensions>]}"` as the link parameter.
 
-Here is an example that might show up in a JSON configuration for NetworkAPI. Our `<source_name>` field is `source1` in this case and a call to setInputData( ... ) to feed data to this link must use `source1` as the first argument.
+Here is an example that might show up in a JSON configuration for NetworkAPI. Our `<source_name>` field is `source1` in this case and a call to setInputData( ... ) to feed data to this link must use `source1` as the first argument.  
+If you are defining the links directly use:
+```
+network.link("INPUT", "sp", "", "{dim: [100]}", "source1", "bottomUpIn");
+```
+If you are defining the links in a configuration string to be used with network.config() then the link portions would include:
 ```
     {addLink:   {src: "INPUT.source1", dest: "sp.bottomUpIn", dim: [100]}},
 ```

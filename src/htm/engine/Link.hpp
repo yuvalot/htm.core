@@ -451,6 +451,9 @@ public:
 
   void setOffset(size_t count) { destOffset_ = count; }
 
+  bool is_FanIn() { return is_FanIn_; }
+  bool is_Overwrite() { return is_Overwrite_; }
+
   /**
    * Display and compare the link.
    *
@@ -477,6 +480,7 @@ public:
        cereal::make_nvp("destInputName", destInputName_),
        cereal::make_nvp("destOffset", destOffset_),
        cereal::make_nvp("is_FanIn", is_FanIn_),
+       cereal::make_nvp("is_Overwrite", is_Overwrite_),
        cereal::make_nvp("propagationDelay", propagationDelay_),
        cereal::make_nvp("propagationDelayBuffer", delay));
   }
@@ -489,6 +493,7 @@ public:
        cereal::make_nvp("destInputName", destInputName_),
        cereal::make_nvp("destOffset", destOffset_),
        cereal::make_nvp("is_FanIn", is_FanIn_),
+       cereal::make_nvp("is_Overwrite", is_Overwrite_),
        cereal::make_nvp("propagationDelay", propagationDelay_),
        cereal::make_nvp("propagationDelayBuffer", propagationDelayBuffer_));
     initialized_ = false;
@@ -525,6 +530,7 @@ private:
   // input. This value is set at initialization time.
   size_t destOffset_;
   bool is_FanIn_;
+  bool is_Overwrite_;
 
   // Queue buffer for delayed source data buffering
   std::deque<Array> propagationDelayBuffer_;

@@ -74,7 +74,21 @@ void Link::commonConstructorInit_(const std::string &linkType,
   propagationDelay_ = propagationDelay;
   destOffset_ = 0;
   is_FanIn_ = false;
+  is_Overwrite_ = false;
   initialized_ = false;
+
+  std::string mode;
+  std::string params = Path::trim(linkParams);
+  if (!params.empty()) {
+    Value v;
+    v.parse(linkParams);
+    if (v.isMap() && v.contains("mode")) {
+      mode = v["mode"].str();
+      if (mode == "Overwrite")
+        is_Overwrite_ = true;
+    }
+  }
+
 
 }
 
@@ -93,8 +107,8 @@ void Link::initialize(size_t destinationOffset, bool is_FanIn) {
       << "Link::initialize() and src_ Output object not set.";
   NTA_CHECK(dest_)
       << "Link::initialize() and dest_ Input object not set.";
- 
-  destOffset_ = destinationOffset;
+  if (is_FanIn)
+    destOffset_ = destinationOffset;
   is_FanIn_ = is_FanIn;
 
   // ---
@@ -292,6 +306,7 @@ bool Link::operator==(const Link &o) const {
       linkParams_ != o.linkParams_ || 
       destOffset_ != o.destOffset_ ||
       is_FanIn_ != o.is_FanIn_ ||
+      is_Overwrite_ != o.is_Overwrite_ ||
       srcRegionName_ != o.srcRegionName_ ||
       destRegionName_ != o.destRegionName_ ||
       srcOutputName_ != o.srcOutputName_ ||

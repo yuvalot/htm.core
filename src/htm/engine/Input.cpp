@@ -152,8 +152,10 @@ void Input::initialize() {
    *  c. If the destination input buffer had been originally
    *     specified, error if the new dimensions are not compatable.
    */
-  if (initialized_)
+  if (initialized_) {
+    NTA_DEBUG << "      fromX: " << region_->getName() << "." << name_ << " dim:" << dim_ << std::endl;
     return;
+  }
 
 
   const std::shared_ptr<Spec> &destSpec = region_->getSpec();
@@ -163,6 +165,7 @@ void Input::initialize() {
   Dimensions d;
   Dimensions inD = dim_;
   bool is_FanIn = links_.size() > 1;
+  bool is_Overwrite = false;
 
   // First determine the original configuration for destination dimensions.
   // Most of the time we get our input dimensions from a connected output
@@ -184,6 +187,14 @@ void Input::initialize() {
 
   if (links_.size() > 0) {
     // We have links.
+
+    // if any link is overwrite then all of them must be.
+    for (auto link : links_) {
+      if (link->is_Overwrite()) {
+        is_Overwrite = true;
+        break;
+      }
+    }
     // Try to determine source dimensions.
     std::vector<Dimensions> Ds;
     for (auto link : links_) {
@@ -201,12 +212,13 @@ void Input::initialize() {
 
       out->initialize(); // creates the output buffers.
 
+
       // Initialize Link.  'total_width' at this point is the byte offset
       // into the input buffer where the output will start writing.
-      link->initialize(total_width, is_FanIn);
+      link->initialize(total_width, is_FanIn && !is_Overwrite);
       total_width += (UInt32)d.getCount();
 
-      if (is_FanIn) {
+      if (is_FanIn && !is_Overwrite) {
         // save some info, we will need it later.
         Ds.push_back(d);
         size_t n = d.size();
@@ -215,7 +227,7 @@ void Input::initialize() {
         if (n > maxD)
           maxD = n;
       } else {
-        // Not a FanIn.
+        // Not a FanIn or is isOverwrite.
         if (inD.isSpecified()) {
           NTA_CHECK(inD.getCount() == d.getCount())
               << "Dimensions were specified for input "
@@ -227,9 +239,11 @@ void Input::initialize() {
           inD = d;  // set the destination dimensions to be same as source.
         }
       }
+      NTA_DEBUG << "    from " << out->getRegion()->getName() << "." << out->getName() << " " << d << std::endl;
+
     }
 
-    if (is_FanIn) {
+    if (is_FanIn && !is_Overwrite) {
       // Try to figure out the destination dimensions derived
       // from the source dimensions. If any source dimension other
       // than the top level did not match we will have to flatten
@@ -314,6 +328,8 @@ void Input::initialize() {
     data_.allocateBuffer(dim_.getCount());
     data_.zeroBuffer();
   }
+
+  NTA_DEBUG << "      to: " << region_->getName() << "." << name_ <<" dim:" << dim_ << std::endl;
 
   initialized_ = true;
 }
