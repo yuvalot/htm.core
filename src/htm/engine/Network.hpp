@@ -91,7 +91,7 @@ public:
    *             name: <region name>
    *             type: <region type>
    *             params: <list of parameters>  (optional)
-   *             phase:  <phase ID or a list of phases> (optional)
+   *             phase:  <phase ID or a list of phases to put this region into> (optional)
    *
    *         - addLink:
    *             src: <Name of the source region "." Output name>
@@ -229,7 +229,7 @@ public:
   					                        const std::string &nodeType,
                                     const std::string &nodeParams,
                                     const std::set<UInt32> &phases);
-  // An overload to use without phases (region executed in phase 0)
+  // An overload to use without phases (region placed in phase 0)
   std::shared_ptr<Region> addRegion(const std::string &name,
   					                        const std::string &nodeType,
                                     const std::string &nodeParams);
@@ -411,7 +411,7 @@ public:
    * 
    * At the end of each iteration, the callback function is called and the delays are advanced.
    * 
-   * Just prior to execution of a region, its inputs are obtained from attached links.
+   * Just after execution of a region, its outputs are distributed to inputs via attached links.
    *
    * @param n Number of iterations
    * @param phase The phase ID or a vector of phase ID's of the phases to execute.  
@@ -537,6 +537,10 @@ public:
 
   // Returns a text version of the phase structure.
   std::string phasesToString() const;
+
+  // Returns a text version of order of execution
+  std::string getExecutionMap();
+
 
 private:
   // Both constructors use this common initialization method

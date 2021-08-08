@@ -244,10 +244,6 @@ public:
    *            Propagation delay of the link as number of network run
    *            iterations involving the link as input; the delay vectors, if
    *            any, are initially populated with 0's. Defaults to 0=no delay.
-   *            Per design, data on no-delay links is to become available to
-   *            destination inputs within the same time step, while data on
-   *            delayed links (propagationDelay > 0) is to be updated
-   *            "atomically" between time steps.
    *
    * @internal
    *
@@ -432,14 +428,12 @@ public:
 
 
   /*
-   * No-op for links without delay; for delayed links, remove head element of
+   * for delayed links, remove head element of
    * the propagation delay buffer and push back the current value from source.
+   * Return the value that was just poped from the head of the queue.
    *
-   * NOTE It's intended that this method be called exactly once on all links
-   * within a network at the end of every time step. Network::run calls it
-   * automatically on all links at the end of each time step.
    */
-  void shiftBufferedData();
+  const Array shiftBufferedData();
 
   /**
    * Convert the Link to a human-readable string.
@@ -451,8 +445,9 @@ public:
 
   void setOffset(size_t count) { destOffset_ = count; }
 
-  bool is_FanIn() { return is_FanIn_; }
-  bool is_Overwrite() { return is_Overwrite_; }
+  bool is_FanIn() const { return is_FanIn_; }
+  bool is_Overwrite() const { return is_Overwrite_; }
+  void set_Overwrite(bool val) { is_Overwrite_ = val; }
 
   /**
    * Display and compare the link.

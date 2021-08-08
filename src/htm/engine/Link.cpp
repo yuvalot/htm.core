@@ -77,18 +77,6 @@ void Link::commonConstructorInit_(const std::string &linkType,
   is_Overwrite_ = false;
   initialized_ = false;
 
-  std::string mode;
-  std::string params = Path::trim(linkParams);
-  if (!params.empty()) {
-    Value v;
-    v.parse(linkParams);
-    if (v.isMap() && v.contains("mode")) {
-      mode = v["mode"].str();
-      if (mode == "Overwrite")
-        is_Overwrite_ = true;
-    }
-  }
-
 
 }
 
@@ -107,8 +95,8 @@ void Link::initialize(size_t destinationOffset, bool is_FanIn) {
       << "Link::initialize() and src_ Output object not set.";
   NTA_CHECK(dest_)
       << "Link::initialize() and dest_ Input object not set.";
-  if (is_FanIn)
-    destOffset_ = destinationOffset;
+ 
+  destOffset_ = destinationOffset;
   is_FanIn_ = is_FanIn;
 
   // ---
@@ -161,7 +149,14 @@ const std::string Link::toString() const {
   ss << " to " << getDestRegionName() << "." << getDestInputName();
   if (dest_) {
     ss << dest_->getDimensions().toString();
+    if (is_Overwrite())
+      ss << " overwrite";
+    else if (is_FanIn())
+      ss << " fanIn(at " << destOffset_ << ")";
+    if (propagationDelay_)
+      ss << " delay " << propagationDelay_;
   }
+  ss << "}";
   return ss.str();
 }
 
@@ -171,8 +166,7 @@ void Link::connectToNetwork(std::shared_ptr<Output> src, std::shared_ptr<Input> 
 
   src_ = src.get();
   dest_ = dest.get();
-  
-  
+
   // Process link parameters at this point.
   std::string params = Path::trim(linkParams_);
   if (!params.empty()) {
@@ -183,30 +177,33 @@ void Link::connectToNetwork(std::shared_ptr<Output> src, std::shared_ptr<Input> 
       // A dimension was provided.  This will set the dimensions on the source.
       // which will usually propogate to the destination Input.
       //     dim: [1,2]
-      //     dim: 25 
+      //     dim: 25
       const Value vm1 = vm["dim"];
       if (vm1.isSequence()) {
         Dimensions dim(vm1.asVector<UInt>());
-        
+
         src_->setDimensions(dim);
       } else if (vm1.isScalar()) {
         Dimensions dim(vm1.as<UInt>());
         src_->setDimensions(dim);
       } else {
-        NTA_THROW << "Unexepected syntax in dim parameter of the Link. " << params;
+        NTA_THROW << "Unexepected syntax in 'dim' parameter in Link parameters: " << params;
       }
 
-    } else {
-      NTA_THROW << "unknown parameter specified in Link. " << params;
-    }
+    } else if (vm.isMap() && vm.contains("mode")) {
+      std::string mode = vm["mode"].str();
+      std::transform(mode.begin(), mode.end(), mode.begin(), ::tolower);
+      if (mode == "overwrite")
+        is_Overwrite_ = true;
+      else if (mode != "fanin" )
+        NTA_THROW << "Unexepected value for parameter 'mode' in Link parameters: " << params;
+    } 
   }
-
-  
 }
+
 
 // The methods below only work on connected links.
 Output* Link::getSrc() const
-
 {
   NTA_CHECK(src_)
       << "Link::getSrc() can only be called on a connected link";
@@ -223,17 +220,13 @@ Input* Link::getDest() const {
 void Link::compute() {
   NTA_CHECK(initialized_);
 
-  if (propagationDelay_) {
-    // A delayed link's queue buffer size should always be number of delays.
-    NTA_CHECK(propagationDelayBuffer_.size() == (propagationDelay_));
-  }
-
   // Copy data from source to destination. For delayed links, will copy from
   // head of circular queue; otherwise directly from source.
-  const Array &src = propagationDelay_ ? propagationDelayBuffer_.front() : src_->getData();
+  const Array &src = propagationDelay_ ? shiftBufferedData() : src_->getData();
   Array &dest = dest_->getData();
 
-  NTA_DEBUG << "compute Link: copying " << getMoniker()
+  NTA_DEBUG << "compute Link: copying " << getMoniker() 
+              << "; mode=" << ((is_Overwrite_)? "overwrite" :((is_FanIn_)? "fanin": ""))
               << "; delay=" << propagationDelay_ << "; size=" << src.getCount()
               << " type=" << BasicType::getName(src.getType())
               << " --> " << BasicType::getName(dest.getType()) << std::endl;
@@ -242,7 +235,7 @@ void Link::compute() {
         << "Not enough room in buffer to propogate to " << destRegionName_
         << " " << destInputName_ << ". ";
 
-  if (src.getType() == dest.getType() && !is_FanIn_ && propagationDelay_==0) {
+  if (src.getType() == dest.getType() && (!is_FanIn_ || is_Overwrite_) && propagationDelay_==0) {
     dest = src;   // Performs a shallow copy. Data not copied but passed in shared_ptr.
   } else {
     // we must perform a deep copy with possible type conversion.
@@ -253,10 +246,10 @@ void Link::compute() {
   }
 }
 
-void Link::shiftBufferedData() {
-  if (propagationDelay_) {   // Source buffering is not used in 0-delay links
-    Array& from = src_->getData();
+const Array Link::shiftBufferedData() {
     NTA_CHECK(propagationDelayBuffer_.size() == (propagationDelay_));
+    Array to = propagationDelayBuffer_.front();
+    Array& from = src_->getData();
 
     // push a copy of the source Output buffer on the back of the queue.
     // This must be a deep copy.
@@ -266,7 +259,8 @@ void Link::shiftBufferedData() {
     // Pop the head of the queue
     // The top of the queue now becomes the value to copy to destination.
     propagationDelayBuffer_.pop_front();
-  }
+
+    return to;
 }
 
 std::deque<Array> Link::preSerialize() const {

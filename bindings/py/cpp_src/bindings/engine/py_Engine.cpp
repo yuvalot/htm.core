@@ -412,7 +412,18 @@ namespace htm_ext
 
         py_Network.def("addRegion", (Region_Ptr_t (htm::Network::*)(
                     const std::string&,
-                      const std::string&,
+                    const std::string&,
+                    const std::string&,
+                    const std::set<UInt32> &phases))
+                    &htm::Network::addRegion,
+                    "Normal add region."
+                    , py::arg("name")
+                    , py::arg("nodeType" )
+                    , py::arg("nodeParams")
+                    , py::arg("phases"));
+        py_Network.def("addRegion", (Region_Ptr_t (htm::Network::*)(
+                    const std::string&,
+                    const std::string&,
                     const std::string&))
                     &htm::Network::addRegion,
                     "Normal add region."
@@ -438,7 +449,15 @@ namespace htm_ext
             .def("getMinEnabledPhase", &htm::Network::getMinPhase)
             .def("getMaxEnabledPhase", &htm::Network::getMaxPhase)
             .def("setPhases",          &htm::Network::setPhases)
-            .def("run",                &htm::Network::run);
+            .def("getExecutionMap",    &htm::Network::getExecutionMap);
+            
+        py_Network.def("run", (void (htm::Network::*)(int n)) &htm::Network::run
+             , "Executes all phases n times."
+             , py::arg("n"));
+        py_Network.def("run", (void (htm::Network::*)(int n, std::vector<UInt32> phases)) &htm::Network::run
+             , "Execute a set of phases in the given order, repeating n times."
+             , py::arg("n"), py::arg("phases"));
+             
 
         py_Network.def("initialize", &htm::Network::initialize);
 

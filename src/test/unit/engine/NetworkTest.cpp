@@ -673,23 +673,29 @@ TEST(NetworkTest, Scenario2) {
        {addRegion: {name: "C", type: "PassthruRegion", phase: 2}},
        {addRegion: {name: "D", type: "PassthruRegion", phase: 2}},
        {addRegion: {name: "E", type: "PassthruRegion", phase: 3}},
-       {addLink:   {src: "INPUT.begin", dest: "A.input_u", mode: overwrite, dim: [10]}},
+       {addLink:   {src: "INPUT.begin", dest: "A.input_u", dim: [10]}},
        {addLink:   {src: "A.output_u", dest: "B.input_u"}},
        {addLink:   {src: "B.output_u", dest: "C.input_u"}},
        {addLink:   {src: "C.output_u", dest: "D.input_u"}},
-       {addLink:   {src: "D.output_u", dest: "C.input_u"}},
+       {addLink:   {src: "D.output_u", dest: "C.input_u", mode: overwrite }},
        {addLink:   {src: "D.output_u", dest: "E.input_u"}},
     ]})";
   n.configure(config);
 
-// n.setLogLevel(LogLevel::LogLevel_Verbose);
-  n.initialize();
-// n.setLogLevel(LogLevel::LogLevel_Normal);
+//LogLevel ll = NTA_LOG_LEVEL; // this is a global
+//n.setLogLevel(LogLevel::LogLevel_Verbose);
+  n.initialize();  // initalizes regions and links
+//n.setLogLevel(ll);
 
   // we start with the first element being 0.
   std::vector<UInt32> initialdata = {0u, 1u, 2u, 3u, 4u, 5u, 6u, 7u, 8u, 9u};
   n.setInputData("begin", initialdata);
 
+  // confirm that the INPUT.begin buffer is populated.
+  std::shared_ptr<Region> input = n.getRegion("INPUT");
+  const Array &input_data = input->getOutputData("begin");
+  EXPECT_EQ(input_data.asVector<UInt32>(), initialdata);
+  n.run(1, {0}); // execute the internal INPUT region.
   n.run(1, {1}); // execute A, B once
   n.run(3, {2}); // execute C, D three times
   n.run(1, {3}); // execute E once
@@ -707,17 +713,26 @@ TEST(NetworkTest, SaveRestore) {
   // Note: this sort-of mimics test in network_test.py "testNetworkPickle"
   Network network;
   network.registerRegion("PassthruRegion", new RegisteredRegionImplCpp<PassthruRegion>());
-  auto r_from = network.addRegion("from", "PassthruRegion", "");
-  auto r_to = network.addRegion("to", "PassthruRegion", "");
+  auto r_from = network.addRegion("A", "PassthruRegion", "");
+  auto r_to = network.addRegion("B", "PassthruRegion", "");
 
-  network.link("INPUT", "from", "", "{dim: [10]}", "begin", "input_u");
-  network.link("from", "to", "", "", "output_u", "input_u");
+  network.link("INPUT", "A", "", "{dim: [10]}", "begin", "input_u");
+  network.link("A", "B", "", "", "output_u", "input_u");
   network.initialize();
-  size_t cnt = r_from->getNodeOutputElementCount("from");
-  ASSERT_EQ(10u, cnt);
 
   std::vector<UInt32> initialdata = {0u, 1u, 2u, 3u, 4u, 5u, 6u, 7u, 8u, 9u};
   network.setInputData("begin", initialdata);
+
+//LogLevel ll = NTA_LOG_LEVEL; // this is a global
+//network.setLogLevel(LogLevel::LogLevel_Verbose);
+  network.run(1);
+//network.setLogLevel(ll);
+
+  // Confirm we have a reasonable output buffer after one run.
+  std::shared_ptr<Region> regionB1 = network.getRegion("B");
+  const Array &result1 = regionB1->getOutputData("output_u");
+  std::vector<UInt32> expecteddata = {2u, 1u, 2u, 3u, 4u, 5u, 6u, 7u, 8u, 9u};
+  EXPECT_EQ(result1.asVector<UInt32>(), expecteddata);
 
   std::stringstream ss;
   network.save(ss);
@@ -725,8 +740,14 @@ TEST(NetworkTest, SaveRestore) {
   Network network2;
   network2.load(ss);
 
-  std::string s1 = network.getRegion("to")->executeCommand({"HelloWorld", "26", "64"});
-  std::string s2 = network2.getRegion("to")->executeCommand({"HelloWorld", "26", "64"});
+  // Confirm the output buffer is still correct.
+  std::shared_ptr<Region> regionB2 = network2.getRegion("B");
+  const Array &result2 = regionB2->getOutputData("output_u");
+  EXPECT_EQ(result2.asVector<UInt32>(), expecteddata);
+
+
+  std::string s1 = network.getRegion("B")->executeCommand({"HelloWorld", "26", "64"});
+  std::string s2 = network2.getRegion("B")->executeCommand({"HelloWorld", "26", "64"});
   ASSERT_STREQ(s1.c_str(), "Hello World says: arg1=26 arg2=64");
   ASSERT_STREQ(s1.c_str(), s2.c_str());
 }
