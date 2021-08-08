@@ -345,9 +345,9 @@ TEST(NetworkTest, MinMaxPhase) {
 
   EXPECT_THROW(n.setMinEnabledPhase(1), std::exception);
   EXPECT_THROW(n.setMaxEnabledPhase(1), std::exception);
-  std::shared_ptr<Region> l1 = n.addRegion("level1", "TestNode", "", {1});
-  std::shared_ptr<Region> l2 = n.addRegion("level2", "TestNode", "", {2});
-  std::shared_ptr<Region> l3 = n.addRegion("level3", "TestNode", "", {3});
+  std::shared_ptr<Region> l1 = n.addRegion("level1", "TestNode", "", 1);
+  std::shared_ptr<Region> l2 = n.addRegion("level2", "TestNode", "", 2);
+  std::shared_ptr<Region> l3 = n.addRegion("level3", "TestNode", "", 3);
   std::shared_ptr<Region> l4 = n.addRegion("level4", "TestNode", "", {1,2});
   Dimensions d;
   d.push_back(1);
