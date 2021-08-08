@@ -516,13 +516,15 @@ TEST(NetworkTest, Callback) {
 
 TEST(NetworkTest, Scenario1) {
   // This is intended to demonstrate execution order as A B C D C D C D E
+  // Here we create three phases, phase 1 containing A and B, 
+  // phase 2 containing phases C and D, and phase 3 containing E.
   Network n;
 
-  std::shared_ptr<Region> regionA = n.addRegion("A", "TestNode", "{dim: [1]}", {1});
-  std::shared_ptr<Region> regionB = n.addRegion("B", "TestNode", "{dim: [1]}", {1});
-  std::shared_ptr<Region> regionC = n.addRegion("C", "TestNode", "{dim: [1]}", {2});
-  std::shared_ptr<Region> regionD = n.addRegion("D", "TestNode", "{dim: [1]}", {2});
-  std::shared_ptr<Region> regionE = n.addRegion("E", "TestNode", "{dim: [1]}", {3});
+  std::shared_ptr<Region> regionA = n.addRegion("A", "TestNode", "{dim: [1]}", 1);
+  std::shared_ptr<Region> regionB = n.addRegion("B", "TestNode", "{dim: [1]}", 1);
+  std::shared_ptr<Region> regionC = n.addRegion("C", "TestNode", "{dim: [1]}", 2);
+  std::shared_ptr<Region> regionD = n.addRegion("D", "TestNode", "{dim: [1]}", 2);
+  std::shared_ptr<Region> regionE = n.addRegion("E", "TestNode", "{dim: [1]}", 3);
 
   regionA->setParameterUInt64("computeCallback", (UInt64)recordCompute);
   regionB->setParameterUInt64("computeCallback", (UInt64)recordCompute);
@@ -531,9 +533,9 @@ TEST(NetworkTest, Scenario1) {
   regionE->setParameterUInt64("computeCallback", (UInt64)recordCompute);
 
   computeHistory.clear();
-  n.run(1, {1}); // execute A, B once
-  n.run(3, {2}); // execute C, D three times
-  n.run(1, {3}); // execute E once
+  n.run(1, 1); // execute A, B once
+  n.run(3, 2); // execute C, D three times
+  n.run(1, 3); // execute E once
 
   ASSERT_EQ(9u, computeHistory.size());
   EXPECT_STREQ("A", computeHistory.at(0).c_str());
@@ -545,6 +547,10 @@ TEST(NetworkTest, Scenario1) {
   EXPECT_STREQ("C", computeHistory.at(6).c_str());
   EXPECT_STREQ("D", computeHistory.at(7).c_str());
   EXPECT_STREQ("E", computeHistory.at(8).c_str());
+
+
+  n.run(1, {1, 2});   // execute just phase 1 and 2
+  n.run(1);           // execute all phases
 }
 
 /**
@@ -695,10 +701,10 @@ TEST(NetworkTest, Scenario2) {
   std::shared_ptr<Region> input = n.getRegion("INPUT");
   const Array &input_data = input->getOutputData("begin");
   EXPECT_EQ(input_data.asVector<UInt32>(), initialdata);
-  n.run(1, {0}); // execute the internal INPUT region.
-  n.run(1, {1}); // execute A, B once
-  n.run(3, {2}); // execute C, D three times
-  n.run(1, {3}); // execute E once
+  n.run(1, 0); // execute the internal INPUT region.
+  n.run(1, 1); // execute A, B once
+  n.run(3, 2); // execute C, D three times
+  n.run(1, 3); // execute E once
 
   // We should end with the first element incremented the same number of times
   // that LinkRegion was executed. This shows that the message went through

@@ -229,6 +229,15 @@ public:
   					                        const std::string &nodeType,
                                     const std::string &nodeParams,
                                     const std::set<UInt32> &phases);
+  // An overload to use with a single phase as an integer (avoid warning of scaler initializer)
+  std::shared_ptr<Region> addRegion(const std::string &name, 
+                                    const std::string &nodeType, 
+                                    const std::string &nodeParams,
+                                    UInt32 phase) {
+    std::set<UInt32> phases;
+    phases.insert(phase);
+    return addRegion(name, nodeType, nodeParams, phases);
+  }
   // An overload to use without phases (region placed in phase 0)
   std::shared_ptr<Region> addRegion(const std::string &name,
   					                        const std::string &nodeType,
