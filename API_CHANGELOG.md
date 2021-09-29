@@ -156,4 +156,5 @@ mostly just a thin wrapper around the C++ library.
   The `label` argument can now be an unsigned integer (the label index) or it can be a vector containing a set of label indexes that relate to this pattern.
   This was done because syntax such as `{4}` passed as the label, intended to create a vector with one element, is now being rejected by at least one compiler.  
   So, just pass the label index directly if there is only one. 
-  
+
+- AnomalyLikelihood class has been rewritten and its API simplified. PR #958
