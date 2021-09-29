@@ -45,6 +45,7 @@ class AnomalyLikelihood:
     self.mean     = 1.0
     self.var      = 0.0003
     self.std      = math.sqrt(self.var)
+    self.prev     = 0.0
 
   def compute(self, anomaly):
     """ Returns the probability that an anomaly has occurred.
@@ -53,9 +54,11 @@ class AnomalyLikelihood:
     score is greater than a historical distribution of anomaly scores. Then
     updates the historical distribution to include the given anomaly score.
     """
-    p = self.get_log_likelihood(anomaly)
+    likelihood = self.get_likelihood(anomaly)
     self.add_record(anomaly)
-    return p
+    combined = 1 - (1 - likelihood) * (1 - self.prev)
+    self.prev = likelihood
+    return self.get_log_likelihood(combined)
 
   def add_record(self, anomaly):
     """
@@ -87,14 +90,13 @@ class AnomalyLikelihood:
     except ZeroDivisionError: z = float('inf')
     return 1.0 - 0.5 * math.erfc(z/1.4142)
 
-  def get_log_likelihood(self, anomaly):
+  def get_log_likelihood(self, likelihood):
     """
     Compute a log scale representation of the likelihood value. Since the
     likelihood computations return low probabilities that often go into four 9's
     or five 9's, a log value is more useful for visualization, thresholding,
     etc.
     """
-    likelihood = self.get_likelihood(anomaly)
     # The log formula is:
     #     Math.log(1.0000000001 - likelihood) / Math.log(1.0 - 0.9999999999)
     return math.log(1.0000000001 - likelihood) / -23.02585084720009
