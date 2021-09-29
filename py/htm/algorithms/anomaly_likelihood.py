@@ -80,12 +80,6 @@ class AnomalyLikelihood:
     This returns "P(score >= distribution)" which is the probability that the
     given anomaly score is greater than or equal to a random number from this
     distribution.
-
-    Compute the tail probability: Given this normal distribution and an anomaly
-    value, return the probability of getting samples further from the mean. For
-    values above the mean, this is the probability of getting samples > x and
-    for values below the mean, the probability of getting samples < x. This is
-    the Q-function: the tail probability of the normal distribution.
     """
     # Calculate the Q function with the complementary error function, explained
     # here: http://www.gaussianwaves.com/2012/07/q-function-and-error-functions
