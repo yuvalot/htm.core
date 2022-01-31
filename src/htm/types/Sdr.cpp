@@ -283,10 +283,25 @@ namespace htm {
         NTA_ASSERT( dimensions == sdr.dimensions );
 
         UInt ovlp = 0u;
-        const auto a = this->getDense();
-        const auto b = sdr.getDense();
-        for( UInt i = 0u; i < size; i++ )
-            ovlp += a[i] && b[i];
+        const auto a_sparse = this->getSparse();
+        const auto b_sparse = sdr.getSparse();
+        long unsigned int a_idx = 0u;
+        long unsigned int b_idx = 0u;
+        while( a_idx < a_sparse.size() && b_idx < b_sparse.size() ) {
+            auto a = a_sparse[a_idx];
+            auto b = b_sparse[b_idx];
+            if( a == b ) {
+                ovlp += 1u;
+                a_idx += 1u;
+                b_idx += 1u;
+            }
+            else if( a > b ) {
+                b_idx += 1u;
+            }
+            else {
+                a_idx += 1u;
+            }
+        }
         return ovlp;
     }
 
