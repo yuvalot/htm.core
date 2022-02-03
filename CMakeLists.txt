@@ -15,7 +15,9 @@
 # along with this program.  If not, see http://www.gnu.org/licenses.
 # -----------------------------------------------------------------------------
 
-cmake_minimum_required(VERSION 3.7)
+cmake_minimum_required(VERSION 3.7...3.22.2)
+#    Means CMake 3.7 is minimum version but has been tested with CMake 3.22.2
+
 project(htm_core CXX)
 
 set(CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}")

@@ -16,7 +16,7 @@ This is a Community Fork of the [nupic.core](https://github.com/numenta/nupic.co
 
 ## Features
 
- * Implemented in C++11 through C++17
+ * Implemented in C\+\+11 through C\+\+17
     + Static and shared lib files for use with C++ applications.
  * Interfaces to Python 3 and Python 2.7 (Only Python 3 under Windows)
  * Cross Platform Support for Windows, Linux, OSX and ARM64
@@ -43,7 +43,7 @@ in C++ library.
 ### Binary releases
 
 If you want to use `htm.core` from Python, the easiest method is to install from [PyPI](https://test.pypi.org/project/htm.core/)
-  - Note: to install from `pip` you'll need Python 3.7+ 
+  - Note: to install from `pip` you'll need Python 3.7 only(does not work with older or newer versions)
 
 ```
 python -m pip install -i https://test.pypi.org/simple/ htm.core
@@ -92,11 +92,13 @@ git clone https://github.com/htm-community/htm.core
 #### Prerequisites
 
 - same as for Binary releases, plus:
-- **C++ compiler**: c++11/17 compatible (ie. g++, clang++).
-- boost library (if not a C++17 compiler that supports filesystem.)
+- **C\+\+ compiler**: c\+\+11/17 compatible (ie. g++, clang\+\+).
+- boost library (if not a C\+\+17 or greater compiler that supports filesystem.) 
+  If the build needs boost, it will automatically download and install boost with the options it needs.
+- CMake 3.7+  (MSVC 2019 needs CMake 3.14+, MSVC 2022 needs CMake 3.21+).  
+  Install the latest using [https://cmake.org/download/](https://cmake.org/download/)
 
-Note: Windows MSVC 2019 runs as C++17 by default.  On linux use -std=c++17 compile option to 
-      avoid needing boost.
+Note: Windows MSVC 2019 runs as C\+\+17 by default so boost is not needed.  On linux use -std=c++17 compile option to avoid needing boost.
 
 
 #### Simple Python build (any platform)
@@ -111,8 +113,7 @@ Note: Windows MSVC 2019 runs as C++17 by default.  On linux use -std=c++17 compi
    * If you are using Anaconda Python you must run within the `Anaconda Prompt` on Windows. Do not use --user or --force options.
 
    * If you run into problems due to caching of arguments in CMake, delete the
-   folder `<path-to-repo>/build` and try again.  This may be only an issue when
-   developing C++ code.
+   folder `<path-to-repo>/build` and try again.  This may be only an issue when you restart a build after a failure.
 
 3) After that completes you are ready to import the library:
     ```python
