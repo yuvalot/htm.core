@@ -69,7 +69,6 @@ class ApicalTiebreakTemporalMemory(object):
                  apicalPredictedSegmentDecrement=0.0,
                  maxSynapsesPerSegment=-1,
                  maxSegmentsPerCell=255,
-                 useApicalTiebreak=True,
                  seed=42):
         """
         @param columnCount (int)
@@ -162,8 +161,8 @@ class ApicalTiebreakTemporalMemory(object):
         self.basalInputSize = basalInputSize
         self.apicalInputSize = apicalInputSize
 
-        self.useApicalTiebreak = useApicalTiebreak
-        self.useApicalModulationBasalThreshold=self.useApicalTiebreak
+        self.useApicalTiebreak = True
+        self.useApicalModulationBasalThreshold = True
 
     def reset(self):
         """
@@ -1008,7 +1007,6 @@ class ApicalTiebreakSequenceMemory(ApicalTiebreakTemporalMemory):
                  basalPredictedSegmentDecrement=0.0,
                  apicalPredictedSegmentDecrement=0.0,
                  maxSynapsesPerSegment=-1,
-                 useApicalTiebreak=True,
                  seed=42):
         params = {
             "columnCount": columnCount,
@@ -1026,7 +1024,6 @@ class ApicalTiebreakSequenceMemory(ApicalTiebreakTemporalMemory):
             "basalPredictedSegmentDecrement": basalPredictedSegmentDecrement,
             "apicalPredictedSegmentDecrement": apicalPredictedSegmentDecrement,
             "maxSynapsesPerSegment": maxSynapsesPerSegment,
-            "useApicalTiebreak": useApicalTiebreak,
             "seed": seed,
         }
 

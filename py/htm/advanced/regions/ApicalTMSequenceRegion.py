@@ -152,13 +152,6 @@ class ApicalTMSequenceRegion(PyRegion):
                     "count": 1,
                     "defaultValue": "true"
                 },
-                "useApicalTiebreak": {
-                    "description": "Sets whether we actually use apical tie-break.",
-                    "accessMode": "ReadWrite",
-                    "dataType": "Bool",
-                    "count": 1,
-                    "defaultValue": "true"
-                },
                 "cellsPerColumn": {
                     "description": "Number of cells per column",
                     "accessMode": "Create",
@@ -306,7 +299,6 @@ class ApicalTMSequenceRegion(PyRegion):
              learnOnOneCell=False, # ApicalTiebreakCPP only
              maxSynapsesPerSegment=255,
              maxSegmentsPerCell=255, # ApicalTiebreakCPP only
-             useApicalTiebreak=True,
              seed=42,
 
              # Region params
@@ -333,7 +325,6 @@ class ApicalTMSequenceRegion(PyRegion):
         self.maxSynapsesPerSegment = maxSynapsesPerSegment
         self.maxSegmentsPerCell = maxSegmentsPerCell
         self.learnOnOneCell = learnOnOneCell
-        self.useApicalTiebreak = useApicalTiebreak
         self.seed = seed
 
         # Region params
@@ -366,7 +357,6 @@ class ApicalTMSequenceRegion(PyRegion):
                 "basalPredictedSegmentDecrement": self.basalPredictedSegmentDecrement,
                 "apicalPredictedSegmentDecrement": self.apicalPredictedSegmentDecrement,
                 "maxSynapsesPerSegment": self.maxSynapsesPerSegment,
-                "useApicalTiebreak": self.useApicalTiebreak,
                 "seed": self.seed,
             }
 
