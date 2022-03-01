@@ -16,7 +16,8 @@
 # -----------------------------------------------------------------------------
 
 cmake_minimum_required(VERSION 3.7...3.22.2)
-#    Means CMake 3.7 is minimum version but has been tested with CMake 3.22.2
+#    Means that CMake 3.7 is the minimum version but the build has been tested with CMake 3.22.2
+#    CMake versions higher than 3.22.2 are likely to work as well.
 
 project(htm_core CXX)
 
