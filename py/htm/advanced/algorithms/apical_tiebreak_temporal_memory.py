@@ -161,8 +161,8 @@ class ApicalTiebreakTemporalMemory(object):
         self.basalInputSize = basalInputSize
         self.apicalInputSize = apicalInputSize
 
-        self.useApicalTiebreak=True
-        self.useApicalModulationBasalThreshold=True
+        self.useApicalTiebreak = True
+        self.useApicalModulationBasalThreshold = True
 
     def reset(self):
         """
@@ -196,7 +196,7 @@ class ApicalTiebreakTemporalMemory(object):
         """
         activeApicalSegments, matchingApicalSegments, apicalPotentialOverlaps = self._calculateApicalSegmentActivity(apicalInput)
 
-        if learn or self.useApicalModulationBasalThreshold == False:
+        if learn or not self.useApicalModulationBasalThreshold:
             reducedBasalThresholdCells = ()
         else:
             reducedBasalThresholdCells = self.apicalConnections.mapSegmentsToCells(activeApicalSegments)
@@ -286,9 +286,8 @@ class ApicalTiebreakTemporalMemory(object):
                 self._learnOnNewSegments(self.apicalConnections, newApicalSegmentCells, apicalGrowthCandidates)
 
         # Save the results
-        newActiveCells.sort()
         learningCells.sort()
-        self.activeCells = newActiveCells
+        self.activeCells = np.unique(newActiveCells)
         self.winnerCells = learningCells
         self.predictedActiveCells = correctPredictedCells
 
@@ -499,7 +498,7 @@ class ApicalTiebreakTemporalMemory(object):
         """
 
         cellsForBasalSegments = self.basalConnections.mapSegmentsToCells(activeBasalSegments)
-        if self.useApicalTiebreak == False:
+        if not self.useApicalTiebreak:
             predictedCells = cellsForBasalSegments
 
         else:
