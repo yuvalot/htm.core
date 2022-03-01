@@ -38,6 +38,7 @@ VERSION
 
 # Test Output files
 bindings/py/tests/*.stream
+TestOutputDir/*
 
 # /
 /.gdb_history

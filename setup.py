@@ -31,6 +31,7 @@ from setuptools.command.test import test as BaseTestCommand
 from setuptools import Extension
 from pathlib import Path
 from sys import version_info
+from packaging import version
 
 # NOTE:  To debug the python bindings in a debugger, use the procedure
 #        described here: https://pythonextensionpatterns.readthedocs.io/en/latest/debugging/debug_in_ide.html
@@ -245,10 +246,10 @@ def getExtensionFiles(platform, build_type):
 def isMSVC_installed(ver):
   """
   For windows we need to know the most recent version of Visual Studio that is installed.
-  This is because the calling arguments for setting x64 is different between 2017 and 2019.
+  This is because the calling arguments for Visual Studio is different between the versions.
   
   Run vswhere to get Visual Studio info.  (only available in MSVC 2017 and later)
-  Parse the json and look in displayName for "2017" or "2019"
+  Parse the json and look in displayName containing "2017", "2019" or 2022
   return true if ver is found.
   """
   vswhere = "C:\\Program Files (x86)\\Microsoft Visual Studio\\Installer\\vswhere.exe"
@@ -258,6 +259,23 @@ def isMSVC_installed(ver):
     if 'displayName' in vs and ver in vs['displayName']: return True
   return False
 
+
+def getCMakeVersion():
+  """
+  Get the version from the currently installed CMake program.
+  This should work on Windows, OSx and Linux.
+  Return the result as an instance of the object packaging.Version.
+  These can be compared with >, >=, etc.
+  See https://stackoverflow.com/questions/11887762/how-do-i-compare-version-numbers-in-python
+  """
+  result = subprocess.run(["cmake", "--version"], capture_output=True, text=True)
+  if result.stderr=="":
+    str = result.stdout
+    str = str.split("\n",1)[0].split()[2]
+    ver = version.parse(str)
+    return ver
+  return False
+  
 
 def generateExtensions(platform, build_type):
   """
@@ -317,6 +335,11 @@ def configure(platform, build_type):
       os.makedirs(scriptsDir)
     os.chdir(scriptsDir)
     
+    # Make sure we have CMake installed
+    cmake_ver = getCMakeVersion();
+    if cmake_ver == False:
+      raise Exception("CMake is not found.");
+    
     # Call CMake to setup the cache for the build.
     # Normally we would let CMake figure out the generator based on the platform.
     # But Visual Studio gets it wrong.  By default it uses 32 bit and we support only x64.  
@@ -328,13 +351,21 @@ def configure(platform, build_type):
       if platform == "windows":
         # Check to see if the CMake cache already exists and defines BINDING_BUILD.  If it does, skip this step
         if not os.path.isfile('CMakeCache.txt') or not 'BINDING_BUILD:STRING=Python3' in open('CMakeCache.txt').read():
-          # Note: the calling arguments for MSVC 2017 is not the same as for MSVC 2019
-          if isMSVC_installed("2019"):
+          if isMSVC_installed("2022"):
+            if cmake_ver < version.parse("3.21"):
+               raise Exception("Microsoft Visual Studio 2022 requires CMake 3.21 or greater.")
+            subprocess.check_call(["cmake", "-G", "Visual Studio 17 2022", "-A", "x64", BUILD_TYPE, PY_VER, REPO_DIR])
+          elif isMSVC_installed("2019"):
+            if cmake_ver < version.parse("3.14"):
+               raise Exception("Microsoft Visual Studio 2019 requires CMake 3.14 or greater")
             subprocess.check_call(["cmake", "-G", "Visual Studio 16 2019", "-A", "x64", BUILD_TYPE, PY_VER, REPO_DIR])
           elif isMSVC_installed("2017"):
+            if cmake_ver < version.parse("3.7"):
+               raise Exception("Microsoft Visual Studio 2017 requires CMake 3.7 or greater")
+            # Note: the calling arguments for MSVC 2017 is not the same as for MSVC 2019
             subprocess.check_call(["cmake", "-G", "Visual Studio 15 2017 Win64", BUILD_TYPE, PY_VER, REPO_DIR])
           else:
-            raise Exception("Did not find Microsoft Visual Studio 2017 or 2019.")
+            raise Exception("Did not find Microsoft Visual Studio 2017, 2019, or 2022.")
         #else 
         #   we can skip this step, the cache is already setup and we have the right binding specified.
       else:
@@ -346,10 +377,18 @@ def configure(platform, build_type):
       if platform == "windows":
         # Check to see if cache already exists.  If it does, skip this step
         if not os.path.isfile("CMakeCache.txt"):
+          if '2022' in generator and isMSVC_installed("2022"):
+            if cmake_ver < version.parse("3.21"):
+               raise Exception("Microsoft Visual Studio 2022 requires CMake 3.21 or greater.")
+            subprocess.check_call(["cmake", "-G", "Visual Studio 17 2022", "-A", "x64", BUILD_TYPE, PY_VER, REPO_DIR])
           # Note: the calling arguments for MSVC 2017 is not the same as for MSVC 2019
-          if '2019' in generator and isMSVC_installed("2019"):
+          elif '2019' in generator and isMSVC_installed("2019"):
+            if cmake_ver < version.parse("3.14"):
+               raise Exception("Microsoft Visual Studio 2019 requires CMake 3.14 or greater")
             subprocess.check_call(["cmake", "-G", "Visual Studio 16 2019", "-A", "x64", BUILD_TYPE, PY_VER, REPO_DIR])
           elif '2017' in generator and isMSVC_installed("2017"):
+            if cmake_ver < version.parse("3.7"):
+               raise Exception("Microsoft Visual Studio 2017 requires CMake 3.7 or greater")
             subprocess.check_call(["cmake", "-G", "Visual Studio 15 2017 Win64", BUILD_TYPE, PY_VER, REPO_DIR])
           else:
             raise Exception('Did not find Visual Studio for generator "'+generator+ '".')
