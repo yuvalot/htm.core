@@ -81,6 +81,7 @@ class AbstractLocationModule(ABC):
         self.activationThreshold = activationThreshold
         self.maxSynapsesPerSegment = maxSynapsesPerSegment
         self.maxSegmentsPerCell = maxSegmentsPerCell
+        self.bumpPhases = None # Place holder
 
         self.rng = Random(seed)
 
@@ -690,7 +691,7 @@ class Superficial2DLocationModule(AbstractLocationModule):
         self.cellCoordinateOffsets = cellCoordinateOffsets
 
         # Phase is measured as a number in the range [0.0, 1.0)
-        self.activePhases = np.empty((0,2), dtype="float")
+        self.bumpPhases = np.empty((0,2), dtype="float")
         self.cellsForActivePhases = np.empty(0, dtype="int")
         self.phaseDisplacement = np.empty((0,2), dtype="float")
 
@@ -703,12 +704,12 @@ class Superficial2DLocationModule(AbstractLocationModule):
         Clear the active cells.
         """
         super(Superficial2DLocationModule, self).reset()
-        self.activePhases = np.empty((0,2), dtype="float")
+        self.bumpPhases = np.empty((0,2), dtype="float")
         self.phaseDisplacement = np.empty((0,2), dtype="float")
     
     def _computeActiveCells(self):
         # Round each coordinate to the nearest cell.
-        activeCellCoordinates = np.floor(self.activePhases * self.cellDimensions).astype("int")
+        activeCellCoordinates = np.floor(self.bumpPhases * self.cellDimensions).astype("int")
 
         # Convert coordinates to cell numbers.
         self.cellsForActivePhases = (np.ravel_multi_index(activeCellCoordinates.T, self.cellDimensions))
@@ -718,11 +719,11 @@ class Superficial2DLocationModule(AbstractLocationModule):
         """
         Set the location to a random point.
         """
-        self.activePhases = np.array([np.random.random(2)])
+        self.bumpPhases = np.array([np.random.random(2)])
         if self.anchoringMethod == "discrete":
             # Need to place the phase in the middle of a cell
-            self.activePhases = np.floor(
-                self.activePhases * self.cellDimensions)/self.cellDimensions
+            self.bumpPhases = np.floor(
+                self.bumpPhases * self.cellDimensions)/self.cellDimensions
         self._computeActiveCells()
 
     def _movementComputeDelta(self, displacement):
@@ -735,7 +736,7 @@ class Superficial2DLocationModule(AbstractLocationModule):
         phaseDisplacement = (np.matmul(self.rotationMatrix, displacement) * self.phasesPerUnitDistance)
 
         # Shift the active coordinates.
-        np.add(self.activePhases, phaseDisplacement, out=self.activePhases)
+        np.add(self.bumpPhases, phaseDisplacement, out=self.bumpPhases)
         
         return phaseDisplacement
 
@@ -757,7 +758,7 @@ class Superficial2DLocationModule(AbstractLocationModule):
         inactivated = np.setdiff1d(self.activeCells, sensorySupportedCells, assume_unique=True)
         inactivatedIndices = np.in1d(self.cellsForActivePhases, inactivated, assume_unique=True).nonzero()[0]
         if inactivatedIndices.size > 0:
-            self.activePhases = np.delete(self.activePhases, inactivatedIndices, axis=0)
+            self.bumpPhases = np.delete(self.bumpPhases, inactivatedIndices, axis=0)
 
         activated = np.setdiff1d(sensorySupportedCells, self.activeCells, assume_unique=True)
 
@@ -774,11 +775,11 @@ class Superficial2DLocationModule(AbstractLocationModule):
              for jOffset in self.cellCoordinateOffsets]
         )
         if "corners" in self.anchoringMethod:
-            self.activePhases = activatedCoords // self.cellDimensions
+            self.bumpPhases = activatedCoords // self.cellDimensions
 
         else:
             if activatedCoords.size > 0:
-                self.activePhases = np.append(self.activePhases,activatedCoords // self.cellDimensions, axis=0)
+                self.bumpPhases = np.append(self.bumpPhases,activatedCoords // self.cellDimensions, axis=0)
 
         self._computeActiveCells()
         self.activeSegments = activeSegments

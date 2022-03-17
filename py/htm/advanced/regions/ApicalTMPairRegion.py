@@ -411,11 +411,12 @@ class ApicalTMPairRegion(PyRegion):
                 "seed": self.seed,
             }
 
-            if self.implementation == "ApicalTiebreakCPP": # TODO
+            if self.implementation == "ApicalTiebreakCPP":
                 params["learnOnOneCell"] = self.learnOnOneCell
                 params["maxSegmentsPerCell"] = self.maxSegmentsPerCell
 
-                cls = ApicalTiebreakPairMemory
+                import nupic.bindings.algorithms
+                cls = nupic.bindings.algorithms.ApicalTiebreakPairMemory
 
             elif self.implementation == "ApicalTiebreak":
                 params["reducedBasalThreshold"] = self.reducedBasalThreshold
