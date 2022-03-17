@@ -360,11 +360,12 @@ class ApicalTMSequenceRegion(PyRegion):
                 "seed": self.seed,
             }
 
-            if self.implementation == "ApicalTiebreakCPP": #TODO
+            if self.implementation == "ApicalTiebreakCPP":
                 params["learnOnOneCell"] = self.learnOnOneCell
                 params["maxSegmentsPerCell"] = self.maxSegmentsPerCell
 
-                cls = ApicalTiebreakSequenceMemory
+                import nupic.bindings.algorithms
+                cls = nupic.bindings.algorithms.ApicalTiebreakSequenceMemory
 
             elif self.implementation == "ApicalTiebreak":
                 params["reducedBasalThreshold"] = self.reducedBasalThreshold
