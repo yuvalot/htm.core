@@ -775,11 +775,11 @@ class Superficial2DLocationModule(AbstractLocationModule):
              for jOffset in self.cellCoordinateOffsets]
         )
         if "corners" in self.anchoringMethod:
-            self.bumpPhases = activatedCoords // self.cellDimensions
+            self.bumpPhases = activatedCoords / self.cellDimensions
 
         else:
             if activatedCoords.size > 0:
-                self.bumpPhases = np.append(self.bumpPhases,activatedCoords // self.cellDimensions, axis=0)
+                self.bumpPhases = np.append(self.bumpPhases,activatedCoords / self.cellDimensions, axis=0)
 
         self._computeActiveCells()
         self.activeSegments = activeSegments
