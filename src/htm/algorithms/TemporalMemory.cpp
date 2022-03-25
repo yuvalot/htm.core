@@ -38,10 +38,7 @@
 #include <vector>
 #include <set>
 
-
 #include <htm/algorithms/TemporalMemory.hpp>
-
-#include <htm/utils/GroupBy.hpp>
 #include <htm/algorithms/Anomaly.hpp>
 
 using namespace std;
@@ -279,61 +276,69 @@ void TemporalMemory::activateCells(const SDR &activeColumns, const bool learn) {
 
   const vector<CellIdx> prevWinnerCells = std::move(winnerCells_);
 
-  //maps segment S to a new segment that is at start of a column where
-  //S belongs. 
-  //for 3 cells per columns: 
-  //s1_1, s1_2, s1_3, s2_1, s2_2, s2_3, ...
-  //columnForSegment (for short here CFS)
-  //CFS(s1_1) = s1_1 = "start of column 1"
-  //CFS(s1_2) = s1_1
-  //CFS(s1_3) = s1_1
-  //CFS(s2_1) = s2_1 = "column 2"
-  //CFS(s2_2) = s2_1
-  //...
-  const auto toColumns = [&](const Segment segment) {
+  const auto getColumnOfSegment = [&](const Segment segment) {
     return connections.cellForSegment(segment) / cellsPerColumn_;
   };
-  const auto identity = [](const ElemSparse a) {return a;}; //TODO use std::identity when c++20
 
-  for (auto &&columnData : groupBy( //group by columns, and convert activeSegments & matchingSegments to cols. 
-           sparse, identity,
-           activeSegments_,   toColumns,
-           matchingSegments_, toColumns)) {
+  // Iterate over these three lists at the same time.
+  auto activeColumnsBegin           = sparse.cbegin();
+  auto columnActiveSegmentsBegin    = activeSegments_.cbegin();
+  auto columnMatchingSegmentsBegin  = matchingSegments_.cbegin();
+  while(true) {
+    // Find the next (lowest indexed) column in any of the three lists.
+    Segment column = numColumns_; // Sentinel value, all column indexes are less than this value.
+    if (activeColumnsBegin != sparse.cend()) {
+      column = std::min(column, *activeColumnsBegin);
+    }
+    if (columnActiveSegmentsBegin != activeSegments_.cend()) {
+      column = std::min(column, getColumnOfSegment(*columnActiveSegmentsBegin));
+    }
+    if (columnMatchingSegmentsBegin != matchingSegments_.cend()) {
+      column = std::min(column, getColumnOfSegment(*columnMatchingSegmentsBegin));
+    }
+    if (column == numColumns_) {
+      break;
+    }
+    // Find all contiguous stretches of the lists which are part of the selected column.
+    auto activeColumnsEnd = activeColumnsBegin;
+    while (activeColumnsEnd != sparse.cend()
+           && *activeColumnsEnd == column) {
+      ++activeColumnsEnd;
+    }
+    auto columnActiveSegmentsEnd = columnActiveSegmentsBegin;
+    while (columnActiveSegmentsEnd != activeSegments_.cend() &&
+           getColumnOfSegment(*columnActiveSegmentsEnd) == column) {
+      ++columnActiveSegmentsEnd;
+    }
+    auto columnMatchingSegmentsEnd = columnMatchingSegmentsBegin;
+    while (columnMatchingSegmentsEnd != matchingSegments_.cend()
+           && getColumnOfSegment(*columnMatchingSegmentsEnd) == column) {
+      ++columnMatchingSegmentsEnd;
+    }
 
-    Segment column; //we say "column", but it's the first segment of n-segments/cells that belong to the column
-    vector<Segment>::const_iterator activeColumnsBegin, activeColumnsEnd, 
-	                            columnActiveSegmentsBegin, columnActiveSegmentsEnd, 
-                                    columnMatchingSegmentsBegin, columnMatchingSegmentsEnd;
-
-    // for column in activeColumns (the 'sparse' above):
-    //   get its active segments ( >= connectedThr)
-    //   get its matching segs   ( >= TODO
-    std::tie(column, 
-             activeColumnsBegin, activeColumnsEnd, 
-             columnActiveSegmentsBegin, columnActiveSegmentsEnd, 
-             columnMatchingSegmentsBegin, columnMatchingSegmentsEnd
-	) = columnData;
-
-    const bool isActiveColumn = activeColumnsBegin != activeColumnsEnd;
-    if (isActiveColumn) { //current active column...
+    if (activeColumnsBegin != activeColumnsEnd) {
+      // This column is active.
       if (columnActiveSegmentsBegin != columnActiveSegmentsEnd) {
-	//...was also predicted -> learn :o)
+        // This column was also predicted.
         activatePredictedColumn_(
             columnActiveSegmentsBegin, columnActiveSegmentsEnd,
             prevActiveCells, prevWinnerCells, learn);
       } else {
-	//...has not been predicted -> 
+        // This column was not predicted.
         burstColumn_(column,
                      columnMatchingSegmentsBegin, columnMatchingSegmentsEnd,
                      prevActiveCells, prevWinnerCells, 
-		     learn);
+                     learn);
       }
-
-    } else { // predicted but not active column -> unlearn
+    } else {
+      // This column was predicted but is not active.
       if (learn) {
         punishPredictedColumn_(columnMatchingSegmentsBegin, columnMatchingSegmentsEnd, prevActiveCells);
       }
-    } //else: not predicted & not active -> no activity -> does not show up at all
+    } // else: not predicted & not active -> do nothing to the column.
+    activeColumnsBegin          = activeColumnsEnd;
+    columnActiveSegmentsBegin   = columnActiveSegmentsEnd;
+    columnMatchingSegmentsBegin = columnMatchingSegmentsEnd;
   }
   segmentsValid_ = false;
 }
