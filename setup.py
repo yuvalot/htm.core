@@ -21,8 +21,6 @@ import glob
 import os
 import subprocess
 import sys
-import tempfile
-import distutils.dir_util
 import json
 
 from setuptools import Command, find_packages, setup
