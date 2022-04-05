@@ -103,9 +103,11 @@ Note: Windows MSVC 2019 runs as C\+\+17 by default so boost is not needed.  On l
 
 #### Simple Python build (any platform)
 
-1) At a command prompt, `cd` to the root directory of this repository.
+1) Prerequisites: install the following python packages: `pip install setuptools packaging`
 
-2) Run: `python setup.py install --user --force`
+2) At a command prompt, `cd` to the root directory of this repository.
+
+3) Run: `python setup.py install --user --force`
 
    This will build and install a release version of htm.core.  The `--user` option prevents the system installed site-packages folder from being changed and avoids the need for admin privileges.  The `--force` option forces the package to be replaced if it already exists from a previous build. Alternatively you can type `pip uninstall htm.core` to remove a previous package before performing a build.
    
@@ -115,7 +117,7 @@ Note: Windows MSVC 2019 runs as C\+\+17 by default so boost is not needed.  On l
    * If you run into problems due to caching of arguments in CMake, delete the
    folder `<path-to-repo>/build` and try again.  This may be only an issue when you restart a build after a failure.
 
-3) After that completes you are ready to import the library:
+4) After that completes you are ready to import the library:
     ```python
     python.exe
     >>> import htm           # Python Library
