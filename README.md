@@ -421,16 +421,16 @@ distribution packages as listed and rename them as indicated. Copy these to
 
 | Name to give it        | Where to obtain it |
 | :--------------------- | :----------------- |
-| libyaml.zip   (*note1) | https://github.com/yaml/libyaml/archive/acd6f6f014c25e46363e718381e0b35205df2d83.zip |
+| libyaml.zip   (*note1) | https://github.com/yaml/libyaml/archive/refs/tags/0.2.5.tar.gz |
 | boost.tar.gz  (*note3) | https://dl.bintray.com/boostorg/release/1.72.0/source/boost_1_72_0.tar.gz | 
-| googletest.tar.gz      | https://github.com/google/googletest/archive/release-1.10.0.tar.gz |
-| eigen.tar.bz2          | https://gitlab.com/libeigen/eigen/-/archive/3.3.9/eigen-3.3.9.tar.bz2 |
+| googletest.tar.gz      | https://github.com/google/googletest/archive/refs/tags/release-1.11.0.tar.gz |
+| eigen.tar.bz2          | https://gitlab.com/libeigen/eigen/-/archive/3.4.0/eigen-3.4.0.tar.gz |
 | mnist.zip     (*note4) | https://github.com/wichtounet/mnist/archive/3b65c35ede53b687376c4302eeb44fdf76e0129b.zip |
-| pybind11.tar.gz        | https://github.com/pybind/pybind11/archive/v2.6.2.tar.gz |
-| cereal.tar.gz          | https://github.com/USCiLab/cereal/archive/v1.3.0.tar.gz |
-| sqlite3.tar.gz         | https://www.sqlite.org/2021/sqlite-autoconf-3340100.tar.gz |
+| pybind11.tar.gz        | https://github.com/pybind/pybind11/archive/refs/tags/v2.9.2.tar.gz |
+| cereal.tar.gz          | https://github.com/USCiLab/cereal/archive/refs/tags/v1.3.2.tar.gz |
+| sqlite3.tar.gz         | https://www.sqlite.org/2022/sqlite-autoconf-3380200.tar.gz |
 | digestpp.zip           | https://github.com/kerukuro/digestpp/archive/34ff2eeae397ed744d972d86b5a20f603b029fbd.zip |
-| cpp-httplib.zip(*note4)| https://github.com/yhirose/cpp-httplib/archive/v0.8.4.zip |
+| cpp-httplib.zip(*note4)| https://github.com/yhirose/cpp-httplib/archive/refs/tags/v0.10.4.zip |
 
  * note1: Version 0.2.2 of libyaml is broken so use the master for the repository.
  * note3: Boost is not required for any compiler that supports C++17 with `std::filesystem` (MSVC2017, gcc-8, clang-9).

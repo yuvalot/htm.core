@@ -1,6 +1,7 @@
 # -----------------------------------------------------------------------------
 # HTM Community Edition of NuPIC
 # Copyright (C) 2021, Numenta, Inc.
+# modified 4/4/2022 - newer version
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero Public License version 3 as
@@ -34,7 +35,7 @@
 if(EXISTS "${REPOSITORY_DIR}/build/ThirdParty/share/googletest.tar.gz")
     set(URL "${REPOSITORY_DIR}/build/ThirdParty/share/googletest.tar.gz")
 else()
-    set(URL https://github.com/google/googletest/archive/release-1.10.0.tar.gz)
+    set(URL https://github.com/google/googletest/archive/refs/tags/release-1.11.0.tar.gz)
 endif()
 
 #

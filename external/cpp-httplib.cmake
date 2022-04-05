@@ -1,6 +1,7 @@
 # -----------------------------------------------------------------------------
 # HTM Community Edition of NuPIC
 # Copyright (C) 2020, Numenta, Inc.
+# modified 4/4/2022 - newer version
 #
 # author: David Keeney, dkeeney@gmail.com, Feb 2020
 #
@@ -24,7 +25,7 @@
 if(EXISTS "${REPOSITORY_DIR}/build/ThirdParty/share/cpp-httplib.zip")
     set(URL "${REPOSITORY_DIR}/build/ThirdParty/share/cpp-httplib.zip")
 else()
-    set(URL https://github.com/yhirose/cpp-httplib/archive/v0.8.4.zip)
+    set(URL https://github.com/yhirose/cpp-httplib/archive/refs/tags/v0.10.4.zip)
 endif()
 
 message(STATUS "obtaining cpp-httplib")

@@ -1,6 +1,9 @@
 # -----------------------------------------------------------------------------
 # Numenta Platform for Intelligent Computing (NuPIC)
-# Copyright (C) 2019, Numenta, Inc.  Unless you have purchased from
+# Copyright (C) 2019, Numenta, Inc.  
+# modified 4/4/2022 - newer version
+#
+# Unless you have purchased from
 # Numenta, Inc. a separate commercial license for this software code, the
 # following terms and conditions apply:
 #
@@ -31,7 +34,7 @@
 if(EXISTS   ${REPOSITORY_DIR}/build/ThirdParty/share/sqlite3.tar.gz)
     set(URL ${REPOSITORY_DIR}/build/ThirdParty/share/sqlite3.tar.gz)
 else()
-    set(URL "https://www.sqlite.org/2021/sqlite-autoconf-3340100.tar.gz")
+    set(URL "https://www.sqlite.org/2022/sqlite-autoconf-3380200.tar.gz")
 endif()
 
 message(STATUS "Obtaining sqlite3")
