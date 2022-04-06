@@ -428,7 +428,7 @@ distribution packages as listed and rename them as indicated. Copy these to
 | googletest.tar.gz      | https://github.com/google/googletest/archive/refs/tags/release-1.11.0.tar.gz |
 | eigen.tar.bz2          | https://gitlab.com/libeigen/eigen/-/archive/3.4.0/eigen-3.4.0.tar.gz |
 | mnist.zip     (*note4) | https://github.com/wichtounet/mnist/archive/3b65c35ede53b687376c4302eeb44fdf76e0129b.zip |
-| pybind11.tar.gz        | https://github.com/pybind/pybind11/archive/refs/tags/v2.9.2.tar.gz |
+| pybind11.tar.gz        | https://github.com/pybind/pybind11/archive/refs/tags/v2.6.2.tar.gz |
 | cereal.tar.gz          | https://github.com/USCiLab/cereal/archive/refs/tags/v1.3.2.tar.gz |
 | sqlite3.tar.gz         | https://www.sqlite.org/2022/sqlite-autoconf-3380200.tar.gz |
 | digestpp.zip           | https://github.com/kerukuro/digestpp/archive/34ff2eeae397ed744d972d86b5a20f603b029fbd.zip |

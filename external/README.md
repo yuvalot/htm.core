@@ -10,7 +10,7 @@ integrated into the cmake-based build of htm.core.  The code that does this are 
 - eigen.cmake      - Downloads eigen 3.4.0  (header only)
 - gtest.cmake      - Downloads and installs googletest 1.11.0
 - mnist_data.cmake - Downloads the mnist data set from repository master.
-- pybind11.cmake   - Downloads and installs pybind11 2.9.2  (header only)
+- pybind11.cmake   - Downloads and installs pybind11 2.6.2  (header only)
 - libayml.cmake    - Downloads and installs libyaml 0.2.5 which is an alternative to yaml-cpp (default) 
 - cpp-httplib.cmake- Downloads and installs cpp-httplib 0.10.4, a REST server (header only)
 - cerial.cmake     - Downloads and installs cerial 1.3.2, a serialization package (header only)
