@@ -1,6 +1,7 @@
 # -----------------------------------------------------------------------------
 # HTM Community Edition of NuPIC
 # Copyright (C) 2016, Numenta, Inc.
+# modified 4/4/2022 - newer version
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero Public License version 3 as
@@ -17,10 +18,10 @@
 
 # Fetch Eigen from GitHub archive
 #
-if(EXISTS "${REPOSITORY_DIR}/build/ThirdParty/share/eigen.tar.bz2")
-    set(URL "${REPOSITORY_DIR}/build/ThirdParty/share/eigen.tar.bz2")
+if(EXISTS "${REPOSITORY_DIR}/build/ThirdParty/share/eigen.tar.gz")
+    set(URL "${REPOSITORY_DIR}/build/ThirdParty/share/eigen.tar.gz")
 else()
-	set(URL "https://gitlab.com/libeigen/eigen/-/archive/3.3.9/eigen-3.3.9.tar.bz2")
+	set(URL "https://gitlab.com/libeigen/eigen/-/archive/3.4.0/eigen-3.4.0.tar.gz")
 endif()
 
 message(STATUS "obtaining Eigen")

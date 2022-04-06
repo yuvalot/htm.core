@@ -77,6 +77,13 @@ if exist "htm_core.sln" (
   exit /B 0
 )
 
+if not exist "C:\Program Files (x86)\Microsoft Visual Studio\Installer\vswhere.exe" (
+  @echo Is Visual Studio installed?
+  popd
+  pause
+  exit /B 1
+)
+
 "C:\Program Files (x86)\Microsoft Visual Studio\Installer\vswhere.exe" -legacy -prerelease -format json > vswhereTmp.jsn
 find /c "VisualStudio.15" vswhereTmp.jsn > vswhereTmp.cnt && (set Has2017=1) || (set Has2017=0)
 find /c "VisualStudio.16" vswhereTmp.jsn > vswhereTmp.cnt && (set Has2019=1) || (set Has2019=0)
@@ -104,7 +111,7 @@ rem //  NOTE: only 64bit compiles supported.
 
 if %Has2022%==1 (
     if %cmake_version% GEQ 321 (
-      cmake -G "Visual Studio 17 2022" -A x64 -Thost=x64 --config "Release" -DCMAKE_CONFIGURATION_TYPES="Release;Debug"  ../..
+      cmake -G "Visual Studio 17 2022" -A x64 -DCMAKE_CONFIGURATION_TYPES="Release;Debug"  ../..
     ) else (
           @echo Visual Studio 2022 requires CMake 3.21 or higher.
           popd
@@ -114,7 +121,7 @@ if %Has2022%==1 (
 ) else (
     if %Has2019%==1 (
         if %cmake_version% GEQ 314 (
-            cmake -G "Visual Studio 16 2019" -A x64 -Thost=x64 --config "Release" -DCMAKE_CONFIGURATION_TYPES="Release;Debug"  ../..
+            cmake -G "Visual Studio 16 2019" -A x64 -DCMAKE_CONFIGURATION_TYPES="Release;Debug"  ../..
         ) else (
               @echo Visual Studio 2019 requires CMake 3.14 or higher.
               popd
@@ -124,7 +131,7 @@ if %Has2022%==1 (
     ) else (
         if %Has2017%==1 (
           if %cmake_version% GEQ 307 (
-              cmake -G "Visual Studio 15 2017 Win64" -Thost=x64 --config "Release" -DCMAKE_CONFIGURATION_TYPES="Release;Debug"  ../..
+              cmake -G "Visual Studio 15 2017 Win64" -DCMAKE_CONFIGURATION_TYPES="Release;Debug"  ../..
           ) else (
                 @echo Visual Studio 2017 requires CMake 3.7 or higher.
                 popd

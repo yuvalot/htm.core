@@ -395,7 +395,7 @@ namespace htm_ext
             .value("BINARY", SerializableFormat::BINARY)
             .value("PORTABLE", SerializableFormat::PORTABLE)
             .value("JSON", SerializableFormat::JSON)
-            .value("XML", ::SerializableFormat::XML)
+            .value("XML", SerializableFormat::XML)
             .export_values();
         // NOTE: Registered python regions will be serialized in BINARY (i.e. pickle) regardless of the format specified.
 
