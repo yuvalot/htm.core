@@ -21,8 +21,6 @@ import glob
 import os
 import subprocess
 import sys
-import tempfile
-import distutils.dir_util
 import json
 
 from setuptools import Command, find_packages, setup
@@ -253,6 +251,8 @@ def isMSVC_installed(ver):
   return true if ver is found.
   """
   vswhere = "C:\\Program Files (x86)\\Microsoft Visual Studio\\Installer\\vswhere.exe"
+  if not os.path.isfile(vswhere):
+    raise Exception("Visual Studio not installed.")
   output = subprocess.check_output([vswhere, "-products", "*", "-legacy", "-prerelease", "-format", "json"], universal_newlines=True)
   data = json.loads(output);
   for vs in data:

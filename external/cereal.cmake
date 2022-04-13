@@ -1,6 +1,7 @@
 # -----------------------------------------------------------------------------
 # HTM Community Edition of NuPIC
 # Copyright (C) 2016, Numenta, Inc.
+# modified 4/4/2022 - newer version of cerial
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero Public License version 3 as
@@ -20,8 +21,7 @@
 if(EXISTS "${REPOSITORY_DIR}/build/ThirdParty/share/cereal.tar.gz")
     set(URL "${REPOSITORY_DIR}/build/ThirdParty/share/cereal.tar.gz")
 else()
-	#set(URL https://github.com/USCiLab/cereal/archive/v1.3.0.tar.gz)
-	set(URL https://github.com/USCiLab/cereal/archive/64f50dbd5cecdaba785217e2b0aeea3a4f1cdfab.zip)
+	set(URL https://github.com/USCiLab/cereal/archive/refs/tags/v1.3.2.tar.gz)
 endif()
 
 message(STATUS "obtaining Cereal")

@@ -1,6 +1,9 @@
 # -----------------------------------------------------------------------------
 # Numenta Platform for Intelligent Computing (NuPIC)
-# Copyright (C) 2019, Numenta, Inc.  Unless you have purchased from
+# Copyright (C) 2019, Numenta, Inc.  
+# modified 4/4/2022 - newer version
+#
+# Unless you have purchased from
 # Numenta, Inc. a separate commercial license for this software code, the
 # following terms and conditions apply:
 #
@@ -37,8 +40,7 @@ if(EXISTS   ${REPOSITORY_DIR}/build/ThirdParty/share/libyaml.zip)
 elif(EXISTS ${REPOSITORY_DIR}/build/ThirdParty/share/libyaml.tar.gz)
     set(URL ${REPOSITORY_DIR}/build/ThirdParty/share/libyaml.tar.gz)
 else()
-    set(URL "https://github.com/yaml/libyaml/archive/acd6f6f014c25e46363e718381e0b35205df2d83.zip")
-    #set(URL "http://pyyaml.org/download/libyaml/yaml-0.2.2.tar.gz")
+    set(URL "https://github.com/yaml/libyaml/archive/refs/tags/0.2.5.tar.gz")
 endif()
 
 message(STATUS "Obtaining libyaml")
