@@ -279,7 +279,7 @@ else()
 	set(cxx_flags_unoptimized ${cxx_flags_unoptimized} ${stdlib_cxx})
 
 	set(cxx_flags_unoptimized ${cxx_flags_unoptimized} ${stdlib_common} -fdiagnostics-show-option)
-	set (internal_compiler_warning_flags ${internal_compiler_warning_flags} -Werror -Wextra -Wreturn-type -Wunused -Wno-unused-variable -Wno-unused-parameter -Wno-missing-field-initializers)
+	set (internal_compiler_warning_flags ${internal_compiler_warning_flags} -Wextra -Wreturn-type -Wunused -Wno-unused-variable -Wno-unused-parameter -Wno-missing-field-initializers)
 
 	CHECK_CXX_COMPILER_FLAG(-m${BITNESS} compiler_supports_machine_option)
 	if (compiler_supports_machine_option)
@@ -358,7 +358,7 @@ else()
 	set(debug_specific_linker_flags)
 
 	if("${CMAKE_BUILD_TYPE}" STREQUAL "Debug")
-	  set (debug_specific_compile_flags ${debug_specific_compile_flags} -g)
+	  set (debug_specific_compile_flags ${debug_specific_compile_flags} -g -Werror)
 
 	  set(debug_specific_linker_flags ${debug_specific_linker_flags} -O0)
 
