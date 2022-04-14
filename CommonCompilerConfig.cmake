@@ -163,7 +163,7 @@ if(MSVC)
 	#      Debug Only:       /Od /Zi /sdl /RTC1 /MDd
 	set(INTERNAL_CXX_FLAGS /permissive- /W3 /Gm- /EHsc /FC /nologo /Zc:__cplusplus
 							$<$<CONFIG:Release>:/O2 /Oi /Gy  /GL /MD> 
-							$<$<CONFIG:Debug>:/Ob0 /Od /Zi /sdl /RTC1 /MDd>)
+							$<$<CONFIG:Debug>:/Ob0 /Od /Zi /sdl /WX /RTC1 /MDd>)
 	#linker flags
 	if("${BITNESS}" STREQUAL "32")
 		set(machine "-MACHINE:X86")
