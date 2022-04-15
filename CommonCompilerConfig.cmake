@@ -163,7 +163,7 @@ if(MSVC)
 	#      Debug Only:       /Od /Zi /sdl /RTC1 /MDd
 	set(INTERNAL_CXX_FLAGS /permissive- /W3 /Gm- /EHsc /FC /nologo /Zc:__cplusplus
 							$<$<CONFIG:Release>:/O2 /Oi /Gy  /GL /MD> 
-							$<$<CONFIG:Debug>:/Ob0 /Od /Zi /sdl /RTC1 /MDd>)
+							$<$<CONFIG:Debug>:/Ob0 /Od /Zi /sdl /WX /RTC1 /MDd>)
 	#linker flags
 	if("${BITNESS}" STREQUAL "32")
 		set(machine "-MACHINE:X86")
@@ -279,7 +279,7 @@ else()
 	set(cxx_flags_unoptimized ${cxx_flags_unoptimized} ${stdlib_cxx})
 
 	set(cxx_flags_unoptimized ${cxx_flags_unoptimized} ${stdlib_common} -fdiagnostics-show-option)
-	set (internal_compiler_warning_flags ${internal_compiler_warning_flags} -Werror -Wextra -Wreturn-type -Wunused -Wno-unused-variable -Wno-unused-parameter -Wno-missing-field-initializers)
+	set (internal_compiler_warning_flags ${internal_compiler_warning_flags} -Wextra -Wreturn-type -Wunused -Wno-unused-variable -Wno-unused-parameter -Wno-missing-field-initializers)
 
 	CHECK_CXX_COMPILER_FLAG(-m${BITNESS} compiler_supports_machine_option)
 	if (compiler_supports_machine_option)
@@ -358,7 +358,7 @@ else()
 	set(debug_specific_linker_flags)
 
 	if("${CMAKE_BUILD_TYPE}" STREQUAL "Debug")
-	  set (debug_specific_compile_flags ${debug_specific_compile_flags} -g)
+	  set (debug_specific_compile_flags ${debug_specific_compile_flags} -g -Werror)
 
 	  set(debug_specific_linker_flags ${debug_specific_linker_flags} -O0)
 
