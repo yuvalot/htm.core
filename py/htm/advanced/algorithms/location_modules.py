@@ -139,6 +139,7 @@ class AbstractLocationModule(ABC):
 
         self._computeActiveCells()
         self.phaseDisplacement = phaseDisplacement
+        self.sensoryAssociatedCells = np.empty(0, dtype="int") # This set by sensoryCompute.
         
     @abstractmethod
     def _sensoryComputeInferenceMode(self, anchorInput):
@@ -166,18 +167,18 @@ class AbstractLocationModule(ABC):
 
         # Cells with a active segment: reinforce the segment
         cellsForActiveSegments = self.connections.mapSegmentsToCells(activeSegments)
-        learningActiveSegments = activeSegments[np.in1d(cellsForActiveSegments, self.getLearnableCells(), assume_unique=True)]
-        remainingCells = np.setdiff1d(self.getLearnableCells(), cellsForActiveSegments, assume_unique=True)
+        learningActiveSegments = activeSegments[np.in1d(cellsForActiveSegments, self.getLearnableCells())]
+        remainingCells = np.setdiff1d(self.getLearnableCells(), cellsForActiveSegments)
 
         # Remaining cells with a matching segment: reinforce the best
         # matching segment.
         candidateSegments = self.connections.filterSegmentsByCell(matchingSegments, remainingCells)
         cellsForCandidateSegments = (self.connections.mapSegmentsToCells(candidateSegments))
-        candidateSegments = candidateSegments[np.in1d(cellsForCandidateSegments, remainingCells, assume_unique=True)]
+        candidateSegments = candidateSegments[np.in1d(cellsForCandidateSegments, remainingCells)]
         onePerCellFilter = np2.argmaxMulti(potentialOverlaps[candidateSegments], cellsForCandidateSegments)
         learningMatchingSegments = candidateSegments[onePerCellFilter]
 
-        newSegmentCells = np.setdiff1d(remainingCells, cellsForCandidateSegments, assume_unique=True)
+        newSegmentCells = np.setdiff1d(remainingCells, cellsForCandidateSegments)
 
         for learningSegments in (learningActiveSegments, learningMatchingSegments):
             self._learn(learningSegments, anchorInput, potentialOverlaps)
@@ -242,7 +243,7 @@ class AbstractLocationModule(ABC):
         if self.maxSynapsesPerSegment != -1:
             numNewSynapses = min(numNewSynapses, self.maxSynapsesPerSegment)
             
-        for cell in  newSegmentCells:
+        for cell in newSegmentCells:
             newSegment = self.connections.createSegment(cell, self.maxSegmentsPerCell)
             self.connections.growSynapses(newSegment, growthCandidates.sparse, self.initialPermanence, self.rng, numNewSynapses)
 
@@ -722,8 +723,7 @@ class Superficial2DLocationModule(AbstractLocationModule):
         self.bumpPhases = np.array([np.random.random(2)])
         if self.anchoringMethod == "discrete":
             # Need to place the phase in the middle of a cell
-            self.bumpPhases = np.floor(
-                self.bumpPhases * self.cellDimensions)/self.cellDimensions
+            self.bumpPhases = np.floor(self.bumpPhases * self.cellDimensions)/self.cellDimensions
         self._computeActiveCells()
 
     def _movementComputeDelta(self, displacement):
@@ -755,12 +755,12 @@ class Superficial2DLocationModule(AbstractLocationModule):
 
         sensorySupportedCells = np.unique(self.connections.mapSegmentsToCells(activeSegments))
 
-        inactivated = np.setdiff1d(self.activeCells, sensorySupportedCells, assume_unique=True)
-        inactivatedIndices = np.in1d(self.cellsForActivePhases, inactivated, assume_unique=True).nonzero()[0]
+        inactivated = np.setdiff1d(self.activeCells, sensorySupportedCells)
+        inactivatedIndices = np.in1d(self.cellsForActivePhases, inactivated).nonzero()[0]
         if inactivatedIndices.size > 0:
             self.bumpPhases = np.delete(self.bumpPhases, inactivatedIndices, axis=0)
 
-        activated = np.setdiff1d(sensorySupportedCells, self.activeCells, assume_unique=True)
+        activated = np.setdiff1d(sensorySupportedCells, self.activeCells)
 
         # Find centers of point clouds
         if "corners" in self.anchoringMethod:
