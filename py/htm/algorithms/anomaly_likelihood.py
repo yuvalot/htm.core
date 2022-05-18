@@ -45,8 +45,10 @@ class AnomalyLikelihood:
     self.mean     = 1.0
     self.var      = 0.0003
     self.std      = math.sqrt(self.var)
+    self.prev     = 0.0
+    self.n_records = 0
 
-  def compute(self, anomaly):
+  def compute(self, anomaly) -> float:
     """ Returns the probability that an anomaly has occurred.
 
     Calculates the log-likelihood of the probability that the given anomaly
@@ -55,7 +57,11 @@ class AnomalyLikelihood:
     """
     likelihood = self.get_likelihood(anomaly)
     self.add_record(anomaly)
-    return self.get_log_likelihood(likelihood)
+    combined = 1 - (1 - likelihood) * (1 - self.prev)
+    self.prev = likelihood
+    if self.n_records < self.period:
+      return 0.0
+    return self.get_log_likelihood(combined)
 
   def add_record(self, anomaly):
     """
@@ -74,6 +80,7 @@ class AnomalyLikelihood:
       # Catch all for super low variance to handle numerical precision issues
       self.var = max(self.var, 0.0003)
     self.std = math.sqrt(self.var)
+    self.n_records += 1
 
   def get_likelihood(self, anomaly):
     """
