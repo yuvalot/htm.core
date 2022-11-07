@@ -413,7 +413,7 @@ if __name__ == "__main__":
   else: #full build
     getExtensionFiles(platform, build_type)
 
-  with open(os.path.join(REPO_DIR, "README.md"), "r") as fh:
+  with open(os.path.join(REPO_DIR, "README.md"), "r", encoding="utf-8") as fh:
     long_description = fh.read()
 
   """

@@ -42,6 +42,8 @@ in C++ library.
 
 ### Binary releases
 
+NOTE: The Binary releases are not being maintained. Suggest building from Sources instead.
+
 If you want to use `htm.core` from Python, the easiest method is to install from [PyPI](https://test.pypi.org/project/htm.core/)
   - Note: to install from `pip` you'll need Python 3.7 only(does not work with older or newer versions)
 
