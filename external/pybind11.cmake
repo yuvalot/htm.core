@@ -21,9 +21,7 @@
 if(EXISTS "${REPOSITORY_DIR}/build/ThirdParty/share/pybind11.tar.gz")
     set(URL "${REPOSITORY_DIR}/build/ThirdParty/share/pybind11.tar.gz")
 else()
-    set(URL https://github.com/pybind/pybind11/archive/v2.6.2.tar.gz)
-#    set(URL "https://github.com/pybind/pybind11/archive/refs/tags/v2.9.2.tar.gz")
-#  This caused an error regarding Base64 someplace inside pickle load. Reverting to 2.6.2
+    set(URL https://github.com/pybind/pybind11/archive/v2.10.1.tar.gz)
 endif()
 
 message(STATUS "obtaining PyBind11")

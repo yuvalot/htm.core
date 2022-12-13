@@ -369,7 +369,7 @@ class NetworkTest(unittest.TestCase):
     network.initialize()
     
     if sys.version_info[0] >= 3:
-      proto = 3
+      proto = pickle.HIGHEST_PROTOCOL
     else:
       proto = 2
 

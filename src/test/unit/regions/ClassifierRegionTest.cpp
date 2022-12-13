@@ -143,7 +143,7 @@ TEST(ClassifierRegionTest, asCategoryDecoder) {
 TEST(ClassifierRegionTest, asRealDecoder) {
   Network net;
 
-  std::shared_ptr<Region> encoder = net.addRegion("encoder", "RDSEEncoderRegion", "{size: 400, radius: 0.1, seed: 42, activeBits: 40}");
+  std::shared_ptr<Region> encoder = net.addRegion("encoder", "RDSEEncoderRegion", "{size: 600, radius: 0.1, seed: 42, activeBits: 40}");
   std::shared_ptr<Region> sp = net.addRegion("sp", "SPRegion", "{columnCount: 1000, globalInhibition: true}");
   std::shared_ptr<Region> classifier = net.addRegion("classifier", "ClassifierRegion", "{learn: true}");
 
@@ -173,7 +173,7 @@ TEST(ClassifierRegionTest, asRealDecoder) {
     const Real64 *pdf = reinterpret_cast<const Real64 *>(classifier->getOutputData("pdf").getBuffer());
     VERBOSE << "Encoded -0.552808, Classifier predicted " << titles[predicted] << " with a probability of " << pdf[predicted] << std::endl;
     EXPECT_NEAR(titles[predicted], -0.5, 0.01);
-    EXPECT_NEAR(pdf[predicted], 0.682351, 0.003);
+    EXPECT_NEAR(pdf[predicted], 0.711981, 0.003);
   }
 
   {
@@ -185,7 +185,7 @@ TEST(ClassifierRegionTest, asRealDecoder) {
     VERBOSE << "Encoded +0.830509, Classifier predicted " << titles[predicted] << " with a probability of "
             << pdf[predicted] << std::endl;
     EXPECT_NEAR(titles[predicted], +0.8, 0.1);
-    EXPECT_NEAR(pdf[predicted], 0.576886, 0.003);
+    EXPECT_NEAR(pdf[predicted], 0.741413357, 0.003);
   }
 }
 

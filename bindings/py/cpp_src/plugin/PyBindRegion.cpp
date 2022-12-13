@@ -317,7 +317,7 @@ namespace py = pybind11;
         //    import base64
         //    import pickle
         //    f = io.BytesIO()
-        //    pickle.dump(node, f, 3)
+        //    pickle.dump(node, f, HIGHEST_PROTOCOL)
         //    b = f.getvalue()
         //    content = str(base64.b64encode(b))
         //    f.close()
@@ -327,7 +327,8 @@ namespace py = pybind11;
 
 #if PY_MAJOR_VERSION >= 3
 		    auto pickle = py::module::import("pickle");
-		    args = py::make_tuple(node_, f, 3);   // use type 3 protocol
+        auto highest = pickle.attr("HIGHEST_PROTOCOL");
+		    args = py::make_tuple(node_, f, highest);   // use type 3,4, or 5 protocol
 #else
 		    auto pickle = py::module::import("cPickle");
 		    args = py::make_tuple(node_, f, 2);   // use type 2 protocol
@@ -338,6 +339,8 @@ namespace py = pybind11;
         py::bytes b = f.attr("getvalue")();
         args = py::make_tuple(b);
 		    std::string content = py::str(py::module::import("base64").attr("b64encode")(*args));
+        if (content[1] == '\'') // strip off leading "b'" and trailing "'"
+           content = content.substr(2, content.length() - 3);		    f.attr("close")();
        
 		    f.attr("close")();
 		    return content;
