@@ -335,12 +335,12 @@ namespace py = pybind11;
 #endif
 		    pickle.attr("dump")(*args);
 
-				// copy the pickle stream into the content as a base64 encoded utf8 string
+			  // copy the pickle stream into the content as a base64 encoded utf8 string
         py::bytes b = f.attr("getvalue")();
         args = py::make_tuple(b);
 		    std::string content = py::str(py::module::import("base64").attr("b64encode")(*args));
         if (content[1] == '\'') // strip off leading "b'" and trailing "'"
-           content = content.substr(2, content.length() - 3);		    f.attr("close")();
+           content = content.substr(2, content.length() - 3);
        
 		    f.attr("close")();
 		    return content;
