@@ -54,7 +54,6 @@ If you want to use python, then obviously:
       + Python 2 is not tested by our CI anomore. It may still work but we don't test it. We expect to drop support for Python2 around 2020.
     - [Anaconda Python](https://www.anaconda.com/products/individual#Downloads) 3.7+
       + On windows you must run from within 'Anaconda Prompt' not 'Command Prompt'.
-      + The pre-built binary releases only work with Standard Python so you must build from sources.
       + Anaconda Python is not tested in our CI.
 
   Be sure that your Python executable is in the Path environment variable.
@@ -62,12 +61,16 @@ If you want to use python, then obviously:
   version of Python the extension library will be built for.
   - Other implementations of Python may not work.
   - Only the standard python from python.org have been tested.
+  - On Linux you will need both the Python install and the Python-dev install
+        '$ sudo apt install python3.11'
+        '$ sudo apt install python3.11-dev'
+  - You will probably also want to setup a [https://docs.python.org/3/library/venv.html(venv environment).
 
 - **C\+\+ compiler**: c\+\+11/17 compatible (ie. g++, clang\+\+).
-- boost library (if not a C\+\+17 or greater compiler that supports filesystem.) 
-  If the build needs boost, it will automatically download and install boost with the options it needs.
-- CMake 3.7+  (MSVC 2019 needs CMake 3.14+, MSVC 2022 needs CMake 3.21+).  
-  Install the latest using [https://cmake.org/download/](https://cmake.org/download/)
+  - boost library (if not a C\+\+17 or greater compiler that supports filesystem.) 
+    If the build needs boost, it will automatically download and install boost with the options it needs.
+  - CMake 3.7+  (MSVC 2019 needs CMake 3.14+, MSVC 2022 needs CMake 3.21+).  
+    Install the latest using [https://cmake.org/download/](https://cmake.org/download/)
 
 Note: Windows MSVC 2019 runs as C\+\+17 by default so boost is not needed.  On linux use -std=c++17 compile option to avoid needing boost.
 
@@ -89,6 +92,7 @@ git clone https://github.com/htm-community/htm.core
 1) Prerequisites: install the following python packages: 
 	  `python -m ensurepip --upgrade`
       `python -m pip install setuptools packaging`
+	  The remaining packages will be installed within the build.
 
 2) At a command prompt, `cd` to the root directory of this repository.
 
@@ -96,7 +100,7 @@ git clone https://github.com/htm-community/htm.core
 
    This will build and install a release version of htm.core.  The `--user` option prevents the system installed site-packages folder from being changed and avoids the need for admin privileges.  The `--force` option forces the package to be replaced if it already exists from a previous build. Alternatively you can type `pip uninstall htm.core` to remove a previous package before performing a build.
    
-   * If you are using `virtualenv` you do not need the --user or --force options.
+   * If you are using `virtualenv` you may not need the --user or --force options.
    * If you are using Anaconda Python you must run within the `Anaconda Prompt` on Windows. Do not use --user or --force options.
 
    * If you run into problems due to caching of arguments in CMake, delete the
