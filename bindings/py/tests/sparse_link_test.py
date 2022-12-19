@@ -25,7 +25,7 @@ import htm.bindings.engine_internal as engine
 TEST_DATA_SPARSE = np.array([4, 7])
 MAX_ACTIVE = TEST_DATA_SPARSE.size
 OUTPUT_WIDTH = 10
-TEST_DATA_DENSE = np.zeros(OUTPUT_WIDTH, dtype=np.bool)
+TEST_DATA_DENSE = np.zeros(OUTPUT_WIDTH, dtype=np.bool_)
 TEST_DATA_DENSE[TEST_DATA_SPARSE] = True
 
 

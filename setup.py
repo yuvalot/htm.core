@@ -336,9 +336,9 @@ def configure(platform, build_type):
     os.chdir(scriptsDir)
     
     # Make sure we have CMake installed
-    cmake_ver = getCMakeVersion();
+    cmake_ver = getCMakeVersion()
     if cmake_ver == False:
-      raise Exception("CMake is not found.");
+      raise Exception("CMake is not found.")
     
     # Call CMake to setup the cache for the build.
     # Normally we would let CMake figure out the generator based on the platform.

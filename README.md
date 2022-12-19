@@ -40,36 +40,20 @@ in C++ library.
 
 ## Installation
 
-### Binary releases
 
-NOTE: The Binary releases are not being maintained. Suggest building from Sources instead.
-
-If you want to use `htm.core` from Python, the easiest method is to install from [PyPI](https://test.pypi.org/project/htm.core/)
-  - Note: to install from `pip` you'll need Python 3.7 only(does not work with older or newer versions)
-
-```
-python -m pip install -i https://test.pypi.org/simple/ htm.core
-```
-Note: to run all examples with visualizations, install including extra requirements:
-`pip install -i https://test.pypi.org/simple/ htm.core[examples]`
-
-If you intend to use `htm.core` as a library that provides you Python \& C++ HTM, 
-you can use our [binary releases](https://github.com/htm-community/htm.core/releases).
-
-#### Prerequisites
+### Prerequisites
 
 For running C++ apps/examples/tests from binary release: none. 
 If you want to use python, then obviously:
 
 - [Python](https://python.org/downloads/)
-    - Standard Python 3.7+ (Recommended)
+    - Standard Python 3.7+ (Recommend using the latest)  [Tested with 3.8, 3.11.1]
     - Standard Python 2.7
       + We recommend the latest version of 2.7 where possible, but the system version should be fine.
       + Python 2 is Not Supported on Windows, use Python 3 instead.
       + Python 2 is not tested by our CI anomore. It may still work but we don't test it. We expect to drop support for Python2 around 2020.
     - [Anaconda Python](https://www.anaconda.com/products/individual#Downloads) 3.7+
       + On windows you must run from within 'Anaconda Prompt' not 'Command Prompt'.
-      + The pre-built binary releases only work with Standard Python so you must build from sources.
       + Anaconda Python is not tested in our CI.
 
   Be sure that your Python executable is in the Path environment variable.
@@ -77,7 +61,18 @@ If you want to use python, then obviously:
   version of Python the extension library will be built for.
   - Other implementations of Python may not work.
   - Only the standard python from python.org have been tested.
+  - On Linux you will need both the Python install and the Python-dev install
+        '$ sudo apt install python3.11'
+        '$ sudo apt install python3.11-dev'
+  - You will probably also want to setup a [https://docs.python.org/3/library/venv.html(venv environment).
 
+- **C\+\+ compiler**: c\+\+11/17 compatible (ie. g++, clang\+\+).
+  - boost library (if not a C\+\+17 or greater compiler that supports filesystem.) 
+    If the build needs boost, it will automatically download and install boost with the options it needs.
+  - CMake 3.7+  (MSVC 2019 needs CMake 3.14+, MSVC 2022 needs CMake 3.21+).  
+    Install the latest using [https://cmake.org/download/](https://cmake.org/download/)
+
+Note: Windows MSVC 2019 runs as C\+\+17 by default so boost is not needed.  On linux use -std=c++17 compile option to avoid needing boost.
 
 ### Building from Source
 
@@ -91,21 +86,13 @@ To fork the repo with `git`:
 git clone https://github.com/htm-community/htm.core
 ```
 
-#### Prerequisites
-
-- same as for Binary releases, plus:
-- **C\+\+ compiler**: c\+\+11/17 compatible (ie. g++, clang\+\+).
-- boost library (if not a C\+\+17 or greater compiler that supports filesystem.) 
-  If the build needs boost, it will automatically download and install boost with the options it needs.
-- CMake 3.7+  (MSVC 2019 needs CMake 3.14+, MSVC 2022 needs CMake 3.21+).  
-  Install the latest using [https://cmake.org/download/](https://cmake.org/download/)
-
-Note: Windows MSVC 2019 runs as C\+\+17 by default so boost is not needed.  On linux use -std=c++17 compile option to avoid needing boost.
-
 
 #### Simple Python build (any platform)
 
-1) Prerequisites: install the following python packages: `pip install setuptools packaging`
+1) Prerequisites: install the following python packages: 
+	  `python -m ensurepip --upgrade`
+      `python -m pip install setuptools packaging`
+	  `pip -r install requirements.txt`
 
 2) At a command prompt, `cd` to the root directory of this repository.
 
@@ -113,7 +100,7 @@ Note: Windows MSVC 2019 runs as C\+\+17 by default so boost is not needed.  On l
 
    This will build and install a release version of htm.core.  The `--user` option prevents the system installed site-packages folder from being changed and avoids the need for admin privileges.  The `--force` option forces the package to be replaced if it already exists from a previous build. Alternatively you can type `pip uninstall htm.core` to remove a previous package before performing a build.
    
-   * If you are using `virtualenv` you do not need the --user or --force options.
+   * If you are using `virtualenv` you may not need the --user or --force options.
    * If you are using Anaconda Python you must run within the `Anaconda Prompt` on Windows. Do not use --user or --force options.
 
    * If you run into problems due to caching of arguments in CMake, delete the
@@ -305,10 +292,11 @@ Generate IDE solution & build.
  * Specify the build system folder (`$HTM_CORE/build/scripts`), i.e. where IDE solution will be created.
  * Click `Generate`.
 
-#### For MS Visual Studio 2017 or 2019 as the IDE
+#### For MS Visual Studio 2017, 2019 or 2022 as the IDE
 
 After downloading the repository, do the following:
  * NOTE: Visual Studio 2019 requires CMake version 3.14 or higher.
+ *       Visual Studio 2022 requires CMake version 3.21 or higher.
  * CD to the top of repository.
  * Double click on `startupMSVC.bat`
     - This will setup the build, create the solution file (build/scripts/htm.cpp.sln), and start MS Visual Studio.
@@ -404,7 +392,7 @@ Note2: It is obvious, but anyway - do not use `--user` option while using python
 The installation scripts will automatically download and build the dependencies it needs.
 
  * [Boost](https://www.boost.org/)   (Not needed by C++17 compilers that support the filesystem module)
- * [LibYaml](https://pyyaml.org/wiki/LibYAML) or [Yaml-cpp](https://github.com/jbeder/yaml-cpp)
+ * [LibYaml](https://pyyaml.org/wiki/LibYAML)
  * [Eigen](https://eigen.tuxfamily.org/index.php?title=Main_Page)
  * [PyBind11](https://github.com/pybind/pybind11)
  * [gtest](https://github.com/google/googletest)
@@ -425,18 +413,17 @@ distribution packages as listed and rename them as indicated. Copy these to
 
 | Name to give it        | Where to obtain it |
 | :--------------------- | :----------------- |
-| libyaml.zip   (*note1) | https://github.com/yaml/libyaml/archive/refs/tags/0.2.5.tar.gz |
+| libyaml.zip            | https://github.com/yaml/libyaml/archive/refs/tags/0.2.5.tar.gz |
 | boost.tar.gz  (*note3) | https://dl.bintray.com/boostorg/release/1.72.0/source/boost_1_72_0.tar.gz | 
-| googletest.tar.gz      | https://github.com/google/googletest/archive/refs/tags/release-1.11.0.tar.gz |
+| googletest.tar.gz      | https://github.com/google/googletest/archive/refs/tags/release-1.12.1.tar.gz |
 | eigen.tar.bz2          | https://gitlab.com/libeigen/eigen/-/archive/3.4.0/eigen-3.4.0.tar.gz |
 | mnist.zip     (*note4) | https://github.com/wichtounet/mnist/archive/3b65c35ede53b687376c4302eeb44fdf76e0129b.zip |
-| pybind11.tar.gz        | https://github.com/pybind/pybind11/archive/refs/tags/v2.6.2.tar.gz |
+| pybind11.tar.gz        | https://github.com/pybind/pybind11/archive/refs/tags/v2.10.1.tar.gz |
 | cereal.tar.gz          | https://github.com/USCiLab/cereal/archive/refs/tags/v1.3.2.tar.gz |
 | sqlite3.tar.gz         | https://www.sqlite.org/2022/sqlite-autoconf-3380200.tar.gz |
 | digestpp.zip           | https://github.com/kerukuro/digestpp/archive/34ff2eeae397ed744d972d86b5a20f603b029fbd.zip |
-| cpp-httplib.zip(*note4)| https://github.com/yhirose/cpp-httplib/archive/refs/tags/v0.10.4.zip |
+| cpp-httplib.zip(*note4)| https://github.com/yhirose/cpp-httplib/archive/refs/tags/v0.11.3.zip |
 
- * note1: Version 0.2.2 of libyaml is broken so use the master for the repository.
  * note3: Boost is not required for any compiler that supports C++17 with `std::filesystem` (MSVC2017, gcc-8, clang-9).
  * note4: Used for examples. Not required to run but the build expects it.
 

@@ -892,9 +892,16 @@ def noisy(pattern, wFlip, n):
     A noisy set of active indices
     """
 
+    """
+       keeney, 12/2022
+       The random.sample() method requires the first argument to be sorted.
+       The apical_tiebreak_temporal_memory_test_base:897 was failing with an error saying
+       it was not a sequence. So I added a sorted(). I would have thought that a set
+       would already be sorted. I do not know if this affects the algorithm logic.
+    """
     noised = set(pattern)
 
-    noised.difference_update(random.sample(noised, wFlip))
+    noised.difference_update(random.sample(sorted(noised), wFlip))
 
     for _ in range(wFlip):
         while True:

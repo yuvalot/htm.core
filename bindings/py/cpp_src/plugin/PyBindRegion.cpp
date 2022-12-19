@@ -308,43 +308,46 @@ namespace py = pybind11;
         // 2. call class method to serialize external state
 
         //    Serialize main state of the Python module
-				//    We want this to end up in a string that we pass back to Cereal.
-				//    a. We first pickle the python into an in-memory byte stream.
-				//    b. We then convert that to a Base64 std::string that is returned.
+        //    We want this to end up in a string that we pass back to Cereal.
+        //    a. We first pickle the python into an in-memory byte stream.
+        //    b. We then convert that to a Base64 std::string that is returned.
         //
         //  Basicly, we are executing the following Python code:
         //    import io
         //    import base64
         //    import pickle
         //    f = io.BytesIO()
-        //    pickle.dump(node, f, 3)
+        //    pickle.dump(node, f, HIGHEST_PROTOCOL)
         //    b = f.getvalue()
         //    content = str(base64.b64encode(b))
         //    f.close()
         
-		    py::tuple args;
-		    auto f = py::module::import("io").attr("BytesIO")();
+        py::tuple args;
+        auto f = py::module::import("io").attr("BytesIO")();
 
 #if PY_MAJOR_VERSION >= 3
-		    auto pickle = py::module::import("pickle");
-		    args = py::make_tuple(node_, f, 3);   // use type 3 protocol
+        auto pickle = py::module::import("pickle");
+        auto highest = pickle.attr("HIGHEST_PROTOCOL");
+        args = py::make_tuple(node_, f, highest);   // use type 3,4, or 5 protocol
 #else
-		    auto pickle = py::module::import("cPickle");
-		    args = py::make_tuple(node_, f, 2);   // use type 2 protocol
+        auto pickle = py::module::import("cPickle");
+        args = py::make_tuple(node_, f, 2);   // use type 2 protocol
 #endif
-		    pickle.attr("dump")(*args);
+        pickle.attr("dump")(*args);
 
-				// copy the pickle stream into the content as a base64 encoded utf8 string
+        // copy the pickle stream into the content as a base64 encoded utf8 string
         py::bytes b = f.attr("getvalue")();
         args = py::make_tuple(b);
-		    std::string content = py::str(py::module::import("base64").attr("b64encode")(*args));
-       
-		    f.attr("close")();
-		    return content;
+        std::string content = py::str(py::module::import("base64").attr("b64encode")(*args));
+        if (content[1] == '\'') { // strip off leading "b'" and trailing "'"
+           content = content.substr(2, content.length() - 3);
+        }
+        f.attr("close")();
+        return content;
     }
     std::string PyBindRegion::extraSerialize() const
     {
-		    std::string tmp_extra = "extra.tmp";
+        std::string tmp_extra = "extra.tmp";
 
         // 2. External state
         // Call the Python serializeExtraData() method to write additional data.
@@ -353,13 +356,13 @@ namespace py = pybind11;
         // Need to put the None result in py::Ptr to decrement the ref count
         node_.attr("serializeExtraData")(*args);
 
-				// copy the extra data into the extra string
-				std::ifstream efile(tmp_extra.c_str(), std::ios::binary);
-				std::string extra((std::istreambuf_iterator<char>(efile)),
-				                   std::istreambuf_iterator<char>());
-				efile.close();
-				Path::remove(tmp_extra);
-		    return extra;
+        // copy the extra data into the extra string
+        std::ifstream efile(tmp_extra.c_str(), std::ios::binary);
+        std::string extra((std::istreambuf_iterator<char>(efile)),
+                           std::istreambuf_iterator<char>());
+        efile.close();
+        Path::remove(tmp_extra);
+        return extra;
 
     }
 
@@ -367,7 +370,7 @@ namespace py = pybind11;
         // 1. deserialize main state using pickle
         // 2. call class method to deserialize external state
         //
-		    // Tell Python to un-pickle using what is in the string p.
+        // Tell Python to un-pickle using what is in the string p.
         // but first we need to convert the base64 string into bytes.
         //
         // Basically we are executing the following Python code:
@@ -383,7 +386,7 @@ namespace py = pybind11;
         args = py::make_tuple(py::bytes(p));
         py::bytes b = py::module::import("base64").attr("b64decode")(*args);
         args = py::make_tuple(b);
-		    auto f = py::module::import("io").attr("BytesIO")(*args);
+        auto f = py::module::import("io").attr("BytesIO")(*args);
 
 #if PY_MAJOR_VERSION >= 3
         auto pickle = py::module::import("pickle");
@@ -394,19 +397,19 @@ namespace py = pybind11;
         node_ = pickle.attr("load")(*args);
 
         f.attr("close")();
-		}
+    }
 
-		void PyBindRegion::extraDeserialize(std::string e) {
+    void PyBindRegion::extraDeserialize(std::string e) {
         // 2. External state
-		    std::string tmp_extra = "extra.tmp";
-			  std::ofstream efile(tmp_extra.c_str(), std::ios::binary);
-				efile.write(e.c_str(), e.size());
-				efile.close();
+        std::string tmp_extra = "extra.tmp";
+        std::ofstream efile(tmp_extra.c_str(), std::ios::binary);
+        efile.write(e.c_str(), e.size());
+        efile.close();
 
         // Call the Python deSerializeExtraData() method
         py::tuple args = py::make_tuple(tmp_extra);
         node_.attr("deSerializeExtraData")(*args);
-				Path::remove(tmp_extra);
+        Path::remove(tmp_extra);
     }
 
 
