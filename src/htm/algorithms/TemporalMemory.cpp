@@ -190,9 +190,9 @@ void TemporalMemory::activatePredictedColumn_(
 
 
 void TemporalMemory::burstColumn_(
-	    const UInt column,
-            vector<Segment>::const_iterator columnMatchingSegmentsBegin,
-            vector<Segment>::const_iterator columnMatchingSegmentsEnd,
+            const UInt column,
+            const vector<Segment>::const_iterator columnMatchingSegmentsBegin,
+            const vector<Segment>::const_iterator columnMatchingSegmentsEnd,
             const SDR &prevActiveCells,
             const vector<CellIdx> &prevWinnerCells,
             const bool learn) {
@@ -208,19 +208,28 @@ void TemporalMemory::burstColumn_(
                                  numActivePotentialSynapsesForSegment_[b]);
                        });
 
-  const CellIdx winnerCell =
-      (bestMatchingSegment != columnMatchingSegmentsEnd)
-          ? connections.cellForSegment(*bestMatchingSegment)
-          : getLeastUsedCell_(column); //TODO replace (with random?) this is extremely costly, removing makes TM 6x faster!
-
+  CellIdx winnerCell;
+  if(bestMatchingSegment != columnMatchingSegmentsEnd) {
+    winnerCell = connections.cellForSegment(*bestMatchingSegment);
+  }
+  else {
+    // Check for previous winner cells in this minicolumn.
+    const auto prevWinnerPtr = std::lower_bound(prevWinnerCells.begin(), prevWinnerCells.end(), column,
+        [&](const CellIdx cell, const UInt col) { return columnForCell(cell) < col; });
+    if(prevWinnerPtr != prevWinnerCells.end() && columnForCell(*prevWinnerPtr) == column) {
+      winnerCell = *prevWinnerPtr;
+    }
+    else {
+      winnerCell = getLeastUsedCell_(column);
+    }
+  }
   winnerCells_.push_back(winnerCell);
 
-  // Learn.
   if (learn) {
     if (bestMatchingSegment != columnMatchingSegmentsEnd) {
       // Learn on the best matching segment.
       connections_.adaptSegment(*bestMatchingSegment, prevActiveCells,
-                   permanenceIncrement_, permanenceDecrement_, true, minThreshold_); //TODO consolidate SP.stimulusThreshold_ & TM.minThreshold_ into Conn.stimulusThreshold ? (replacing segmentThreshold arg used in some methods in Conn) 
+                   permanenceIncrement_, permanenceDecrement_, true, minThreshold_);
 
       const Int32 nGrowDesired = maxNewSynapseCount_ - numActivePotentialSynapsesForSegment_[*bestMatchingSegment];
       if (nGrowDesired > 0) {
