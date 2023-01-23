@@ -247,6 +247,23 @@ class TemporalMemoryBindingsTest(unittest.TestCase):
     self.assertEqual(parameters1["tm"]["maxSynapsesPerSegment"], maxSynapsesPerSegment, "using Method (getMaxSynapsesPerSegment) failed")
     self.assertEqual(True, checkInputs, "using Method (getCheckInputs) failed")
 
+  def testStaticInputs(self):
+    """ Check that repeating the same input results in the same output. """
+    cols = 100
+    tm = TM([cols])
+    # Train on a square wave.
+    inp_a = SDR(cols).randomize( .2 )
+    inp_b = SDR(cols).randomize( .2 )
+    for i in range(10): tm.compute( inp_a, True )
+    for i in range(10): tm.compute( inp_b, True )
+    # Test that it reached a steady state.
+    self.assertEqual(tm.anomaly, 0.0)
+    out_1 = tm.getActiveCells()
+    tm.compute( inp_b, True )
+    self.assertEqual(tm.anomaly, 0.0)
+    out_2 = tm.getActiveCells()
+    self.assertTrue(all(out_1.sparse == out_2.sparse))
+
 def _print(txt):
     if debugPrint:
         print(txt)
