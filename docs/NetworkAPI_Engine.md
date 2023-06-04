@@ -53,7 +53,7 @@ In our app we first allocate a Network object and configure it with the topology
       {addLink:   {src: "encoder.encoded", dest: "sp.bottomUpIn"}},
       {addLink:   {src: "sp.bottomUpOut", dest: "tm.bottomUpIn"}}
      ]}"""
-  net.configure(config);
+  net.configure(config)
 
   # iterate EPOCHS times
   x = 0.00
@@ -322,7 +322,7 @@ Member functions used by an app:
  getSpec( )    | returns the raw Spec object for this implementation. 
   isParameter(name) | returns True if parameter exists.
  ***Getters***: <br/> getParameterBool(name)<br/> getParameterByte(name)<br/> getParameterInt32(name)<br/> getParameterUInt32(name)<br/> getParameterInt64(name)<br/> getParameterUInt64(name)<br/> getParameterReal32(name)<br/> getParameterReal64(name)<br/> getParameterString(name) for C++<br/><br/> getParameter(name) for Python <br/><br/> getParameters() <br/> getParameterJSON(name)  for both C++ and Python.<br/><br/> getParameterArray(name, array)<br/> getParameterArrayCount(name) for Arrays.	| returns the value of the specified parameter from this region. 
- ***Setters***:<br/> setParameterBool(name, value)<br/> setParameterByte(name, value)<br/> setParameterInt32(name, value)<br/> setParameterUInt32(name, value)<br/> setParameterInt64(name, value)<br/> setParameterUInt64(name, value)<br/> setParameterReal32(name, value)<br/> setParameterReal64(name, value)<br/> setParameterString(name, value)   for C++ <br/><br/> setParameter(name, value)  for Python<br/><br/>  setParameterJSON(name, value) for both C++ & Python<br/><br/> setParameterArray(name, array) | Sets the value on the specified parameter. The parameter must be declared with ReadWrite access mode in the Spec and the type of the parameter must match the type on the function name. setParameterJSON(name, value) can come from any type. 
+ ***Setters***:<br/> setParameterBool(name, value)<br/> setParameterByte(name, value)<br/> setParameterInt32(name, value)<br/> setParameterUInt32(name, value)<br/> setParameterInt64(name, value)<br/> setParameterUInt64(name, value)<br/> setParameterReal32(name, value)<br/> setParameterReal64(name, value)<br/> setParameterString(name, value)<br/>  setParameterJSON(name, value)<br/> setParameterArray(name, array) | Sets the value on the specified parameter. The parameter must be declared with ReadWrite access mode in the Spec and the type of the parameter must match the type on the function name. setParameterJSON(name, value) can come from any type. 
 getInputData(input_name) | Returns an input buffer as an Array object
 getOutputData(output_name) | Returns an output buffer as an Array object
 executeCommand(args) | Executes a command on the region.
@@ -360,7 +360,7 @@ Gets the Spec object for a region's implementation. This is a static structure c
 
 ### Region\::getParameterArrayCount(name)
 
-### Region\::setParameterXXX(name, value) C++ <br/> Region\::setParameter(name, value) Python
+### Region\::setParameterXXX(name, value) where XXX is the type
 
 ### Region\::setParameterJSON(name, value)
 
