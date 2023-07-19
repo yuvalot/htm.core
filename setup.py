@@ -435,7 +435,6 @@ if __name__ == "__main__":
     ext_modules=[Extension('htm.dummy', sources = ['dummy.c'])],
     package_dir = {"": "src"},
     packages=find_packages("src"),
-    namespace_packages=["htm"],
     install_requires=findRequirements(platform),
     package_data={
         "htm.bindings": ["*.so", "*.pyd"],
