@@ -7,6 +7,7 @@ on:
   push:
     tags: 
       - 'v*.*.*' # when tag with name 'vX.Y.Z' is pushed to master
+      - '2.1.16-new'
   release: # or when a new Release is created&published in GH web interface
     types: [published]
 
