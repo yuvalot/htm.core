@@ -17,8 +17,8 @@ jobs:
     strategy:
       #max-parallel: 4
       matrix:
-        python-version: [3.7, 3.8, 3.9]
-        os: [ubuntu-18.04, ubuntu-20.04, windows-2019, macos-10.15]
+        python-version: ['3.10']
+        os: [ubuntu-20.04]
 
     steps:
     - uses: actions/checkout@v2
@@ -84,13 +84,15 @@ jobs:
 
 
 
-  build-wheels: # this is a separate job from build-gh-release as CIBW needs to re-build on its platform/image/python. Existing build breaks it. 
+  build-wheels:
+    # This is a separate job from build-gh-release as CIBW needs to re-build on
+    # its platform/image/python. Existing build breaks it. 
     name: Wheels on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     strategy:
       #max-parallel: 4
       matrix:
-        os: [ubuntu-18.04, ubuntu-20.04, windows-2019, macos-10.15]
+        os: [ubuntu-20.04]
     steps:
 
     - uses: actions/checkout@v2
@@ -109,7 +111,7 @@ jobs:
         CIBW_TEST_REQUIRES: pytest
         CIBW_TEST_COMMAND: "pytest {project}/py/tests {project}/bindings/py/tests"
         # Only build on Python >=3.7 and skip 32-bit builds
-        CIBW_BUILD: cp37-* cp38-*
+        CIBW_BUILD: cp39-* cp310-*
         CIBW_SKIP: "*-win32 cp27-manylinux* *i686*"
         # build using the manylinux2014 image
         CIBW_MANYLINUX_X86_64_IMAGE: manylinux2014
@@ -123,87 +125,3 @@ jobs:
       with:
         name: wheels
         path: ./wheelhouse/*.whl
-
-
-
-  build-arm64-docker:
-    name: Build for ARM64 on Docker
-    runs-on: ubuntu-20.04
-    steps:
-
-    - uses: actions/checkout@v2
-
-    - name: ARM64 env
-      run: |
-        sudo docker run --privileged --rm multiarch/qemu-user-static:register
-        sudo docker build -t htm-arm64-docker --build-arg arch=arm64 -f Dockerfile-pypi .
-        uname -a
-
-    - name: Dependencies
-      run: |
-        sudo docker run htm-arm64-docker python -m pip install -r requirements.txt
-
-    - name: Build ARM64
-      run: |
-        sudo docker run htm-arm64-docker python setup.py install --force 
-
-     #TODO build manylinux2014 arm linux wheel using CIBW 
- 
-    - name: Tests
-      run: |
-        sudo docker run htm-arm64-docker python setup.py test
-
-    - name: Copy files from docker
-      run: |
-        sudo docker cp `sudo docker ps -alq`:/usr/local/src/htm.core/dist dist #TODO the `command` is not 100% reliable, replace with some name/id
-        ls dist
-
-    - uses: actions/upload-artifact@v2
-      with:
-        name: "release"
-        path: dist/
-
-    - uses: actions/upload-artifact@v2
-      with:
-        name: "wheels"
-        path: dist/*.whl
-
-    - name: GitHub Release C++ (deploy)
-      if: (github.event_name == 'push' && startsWith(github.event.ref, 'refs/tags'))
-      uses: softprops/action-gh-release@v1
-      with:
-        files: |
-          dist/htm_core-v*
-          dist/*.whl
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-
-
-  publish-pypi: #this is a separate job, as the upload must run only once, after all wheels have been created
-    needs: [build-wheels]
-    runs-on: ubuntu-20.04
-    steps:
-    - uses: actions/checkout@v2
-
-    - uses: actions/download-artifact@v2
-      with:
-        name: wheels
-        path: dist/
-
-    - name: GitHub Release wheels (deploy)
-      if: (github.event_name == 'push' && startsWith(github.event.ref, 'refs/tags'))
-      uses: softprops/action-gh-release@v1
-      with:
-        files: |
-          dist/*.whl
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-    - name: Publish to PyPI
-      uses: pypa/gh-action-pypi-publish@master
-      with:
-        user: __token__
-        password: ${{ secrets.pypi_password }}
-        repository_url: https://test.pypi.org/legacy/ #TODO toggle test/real pypi
-        packages_dir: ./dist/
